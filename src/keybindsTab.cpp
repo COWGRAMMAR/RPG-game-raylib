@@ -7,7 +7,14 @@
 
 #include "../include/keybindsTab.h"
 #include "../lib/raylib/include/raylib.h"
+#include <array>
 
+/**
+ * @brief Draw keybinds tab content
+ * @param mousePosition Posisi mouse untuk efek hover
+ * @param startX Posisi X awal area options
+ * @param startY Posisi Y awal area options
+ */
 void DrawKeybindsTab(
     Vector2 mousePosition,
     int startX,
@@ -19,16 +26,47 @@ void DrawKeybindsTab(
     int col1X = startX + 40;
     int col2X = startX + 450;
 
-    const char* keys[] = {"W / Arrow Up", "S / Arrow Down", "A / Arrow Left", "D / Arrow Right",
-                       "E", "I", "M", "Mouse Left",
-                       "1", "2", "3", "4",
-                       "P", "TAB", "R", "K",
-                       "B", "Scroll"};
-    const char* actions[] = {"Move Up", "Move Down", "Move Left", "Move Right",
-                             "Interact", "Inventory", "Map", "Action",
-                             "Weapon 1", "Weapon 2", "Potion 1", "Potion 2",
-                             "Pause", "Debug", "Revive", "Damage",
-                             "Prev Map", "Zoom / Hotbar Slot"};
+    static const std::array<const char*, 18> keys = {
+        "W / Arrow Up",
+        "S / Arrow Down",
+        "A / Arrow Left",
+        "D / Arrow Right",
+        "E",
+        "I",
+        "M",
+        "Mouse Left",
+        "1",
+        "2",
+        "3",
+        "4",
+        "P",
+        "TAB",
+        "R",
+        "K",
+        "B",
+        "Scroll"
+    };
+    
+    static const std::array<const char*, 18> actions = {
+        "Move Up",
+        "Move Down",
+        "Move Left",
+        "Move Right",
+        "Interact",
+        "Inventory",
+        "Map",
+        "Action",
+        "Weapon 1",
+        "Weapon 2",
+        "Potion 1",
+        "Potion 2",
+        "Pause",
+        "Debug",
+        "Revive",
+        "Damage",
+        "Prev Map",
+        "Zoom / Hotbar Slot"
+    };
 
     for (int i = 0; i < 9; i++) {
         int rowY = contentStartY + i * 28;

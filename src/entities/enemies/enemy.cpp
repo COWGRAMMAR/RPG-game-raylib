@@ -8,6 +8,7 @@
 #include "../lib/json/include/nlohmann/json.hpp"
 #include "game_debug.h"
 #include "entities.h"
+#include "animation.h"
 #include <cmath>
 #include <fstream>
 #include <stdexcept>
@@ -589,6 +590,7 @@ void Enemy::PerformAttack()
 void Enemy::TakeDamage(float amount, Vector2 knockback)
 {
     Entity::TakeDamage(amount, knockback);
+    PlaySFX("attack");
     HitFlashTimer = 0.15f;
     KnockbackVelocity = Vector2Scale(knockback, 6.0f);
     HealthRegenTimer = Def->stats.healthRegenDelay;

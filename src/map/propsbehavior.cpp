@@ -17,6 +17,7 @@
 #include "enemy_ai.h"
 #include "entities.h"
 #include "game_debug.h"
+#include "animation.h"
 
 /*==============================================================================
  * Utility Functions
@@ -549,6 +550,8 @@ void BombManager::Explode(BombData &bomb, Rectangle playerBounds, Player *player
     bomb.isExploding = true;
     bomb.isTriggered = true;
     bomb.explosionTimer = BOMB_EXPLOSION_DURATION;
+    
+    PlaySFX("explosion");
 
     consumedPositions.insert(EncodePos(bomb.tile.position));
 

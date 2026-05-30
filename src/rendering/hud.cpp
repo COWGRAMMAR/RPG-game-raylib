@@ -605,6 +605,8 @@ void DrawHotbar()
  */
 void DrawPlayerHUD()
 {
+    int initialDragSlot = dragSlot;
+
     float health = PlayerInstance.GetHealth();
     float maxHealth = PlayerInstance.GetMaxHealth();
     float healthRatio = (maxHealth > 0) ? health / maxHealth : 0;
@@ -652,4 +654,13 @@ void DrawPlayerHUD()
     DrawInventory();
     if (InputInstance.IsInventoryOpen())
         DrawDragGhost(GetVirtualMousePosition(gState));
+
+    if (initialDragSlot == -1 && dragSlot != -1)
+    {
+        PlaySFX("inventori");
+    }
+    else if (initialDragSlot != -1 && dragSlot == -1)
+    {
+        PlaySFX("inventori");
+    }
 }

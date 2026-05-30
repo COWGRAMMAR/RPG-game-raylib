@@ -247,6 +247,7 @@ void UpdateLogicAll()
             {
                 TraceLog(LOG_INFO, "PICKUP: added to inventory");
                 item.isAdded = true;
+                PlaySFX("pickup-item");
                 
                 const ItemDefinition &def = itemDefs.GetById(item.definitionId);
                 std::string logMsg = def.name;
@@ -388,6 +389,7 @@ Vector2 GetVirtualMousePosition(GameState *state)
 void GameShutDown(GameState *state)
 {
     CloseTextures();
+    CloseSFX();
 
     Entities::Shutdown();
     UnloadMap();

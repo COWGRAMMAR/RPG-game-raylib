@@ -213,6 +213,7 @@ void Player::Render(void)
 void Player::TakeDamage(float amount, Vector2 knockback)
 {
     Entity::TakeDamage(amount, knockback);
+    PlaySFX("hurt");
 
     HitFlashTimer = 0.15f;
     KnockbackVelocity = Vector2Scale(knockback, 6.0f);

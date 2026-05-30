@@ -430,3 +430,71 @@ float Slash(float raycastAngle, float progress)
     // else
     //     return raycastAngle - 90.0f;
 }
+
+/*
+====================
+Sound Effects System
+====================
+*/
+
+struct SoundPool {
+    Sound sounds[4];
+    int currentIndex;
+};
+
+static std::unordered_map<std::string, SoundPool> loadedSFX;
+
+static void LoadSFXToPool(const std::string& name, const char* path) {
+    Sound original = LoadSound(path);
+    SoundPool pool;
+    pool.sounds[0] = original;
+    for (int i = 1; i < 4; i++) {
+        pool.sounds[i] = LoadSoundAlias(original);
+    }
+    pool.currentIndex = 0;
+    loadedSFX[name] = pool;
+}
+
+void InitSFX()
+{
+    LoadSFXToPool("slash_hero", "assets/audio/sfx/666herohero-slash-21834.mp3");
+    LoadSFXToPool("arrow", "assets/audio/sfx/arrow.mp3");
+    LoadSFXToPool("attack", "assets/audio/sfx/attack.mp3");
+    LoadSFXToPool("dash", "assets/audio/sfx/dash.mp3");
+    LoadSFXToPool("explosion", "assets/audio/sfx/explosion.mp3");
+    LoadSFXToPool("hurt", "assets/audio/sfx/hurt.mp3");
+    LoadSFXToPool("inventori", "assets/audio/sfx/inventori.mp3");
+    LoadSFXToPool("pickup-item", "assets/audio/sfx/pickup-item.mp3");
+    LoadSFXToPool("rifle", "assets/audio/sfx/rifle.mp3");
+    LoadSFXToPool("sword-mid", "assets/audio/sfx/sword-mid.mp3");
+    LoadSFXToPool("sword-short", "assets/audio/sfx/sword-short.mp3");
+    LoadSFXToPool("walk", "assets/audio/sfx/walk.mp3");
+    TraceLog(LOG_INFO, "SFX: Successfully loaded all sound effects");
+}
+
+void CloseSFX()
+{
+    for (auto &pair : loadedSFX)
+    {
+        for (int i = 1; i < 4; i++) {
+            UnloadSoundAlias(pair.second.sounds[i]);
+        }
+        UnloadSound(pair.second.sounds[0]);
+    }
+    loadedSFX.clear();
+    TraceLog(LOG_INFO, "SFX: Successfully unloaded all sound effects");
+}
+
+void PlaySFX(const std::string &name)
+{
+    auto it = loadedSFX.find(name);
+    if (it != loadedSFX.end())
+    {
+        PlaySound(it->second.sounds[it->second.currentIndex]);
+        it->second.currentIndex = (it->second.currentIndex + 1) % 4;
+    }
+    else
+    {
+        TraceLog(LOG_WARNING, "SFX: Sound not found: %s", name.c_str());
+    }
+}

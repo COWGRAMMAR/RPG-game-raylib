@@ -120,3 +120,13 @@ void DamageFloat(Vector2& pos, Vector2& vel, float gravity, float friction, floa
 Vector2 LerpTowards(Vector2 current, Vector2 target, float speed, float dt);
 bool Blink(float timer, float frequency);
 float Slash(float raycastAngle, float progress);
+
+/*
+====================
+Sound Effects System
+====================
+*/
+
+void InitSFX();
+void CloseSFX();
+void PlaySFX(const std::string &name);

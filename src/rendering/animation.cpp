@@ -420,15 +420,20 @@ float SlashShort(float raycastAngle, float progress)
         return raycastAngle - 30.0f;
     else
         return raycastAngle - 90.0f;
+}
 
-    // if (progress < 1.0f / 4.0f)
-    //     return raycastAngle + 90.0f;
-    // else if (progress < 2.0f / 4.0f)
-    //     return raycastAngle + 60.0f;
-    // else if (progress < 3.0f / 4.0f)
-    //     return raycastAngle - 40.0f;
-    // else
-    //     return raycastAngle - 90.0f;
+float SlashMid(float raycastAngle, float progress)
+{
+    if (progress < 1.0f / 4.0f)
+        return raycastAngle + 90.0f;
+    else if (progress < 2.0f / 4.0f)
+        return raycastAngle + 70.0f;
+    else if (progress < 3.0f / 4.0f)
+        return raycastAngle;
+    else if (progress < 3.0f / 4.0f)
+        return raycastAngle - 70.0f;
+    else
+        return raycastAngle - 90.0f;
 }
 
 /*
@@ -460,7 +465,6 @@ void InitSFX()
     LoadSFXToPool("slash_hero", "assets/audio/sfx/666herohero-slash-21834.mp3");
     LoadSFXToPool("arrow", "assets/audio/sfx/arrow.mp3");
     LoadSFXToPool("attack", "assets/audio/sfx/attack.mp3");
-    LoadSFXToPool("chest", "assets/audio/sfx/chest.mp3");
     LoadSFXToPool("crate", "assets/audio/sfx/crate.mp3");
     LoadSFXToPool("dash", "assets/audio/sfx/dash.mp3");
     LoadSFXToPool("explosion", "assets/audio/sfx/explosion.mp3");

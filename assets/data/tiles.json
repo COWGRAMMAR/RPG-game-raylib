@@ -117,5 +117,75 @@
         "row": 1,
         "width": 1,
         "height": 1
+    },
+    "damagePotionSmall": {
+        "texture": "TILESET_ITEMS",
+        "column": 8,
+        "row": 0,
+        "width": 1,
+        "height": 1
+    },
+    "damagePotionMedium": {
+        "texture": "TILESET_ITEMS",
+        "column": 9,
+        "row": 0,
+        "width": 1,
+        "height": 1
+    },
+    "speedPotionSmall": {
+        "texture": "TILESET_ITEMS",
+        "column": 1,
+        "row": 2,
+        "width": 1,
+        "height": 1
+    },
+    "speedPotionMedium": {
+        "texture": "TILESET_ITEMS",
+        "column": 2,
+        "row": 2,
+        "width": 1,
+        "height": 1
+    },
+    "invincibilityPotionSmall": {
+        "texture": "TILESET_ITEMS",
+        "column": 7,
+        "row": 1,
+        "width": 1,
+        "height": 1
+    },
+    "invincibilityPotionMedium": {
+        "texture": "TILESET_ITEMS",
+        "column": 8,
+        "row": 1,
+        "width": 1,
+        "height": 1
+    },
+    "ak47": {
+        "texture": "TILESET_ITEMS",
+        "column": 3,
+        "row": 1,
+        "width": 1,
+        "height": 1
+    },
+    "spear": {
+        "texture": "TILESET_ITEMS",
+        "column": 4,
+        "row": 1,
+        "width": 1,
+        "height": 2
+    },
+    "axe": {
+        "texture": "TILESET_ITEMS",
+        "column": 5,
+        "row": 1,
+        "width": 1,
+        "height": 2
+    },
+    "hammer": {
+        "texture": "TILESET_ITEMS",
+        "column": 6,
+        "row": 1,
+        "width": 1,
+        "height": 1
     }
 }

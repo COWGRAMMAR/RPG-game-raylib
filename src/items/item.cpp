@@ -169,6 +169,10 @@ void ItemDefinitionManager::Load(const std::string &path)
             PotionData pd;
             pd.healValue = SafeGet<int>(p, "healValue", 0); // nilai fallback 0
             pd.isMana = SafeGet<bool>(p, "isMana", false);  // nilai fallback false
+            pd.damageMultiplier = SafeGet<float>(p, "damageMultiplier", 1.0f);
+            pd.speedMultiplier = SafeGet<float>(p, "speedMultiplier", 1.0f);
+            pd.invincibilityDuration = SafeGet<float>(p, "invincibilityDuration", 0.0f);
+            pd.duration = SafeGet<float>(p, "duration", 0.0f);
             def.data = pd;
         }
 

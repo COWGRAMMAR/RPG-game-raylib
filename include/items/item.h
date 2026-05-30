@@ -97,6 +97,10 @@ struct PotionData
 {
     int healValue; // Jumlah HP atau mana yang dipulihkan
     bool isMana;   // True jika potion memulihkan mana, bukan HP
+    float damageMultiplier;      // (optional) misal 1.0 = normal, 1.2 = +20%
+    float speedMultiplier;       // (optional) misal 1.0 = normal, 1.3 = +30%
+    float invincibilityDuration; // waktu kebal dalam detik
+    float duration;              // durasi efek potion
 };
 
 /**

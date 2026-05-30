@@ -121,9 +121,25 @@ namespace Combat
                     player.Anim.isAttacking = true;
                     TraceLog(LOG_INFO, "PLAYER: Serangan diarahkan ke (%.2f, %.2f)", attackDir.x, attackDir.y);
 
+                    const ItemDefinition &def = itemDefs.GetById(activeItem.definitionId);
+                    if (def.spriteKey == "sword1")
+                    {
+                        PlaySFX("slash-short");
+                    }
+                    else if (def.spriteKey == "sword2")
+                    {
+                        PlaySFX("slash-mid");
+                    }
+                    else if (def.spriteKey == "bow")
+                    {
+                        PlaySFX("arrow");
+                    }
+
                     if (player.attack.weapon->attackType == ATTACK_PIERCE)
                     {
-                        Arrow* arrow = new Arrow(playerCenter, attackDir, 300.0f, player.attack.weapon->damage, player.attack.weapon->reach, angle, &player);
+                        float arrowSpeed = (player.attack.weapon->duration > 0.0f) ? 
+                            (player.attack.weapon->reach / player.attack.weapon->duration) : 300.0f;
+                        Arrow* arrow = new Arrow(playerCenter, attackDir, arrowSpeed, player.attack.weapon->damage, player.attack.weapon->reach, angle, &player);
                         Entities::AddDynamic(arrow);
                     }
                 }
@@ -170,7 +186,7 @@ namespace Combat
         switch (atk.weapon->attackType)
         {
         case ATTACK_SLASH:
-            return {Slash(atk.raycastAngle, progress), 0.0f};
+            return {SlashShort(atk.raycastAngle, progress), 0.0f};
 
         case ATTACK_THRUST:
             return {startAngle, progress * THRUST_DISTANCE};

@@ -83,7 +83,7 @@
       "maxStack": 1,
       "weapon": {
         "damage": 10.0,
-        "reach": 200.0,
+        "reach": 250.0,
         "breadth": 8.0,
         "duration": 0.3,
         "knockbackForce": 0.5,

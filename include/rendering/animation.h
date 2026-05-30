@@ -119,7 +119,7 @@ float TextFloat(float currentOffset, float speed, float dt);
 void DamageFloat(Vector2& pos, Vector2& vel, float gravity, float friction, float dt);
 Vector2 LerpTowards(Vector2 current, Vector2 target, float speed, float dt);
 bool Blink(float timer, float frequency);
-float Slash(float raycastAngle, float progress);
+float SlashShort(float raycastAngle, float progress);
 
 /*
 ====================

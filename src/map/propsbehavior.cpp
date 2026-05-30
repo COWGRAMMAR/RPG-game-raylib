@@ -186,6 +186,7 @@ void ChestManager::Interact(Vector2 hitPos)
     if (!chest || chest->state == ObjectState::Open)
         return;
     chest->state = ObjectState::Open;
+    PlaySFX("chest");
     consumedPositions.insert(EncodePos(chest->position));
     TriggerLoot(*chest);
 }
@@ -786,6 +787,8 @@ void CrateManager::Destroy(CrateData &crate)
     crate.tile.state = ObjectState::Inactive;
     crate.isAlive = false;
     consumedPositions.insert(EncodePos(crate.tile.position));
+
+    PlaySFX("crate");
 
     DynamicObstacles.erase(
         std::remove_if(DynamicObstacles.begin(), DynamicObstacles.end(), [&](const Rectangle &r)

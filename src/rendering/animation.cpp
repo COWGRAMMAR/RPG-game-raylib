@@ -412,7 +412,7 @@ bool Blink(float timer, float frequency)
     return (int)(timer * frequency * 10.0f) % 2 == 0;
 }
 
-float Slash(float raycastAngle, float progress)
+float SlashShort(float raycastAngle, float progress)
 {
     if (progress < 1.0f / 4.0f)
         return raycastAngle + 90.0f;
@@ -460,14 +460,16 @@ void InitSFX()
     LoadSFXToPool("slash_hero", "assets/audio/sfx/666herohero-slash-21834.mp3");
     LoadSFXToPool("arrow", "assets/audio/sfx/arrow.mp3");
     LoadSFXToPool("attack", "assets/audio/sfx/attack.mp3");
+    LoadSFXToPool("chest", "assets/audio/sfx/chest.mp3");
+    LoadSFXToPool("crate", "assets/audio/sfx/crate.mp3");
     LoadSFXToPool("dash", "assets/audio/sfx/dash.mp3");
     LoadSFXToPool("explosion", "assets/audio/sfx/explosion.mp3");
     LoadSFXToPool("hurt", "assets/audio/sfx/hurt.mp3");
     LoadSFXToPool("inventori", "assets/audio/sfx/inventori.mp3");
     LoadSFXToPool("pickup-item", "assets/audio/sfx/pickup-item.mp3");
     LoadSFXToPool("rifle", "assets/audio/sfx/rifle.mp3");
-    LoadSFXToPool("sword-mid", "assets/audio/sfx/sword-mid.mp3");
-    LoadSFXToPool("sword-short", "assets/audio/sfx/sword-short.mp3");
+    LoadSFXToPool("slash-mid", "assets/audio/sfx/slash-mid.mp3");
+    LoadSFXToPool("slash-short", "assets/audio/sfx/slash-short.mp3");
     LoadSFXToPool("walk", "assets/audio/sfx/walk.mp3");
     TraceLog(LOG_INFO, "SFX: Successfully loaded all sound effects");
 }

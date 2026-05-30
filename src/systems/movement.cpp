@@ -104,6 +104,7 @@ namespace Movement
             player.DashSpeed = player.DashMaxSpeed;
             player.Mana -= player.DashManaCost;
             player.ManaRegenTimer = player.ManaRegenDelay;
+            PlaySFX("dash");
         }
 
         if (player.IsDashing)

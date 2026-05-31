@@ -148,6 +148,10 @@ void DrawFrame(Frame frame, Display display)
         (float)(frame.width * FRAME_SIZE),
         (float)(frame.height * FRAME_SIZE)
     };
+    if (display.flip)
+    {
+        src.width = -src.width;
+    }
     Rectangle dest = {
         display.position.x + display.offset.x,
         display.position.y + display.offset.y,
@@ -412,28 +416,57 @@ bool Blink(float timer, float frequency)
     return (int)(timer * frequency * 10.0f) % 2 == 0;
 }
 
-float SlashShort(float raycastAngle, float progress)
+float SlashShort(float raycastAngle, float progress, bool isRight)
 {
+    float sign = isRight ? 1.0f : -1.0f;
     if (progress < 1.0f / 4.0f)
-        return raycastAngle + 90.0f;
+        return raycastAngle - (90.0f * sign);
     else if (progress < 2.0f / 4.0f)
-        return raycastAngle - 30.0f;
+        return raycastAngle - (45.0f * sign);
+    else if (progress < 3.0f / 4.0f)
+        return raycastAngle + (45.0f * sign);
     else
-        return raycastAngle - 90.0f;
+        return raycastAngle + (90.0f * sign);
 }
 
-float SlashMid(float raycastAngle, float progress)
+float SlashMid(float raycastAngle, float progress, bool isRight)
 {
+    float sign = isRight ? 1.0f : -1.0f;
     if (progress < 1.0f / 4.0f)
-        return raycastAngle + 90.0f;
+        return raycastAngle - (90.0f * sign);
     else if (progress < 2.0f / 4.0f)
-        return raycastAngle + 70.0f;
+        return raycastAngle - (70.0f * sign);
     else if (progress < 3.0f / 4.0f)
         return raycastAngle;
-    else if (progress < 3.0f / 4.0f)
-        return raycastAngle - 70.0f;
+    else if (progress < 4.0f / 4.0f)
+        return raycastAngle + (70.0f * sign);
     else
-        return raycastAngle - 90.0f;
+        return raycastAngle + (90.0f * sign);
+}
+
+float SlamShort(float raycastAngle, float progress, bool isRight)
+{
+    float sign = isRight ? 1.0f : -1.0f;
+    if (progress < 1.0f / 4.0f)
+        return raycastAngle - (90.0f * sign);
+    else if (progress < 2.0f / 4.0f)
+        return raycastAngle - (80.0f * sign);
+    else if (progress < 3.0f / 4.0f)
+        return raycastAngle;
+    else if (progress < 4.0f / 4.0f)
+        return raycastAngle + (60.0f * sign);
+    else if (progress < 4.0f / 4.0f)
+        return raycastAngle + (20.0f * sign);
+    else if (progress < 4.0f / 4.0f)
+        return raycastAngle + (90.0f * sign);
+    else if (progress < 4.0f / 4.0f)
+        return raycastAngle + (80.0f * sign);
+    else if (progress < 4.0f / 4.0f)
+        return raycastAngle + (75.0f * sign);
+    else if (progress < 4.0f / 4.0f)
+        return raycastAngle + (78.0f * sign);
+    else
+        return raycastAngle + (80.0f * sign);
 }
 
 /*

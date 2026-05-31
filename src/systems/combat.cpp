@@ -179,14 +179,16 @@ namespace Combat
         return 0.0f;
     }
 
-    SwingVisual CalcSwingVisual(const Attack &atk, Direction dir, float progress)
+    SwingVisual CalcSwingVisual(const Attack &atk, Direction dir, Direction lastHorizDir, float progress)
     {
-        float startAngle = GetBaseAngle(dir) + atk.weapon->startAngleOffset;
+        bool isRight = (lastHorizDir == RIGHT);
+        float sign = isRight ? 1.0f : -1.0f;
+        float startAngle = GetBaseAngle(dir) + (atk.weapon->startAngleOffset * sign);
 
         switch (atk.weapon->attackType)
         {
         case ATTACK_SLASH:
-            return {SlashShort(atk.raycastAngle, progress), 0.0f};
+            return {SlashShort(atk.raycastAngle, progress, isRight), 0.0f};
 
         case ATTACK_THRUST:
             return {startAngle, progress * THRUST_DISTANCE};
@@ -198,13 +200,13 @@ namespace Combat
         {
             float slamProgress = progress * progress;
             return {
-                startAngle + (slamProgress * atk.weapon->sweepAngle),
+                startAngle + (slamProgress * atk.weapon->sweepAngle * sign),
                 slamProgress * SLAM_THRUST};
         }
 
         default:
             return {
-                startAngle + (progress * atk.weapon->sweepAngle),
+                startAngle + (progress * atk.weapon->sweepAngle * sign),
                 0.0f};
         }
     }
@@ -277,7 +279,7 @@ namespace Combat
     void CalcIdleWeaponPose(Direction dir, Direction lastHorizDir, float &outAngle, float &outOffsetRight)
     {
         outAngle = 0.0f;
-        outOffsetRight = 0.0f;
+        outOffsetRight = 0.8f;
 
         bool isRight = (lastHorizDir == RIGHT);
 
@@ -285,18 +287,15 @@ namespace Combat
         {
         case RIGHT:
             outAngle = -9.0f;
-            outOffsetRight = 0.8f;
             break;
         case LEFT:
             outAngle = 189.0f;
             break;
         case UP:
             outAngle = isRight ? -60.0f : -120.0f;
-            outOffsetRight = isRight ? 0.8f : 0.0f;
             break;
         case DOWN:
             outAngle = isRight ? 60.0f : 120.0f;
-            outOffsetRight = isRight ? 0.8f : 0.0f;
             break;
         }
     }
@@ -326,9 +325,12 @@ namespace Combat
         slashPos.x += cosf(radRay) * slashDist;
         slashPos.y += sinf(radRay) * slashDist;
 
+        bool isRight = (player.LastHorizDir == RIGHT);
+        float sign = isRight ? 1.0f : -1.0f;
+
         if (progress >= 2.0f / 3.0f)
         {
-            float shiftAngleRad = (rayAngle - 90.0f) * (PI / 180.0f);
+            float shiftAngleRad = (rayAngle + (90.0f * sign)) * (PI / 180.0f);
             float H = (spriteKey == "sword1") ? 26.0f : 37.0f;
             float backDist = (spriteKey == "sword1") ? 16.0f : 19.5f;
             slashPos.x += cosf(shiftAngleRad) * H;
@@ -347,6 +349,7 @@ namespace Combat
             (float)slashFrame.height * slashDisplay.size / 2.0f};
         slashDisplay.rotation = rayAngle + 90.0f;
         slashDisplay.tint = WHITE;
+        slashDisplay.flip = !isRight;
 
         DrawFrame(slashFrame, slashDisplay);
     }
@@ -438,7 +441,7 @@ namespace Combat
         if (player.attack.active)
         {
             float progress = player.attack.timer / player.attack.weapon->duration;
-            SwingVisual visual = CalcSwingVisual(player.attack, player.Anim.direction, progress);
+            SwingVisual visual = CalcSwingVisual(player.attack, player.Anim.direction, player.LastHorizDir, progress);
 
             visualPos = player.attack.center;
             drawAngle = visual.angle;
@@ -474,13 +477,16 @@ namespace Combat
 
         const Frame &frame = GetFrame(spriteKey);
 
+        bool isRight = (player.LastHorizDir == RIGHT);
+
         Display display;
         display.position = visualPos;
         display.size = 32;
         display.offset = {0, 1 + offsetRight};
-        display.origin = {17.0f, (float)(frame.height * display.size)};
+        display.origin = {isRight ? 17.0f : 15.0f, (float)(frame.height * display.size)};
         display.rotation = drawAngle + 90.0f;
         display.tint = WHITE;
+        display.flip = !isRight;
 
         DrawFrame(frame, display);
 

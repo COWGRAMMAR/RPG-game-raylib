@@ -88,7 +88,7 @@ namespace Movement
 
         // --- Logika Sliding Collision ---
         // Memeriksa sumbu X dan Y secara independen. Jika salah satu terhalang, sumbu lainnya masih bisa bergerak.
-        float totalSpeed = player.Speed + player.DashSpeed;
+        float totalSpeed = (player.Speed + player.DashSpeed) * player.BuffSpeedMultiplier;
         Vector2 nextX = {player.Position.x + player.Velocity.x * totalSpeed, player.Position.y};
         Vector2 nextY = {player.Position.x, player.Position.y + player.Velocity.y * totalSpeed};
 

@@ -152,7 +152,8 @@ namespace Combat
                         float arrowSpeed = (player.attack.weapon->duration > 0.0f) ? 
                             (player.attack.weapon->reach / player.attack.weapon->duration) : 300.0f;
                         std::string projSprite = (def.spriteKey == "ak47") ? "bullet" : "arrow";
-                        Arrow* arrow = new Arrow(playerCenter, attackDir, arrowSpeed, player.attack.weapon->damage, player.attack.weapon->reach, angle, &player, player.attack.weapon->knockbackForce, projSprite);
+                        float arrowDamage = player.attack.weapon->damage * player.BuffDamageMultiplier;
+                        Arrow* arrow = new Arrow(playerCenter, attackDir, arrowSpeed, arrowDamage, player.attack.weapon->reach, angle, &player, player.attack.weapon->knockbackForce, projSprite);
                         Entities::AddDynamic(arrow);
                     }
                 }
@@ -283,7 +284,7 @@ namespace Combat
         Vector2 entityCenter = {target->Position.x + FRAME_SIZE / 2, target->Position.y + FRAME_SIZE / 2};
         Vector2 knockDir = Vector2Normalize(Vector2Subtract(entityCenter, playerCenter));
 
-        float damage = player.attack.weapon->damage;
+        float damage = player.attack.weapon->damage * player.BuffDamageMultiplier;
         Vector2 knockback = Vector2Scale(knockDir, player.attack.weapon->knockbackForce);
         target->TakeDamage(damage, knockback);
 

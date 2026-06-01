@@ -116,6 +116,38 @@ void Player::Update()
     if (HitFlashTimer > 0)
         HitFlashTimer -= Time::DELTA_TIME;
 
+    if (BuffDamageTimer > 0)
+    {
+        BuffDamageTimer -= Time::DELTA_TIME;
+        if (BuffDamageTimer <= 0)
+        {
+            BuffDamageTimer = 0;
+            BuffDamageMultiplier = 1.0f;
+            Effects::AddLog("Efek Damage Berakhir");
+        }
+    }
+
+    if (BuffSpeedTimer > 0)
+    {
+        BuffSpeedTimer -= Time::DELTA_TIME;
+        if (BuffSpeedTimer <= 0)
+        {
+            BuffSpeedTimer = 0;
+            BuffSpeedMultiplier = 1.0f;
+            Effects::AddLog("Efek Speed Berakhir");
+        }
+    }
+
+    if (InvincibilityTimer > 0)
+    {
+        InvincibilityTimer -= Time::DELTA_TIME;
+        if (InvincibilityTimer <= 0)
+        {
+            InvincibilityTimer = 0;
+            Effects::AddLog("Efek Kebal Berakhir");
+        }
+    }
+
     // 4. Fisika & Pergerakan (termasuk Knockback)
     if (Vector2Length(KnockbackVelocity) > 0.1f)
     {
@@ -212,6 +244,9 @@ void Player::Render(void)
 
 void Player::TakeDamage(float amount, Vector2 knockback)
 {
+    if (InvincibilityTimer > 0.0f)
+        return;
+
     Entity::TakeDamage(amount, knockback);
     PlaySFX("hurt");
 

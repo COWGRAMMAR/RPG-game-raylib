@@ -173,6 +173,13 @@ public:
     bool IsMoving = false;
     bool canInteract = false;
 
+    // Buff states
+    float BuffDamageMultiplier = 1.0f;
+    float BuffSpeedMultiplier = 1.0f;
+    float BuffDamageTimer = 0.0f;
+    float BuffSpeedTimer = 0.0f;
+    float InvincibilityTimer = 0.0f;
+
     // Feedback visual/fisika
     float HitFlashTimer = 0.0f;         ///< Durasi efek kilatan saat terkena hit
     Vector2 KnockbackVelocity = {0, 0}; ///< Gaya dorong balik (knockback) yang sedang diterapkan

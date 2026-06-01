@@ -45,10 +45,13 @@ static void DrawItemIcon(const InventoryItem &item, Rectangle dest)
         (float)(frame.height * FRAME_SIZE)
     };
 
-    if (def.spriteKey == "sword2")
+    if (def.spriteKey == "sword2" || def.spriteKey == "axe")
     {
-        src.y += 25.0f;
-        src.height -= 25.0f;
+        src.width = 39.0f;
+    }
+    else if (def.spriteKey == "spear")
+    {
+        src.width = 50.0f;
     }
 
     int maxDim = (src.width > src.height) ? src.width : src.height;

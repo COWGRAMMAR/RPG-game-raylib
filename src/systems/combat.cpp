@@ -207,7 +207,24 @@ namespace Combat
             return {SwingShortMid(atk.raycastAngle, progress, isRight), 0.0f};
 
         case ATTACK_THRUST:
-            return {atk.raycastAngle, progress * THRUST_DISTANCE};
+        {
+            float thrustProgress = 0.0f;
+            if (progress < 0.25f)
+            {
+                // Menusuk dengan cepat dalam 25% durasi pertama (Ease-out)
+                float t = progress / 0.25f;
+                thrustProgress = t * (2.0f - t);
+            }
+            else
+            {
+                // Menarik kembali tombak secara bertahap dalam 75% durasi sisanya
+                float t = (progress - 0.25f) / 0.75f;
+                thrustProgress = 1.0f - t;
+            }
+            // Jarak tusukan yang lebih dinamis berdasarkan jangkauan (reach) senjata
+            float maxThrust = std::max(24.0f, atk.weapon->reach * 0.4f);
+            return {atk.raycastAngle, thrustProgress * maxThrust};
+        }
 
         case ATTACK_PIERCE:
             return {atk.raycastAngle, progress * -8.0f};

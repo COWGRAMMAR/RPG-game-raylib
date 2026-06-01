@@ -50,10 +50,10 @@
     },
     "sword2": {
         "texture": "TILESET_ITEMS",
-        "column": 0,
+        "column": 4,
         "row": 1,
-        "width": 1,
-        "height": 2
+        "width": 2,
+        "height": 1
     },
     "bow": {
         "texture": "TILESET_ITEMS",
@@ -148,14 +148,14 @@
     },
     "invincibilityPotionSmall": {
         "texture": "TILESET_ITEMS",
-        "column": 7,
+        "column": 8,
         "row": 1,
         "width": 1,
         "height": 1
     },
     "invincibilityPotionMedium": {
         "texture": "TILESET_ITEMS",
-        "column": 8,
+        "column": 9,
         "row": 1,
         "width": 1,
         "height": 1
@@ -169,22 +169,29 @@
     },
     "spear": {
         "texture": "TILESET_ITEMS",
-        "column": 4,
-        "row": 1,
-        "width": 1,
-        "height": 2
+        "column": 3,
+        "row": 2,
+        "width": 2,
+        "height": 1
     },
     "axe": {
         "texture": "TILESET_ITEMS",
-        "column": 5,
+        "column": 6,
         "row": 1,
-        "width": 1,
-        "height": 2
+        "width": 2,
+        "height": 1
     },
     "hammer": {
         "texture": "TILESET_ITEMS",
-        "column": 6,
+        "column": 0,
         "row": 1,
+        "width": 1,
+        "height": 1
+    },
+    "bullet": {
+        "texture": "TILESET_ITEMS",
+        "column": 0,
+        "row": 2,
         "width": 1,
         "height": 1
     }

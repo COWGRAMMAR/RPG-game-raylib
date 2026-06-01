@@ -179,7 +179,7 @@ namespace Combat
         return 0.0f;
     }
 
-    SwingVisual CalcSwingVisual(const Attack &atk, Direction dir, Direction lastHorizDir, float progress)
+    SwingVisual CalcSwingVisual(const Attack &atk, Direction dir, Direction lastHorizDir, float progress, const std::string &spriteKey)
     {
         bool isRight = (lastHorizDir == RIGHT);
         float sign = isRight ? 1.0f : -1.0f;
@@ -188,7 +188,9 @@ namespace Combat
         switch (atk.weapon->attackType)
         {
         case ATTACK_SLASH:
-            return {SlashShort(atk.raycastAngle, progress, isRight), 0.0f};
+            if (spriteKey == "sword2" || spriteKey == "axe")
+                return {SwingMidMid(atk.raycastAngle, progress, isRight), 0.0f};
+            return {SwingShortMid(atk.raycastAngle, progress, isRight), 0.0f};
 
         case ATTACK_THRUST:
             return {startAngle, progress * THRUST_DISTANCE};
@@ -199,6 +201,8 @@ namespace Combat
         case ATTACK_SLAM:
         {
             float slamProgress = progress * progress;
+            if (spriteKey == "hammer")
+                return {SwingShortSlow(atk.raycastAngle, progress, isRight), slamProgress * SLAM_THRUST};
             return {
                 startAngle + (slamProgress * atk.weapon->sweepAngle * sign),
                 slamProgress * SLAM_THRUST};
@@ -300,18 +304,53 @@ namespace Combat
         }
     }
 
+    void DrawThrustEffect(const Player &player, const std::string &spriteKey, float rayAngle)
+    {
+        float progress = player.attack.timer / player.attack.weapon->duration;
+        std::string effectSpriteKey;
+
+        if (progress >= 0.2f && progress < 0.5f) effectSpriteKey = "thrust0101";
+        else if (progress >= 0.5f && progress < 0.8f) effectSpriteKey = "thrust0102";
+        else if (progress >= 0.8f) effectSpriteKey = "thrust0103";
+
+        if (effectSpriteKey.empty()) return;
+
+        const Frame &frame = GetFrame(effectSpriteKey);
+        float radRay = rayAngle * (PI / 180.0f);
+
+        Vector2 pos = player.attack.center;
+        float dist = player.attack.weapon->reach * 0.8f;
+        pos.x += cosf(radRay) * dist;
+        pos.y += sinf(radRay) * dist;
+
+        Display display;
+        display.position = pos;
+        display.size = 32;
+        display.offset = {0, 0};
+        display.origin = {
+            (float)frame.width * display.size / 2.0f,
+            (float)frame.height * display.size / 2.0f};
+        display.rotation = rayAngle;
+        display.tint = WHITE;
+        display.flip = false;
+
+        DrawFrame(frame, display);
+    }
+
     void DrawSlashTrail(const Player &player, const std::string &spriteKey, float rayAngle)
     {
         float progress = player.attack.timer / player.attack.weapon->duration;
         std::string slashSpriteKey;
 
+        bool isShort = (spriteKey == "sword1");
+
         if (progress >= 1.0f / 3.0f && progress < 2.0f / 3.0f)
         {
-            slashSpriteKey = (spriteKey == "sword1") ? "slashLightGraySmall1" : "slashSilverBlueMedium1";
+            slashSpriteKey = isShort ? "slashShort0101" : "slashMedium0101";
         }
         else if (progress >= 2.0f / 3.0f)
         {
-            slashSpriteKey = (spriteKey == "sword1") ? "slashLightGraySmall2" : "slashSilverBlueMedium2";
+            slashSpriteKey = isShort ? "slashShort0102" : "slashMedium0102";
         }
 
         if (slashSpriteKey.empty())
@@ -331,8 +370,8 @@ namespace Combat
         if (progress >= 2.0f / 3.0f)
         {
             float shiftAngleRad = (rayAngle + (90.0f * sign)) * (PI / 180.0f);
-            float H = (spriteKey == "sword1") ? 26.0f : 37.0f;
-            float backDist = (spriteKey == "sword1") ? 16.0f : 19.5f;
+            float H = isShort ? 26.0f : 37.0f;
+            float backDist = isShort ? 16.0f : 19.5f;
             slashPos.x += cosf(shiftAngleRad) * H;
             slashPos.y += sinf(shiftAngleRad) * H;
 
@@ -347,7 +386,7 @@ namespace Combat
         slashDisplay.origin = {
             (float)slashFrame.width * slashDisplay.size / 2.0f,
             (float)slashFrame.height * slashDisplay.size / 2.0f};
-        slashDisplay.rotation = rayAngle + 90.0f;
+        slashDisplay.rotation = rayAngle;
         slashDisplay.tint = WHITE;
         slashDisplay.flip = !isRight;
 
@@ -438,10 +477,19 @@ namespace Combat
         float rayAngle;
         float offsetRight = 0.0f;
 
+        std::string spriteKey = def.spriteKey;
+        if (spriteKey == "bow")
+        {
+            if (player.attack.active)
+                spriteKey = "bow";
+            else
+                spriteKey = "bowDraw";
+        }
+
         if (player.attack.active)
         {
             float progress = player.attack.timer / player.attack.weapon->duration;
-            SwingVisual visual = CalcSwingVisual(player.attack, player.Anim.direction, player.LastHorizDir, progress);
+            SwingVisual visual = CalcSwingVisual(player.attack, player.Anim.direction, player.LastHorizDir, progress, spriteKey);
 
             visualPos = player.attack.center;
             drawAngle = visual.angle;
@@ -466,15 +514,6 @@ namespace Combat
         visualPos.x += cosf(rad) * thrust;
         visualPos.y += sinf(rad) * thrust;
 
-        std::string spriteKey = def.spriteKey;
-        if (spriteKey == "bow")
-        {
-            if (player.attack.active)
-                spriteKey = "bow";
-            else
-                spriteKey = "bowDraw";
-        }
-
         const Frame &frame = GetFrame(spriteKey);
 
         bool isRight = (player.LastHorizDir == RIGHT);
@@ -483,18 +522,34 @@ namespace Combat
         display.position = visualPos;
         display.size = 32;
         display.offset = {0, 1 + offsetRight};
-        display.origin = {isRight ? 17.0f : 15.0f, (float)(frame.height * display.size)};
-        display.rotation = drawAngle + 90.0f;
         display.tint = WHITE;
         display.flip = !isRight;
 
+        float renderAngle = drawAngle;
+        Vector2 origin = {0.0f, 17.0f};
+
+        if (!isRight)
+        {
+            renderAngle = drawAngle - 180.0f;
+            origin = {(float)(frame.width * display.size), 17.0f};
+        }
+
+        display.origin = origin;
+        display.rotation = renderAngle;
+
         DrawFrame(frame, display);
 
-        if (player.attack.active && player.attack.weapon &&
-            player.attack.weapon->attackType == ATTACK_SLASH &&
-            (def.spriteKey == "sword1" || def.spriteKey == "sword2"))
+        if (player.attack.active && player.attack.weapon)
         {
-            DrawSlashTrail(player, def.spriteKey, player.attack.raycastAngle);
+            if (player.attack.weapon->attackType == ATTACK_SLASH &&
+                (def.spriteKey == "sword1" || def.spriteKey == "sword2" || def.spriteKey == "axe"))
+            {
+                DrawSlashTrail(player, def.spriteKey, player.attack.raycastAngle);
+            }
+            else if (player.attack.weapon->attackType == ATTACK_THRUST)
+            {
+                DrawThrustEffect(player, def.spriteKey, player.attack.raycastAngle);
+            }
         }
     }
 }
@@ -585,7 +640,7 @@ void Arrow::Render()
     display.size = 32;
     display.offset = {0, 0};
     display.origin = {16.0f, 16.0f};
-    display.rotation = Rotation + 90.0f;
+    display.rotation = Rotation;
     display.tint = WHITE;
 
     DrawFrame(SpriteKey, display);

@@ -508,6 +508,7 @@ void InitSFX()
     LoadSFXToPool("slash_hero", "assets/audio/sfx/666herohero-slash-21834.mp3");
     LoadSFXToPool("arrow", "assets/audio/sfx/arrow.mp3");
     LoadSFXToPool("attack", "assets/audio/sfx/attack.mp3");
+    LoadSFXToPool("chest", "assets/audio/sfx/chest.mp3");
     LoadSFXToPool("crate", "assets/audio/sfx/crate.mp3");
     LoadSFXToPool("dash", "assets/audio/sfx/dash.mp3");
     LoadSFXToPool("explosion", "assets/audio/sfx/explosion.mp3");

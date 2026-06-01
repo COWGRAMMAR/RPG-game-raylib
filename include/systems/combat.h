@@ -16,11 +16,12 @@ public:
     float LifeTime;
     float MaxLifeTime;
     float Damage;
+    float KnockbackForce;
     Entity* Owner;
     bool HasHit;
     std::string SpriteKey;
 
-    Arrow(Vector2 pos, Vector2 dir, float speed, float damage, float reach, float rotation, Entity* owner, std::string spriteKey = "arrow");
+    Arrow(Vector2 pos, Vector2 dir, float speed, float damage, float reach, float rotation, Entity* owner, float knockbackForce = 1.0f, std::string spriteKey = "arrow");
     
     void Update() override;
     void Render() override;

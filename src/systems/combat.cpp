@@ -118,10 +118,18 @@ namespace Combat
 
                     Inventory::SetupAttackStats(player, attackFaceDir);
 
+                    if (player.attack.weapon && player.attack.weapon->attackType == ATTACK_THRUST)
+                    {
+                        player.IsDashing = true;
+                        player.DashDuration = player.DashDurationMax;
+                        player.DashSpeed = player.DashMaxSpeed;
+                        PlaySFX("dash");
+                    }
+
                     player.Anim.isAttacking = true;
                     TraceLog(LOG_INFO, "PLAYER: Serangan diarahkan ke (%.2f, %.2f)", attackDir.x, attackDir.y);
 
-                    const ItemDefinition &def = itemDefs.GetById(activeItem.definitionId);
+                     const ItemDefinition &def = itemDefs.GetById(activeItem.definitionId);
                     if (def.spriteKey == "sword1")
                     {
                         PlaySFX("slash-short");
@@ -134,12 +142,17 @@ namespace Combat
                     {
                         PlaySFX("arrow");
                     }
+                    else if (def.spriteKey == "ak47")
+                    {
+                        PlaySFX("rifle");
+                    }
 
                     if (player.attack.weapon->attackType == ATTACK_PIERCE)
                     {
                         float arrowSpeed = (player.attack.weapon->duration > 0.0f) ? 
                             (player.attack.weapon->reach / player.attack.weapon->duration) : 300.0f;
-                        Arrow* arrow = new Arrow(playerCenter, attackDir, arrowSpeed, player.attack.weapon->damage, player.attack.weapon->reach, angle, &player);
+                        std::string projSprite = (def.spriteKey == "ak47") ? "bullet" : "arrow";
+                        Arrow* arrow = new Arrow(playerCenter, attackDir, arrowSpeed, player.attack.weapon->damage, player.attack.weapon->reach, angle, &player, player.attack.weapon->knockbackForce, projSprite);
                         Entities::AddDynamic(arrow);
                     }
                 }
@@ -193,10 +206,10 @@ namespace Combat
             return {SwingShortMid(atk.raycastAngle, progress, isRight), 0.0f};
 
         case ATTACK_THRUST:
-            return {startAngle, progress * THRUST_DISTANCE};
+            return {atk.raycastAngle, progress * THRUST_DISTANCE};
 
         case ATTACK_PIERCE:
-            return {startAngle, progress * -8.0f};
+            return {atk.raycastAngle, progress * -8.0f};
 
         case ATTACK_SLAM:
         {
@@ -280,20 +293,21 @@ namespace Combat
         TraceLog(LOG_INFO, "COMBAT: Pemain mengenai musuh! Damage: %.1f", damage);
     }
 
-    void CalcIdleWeaponPose(Direction dir, Direction lastHorizDir, float &outAngle, float &outOffsetRight)
+    void CalcIdleWeaponPose(Direction dir, Direction lastHorizDir, float &outAngle, float &outOffsetRight, const std::string &spriteKey)
     {
         outAngle = 0.0f;
         outOffsetRight = 0.8f;
 
         bool isRight = (lastHorizDir == RIGHT);
+        bool exactHorizontal = (spriteKey == "bow" || spriteKey == "bowDraw" || spriteKey == "ak47");
 
         switch (dir)
         {
         case RIGHT:
-            outAngle = -9.0f;
+            outAngle = exactHorizontal ? 0.0f : -9.0f;
             break;
         case LEFT:
-            outAngle = 189.0f;
+            outAngle = exactHorizontal ? 180.0f : 189.0f;
             break;
         case UP:
             outAngle = isRight ? -60.0f : -120.0f;
@@ -344,13 +358,17 @@ namespace Combat
 
         bool isShort = (spriteKey == "sword1");
 
-        if (progress >= 1.0f / 3.0f && progress < 2.0f / 3.0f)
+        if (progress >= 2.0f / 5.0f && progress < 3.0f / 5.0f)
         {
             slashSpriteKey = isShort ? "slashShort0101" : "slashMedium0101";
         }
-        else if (progress >= 2.0f / 3.0f)
+        else if (progress >= 3.0f / 5.0f && progress < 4.0f / 5.0f)
         {
             slashSpriteKey = isShort ? "slashShort0102" : "slashMedium0102";
+        }
+        else if (progress >= 4.0f / 5.0f)
+        {
+            slashSpriteKey = isShort ? "slashShort0101" : "slashMedium0101";
         }
 
         if (slashSpriteKey.empty())
@@ -360,14 +378,14 @@ namespace Combat
         float radRay = rayAngle * (PI / 180.0f);
 
         Vector2 slashPos = player.attack.center;
-        float slashDist = player.attack.weapon->reach * 0.65f;
+        float slashDist = player.attack.weapon->reach * 0.5f;
         slashPos.x += cosf(radRay) * slashDist;
         slashPos.y += sinf(radRay) * slashDist;
 
         bool isRight = (player.LastHorizDir == RIGHT);
         float sign = isRight ? 1.0f : -1.0f;
 
-        if (progress >= 2.0f / 3.0f)
+        if (progress >= 3.0f / 5.0f && progress < 4.0f / 5.0f)
         {
             float shiftAngleRad = (rayAngle + (90.0f * sign)) * (PI / 180.0f);
             float H = isShort ? 26.0f : 37.0f;
@@ -386,7 +404,14 @@ namespace Combat
         slashDisplay.origin = {
             (float)slashFrame.width * slashDisplay.size / 2.0f,
             (float)slashFrame.height * slashDisplay.size / 2.0f};
-        slashDisplay.rotation = rayAngle;
+        
+        float renderAngle = rayAngle;
+        if (progress >= 4.0f / 5.0f)
+        {
+            renderAngle = rayAngle + 90.0f * sign;
+        }
+        
+        slashDisplay.rotation = renderAngle;
         slashDisplay.tint = WHITE;
         slashDisplay.flip = !isRight;
 
@@ -430,13 +455,48 @@ namespace Combat
             if (std::find(dmg.begin(), dmg.end(), entity) != dmg.end())
                 continue;
 
-            if (CheckRadialCollision(playerCenter, attackAngle, reach, breadth, attackerRadius, entity->GetHitbox()))
+            bool hit = false;
+            if (player.attack.weapon->attackType == ATTACK_SLAM)
+            {
+                Rectangle slamAABB = {
+                    playerCenter.x - reach,
+                    playerCenter.y - reach,
+                    reach * 2.0f,
+                    reach * 2.0f
+                };
+                if (CheckCollisionRecs(slamAABB, entity->GetHitbox()))
+                {
+                    hit = true;
+                }
+            }
+            else
+            {
+                if (CheckRadialCollision(playerCenter, attackAngle, reach, breadth, attackerRadius, entity->GetHitbox()))
+                {
+                    hit = true;
+                }
+            }
+
+            if (hit)
             {
                 ApplyHitToEntity(player, entity, playerCenter);
             }
         }
 
-        Rectangle attackAABB = GetAttackAABB(playerCenter, attackAngle, reach, breadth, attackerRadius);
+        Rectangle attackAABB;
+        if (player.attack.weapon->attackType == ATTACK_SLAM)
+        {
+            attackAABB = {
+                playerCenter.x - reach,
+                playerCenter.y - reach,
+                reach * 2.0f,
+                reach * 2.0f
+            };
+        }
+        else
+        {
+            attackAABB = GetAttackAABB(playerCenter, attackAngle, reach, breadth, attackerRadius);
+        }
         HitPropsByAttack(attackAABB, PlayerInstance.GetHitbox(), &player);
     }
 
@@ -505,7 +565,7 @@ namespace Combat
             else if (player.Anim.direction == LEFT)
                 player.LastHorizDir = LEFT;
 
-            CalcIdleWeaponPose(player.Anim.direction, player.LastHorizDir, rayAngle, offsetRight);
+            CalcIdleWeaponPose(player.Anim.direction, player.LastHorizDir, rayAngle, offsetRight, spriteKey);
             drawAngle = rayAngle;
             thrust = 0.0f;
         }
@@ -539,38 +599,37 @@ namespace Combat
 
         DrawFrame(frame, display);
 
-        if (player.attack.active && player.attack.weapon)
-        {
-            if (player.attack.weapon->attackType == ATTACK_SLASH &&
-                (def.spriteKey == "sword1" || def.spriteKey == "sword2" || def.spriteKey == "axe"))
-            {
-                DrawSlashTrail(player, def.spriteKey, player.attack.raycastAngle);
-            }
-            else if (player.attack.weapon->attackType == ATTACK_THRUST)
-            {
-                DrawThrustEffect(player, def.spriteKey, player.attack.raycastAngle);
-            }
-        }
+        // if (player.attack.active && player.attack.weapon)
+        // {
+        //     if (player.attack.weapon->attackType == ATTACK_SLASH &&
+        //         (def.spriteKey == "sword1" || def.spriteKey == "sword2" || def.spriteKey == "axe"))
+        //     {
+        //         DrawSlashTrail(player, def.spriteKey, player.attack.raycastAngle);
+        //     }
+        //     else if (player.attack.weapon->attackType == ATTACK_THRUST)
+        //     {
+        //         DrawThrustEffect(player, def.spriteKey, player.attack.raycastAngle);
+        //     }
+        // }
     }
 }
 
-// Arrow Implementation
-Arrow::Arrow(Vector2 pos, Vector2 dir, float speed, float damage, float reach, float rotation, Entity* owner, std::string spriteKey)
+Arrow::Arrow(Vector2 pos, Vector2 dir, float speed, float damage, float reach, float rotation, Entity* owner, float knockbackForce, std::string spriteKey)
 {
     StartPos = pos;
     Reach = reach;
     Position = pos;
     Velocity = Vector2Scale(Vector2Normalize(dir), speed);
     Damage = damage;
+    KnockbackForce = knockbackForce;
     Rotation = rotation;
     Owner = owner;
     SpriteKey = spriteKey;
-    
     LifeTime = 0.0f;
-    MaxLifeTime = 2.0f; // Arrows disappear after 2 seconds
+    MaxLifeTime = 2.0f;
     HasHit = false;
     IsActive = true;
-    Health = 1.0f; // Arrow health
+    Health = 1.0f;
 }
 
 void Arrow::Update()
@@ -593,7 +652,6 @@ void Arrow::Update()
         return;
     }
 
-    // Check collision with map (walls)
     Rectangle hitbox = GetHitbox();
     if (CheckCollisionAgainstRects(hitbox, PlayerInstance.CollisionRects) || 
         CheckCollisionAgainstPolygons(hitbox, PlayerInstance.CollisionPolygons))
@@ -602,7 +660,6 @@ void Arrow::Update()
         return;
     }
     
-    // Check collision with props
     if (CheckCollisionAgainstRects(hitbox, DynamicObstacles))
     {
         HitPropsByAttack(hitbox, PlayerInstance.GetHitbox(), &PlayerInstance);
@@ -610,7 +667,6 @@ void Arrow::Update()
         return;
     }
 
-    // Check collision with entities
     for (auto* entity : Entities::GetRegistry())
     {
         if (entity == this || entity == Owner || !entity->IsActive || entity->Health <= 0)
@@ -618,10 +674,9 @@ void Arrow::Update()
 
         if (CheckCollisionRecs(hitbox, entity->GetHitbox()))
         {
-            Vector2 knockback = Vector2Scale(Vector2Normalize(Velocity), 1.5f);
+            Vector2 knockback = Vector2Scale(Vector2Normalize(Velocity), KnockbackForce);
             entity->TakeDamage(Damage, knockback);
             
-            // Show damage number at entity center
             Vector2 center = entity->GetCenter();
             Effects::AddDamage(center, Damage);
             
@@ -648,6 +703,5 @@ void Arrow::Render()
 
 Rectangle Arrow::GetHitbox() const
 {
-    // A smaller hitbox for the arrow, centered
     return { Position.x - 4, Position.y - 4, 8, 8 };
 }

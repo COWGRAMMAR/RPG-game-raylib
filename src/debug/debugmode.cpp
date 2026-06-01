@@ -178,6 +178,24 @@ void Debug::DrawAttackOverlay(void)
     float angle = PlayerInstance.attack.raycastAngle;
     float attackerRadius = PlayerInstance.GetHitboxWidth() / 2.0f;
 
+    if (PlayerInstance.attack.weapon->attackType == ATTACK_SLAM)
+    {
+        Rectangle slamAABB = {
+            playerCenter.x - reach,
+            playerCenter.y - reach,
+            reach * 2.0f,
+            reach * 2.0f
+        };
+        DrawRectangleRec(slamAABB, Fade(RED, 0.3f));
+        DrawRectangleLinesEx(slamAABB, 2.0f, RED);
+
+        if (PlayerInstance.LastHit.hit)
+            DrawCircleV(PlayerInstance.LastHit.point, 4.0f, VIOLET);
+
+        DrawText("Attack Area (Slam AABB)", (int)slamAABB.x, (int)slamAABB.y - 14, 14, RED);
+        return;
+    }
+
     float rad = angle * (PI / 180.0f);
     Vector2 forward = { cosf(rad), sinf(rad) };
     Vector2 right = { -sinf(rad), cosf(rad) };

@@ -493,6 +493,8 @@ struct SoundPool {
 static std::unordered_map<std::string, SoundPool> loadedSFX;
 
 static void LoadSFXToPool(const std::string& name, const char* path) {
+    if (!IsAudioDeviceReady()) return;
+
     Sound original = LoadSound(path);
     SoundPool pool;
     pool.sounds[0] = original;
@@ -524,6 +526,8 @@ void InitSFX()
 
 void CloseSFX()
 {
+    if (!IsAudioDeviceReady()) return;
+
     for (auto &pair : loadedSFX)
     {
         for (int i = 1; i < 4; i++) {
@@ -537,6 +541,8 @@ void CloseSFX()
 
 void PlaySFX(const std::string &name)
 {
+    if (!IsAudioDeviceReady()) return;
+
     auto it = loadedSFX.find(name);
     if (it != loadedSFX.end())
     {

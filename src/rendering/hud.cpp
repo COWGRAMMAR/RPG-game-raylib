@@ -646,12 +646,25 @@ void DrawPlayerHUD()
     DrawCircleLinesV(avatarPos, radius + 1, ColorAlpha(GOLD, 0.3f));
 
     float barsX = padding + avatarSize + avatarPadding;
-    Vector2 healthPos = {barsX, (float)GameScreenHeight - padding - (barHeight * 2) - gap};
-    Vector2 manaPos = {barsX, (float)GameScreenHeight - padding - barHeight};
+    const float dashBarHeight = 6.0f;
+    
+    Vector2 dashPos = {barsX, (float)GameScreenHeight - padding - dashBarHeight};
+    Vector2 manaPos = {barsX, dashPos.y - gap - barHeight};
+    Vector2 healthPos = {barsX, manaPos.y - gap - barHeight};
 
     DrawTextHUD(PlayerInstance.GetName(), (int)healthPos.x + 7, (int)healthPos.y - 35, 20, WHITE);
     DrawStatBar(healthPos, barWidth, barHeight, healthRatio, RED, (int)health);
     DrawStatBar(manaPos, barWidth, barHeight, manaRatio, GOLD, (int)mana);
+
+    float dashCooldownRatio = 1.0f;
+    if (PlayerInstance.DashCooldownMax > 0.0f) {
+        float currentCd = PlayerInstance.DashCooldown < 0.0f ? 0.0f : PlayerInstance.DashCooldown;
+        dashCooldownRatio = 1.0f - (currentCd / PlayerInstance.DashCooldownMax);
+    }
+    
+    DrawRectangleRounded((Rectangle){dashPos.x, dashPos.y, barWidth, dashBarHeight}, 0.5f, 8, DARKGRAY);
+    if (dashCooldownRatio > 0.0f)
+        DrawRectangleRounded((Rectangle){dashPos.x, dashPos.y, barWidth * dashCooldownRatio, dashBarHeight}, 0.5f, 8, SKYBLUE);
 
     DrawHotbar();
     DrawInventory();

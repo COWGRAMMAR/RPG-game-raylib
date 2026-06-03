@@ -160,15 +160,15 @@ public:
     const float AttackManaCost = 10.0f;
 
     // movement
-    float Speed = 3.7f;           ///< Kecepatan gerak dasar
+    float Speed = 3.5f;           ///< Kecepatan gerak dasar
     float DashSpeed = 0.0f;       // current dash speed tambahan
     float DashMaxSpeed = 4.0f;    // max dash speed
     float DashDecel = 0.06f;      // lerp factor deselerasi
     float DashCooldown = 0.0f;    // timer cooldown
-    float DashCooldownMax = 0.6f; // durasi cooldown
+    float DashCooldownMax = 1.0f; // durasi cooldown
     float DashDuration = 0.0f;
     float DashDurationMax = 0.1f;
-    float DashManaCost = 7.0f;
+    float DashManaCost = 5.0f;
     bool IsDashing = false;
     bool IsMoving = false;
     bool canInteract = false;

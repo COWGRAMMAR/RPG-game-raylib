@@ -1,10 +1,10 @@
 /build/
 /main.exe
 *.o
-/.vscode/
 .clangd
 *.bak
 /Backups/
+
 
 run_backup.bat
 floorB_tester.json
@@ -14,6 +14,14 @@ floorC_tester.json
 *.Personal.*
 
 # AI Agents
+.omo/
+.opencode/
+.sisyphus/
+AGENTS.md
+
+# Runtime save data
+saves/
+**/worldseed/*
 
 # Auto-downloaded raylib
 raylib/
@@ -28,6 +36,9 @@ lib/json/
 # Temp extraction for setup
 json-temp/
 raylib-*/
+
+# Game save files
+saves/
 
 # Temp directories
 .tmp/

@@ -628,31 +628,31 @@ void DrawPlayerHUD()
     Vector2 avatarPos = {padding + avatarSize / 2.0f, (float)GameScreenHeight - padding - avatarSize / 2.0f};
     float radius = avatarSize / 2.0f;
 
-    DrawCircleV({avatarPos.x + 2, avatarPos.y + 2}, radius + 2, ColorAlpha(BLACK, 0.4f));
-    DrawCircleV(avatarPos, radius, DARKGRAY);
+    // DrawCircleV({avatarPos.x + 2, avatarPos.y + 2}, radius + 2, ColorAlpha(BLACK, 0.4f));
+    // DrawCircleV(avatarPos, radius, DARKGRAY);
 
-    float spriteSize = avatarSize - 10.0f;
-    Rectangle knightDest = {
-        (avatarPos.x - spriteSize / 2.0f) + 1.0f,
-        avatarPos.y - spriteSize / 2.0f,
-        spriteSize, spriteSize};
-    Frame avatarFrame = { SPRITESHEET_KNIGHT, 0, 2, 1, 1 };
-    Display avatarDisplay;
-    avatarDisplay.position = {knightDest.x, knightDest.y};
-    avatarDisplay.size = (int)knightDest.width;
-    DrawFrame(avatarFrame, avatarDisplay);
+    // float spriteSize = avatarSize - 10.0f;
+    // Rectangle knightDest = {
+    //     (avatarPos.x - spriteSize / 2.0f) + 1.0f,
+    //     avatarPos.y - spriteSize / 2.0f,
+    //     spriteSize, spriteSize};
+    // Frame avatarFrame = { SPRITESHEET_KNIGHT, 0, 2, 1, 1 };
+    // Display avatarDisplay;
+    // avatarDisplay.position = {knightDest.x, knightDest.y};
+    // avatarDisplay.size = (int)knightDest.width;
+    // DrawFrame(avatarFrame, avatarDisplay);
 
-    DrawCircleLinesV(avatarPos, radius, ColorAlpha(GOLD, 0.6f));
-    DrawCircleLinesV(avatarPos, radius + 1, ColorAlpha(GOLD, 0.3f));
+    // DrawCircleLinesV(avatarPos, radius, ColorAlpha(GOLD, 0.6f));
+    // DrawCircleLinesV(avatarPos, radius + 1, ColorAlpha(GOLD, 0.3f));
 
-    float barsX = padding + avatarSize + avatarPadding;
+    float barsX = padding;
     const float dashBarHeight = 6.0f;
     
     Vector2 dashPos = {barsX, (float)GameScreenHeight - padding - dashBarHeight};
     Vector2 manaPos = {barsX, dashPos.y - gap - barHeight};
     Vector2 healthPos = {barsX, manaPos.y - gap - barHeight};
 
-    DrawTextHUD(PlayerInstance.GetName(), (int)healthPos.x + 7, (int)healthPos.y - 35, 20, WHITE);
+    // DrawTextHUD(PlayerInstance.GetName(), (int)healthPos.x + 7, (int)healthPos.y - 35, 20, WHITE);
     DrawStatBar(healthPos, barWidth, barHeight, healthRatio, RED, (int)health);
     DrawStatBar(manaPos, barWidth, barHeight, manaRatio, GOLD, (int)mana);
 

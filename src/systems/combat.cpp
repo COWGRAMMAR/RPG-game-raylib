@@ -46,14 +46,12 @@ namespace Combat
         {
             player.ManaRegenTimer -= Time::DELTA_TIME;
         }
-        else
+
+        if (player.Mana < player.MaxMana)
         {
-            if (player.Mana < player.MaxMana)
-            {
-                player.Mana += player.ManaRegenRate * Time::DELTA_TIME;
-                if (player.Mana > player.MaxMana)
-                    player.Mana = player.MaxMana;
-            }
+            player.Mana += player.ManaRegenRate * Time::DELTA_TIME;
+            if (player.Mana > player.MaxMana)
+                player.Mana = player.MaxMana;
         }
     }
 

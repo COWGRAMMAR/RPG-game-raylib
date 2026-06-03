@@ -155,8 +155,8 @@ public:
     float Mana = 100.0f;         ///< Poin mana saat ini
     float MaxMana = 100.0f;      ///< Poin mana maksimum
     float ManaRegenTimer = 0.0f; ///< Timer untuk jeda pemulihan mana
-    const float ManaRegenDelay = 2.0f;
-    const float ManaRegenRate = 10.0f;
+    const float ManaRegenDelay = 0.0f;
+    const float ManaRegenRate = 5.0f;
     const float AttackManaCost = 10.0f;
 
     // movement

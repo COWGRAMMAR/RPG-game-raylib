@@ -4,7 +4,7 @@
 #include "item.h"
 #include "inventory.h"
 #include "screen.h"
-#include "tiles.h"
+#include "animation.h"
 #include "../lib/raylib/include/raylib.h"
 #include "../lib/raylib/include/raymath.h"
 #include <cstdio>
@@ -54,8 +54,8 @@ static void TransitionTo(TurnPhase newPhase) {
 static float GetPlayerAttackDamage() {
     ItemSlot slot = InputInstance.GetActiveSlot();
     int slotIdx = (int)slot - 1;
-    if (slotIdx >= 0 && slotIdx < state.player->MaxHotbar) {
-        InventoryItem& item = state.player->Hotbar[slotIdx];
+    if (slotIdx >= 0 && slotIdx < state.player->GetMaxHotbar()) {
+        InventoryItem& item = state.player->GetHotbarItem(slotIdx);
         if (item.definitionId != -1) {
             const ItemDefinition& def = itemDefs.GetById(item.definitionId);
             if (def.category == ITEM_WEAPON) {
@@ -69,32 +69,32 @@ static float GetPlayerAttackDamage() {
 
 static bool UseHealthPotion() {
     Player& p = *state.player;
-    for (int i = 0; i < p.MaxHotbar; i++) {
-        if (p.Hotbar[i].definitionId == 2) {
+    for (int i = 0; i < p.GetMaxHotbar(); i++) {
+        if (p.GetHotbarItem(i).definitionId == 2) {
             const ItemDefinition& def = itemDefs.GetById(2);
             const PotionData& pot = std::get<PotionData>(def.data);
             float heal = (float)pot.healValue;
             float oldHp = p.Health;
             p.Health = std::min(p.Health + heal, p.MaxHealth);
-            p.Hotbar[i].amount--;
-            if (p.Hotbar[i].amount <= 0)
-                p.Hotbar[i] = {-1, 0};
+            p.GetHotbarItem(i).amount--;
+            if (p.GetHotbarItem(i).amount <= 0)
+                p.GetHotbarItem(i) = {-1, 0};
             char buf[64];
             snprintf(buf, sizeof(buf), "Menggunakan Health Potion! +%.0f HP (%.0f -> %.0f)", heal, oldHp, p.Health);
             state.message = buf;
             return true;
         }
     }
-    for (int i = 0; i < p.MaxBag; i++) {
-        if (p.Bag[i].definitionId == 2) {
+    for (int i = 0; i < p.GetMaxBag(); i++) {
+        if (p.GetBagItem(i).definitionId == 2) {
             const ItemDefinition& def = itemDefs.GetById(2);
             const PotionData& pot = std::get<PotionData>(def.data);
             float heal = (float)pot.healValue;
             float oldHp = p.Health;
             p.Health = std::min(p.Health + heal, p.MaxHealth);
-            p.Bag[i].amount--;
-            if (p.Bag[i].amount <= 0)
-                p.Bag[i] = {-1, 0};
+            p.GetBagItem(i).amount--;
+            if (p.GetBagItem(i).amount <= 0)
+                p.GetBagItem(i) = {-1, 0};
             char buf[64];
             snprintf(buf, sizeof(buf), "Menggunakan Health Potion! +%.0f HP (%.0f -> %.0f)", heal, oldHp, p.Health);
             state.message = buf;
@@ -371,7 +371,8 @@ void TurnCombat::Draw() {
             int itemY = lootY + 40 + i * 45;
             const ItemDefinition &def = itemDefs.GetById(state.loot[i].definitionId);
             Rectangle iconDest = {(float)lootX + 15, (float)itemY, 32, 32};
-            DrawTileTexture(TEXTURE_ITEMS, (int)def.sheetCoord.x, (int)def.sheetCoord.y, iconDest);
+            Display iconDisplay = {{iconDest.x, iconDest.y}, (int)iconDest.width, {0,0}, {0,0}, 0.0f, WHITE};
+            DrawFrame(def.spriteKey, iconDisplay);
             char itemText[64];
             snprintf(itemText, sizeof(itemText), "%s x%d", def.name.c_str(), state.loot[i].amount);
             DrawText(itemText, lootX + 55, itemY + 6, 18, WHITE);
@@ -405,6 +406,8 @@ bool TurnCombat::IsActive() {
 void TurnCombat::Shutdown() {
     state.active = false;
     state.phase = TurnPhase::INACTIVE;
+    if (state.boss)
+        state.boss->isTurnBasedMode = false;
     state.boss = nullptr;
     state.player = nullptr;
     state.message.clear();

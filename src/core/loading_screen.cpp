@@ -18,6 +18,9 @@
 #include "entities.h"
 #include "propsbehavior.h"
 #include "enemy_ai.h"
+#include "seedmanager.h"
+#include "worldgenio.h"
+#include "fonts.h"
 #include "../lib/raylib/include/raylib.h"
 
 /*==============================================================================
@@ -25,7 +28,7 @@
  *==============================================================================*/
 
 /** @brief Total stage loading untuk initial startup */
-#define TOTAL_LOADING_STAGES 6
+#define TOTAL_LOADING_STAGES 3
 
 /** @brief Total stage loading untuk map switch */
 #define MAP_SWITCH_STAGES 4
@@ -89,6 +92,7 @@ void UpdateLoadingScreen(GameState *state)
         case 0:
             state->loadingText = isBack ? "Returning to previous map..." : "Unloading current map...";
             UnloadMap();
+            spawnFlowFields.clear();
             state->loadingStage++;
             state->loadingProgress = (float)state->loadingStage / MAP_SWITCH_STAGES * 100.0F;
             break;
@@ -96,9 +100,26 @@ void UpdateLoadingScreen(GameState *state)
         case 1:
             state->loadingText = isBack ? "Reloading previous map..." : "Loading new map...";
             LoadMap(state->pendingMapPath.c_str());
-            BuildMapObjectIndex();
+
+            // Update map path segera agar IsAlreadyDead() pakai path yang benar
+            SetCurrentMapPath(state->pendingMapPath.c_str());
+
+            // Kalau ini worldgen stage, generate world pake seed yang sesuai
+            if (!isBack && state->pendingMapPath.find("worldseed/save_") != std::string::npos)
+            {
+                int stageIdx = g_SeedManager.GetCurrentStage();
+                uint64_t seed = g_SeedManager.GetSeed(stageIdx);
+                RunWorldgen(seed, stageIdx == SeedManager::SEED_COUNT - 1);
+                WorldgenIO::LoadRuntimeState(g_SeedManager.GetCurrentStage());
+            }
+            else
+            {
+                BuildMapObjectIndex();
+            }
+
             SpawnObject();
-            globalFlowField.Invalidate(); // nanti diganti kalo nambah method ai nya
+            RebuildObstacleCache();
+            globalFlowField.Invalidate();
             state->loadingStage++;
             state->loadingProgress = (float)state->loadingStage / MAP_SWITCH_STAGES * 100.0F;
             break;
@@ -116,7 +137,7 @@ void UpdateLoadingScreen(GameState *state)
             // Load musuh yang sudah ada atau spawn baru
             if (!LoadEnemiesForMap(state->pendingMapPath))
             {
-                SpawnRandomWave();
+                SpawnEnemiesFromMap();
             }
 
             // Load items
@@ -133,14 +154,11 @@ void UpdateLoadingScreen(GameState *state)
             state->loadingText = "Finalizing map switch...";
             // Set camera ke spawn player
             Vector2 spawnPos = PlayerInstance.GetPosition();
-            camera.target = {spawnPos.x + (TILE_SIZE / 2.0F), spawnPos.y + (TILE_SIZE / 2.0F)};
+            camera.target = {spawnPos.x + (FRAME_SIZE / 2.0F), spawnPos.y + (FRAME_SIZE / 2.0F)};
             camera.offset = {(float)(GameScreenWidth / 2), (float)(GameScreenHeight / 2)};
             camera.rotation = 0;
             camera.zoom = 1.0F;
             Movement::UpdateCamera(PlayerInstance);
-
-            // Update current map path
-            SetCurrentMapPath(state->pendingMapPath.c_str());
 
             // Clear map switch state
             state->isSwitchingMap = false;
@@ -162,6 +180,13 @@ void UpdateLoadingScreen(GameState *state)
      *==============================================================================*/
     if (state->assetsLoaded)
     {
+        // Kalo bukan map switch, reload map default (tutorial) agar player spawn fresh
+        if (!state->isSwitchingMap && !state->isGoingBack)
+        {
+            InitMap();
+            ClearSavedState(); // Fresh start — bersihkan state lama biar gak di-restore
+        }
+
         state->loadingStage = TOTAL_LOADING_STAGES;
         state->loadingProgress = 100.0F;
         state->loadingComplete = true;
@@ -170,6 +195,7 @@ void UpdateLoadingScreen(GameState *state)
         // Init first, then restore saved state - order matters!
         // InitAll() sets position to spawn, then RestoreGameState overwrites it
         InitAll();
+        InitFonts();
         if (HasSavedState())
         {
             RestoreGameState(state);
@@ -184,34 +210,13 @@ void UpdateLoadingScreen(GameState *state)
     switch (state->loadingStage)
     {
     case 0:
-        state->loadingText = "Loading tilemap textures...";
-        LoadTileTexture(TEXTURE_TILEMAP, "assets/textures/tiles.png");
+        state->loadingText = "Loading game textures...";
+        InitTextures();
         state->loadingStage++;
         state->loadingProgress = (float)state->loadingStage / TOTAL_LOADING_STAGES * 100.0F;
         break;
 
     case 1:
-        state->loadingText = "Loading character sprites...";
-        LoadTileTexture(TEXTURE_KNIGHT, "assets/textures/knight.png");
-        state->loadingStage++;
-        state->loadingProgress = (float)state->loadingStage / TOTAL_LOADING_STAGES * 100.0F;
-        break;
-
-    case 2:
-        state->loadingText = "Loading item icons...";
-        LoadTileTexture(TEXTURE_ITEMS, "assets/textures/test.png");
-        state->loadingStage++;
-        state->loadingProgress = (float)state->loadingStage / TOTAL_LOADING_STAGES * 100.0F;
-        break;
-
-    case 3:
-        state->loadingText = "Loading enemy textures...";
-        LoadTileTexture(TEXTURE_ENEMIES, "assets/textures/enemies.png");
-        state->loadingStage++;
-        state->loadingProgress = (float)state->loadingStage / TOTAL_LOADING_STAGES * 100.0F;
-        break;
-
-    case 4:
         state->loadingText = "Loading map data...";
         // Load saved map if resuming, otherwise default
         if (HasSavedState() && !savedMapState.mapPath.empty())
@@ -226,7 +231,7 @@ void UpdateLoadingScreen(GameState *state)
         state->loadingProgress = (float)state->loadingStage / TOTAL_LOADING_STAGES * 100.0F;
         break;
 
-    case 5:
+    case 2:
         state->loadingText = "Finalizing game assets...";
         state->loadingStage++;
         state->loadingProgress = (float)state->loadingStage / TOTAL_LOADING_STAGES * 100.0F;

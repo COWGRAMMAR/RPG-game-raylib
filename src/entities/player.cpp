@@ -1,7 +1,21 @@
+/**
+ * @file player.cpp
+ * @brief Implementasi Player Character
+ *
+ * File ini berisi implementasi class Player:
+ * - Init: inisialisasi stat, spawn position, collision geometry
+ * - Update: input, lifecycle, physics, combat, inventory, interaction, animation
+ * - Render: sprite rendering, hit flash, aim indicator
+ * - TakeDamage: damage processing, knockback, hit flash
+ * - HandleAction: action handler untuk drop item
+ */
+
 #include "player.h"
+#include "screen.h"
 #include "movement.h"
 #include "combat.h"
 #include "interaction.h"
+#include "animation.h"
 #include "inventory.h"
 #include "mapLogic.h"
 #include "game_debug.h"
@@ -9,6 +23,9 @@
 #include "propsbehavior.h"
 #include <cmath>
 
+constexpr int EMPTY_ITEM_ID = -1;
+
+/** @brief Instance global player */
 Player PlayerInstance;
 
 /**
@@ -22,10 +39,6 @@ void Player::Init(GameState *state, const char *spawnObjectName)
     // Memuat resource global pemain hanya satu kali
     if (!isInitialized)
     {
-        LoadTileTexture(TEXTURE_KNIGHT, "assets/textures/knight.png");
-        LoadTileTexture(TEXTURE_ITEMS, "assets/textures/test.png");
-        LoadTileTexture(TEXTURE_ENEMIES, "assets/textures/enemies.png");
-
         MaxHealth = 100.0f;
         Health = MaxHealth;
 
@@ -34,19 +47,21 @@ void Player::Init(GameState *state, const char *spawnObjectName)
         ManaRegenTimer = 0.0f;
 
         // Inisialisasi perlengkapan hotbar default
-        Hotbar[0] = {0, 1}; // Iron Sword
-        Hotbar[1] = {1, 1}; // Iron Axe
+        Hotbar[0] = {1, 1}; // Iron Sword
+        Hotbar[1] = {4, 1}; // Iron Axe
         Hotbar[2] = {2, 8}; // Health Potion
         Hotbar[3] = {3, 8}; // Mana Bread
 
         for (int i = 0; i < PlayerInstance.MaxBag; i++)
-            Bag[i] = {-1, 0};
+            Bag[i] = {EMPTY_ITEM_ID, 0};
 
         isInitialized = true;
         TraceLog(LOG_INFO, "Player: Resource global dan statistik telah diinisialisasi");
     }
 
-    PlayAnimation(Anim, IDLE, DOWN, PlayerAnimationSet);
+    Anim.animSet = &loadedAnimationSets["knight"];
+    PlayAnimation(Anim, IDLE, RIGHT);
+    LastHorizDir = RIGHT;
     CollisionRects.clear();
     CollisionPolygons.clear();
 
@@ -69,7 +84,7 @@ void Player::Init(GameState *state, const char *spawnObjectName)
     }
     else
     {
-        Position = {((float)tilesonMap->width * 32) / 2.0f, ((float)tilesonMap->height * 32) / 2.0f};
+        Position = {((float)tilesonMap->width * FRAME_SIZE) / 2.0f, ((float)tilesonMap->height * FRAME_SIZE) / 2.0f};
     }
 
     Anim.position = Position;
@@ -114,17 +129,19 @@ void Player::Update()
 
     // 3. Timer & Efek Status
     if (HitFlashTimer > 0)
-        HitFlashTimer -= GetFrameTime();
+        HitFlashTimer -= Time::DELTA_TIME;
 
     // 4. Fisika & Pergerakan (termasuk Knockback)
+    float fpsNorm = 60.0f;
+    float knockbackFriction = 0.85f;
     if (Vector2Length(KnockbackVelocity) > 0.1f)
     {
-        Vector2 nextPos = Vector2Add(Position, Vector2Scale(KnockbackVelocity, GetFrameTime() * 60.0f));
+        Vector2 nextPos = Vector2Add(Position, Vector2Scale(KnockbackVelocity, Time::DELTA_TIME * fpsNorm));
         if (Movement::CanMove(*this, nextPos))
         {
             Position = nextPos;
         }
-        KnockbackVelocity = Vector2Scale(KnockbackVelocity, 0.85f); // Redaman gesekan
+        KnockbackVelocity = Vector2Scale(KnockbackVelocity, knockbackFriction);
     }
     else
     {
@@ -138,13 +155,10 @@ void Player::Update()
         pendingGoBack = true;
     }
 
-    // Memblokir pergerakan selama animasi serangan
-    if (!Anim.isAttacking)
-    {
-        Movement::HandleMovement(*this);
-    }
+    // Pergerakan bisa dilakukan bersamaan dengan animasi serangan
+    Movement::HandleMovement(*this);
 
-    Combat::HandleCombat(*this);
+    Combat::Update(*this);
     if (Anim.isDead)
         return;
 
@@ -153,9 +167,9 @@ void Player::Update()
     HandleAction();
 
     // 6. Update Animasi & Kamera
-    Combat::UpdateSwingAttack(*this, GetFrameTime());
+    Combat::UpdateSwingAttack(*this, Time::DELTA_TIME);
     Anim.position = Position;
-    UpdateAnimation(Anim, GetFrameTime());
+    UpdateAnimation(Anim, Time::DELTA_TIME);
     Movement::UpdateCamera(*this);
 
     // 7. Handle map transitions
@@ -179,8 +193,14 @@ void Player::Update()
  */
 void Player::Render(void)
 {
+    if (!Anim.isDead)
+    {
+        DrawAimIndicator();
+    }
+
     // Bayangan (Drop shadow)
-    DrawEllipse((int)Position.x + 16, (int)Position.y + 31, 10, 4, {0, 0, 0, 80});
+    int shadowRx = 10, shadowRy = 4;
+    DrawEllipse((int)Position.x + FRAME_SIZE / 2, (int)Position.y + FRAME_SIZE - 1, shadowRx, shadowRy, {0, 0, 0, 80});
 
     // Terapkan warna kilatan (merah saat terkena hit)
     Color tint = WHITE;
@@ -189,27 +209,29 @@ void Player::Render(void)
         tint = RED;
     }
 
-    DrawAnimation(Anim, TEXTURE_KNIGHT, tint);
+    DrawAnimation(Anim, tint);
     Combat::DrawSwingAttack(*this);
-    DrawAimIndicator();
 }
 
+/** @brief Apply damage ke player */
 void Player::TakeDamage(float amount, Vector2 knockback)
 {
     Entity::TakeDamage(amount, knockback);
 
-    HitFlashTimer = 0.15f;
-    KnockbackVelocity = Vector2Scale(knockback, 6.0f);
+    float hitFlashDuration = 0.15f;
+    float knockbackStrength = 6.0f;
+    HitFlashTimer = hitFlashDuration;
+    KnockbackVelocity = Vector2Scale(knockback, knockbackStrength);
 
     if (Anim.isAttacking)
     {
-        Swing.active = false;
+        attack.active = false;
         Anim.isAttacking = false;
-        PlayAnimation(Anim, IDLE, Anim.direction, PlayerAnimationSet);
+        PlayAnimation(Anim, IDLE, Anim.direction);
     }
 
-    Vector2 center = {Position.x + 16, Position.y + 16};
-    Combat::AddDamagePopup(center, amount);
+    Vector2 center = {Position.x + FRAME_SIZE / 2, Position.y + FRAME_SIZE / 2};
+    Effects::AddDamage(center, amount);
 
     TraceLog(LOG_INFO, "PLAYER: Menerima %.1f damage. Sisa HP: %.1f", amount, Health);
 }
@@ -218,26 +240,21 @@ void Player::TakeDamage(float amount, Vector2 knockback)
  * Private Helper Methods
  *==============================================================================*/
 
+// Cek apakah player bisa pindah ke posisi
 bool Player::CanMove(Vector2 newPosition)
 {
     return Movement::CanMove(*this, newPosition);
 }
 
+// Hitbox player di posisi tertentu
 Rectangle Player::GetPlayerHitboxAtPosition(Vector2 position)
 {
     return {position.x + HitboxOffsetX, position.y + HitboxOffsetY, HitboxWidth, HitboxHeight};
 }
 
-/**
- * @brief Gambar indicator arah aim player (debug overlay)
- * Warna berubah berdasarkan apakah arah aim valid (dot product dengan facing direction)
- * Definisi: src/player.cpp (file ini)
- */
+// Gambar indicator arah aim player (debug overlay)
 void Player::DrawAimIndicator(void)
 {
-    if (!isDebugMode)
-        return;
-
     Vector2 playerCenter = GetCenter();
     Vector2 facingDir = {0, 0};
     switch (Anim.direction)
@@ -263,9 +280,19 @@ void Player::DrawAimIndicator(void)
         playerCenter.y + aimDir.y * INTERACT_RANGE};
 
     float dot = Vector2DotProduct(facingDir, aimDir);
-    Color indicatorColor = (dot >= RayCastAngle) ? GREEN : WHITE;
+    bool isActive = (dot >= RayCastAngle);
+    float alpha = isActive ? 1.0f : 0.5f;
 
-    DrawLineEx(playerCenter, rayEnd, 2.0f, indicatorColor);
+    Color indicatorColor = Fade(WHITE, alpha);
+    Color outlineColor = Fade(BLACK, alpha);
+
+    // Gambar outline hitam (lebih tebal)
+    float outlineThickness = 3.5f;
+    float indicatorThickness = 1.5f;
+    DrawLineEx(playerCenter, rayEnd, outlineThickness, outlineColor);
+    // Gambar garis utama putih (lebih tipis di atas outline)
+    DrawLineEx(playerCenter, rayEnd, indicatorThickness, indicatorColor);
+
     // Raycast hanya terhadap object layer (garis biru) untuk titik merah
     std::vector<MapObject> debugObstacles;
     if (tilesonMap)
@@ -280,10 +307,11 @@ void Player::DrawAimIndicator(void)
     }
     LastHit = Ray.Cast(playerCenter, aimDir, INTERACT_RANGE, debugObstacles);
 
-    // Titik merah hanya di interseksi dengan garis biru (object layer)
-    if (LastHit.hit)
+    // Titik merah hanya di interseksi dengan garis biru (object layer) ketika mode debug aktif
+    if (isDebugMode && LastHit.hit)
     {
-        DrawCircleV(LastHit.point, 4.0f, RED);
+        float debugCircleRadius = 4.0f;
+        DrawCircleV(LastHit.point, debugCircleRadius, Fade(RED, alpha));
     }
 }
 
@@ -291,14 +319,7 @@ void Player::DrawAimIndicator(void)
  * Action Handlers
  *==============================================================================*/
 
-/**
- * Resolve apa yang terjadi saat input aksi (misal: Left Click)
- * dilakukan berdasarkan context:
- * - Inventori terbuka → equip/unequip item
- * - Slot senjata (1/2) → attack
- * - Slot potion (3/4) → minum potion
- * Definisi: src/player.cpp (file ini)
- */
+// Handle action player
 void Player::HandleAction(void)
 {
     if (InputInstance.IsInventoryOpen())
@@ -315,7 +336,7 @@ void Player::HandleAction(void)
             break;
 
         InventoryItem &slot = Hotbar[slotIdx];
-        if (slot.definitionId == -1)
+        if (slot.definitionId == EMPTY_ITEM_ID)
             break;
 
         bool dropAll = InputInstance.IsDropItemAll();
@@ -323,22 +344,57 @@ void Player::HandleAction(void)
         Vector2 playerCenter = GetCenter();
         Vector2 mouseWorld = GetScreenToWorld2D(GetVirtualMousePosition(State), camera);
         Vector2 aimDir = Vector2Normalize(Vector2Subtract(mouseWorld, playerCenter));
+
+        // Arah hadap player
+        Vector2 facingDir = {0, 0};
+        switch (Anim.direction)
+        {
+        case UP:
+            facingDir = {0, -1};
+            break;
+        case DOWN:
+            facingDir = {0, 1};
+            break;
+        case LEFT:
+            facingDir = {-1, 0};
+            break;
+        case RIGHT:
+            facingDir = {1, 0};
+            break;
+        }
+
+        Vector2 backDir = {-facingDir.x, -facingDir.y};
+        float forbiddenThreshold = cosf((90.0f - RayCastAngleItemDropBack) * DEG2RAD);
+        Vector2 dropDir = aimDir;
+
+        if (Vector2DotProduct(backDir, aimDir) > forbiddenThreshold)
+        {
+            float cross = facingDir.x * aimDir.y - facingDir.y * aimDir.x;
+            float sign = (cross >= 0) ? 1.0f : -1.0f;
+            float clampAngle = (90.0f + RayCastAngleItemDropBack) * DEG2RAD;
+            float cosA = cosf(clampAngle * sign);
+            float sinA = sinf(clampAngle * sign);
+            dropDir = {
+                facingDir.x * cosA - facingDir.y * sinA,
+                facingDir.x * sinA + facingDir.y * cosA};
+        }
+
         Vector2 dropPos = {
-            playerCenter.x + aimDir.x * INTERACT_RANGE,
-            playerCenter.y + aimDir.y * INTERACT_RANGE};
+            playerCenter.x + dropDir.x * INTERACT_RANGE,
+            playerCenter.y + dropDir.y * INTERACT_RANGE};
 
         ItemSpawn dropped = itemData.CreateItem(dropPos, slot.definitionId);
         if (dropAll)
         {
             dropped.amount = slot.amount;
-            slot = {-1, 0};
+            slot = {EMPTY_ITEM_ID, 0};
         }
         else
         {
             dropped.amount = 1;
             slot.amount -= 1;
             if (slot.amount <= 0)
-                slot = {-1, 0};
+                slot = {EMPTY_ITEM_ID, 0};
         }
 
         itemData.activeItems.push_back(dropped);

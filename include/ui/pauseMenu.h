@@ -67,10 +67,7 @@ public:
      */
     void Hide();
 
-    /**
-     * @brief Memeriksa apakah layar options sedang aktif
-     * @return true jika aktif, false jika tidak
-     */
+    /** @brief Cek apakah layar options sedang aktif */
     bool IsActive() const;
 
     /**
@@ -87,10 +84,7 @@ public:
      */
     void Draw(Vector2 mousePosition);
 
-    /**
-     * @brief Mengatur layar kembali (layar tujuan saat tombol BACK diklik)
-     * @param screen Layar tujuan
-     */
+    /** @brief Set layar tujuan saat tombol BACK diklik */
     void SetReturnScreen(ScreenState screen) { returnScreen = screen; }
 
 private:

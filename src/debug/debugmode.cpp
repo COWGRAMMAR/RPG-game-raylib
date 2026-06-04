@@ -9,43 +9,41 @@
  * - Menampilkan info runtime player, map, camera, dan collision
  */
 
-#include "debug/game_debug.h"
+#include "game_debug.h"
 #include "../lib/raylib/include/raylib.h"
+#include "input.h"
 #include "../lib/raylib/include/raymath.h"
 #include "screen.h"
 #include "map.h"
 #include "mapLogic.h"
-#include "tiles.h"
 #include "animation.h"
+#include "entities.h"
 #include "player.h"
+#include "enemy.h"
 #include <algorithm>
 #include <cctype>
 #include "item.h"
+#include "enemy_ai.h"
 
 /*==============================================================================
  * Global Variables
  *==============================================================================*/
 
-/** Global instance debug yang dipakai lintas file */
+/** @brief Instance global debug */
 Debug DebugInstance;
 
-/** Flag untuk menentukan apakah debug mode sedang aktif */
+/** @brief Flag debug mode */
 bool isDebugMode = false;
+/** @brief Tampilkan overlay flow field enemy */
+bool showFlowFieldOverlay = false;
+/** @brief Tampilkan overlay flow field player */
+bool showFlowFieldOverlayPlayer = false;
 
 /*==============================================================================
  * Private Helper Methods
  *==============================================================================*/
 
-/**
- * @brief Hitung bounds panel berdasarkan urutan tampil
- *
- * Panel disusun dalam layout grid dua kolom dari pojok kiri atas layar.
- *
- * @param index Urutan panel yang akan digambar
- * @param panelWidth Lebar panel
- * @param panelHeight Tinggi panel
- * @return Rectangle posisi dan ukuran panel
- */
+// Hitung bounds panel berdasarkan urutan tampil
 Rectangle Debug::GetPanelBounds(int index, float panelWidth, float panelHeight) const
 {
     // Konfigurasi grid panel debug
@@ -67,13 +65,7 @@ Rectangle Debug::GetPanelBounds(int index, float panelWidth, float panelHeight) 
     return bounds;
 }
 
-/**
- * @brief Bangun daftar panel debug yang aktif
- *
- * Urutan panel dalam vector akan dipakai sebagai urutan layout di layar.
- *
- * @return Vector berisi panel yang akan dirender
- */
+// Bangun daftar panel debug yang aktif
 std::vector<Debug::DebugPanelEntry> Debug::BuildActivePanels(void) const
 {
     std::vector<DebugPanelEntry> panels;
@@ -89,16 +81,7 @@ std::vector<Debug::DebugPanelEntry> Debug::BuildActivePanels(void) const
     return panels;
 }
 
-/**
- * @brief Gambar frame dasar untuk satu panel debug
- *
- * Panel digambar dengan background hitam semi-transparan,
- * border berwarna, dan judul di bagian atas.
- *
- * @param bounds Area panel
- * @param title Judul panel
- * @param borderColor Warna border dan judul
- */
+// Gambar frame dasar untuk satu panel debug
 void Debug::DrawPanelFrame(Rectangle bounds, const char *title, Color borderColor) const
 {
     DrawRectangle((int)bounds.x, (int)bounds.y, (int)bounds.width, (int)bounds.height, Fade(BLACK, 0.7f));
@@ -106,17 +89,7 @@ void Debug::DrawPanelFrame(Rectangle bounds, const char *title, Color borderColo
     DrawText(title, (int)bounds.x + 10, (int)bounds.y + 5, 18, borderColor);
 }
 
-/**
- * @brief Gambar overlay collision untuk layer tertentu
- *
- * Object rectangle digambar sebagai outline rectangle,
- * sedangkan object polygon digambar per edge dan titik sudut.
- *
- * @param layerName Nama layer collision
- * @param rectColor Warna rectangle collision
- * @param polygonColor Warna edge polygon
- * @param pointColor Warna titik polygon
- */
+// Gambar overlay collision untuk layer tertentu
 void Debug::DrawCollisionOverlay(const std::string &layerName, Color rectColor, Color polygonColor, Color pointColor)
 {
     const std::vector<MapObject *> &objs = TilesonGetObjectsByLayerName(layerName.c_str());
@@ -145,69 +118,68 @@ void Debug::DrawCollisionOverlay(const std::string &layerName, Color rectColor, 
     }
 }
 
-/**
- * @brief Gambar overlay raycast interaksi player
- *
- * Titik hit terakhir ditandai jika ada object yang terkena.
- * Garis raycast sudah digambar oleh DrawAimIndicator() di player.cpp
- * dengan logika warna berdasarkan sudut hadap.
- */
+// Gambar overlay raycast interaksi player
 void Debug::DrawRaycastOverlay(void)
 {
     // Gambar titik hit jika ray mengenai object (hanya saat debug mode aktif)
-    if (isDebugMode && PlayerInstance.GetLastHit().hit)
-        DrawCircleV(PlayerInstance.GetLastHit().point, 4.0f, RED);
+    if (isDebugMode && PlayerInstance.LastHit.hit)
+        DrawCircleV(PlayerInstance.LastHit.point, 4.0f, RED);
 }
 
-/**
- * @brief Gambar overlay area serangan player
- */
+// Gambar overlay area serangan player
 void Debug::DrawAttackOverlay(void)
 {
     // Hanya gambar jika player sedang menyerang
-    if (!PlayerInstance.Anim.isAttacking)
+    if (!PlayerInstance.attack.active || !PlayerInstance.attack.weapon)
         return;
 
-    Vector2 playerCenter = {
-        PlayerInstance.GetPosition().x + PlayerInstance.GetHitboxOffsetX() + PlayerInstance.GetHitboxWidth() / 2,
-        PlayerInstance.GetPosition().y + PlayerInstance.GetHitboxOffsetY() + PlayerInstance.GetHitboxHeight() / 2};
+    Vector2 playerCenter = PlayerInstance.GetCenter();
+    float reach = PlayerInstance.attack.weapon->reach;
+    float breadth = PlayerInstance.attack.weapon->breadth;
+    float angle = PlayerInstance.attack.raycastAngle;
+    float attackerRadius = PlayerInstance.GetHitboxWidth() / 2.0f;
 
-    // Logika yang sama dengan Combat::PerformHitDetection
-    Rectangle attackHitbox;
-    float reach = PlayerInstance.Swing.reach;
-    float breadth = PlayerInstance.Swing.breadth;
+    float rad = angle * (PI / 180.0f);
+    Vector2 forward = {cosf(rad), sinf(rad)};
+    Vector2 right = {-sinf(rad), cosf(rad)};
 
-    switch (PlayerInstance.Anim.direction)
-    {
-    case RIGHT:
-        attackHitbox = {playerCenter.x + PlayerInstance.GetHitboxWidth() / 2, playerCenter.y - breadth / 2, reach, breadth};
-        break;
-    case LEFT:
-        attackHitbox = {playerCenter.x - PlayerInstance.GetHitboxWidth() / 2 - reach, playerCenter.y - breadth / 2, reach, breadth};
-        break;
-    case DOWN:
-        attackHitbox = {playerCenter.x - breadth / 2, playerCenter.y + PlayerInstance.GetHitboxHeight() / 2, breadth, reach};
-        break;
-    case UP:
-        attackHitbox = {playerCenter.x - breadth / 2, playerCenter.y - PlayerInstance.GetHitboxHeight() / 2 - reach, breadth, reach};
-        break;
-    }
+    Vector2 edgeCenter = {
+        playerCenter.x + forward.x * attackerRadius,
+        playerCenter.y + forward.y * attackerRadius};
 
-    // Gambar hitbox serangan
-    DrawRectangleLinesEx(attackHitbox, 2.0f, RED);
-    DrawRectangleRec(attackHitbox, Fade(RED, 0.3f));
+    Vector2 p1 = {edgeCenter.x + right.x * (breadth / 2.0f), edgeCenter.y + right.y * (breadth / 2.0f)};
+    Vector2 p2 = {edgeCenter.x - right.x * (breadth / 2.0f), edgeCenter.y - right.y * (breadth / 2.0f)};
+    Vector2 p3 = {p1.x + forward.x * reach, p1.y + forward.y * reach};
+    Vector2 p4 = {p2.x + forward.x * reach, p2.y + forward.y * reach};
+
+    // Fill rotated rectangle
+    Color fillColor = Fade(RED, 0.3f);
+    DrawTriangle(p1, p2, p3, fillColor);
+    DrawTriangle(p2, p4, p3, fillColor);
+
+    // Draw rotated rectangle outline
+    DrawLineEx(p1, p3, 2.0f, RED);
+    DrawLineEx(p3, p4, 2.0f, RED);
+    DrawLineEx(p4, p2, 2.0f, RED);
+    DrawLineEx(p2, p1, 2.0f, RED);
+
+    // Draw AABB outline for visual reference (used for prop/object detection)
+    float minX = std::min({p1.x, p2.x, p3.x, p4.x});
+    float maxX = std::max({p1.x, p2.x, p3.x, p4.x});
+    float minY = std::min({p1.y, p2.y, p3.y, p4.y});
+    float maxY = std::max({p1.y, p2.y, p3.y, p4.y});
+    Rectangle aabb = {minX, minY, maxX - minX, maxY - minY};
+    DrawRectangleLinesEx(aabb, 1.0f, Fade(ORANGE, 0.5f));
 
     // Gambar titik hit jika ray mengenai object
-    if (PlayerInstance.GetLastHit().hit)
-        DrawCircleV(PlayerInstance.GetLastHit().point, 4.0f, VIOLET);
+    if (PlayerInstance.LastHit.hit)
+        DrawCircleV(PlayerInstance.LastHit.point, 4.0f, VIOLET);
 
     // Label
-    DrawText("Attack Area (2:1 Rect)", (int)attackHitbox.x, (int)attackHitbox.y - 14, 14, RED);
+    DrawText("Attack Area (Rotated OBB)", (int)minX, (int)minY - 14, 14, RED);
 }
 
-/**
- * @brief Gambar titik spawn musuh yang terdeteksi dari data map
- */
+// Gambar titik spawn musuh yang terdeteksi dari data map
 void Debug::DrawEnemySpawnOverlay(void)
 {
     if (tilesonMap == nullptr)
@@ -279,10 +251,20 @@ void Debug::DrawEnemySpawnOverlay(void)
  */
 void Debug::Toggle(void)
 {
-    if (IsKeyPressed(KEY_TAB))
+    const InputState& in = InputInstance.GetState();
+
+    if (in.debugToggle)
     {
         isDebugMode = !isDebugMode;
         TraceLog(LOG_INFO, "Debug mode: %s", isDebugMode ? "ON" : "OFF");
+    }
+    if (in.debugToggleEnemy)
+    {
+        showFlowFieldOverlay = !showFlowFieldOverlay;
+    }
+    if (in.debugTogglePlayer)
+    {
+        showFlowFieldOverlayPlayer = !showFlowFieldOverlayPlayer;
     }
 }
 
@@ -364,7 +346,7 @@ void Debug::DrawPlayerPanel(Rectangle bounds)
     DrawPanelFrame(bounds, "[ PLAYER DEBUG ]", GREEN);
     DrawText(TextFormat("Position   : (%.1f, %.1f)", PlayerInstance.GetPosition().x, PlayerInstance.GetPosition().y),
              (int)bounds.x + 10, (int)bounds.y + 27, 16, WHITE);
-    DrawText(TextFormat("Speed      : %.1f", PlayerInstance.GetSpeed()),
+    DrawText(TextFormat("Speed      : %.1f", PlayerInstance.Speed),
              (int)bounds.x + 10, (int)bounds.y + 47, 16, WHITE);
     DrawText(TextFormat("Hitbox Size: %.1f x %.1f", PlayerInstance.GetHitboxWidth(), PlayerInstance.GetHitboxHeight()),
              (int)bounds.x + 10, (int)bounds.y + 67, 16, YELLOW);
@@ -386,10 +368,10 @@ void Debug::DrawZoomPanel(Rectangle bounds)
     const float ZOOM_INCREMENT = 0.25f;
 
     // Handle zoom dengan scroll mouse
-    float MouseWheel = GetMouseWheelMove();
-    if (MouseWheel != 0)
+    float mouseWheel = GetMouseWheelMove();
+    if (mouseWheel != 0)
     {
-        camera.zoom += MouseWheel * ZOOM_INCREMENT;
+        camera.zoom += mouseWheel * ZOOM_INCREMENT;
         if (camera.zoom > MAX_ZOOM)
             camera.zoom = MAX_ZOOM;
         if (camera.zoom < MIN_ZOOM)
@@ -507,15 +489,32 @@ void Debug::DrawWorldOverlay(void)
     DrawCollisionOverlay(OBJECT_LAYER_NAME, SKYBLUE, SKYBLUE, LIGHTGRAY);
     DrawCollisionOverlay(TRAP_LAYER_NAME, BEIGE, BEIGE, LIGHTGRAY);
     DrawCollisionOverlay(ITEM_LAYER_NAME, PINK, PINK, LIGHTGRAY);
+    DrawCollisionOverlay(EXIT_LAYER_NAME, BLACK, BLACK, LIGHTGRAY);
     DrawAttackOverlay();
+    if (showFlowFieldOverlayPlayer)
+    {
+        DrawFlowFieldOverlay(globalFlowField);
+    }
+    if (showFlowFieldOverlay)
+    {
+        for (auto *entity : Entities::GetRegistry())
+        {
+            Enemy *enemy = dynamic_cast<Enemy *>(entity);
+            if (!enemy)
+                continue;
+            const FlowField *ff = enemy->GetReturnFlowField();
+            if (ff && ff->IsReady())
+                DrawFlowFieldOverlay(*ff);
+        }
+    }
     DrawEnemySpawnOverlay();
 
     // Batas luar map
     Rectangle mapBounds = {
         0.0f,
         0.0f,
-        (float)tilesonMap->width * TILE_SIZE,
-        (float)tilesonMap->height * TILE_SIZE};
+        (float)tilesonMap->width * FRAME_SIZE,
+        (float)tilesonMap->height * FRAME_SIZE};
 
     DrawRectangleLinesEx(mapBounds, 2.0f, GREEN);
 
@@ -529,4 +528,103 @@ void Debug::DrawWorldOverlay(void)
             DrawText(def.name.c_str(), (int)item.hitbox.x, (int)item.hitbox.y - 12, 10, PINK);
         }
     }
+}
+
+/**
+ * @brief Gambar overlay arah flow field pada tile yang reachable.
+ * @param field Flow field yang akan divisualisasikan
+ */
+void Debug::DrawFlowFieldOverlay(const FlowField &field)
+{
+    if (!field.IsReady())
+        return;
+
+    int mapW = tilesonMap->width;
+    int mapH = tilesonMap->height;
+
+    for (int y = 0; y < mapH; y++)
+    {
+        for (int x = 0; x < mapW; x++)
+        {
+            Vector2 tileCenter = {
+                x * FLOW_FIELD_TILE_SIZE + FLOW_FIELD_CENTER_OFFSET,
+                y * FLOW_FIELD_TILE_SIZE + FLOW_FIELD_CENTER_OFFSET};
+
+            Vector2 dir = field.GetDirection(tileCenter);
+            if (dir.x == 0 && dir.y == 0)
+                continue;
+
+            Vector2 arrowEnd = {
+                tileCenter.x + dir.x * (FLOW_FIELD_TILE_SIZE * 0.4f),
+                tileCenter.y + dir.y * (FLOW_FIELD_TILE_SIZE * 0.4f)};
+
+            DrawLineV(tileCenter, arrowEnd, BLUE);
+            DrawCircleV(arrowEnd, 2.0f, ORANGE);
+        }
+    }
+}
+
+/**
+ * @brief Gambar overlay debug steering untuk satu enemy.
+ * @param enemy Enemy yang steering-nya akan divisualisasikan
+ */
+void Debug::DrawSteeringOverlay(Enemy &enemy)
+{
+    Vector2 pos = enemy.GetCenter();
+    float tileSize = FLOW_FIELD_TILE_SIZE;
+
+    // --- 1. Raycast line ---
+    Vector2 vel = enemy.GetVelocity();
+    Vector2 flowDir = globalFlowField.GetDirection(pos);
+    Vector2 rayDir = (Vector2LengthSqr(vel) > 0.001f) ? Vector2Normalize(vel) : flowDir;
+    Vector2 rayEnd = Vector2Add(pos, Vector2Scale(rayDir, tileSize * 2.0f));
+
+    auto obstacles = cachedObstacleList;
+    RayHitResult hit = enemy.CastDebugRay(rayDir, tileSize * 2.0f, obstacles, LINE, 0, 0);
+
+    Color rayColor = hit.hit ? RED : GREEN;
+    DrawLineV(pos, rayEnd, rayColor);
+    DrawCircleV(rayEnd, 3.0f, rayColor);
+
+    // --- 2. Steering dir arrow ---
+    Vector2 steerDir = enemy.Steering.SteeringDir;
+    if (Vector2LengthSqr(steerDir) > 0.001f)
+    {
+        Vector2 steerEnd = Vector2Add(pos, Vector2Scale(steerDir, tileSize * 0.6f));
+        DrawLineV(pos, steerEnd, BLUE);
+        DrawCircleV(steerEnd, 3.0f, BLUE);
+    }
+
+    // --- 3. 5x5 tile highlight --- (skip kalau in range)
+    if (!enemy.Steering.IsInRangeDebug(enemy.GetCenter(), PlayerInstance.GetHitbox(), enemy.GetRayDetectionLength()))
+    {
+        Vector2 flowTile = enemy.Steering.LastFlowTile;
+        for (int dy = -STEERING_GRID_RADIUS; dy <= STEERING_GRID_RADIUS; dy++)
+        {
+            for (int dx = -STEERING_GRID_RADIUS; dx <= STEERING_GRID_RADIUS; dx++)
+            {
+                if (dx == 0 && dy == 0)
+                    continue;
+
+                int tx = (int)flowTile.x + dx;
+                int ty = (int)flowTile.y + dy;
+
+                Vector2 tileCenter = {
+                    tx * tileSize + tileSize * 0.5f,
+                    ty * tileSize + tileSize * 0.5f};
+
+                bool walkable = IsPositionSafe(tileCenter, enemy.GetHitboxValue(), enemy.GetHitboxValue(),
+                                               enemy.GetOffSetValue(), enemy.GetOffSetValue());
+
+                Rectangle tileRect = {
+                    tx * tileSize, ty * tileSize,
+                    tileSize, tileSize};
+
+                DrawRectangleLinesEx(tileRect, 1.0f, walkable ? GREEN : RED);
+            }
+        }
+    }
+
+    // --- 4. IsPlayerInRange radius ---
+    DrawCircleV(pos, enemy.GetRayDetectionLength(), Fade(YELLOW, 0.2f));
 }

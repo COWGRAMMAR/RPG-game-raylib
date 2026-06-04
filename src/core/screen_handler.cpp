@@ -17,9 +17,12 @@
 #include "screen.h"
 #include "map.h"
 #include "player.h"
-#include "tiles.h"
+#include "item.h"
+#include "inventory.h"
 #include "animation.h"
+#include "fonts.h"
 #include "enemy.h"
+#include "enemy_ai.h"
 #include "entities.h"
 #include "mapLogic.h"
 #include "effects.h"
@@ -27,21 +30,27 @@
 #include "pauseMenu.h"
 #include "combat.h"
 #include "interaction.h"
+#include "input.h"
 #include <cstdio>
 #include "enemy_ai.h"
 #include "../lib/raylib/include/raylib.h"
 #include "../lib/raylib/include/raymath.h"
 #include <string>
+#include <cstring>
 #include <algorithm>
 #include <cctype>
 #include "hud.h"
 #include "propsbehavior.h"
 #include "combatTurn.h"
+#include "seedmanager.h"
+#include "worldgenio.h"
+#include "worldgenenartion.h"
 
 /*==============================================================================
  * External Variables & Macros
  *==============================================================================*/
 
+/** @brief Instance global game state */
 GameState *gState;
 
 extern PauseMenu pauseMenu;
@@ -52,7 +61,9 @@ extern PauseMenu pauseMenu;
  * Constants
  *==============================================================================*/
 
+/** @brief Skala monitor untuk UI */
 const float ScaleMultiplierMonitor = 0.7F;
+/** @brief Skala minimum monitor */
 const float ScaleMinMultiplierMonitor = 0.4F;
 
 extern const int GameScreenWidth = 1280;
@@ -84,7 +95,7 @@ void InitAll()
 
     // set camera ke tengah posisi spawn player
     Vector2 spawnPos = PlayerInstance.GetPosition();
-    camera.target = {spawnPos.x + (TILE_SIZE / 2.0F), spawnPos.y + (TILE_SIZE / 2.0F)};
+    camera.target = {spawnPos.x + (FRAME_SIZE / 2.0F), spawnPos.y + (FRAME_SIZE / 2.0F)};
     camera.offset = {(float)(GameScreenWidth / 2), (float)(GameScreenHeight / 2)};
     camera.rotation = 0;
     camera.zoom = 1.0F;
@@ -92,10 +103,11 @@ void InitAll()
     // Daftarkan player ke sistem entitas agar diupdate & dirender otomatis (Index 0)
     Entities::Add(&PlayerInstance);
 
+    SpawnObject();
+    RebuildObstacleCache();
+    globalFlowField.Invalidate(); // nanti diganti kalo nambah method ai nya
     // Spawn musuh dari map aktif
     SpawnEnemiesFromMap();
-    SpawnObject();
-    globalFlowField.Invalidate(); // nanti diganti kalo nambah method ai nya
 }
 
 /**
@@ -108,116 +120,6 @@ static std::string ToLower(std::string str)
     return str;
 }
 
-// fungsi ini bingung ingin ditaruh dimana, jadi sementara disini aja
-// soalnya butuh data object dari map, tapi masih berhubungan dengan entities dan enemy
-void SpawnEnemiesFromMap()
-{
-    if (!tilesonMap)
-        return;
-
-    TraceLog(LOG_INFO, "ENEMY: Spawning enemies for current map...");
-
-    for (auto &obj : tilesonMap->Objects)
-    {
-        std::string nameLower = ToLower(obj.name);
-        std::string typeLower = ToLower(obj.type);
-
-        // Cek apakah ini adalah titik spawn musuh
-        bool isEnemySpawn = (nameLower.find("enemy") != std::string::npos ||
-                             nameLower.find("slime") != std::string::npos ||
-                             nameLower.find("skeleton") != std::string::npos ||
-                             nameLower.find("wolf") != std::string::npos ||
-                             obj.name == ENEMY_SPAWN_OBJECT_NAME ||
-                             typeLower == "enemy_spawn");
-
-        if (isEnemySpawn)
-        {
-            // 0. Cek apakah musuh ini sudah pernah dibunuh (persistence antar pindah map)
-            if (Entities::IsAlreadyDead(GetCurrentMapPath(), obj.id))
-            {
-                TraceLog(LOG_INFO, "ENEMY: Object ID %d is already dead. Skipping spawn.", obj.id);
-                continue;
-            }
-
-            // 1. Tentukan tipe musuh (Prioritas: Properti 'enemy_type' -> Nama Objek)
-            std::string enemyName = "Slime";
-            bool typeFound = false;
-
-            if (obj.properties.count("enemy_type"))
-            {
-                std::string typeStr = ToLower(obj.properties.at("enemy_type").getValue<std::string>());
-                if (typeStr == "skeleton")
-                {
-                    enemyName = "Skeleton";
-                    typeFound = true;
-                }
-                else if (typeStr == "wolf")
-                {
-                    enemyName = "Wolf";
-                    typeFound = true;
-                }
-                else if (typeStr == "slime")
-                {
-                    enemyName = "Slime";
-                    typeFound = true;
-                }
-            }
-
-            if (!typeFound)
-            {
-                if (nameLower.find("skeleton") != std::string::npos)
-                    enemyName = "Skeleton";
-                else if (nameLower.find("wolf") != std::string::npos)
-                    enemyName = "Wolf";
-                else if (nameLower.find("slime") != std::string::npos)
-                    enemyName = "Slime";
-                else
-                {
-                    const auto &names = enemyData.GetAllNames();
-                    enemyName = names[GetRandomValue(0, (int)names.size() - 1)];
-                }
-            }
-
-            // 2a. Random chance untuk elite/boss variant (testing)
-            int variantRoll = GetRandomValue(0, 2);
-            if (variantRoll == 1)
-            {
-                std::string eliteName = enemyName + "_Elite";
-                if (enemyData.Has(eliteName))
-                    enemyName = eliteName;
-            }
-            else if (variantRoll == 2)
-            {
-                std::string bossName = enemyName + "_Boss";
-                if (enemyData.Has(bossName))
-                    enemyName = bossName;
-            }
-
-            // 2b. Tentukan Radius Patroli (Default: 128, atau dari properti 'radius')
-            float radius = 128.0f;
-            if (obj.properties.count("radius"))
-            {
-                auto prop = obj.properties.at("radius");
-                if (prop.getType() == tson::Type::Int)
-                    radius = (float)prop.getValue<int>();
-                else if (prop.getType() == tson::Type::Float)
-                    radius = prop.getValue<float>();
-            }
-
-            EnemyDefinition def = enemyData.Get(enemyName);
-            def.stats.patrolRadius = radius;
-
-            // 3. Spawn tepat 1 musuh di tengah objek spawn
-            Vector2 spawnPos = {obj.bounds.x + obj.bounds.width / 2.0f, obj.bounds.y + obj.bounds.height / 2.0f};
-
-            Enemy *enemy = new Enemy();
-            enemy->Init(spawnPos, enemyName.c_str(), obj.id, def);
-            Entities::AddDynamic(enemy);
-
-            TraceLog(LOG_INFO, "ENEMY: Created 1 enemy (Type: %s, ID: %d) from spawn point '%s'", enemyName.c_str(), obj.id, obj.name.c_str());
-        }
-    }
-}
 
 /**
  * @brief Inisialisasi window, audio, dan render texture virtual
@@ -236,6 +138,7 @@ GameState InitScreen()
 
     SetConfigFlags(FLAG_WINDOW_RESIZABLE);
     InitWindow(1280, 720, "Dungeon Game");
+    SetExitKey(KEY_NULL);  // ESC is handled by our own pause/keybind logic
     InitAudioDevice();
 
     state.WindowScreenWidth = (int)(GetMonitorWidth(0) * ScaleMultiplierMonitor);
@@ -274,11 +177,16 @@ GameState InitScreen()
  */
 void UpdateGame(GameState *state)
 {
-    state->WindowScreenWidth = GetScreenWidth();
-    state->WindowScreenHeight = GetScreenHeight();
-    state->ScaleMultiplier = MIN(
-        (float)state->WindowScreenWidth / GameScreenWidth,
-        (float)state->WindowScreenHeight / GameScreenHeight);
+    int w = GetScreenWidth();
+    int h = GetScreenHeight();
+    if (w != state->WindowScreenWidth || h != state->WindowScreenHeight)
+    {
+        state->WindowScreenWidth = w;
+        state->WindowScreenHeight = h;
+        state->ScaleMultiplier = MIN(
+            (float)w / GameScreenWidth,
+            (float)h / GameScreenHeight);
+    }
 }
 
 /**
@@ -304,6 +212,37 @@ void UpdateLogicAll()
     // update flow field sebelum enemy di-update
     if (tilesonMap)
         globalFlowField.Update(PlayerInstance.GetPosition(), tilesonMap->width, tilesonMap->height);
+
+    if (!spawnFlowFieldRebuildQueue.empty() && tilesonMap)
+    {
+        int id = spawnFlowFieldRebuildQueue.front();
+        spawnFlowFieldRebuildQueue.pop();
+        auto &entry = spawnFlowFields[id];
+        entry.field.Build(entry.spawnPos, tilesonMap->width, tilesonMap->height, FLOW_FIELD_RETURN_RADIUS);
+    }
+
+    RebuildSpatialHash(Entities::GetEnemyRegistry());
+
+    auto &enemyReg = Entities::GetEnemyRegistry();
+    for (int i = 0; i < (int)enemyReg.size(); i++)
+    {
+        if (!enemyReg[i]->IsActive)
+            continue;
+        Vector2 sep = CalcSeparationForce(i, enemyReg);
+        // lerp force lama ke force baru
+        enemyReg[i]->SeparationForce.x = Lerp(enemyReg[i]->SeparationForce.x, sep.x, SEPARATION_FORCE_MAGNITUDE);
+        enemyReg[i]->SeparationForce.y = Lerp(enemyReg[i]->SeparationForce.y, sep.y, SEPARATION_FORCE_MAGNITUDE);
+
+        Vector2 newPos = {
+            enemyReg[i]->Position.x + enemyReg[i]->SeparationForce.x * Time::DELTA_TIME,
+            enemyReg[i]->Position.y + enemyReg[i]->SeparationForce.y * Time::DELTA_TIME};
+
+        if (IsPositionSafe(newPos, enemyReg[i]->HitboxWidth, enemyReg[i]->HitboxHeight,
+                           enemyReg[i]->HitboxOffsetX, enemyReg[i]->HitboxOffsetY))
+        {
+            enemyReg[i]->Position = newPos;
+        }
+    }
 
     // Update semua entity (Player + semua Enemy) via Entities registry
     Entities::Update();
@@ -334,10 +273,32 @@ void UpdateLogicAll()
     // Handle pending map transitions dari Interaction namespace
     Interaction::ExecutePendingTransitions(PlayerInstance);
 
+    // Deteksi FINISH cell untuk stage transition (hanya di worldgen stage)
+    // Guard isSwitchingMap — cegah double trigger dari grid + door detection
+    if (!gState->isSwitchingMap && !gState->isGoingBack)
+    {
+        const char *mapPath = GetCurrentMapPath();
+        if (mapPath && strstr(mapPath, "worldseed/save_") != nullptr)
+        {
+            if (InputInstance.IsInteract())
+            {
+                Vector2 playerCenter = PlayerInstance.GetCenter();
+                CellType cellType = GetCellTypeAtWorldPos(playerCenter);
+                if (cellType == CELL_FINISH)
+                {
+                    WorldgenIO::NextStage();
+                }
+
+            }
+        }
+    }
+
     // Update Effects (Popups, Logs, etc)
-    Effects::Update(GetFrameTime());
-    spikeManager.Update(GetFrameTime(), PlayerInstance.GetHitbox(), &PlayerInstance);
-    bombManager.Update(GetFrameTime(), PlayerInstance.GetHitbox(), &PlayerInstance);
+    Effects::Update(Time::DELTA_TIME);
+    spikeManager.Update(Time::DELTA_TIME, PlayerInstance.GetHitbox(), &PlayerInstance);
+    bombManager.Update(Time::DELTA_TIME, PlayerInstance.GetHitbox(), &PlayerInstance);
+    crateManager.Update();
+    barrierManager.Update();
 
     // Update item magnet/pickup
     Vector2 center = PlayerInstance.GetCenter();
@@ -359,11 +320,27 @@ void UpdateLogicAll()
             {
                 TraceLog(LOG_INFO, "PICKUP: added to inventory");
                 item.isAdded = true;
+
+                const ItemDefinition &def = itemDefs.GetById(item.definitionId);
+                std::string logMsg = def.name;
+                if (item.amount > 1)
+                {
+                    logMsg += " x" + std::to_string(item.amount);
+                }
+                Effects::AddLog(logMsg.c_str());
             }
             else
             {
                 TraceLog(LOG_INFO, "PICKUP: inventory full");
                 item.isPickedUp = false; // balik ke world
+
+                static float lastInventoryFullTime = 0.0f;
+                float currentTime = (float)GetTime();
+                if (currentTime - lastInventoryFullTime > 2.0f)
+                {
+                    Effects::AddLog("Inventori Penuh");
+                    lastInventoryFullTime = currentTime;
+                }
             }
         }
     }
@@ -392,9 +369,10 @@ void DrawRenderTexture(GameState *state)
 
     // layer 2: entities, items, effects & world overlay (world space)
     BeginMode2D(camera);
-    RenderTileProps();
-    itemRender.RenderAll(itemData.activeItems);
-    Entities::Render();
+    Rectangle viewRect = GetVisibleWorldRect();
+    RenderTileProps(viewRect);
+    itemRender.RenderAll(itemData.activeItems, viewRect);
+    Entities::Render(viewRect);
     Effects::Draw();
     DebugInstance.DrawWorldOverlay();
     EndMode2D();
@@ -488,8 +466,8 @@ Vector2 GetVirtualMousePosition(GameState *state)
  */
 void GameShutDown(GameState *state)
 {
-    for (int i = 0; i < MAX_TEXTURES; i++)
-        UnloadTexture(TexturesMap[i]);
+    CloseTextures();
+    UnloadFonts();
 
     Entities::Shutdown();
     UnloadMap();
@@ -503,6 +481,7 @@ void GameShutDown(GameState *state)
  * Window & Video Settings Functions
  *==============================================================================*/
 
+/** @brief Toggle fullscreen mode */
 void ToggleFullscreenMode(void)
 {
     if (IsWindowFullscreen())
@@ -515,11 +494,13 @@ void ToggleFullscreenMode(void)
     }
 }
 
+/** @brief Set resolusi window */
 void SetResolution(int width, int height)
 {
     SetWindowSize(width, height);
 }
 
+/** @brief Get resolusi window saat ini */
 Rectangle GetCurrentResolution(void)
 {
     Rectangle res = {0};
@@ -528,6 +509,7 @@ Rectangle GetCurrentResolution(void)
     return res;
 }
 
+/** @brief Get resolusi monitor utama */
 Rectangle GetMonitorResolution(void)
 {
     Rectangle res = {0};
@@ -536,6 +518,7 @@ Rectangle GetMonitorResolution(void)
     return res;
 }
 
+/** @brief Cek apakah fullscreen */
 bool IsFullscreen(void)
 {
     return IsWindowFullscreen();

@@ -5,6 +5,9 @@
 #include "map.h"
 #include "screen.h"
 #include "propsbehavior.h"
+#include "seedmanager.h"
+#include "worldgenio.h"
+#include "entities.h"
 #include "../lib/raylib/include/raymath.h"
 
 namespace Interaction
@@ -14,9 +17,10 @@ namespace Interaction
      */
     void HandleInteractions(Player &player)
     {
+        player.canInteract = false;
         UpdateRaycast(player);
-        CheckDoors(player);    ///< Interaksi berbasis kedekatan (proximity)
-        CheckProps(player);    ///< Interaksi berbasis raycast
+        CheckDoors(player);    // Interaksi berbasis kedekatan (proximity)
+        CheckProps(player);    // Interaksi berbasis raycast
     }
 
     /**
@@ -45,8 +49,8 @@ namespace Interaction
     void UpdateRaycast(Player &player)
     {
         Vector2 playerCenter = {
-            player.Position.x + player.HitboxOffsetX + player.HitboxWidth / 2,
-            player.Position.y + player.HitboxOffsetY + player.HitboxHeight / 2};
+            player.Position.x + player.GetHitboxOffsetX() + player.GetHitboxWidth() / 2,
+            player.Position.y + player.GetHitboxOffsetY() + player.GetHitboxHeight() / 2};
 
         Vector2 mouseWorld = GetScreenToWorld2D(GetVirtualMousePosition(player.State), camera);
         Vector2 aimDir = Vector2Normalize(Vector2Subtract(mouseWorld, playerCenter));
@@ -59,7 +63,7 @@ namespace Interaction
                 propObjects.push_back(obj);
         }
 
-        player.LastHit = player.Ray.Cast(playerCenter, aimDir, player.INTERACT_RANGE, propObjects);
+        player.LastHit = player.Ray.Cast(playerCenter, aimDir, player.GetInteractRange(), propObjects);
     }
 
     /**
@@ -67,15 +71,74 @@ namespace Interaction
      */
     void CheckDoors(Player &player)
     {
-        Rectangle playerHitbox = BuildHitbox(player.Position, player.HitboxOffsetX, player.HitboxOffsetY, player.HitboxWidth, player.HitboxHeight);
+        // Skip kalau lagi transisi map — cegah double trigger dari fixed-timestep loop
+        if (gState->isSwitchingMap || gState->isGoingBack)
+            return;
+
+        Rectangle playerHitbox = BuildHitbox(player.Position, player.GetHitboxOffsetX(), player.GetHitboxOffsetY(), player.GetHitboxWidth(), player.GetHitboxHeight());
         std::vector<MapObject *> doors = TiledHelperFunction.GetObjectsByType(DOOR_TYPE_OBJECT_NAME);
 
         for (const auto &door : doors)
         {
             if (!CheckCollisionRecs(playerHitbox, door->bounds))
                 continue;
+
+            player.canInteract = true;
+
             if (!InputInstance.IsInteract())
                 continue;
+
+            // Cek worldgen door — property "worldgen":"true" → InitRun + SwitchMap ke stage 1
+            auto wgIt = door->properties.find("worldgen");
+            if (wgIt != door->properties.end() && wgIt->second.getValue<std::string>() == "true")
+            {
+                // InitRun cuma sekali per run — kalau sudah aktif, lanjut ke stage terakhir
+                if (!g_SeedManager.IsRunActive())
+                    WorldgenIO::InitRun(WorldgenIO::GetNextAvailableSlot());
+
+                player.pendingSwitchMap = true;
+                player.pendingMapPath = WorldgenIO::GetStagePath(g_SeedManager.GetCurrentStage());
+                player.pendingDoorName = "start";
+                return;
+            }
+
+            // Cek door stage_exit — property "stage_exit":"next" → NextStage (finish door)
+            auto stageExitIt = door->properties.find("stage_exit");
+            if (stageExitIt != door->properties.end())
+            {
+                const std::string &val = stageExitIt->second.getValue<std::string>();
+                if (val == "next")
+                {
+                    WorldgenIO::NextStage();
+                    return;
+                }
+                if (val == "prev")
+                {
+                    WorldgenIO::PrevStage();
+                    return;
+                }
+            }
+
+            // Deteksi door boss — cuma bisa dipake kalo boss udah mati
+            if (door->name == "boss")
+            {
+                bool bossAlive = false;
+                for (auto *enemy : Entities::GetEnemyRegistry())
+                {
+                    if (enemy->rank == ENEMY_BOSS && enemy->IsActive)
+                    {
+                        bossAlive = true;
+                        break;
+                    }
+                }
+                if (!bossAlive)
+                {
+                    WorldgenIO::SaveRuntimeState(g_SeedManager.GetCurrentStage());
+                    g_SeedManager.ResetRun();
+                    gState->currentScreen = MAIN_MENU;
+                }
+                return;
+            }
 
             // Mengambil map tujuan dan ID pintu dari properti Tiled
             auto mapIt = door->properties.find("target_map");
@@ -99,8 +162,6 @@ namespace Interaction
     {
         if (!player.LastHit.hit)
             return;
-        if (!InputInstance.IsInteract())
-            return;
 
         // Cek apakah aim berada dalam area pandang player (garis raycast hijau)
         Vector2 playerCenter = player.GetCenter();
@@ -121,6 +182,14 @@ namespace Interaction
             return; // Di luar area pandang, tidak bisa interaksi
 
         const std::string &type = player.LastHit.object->type;
+        if (type != CHEST_TYPE_OBJECT_NAME)
+            return; // Hanya objek tipe CHEST_TYPE_OBJECT_NAME yang bisa diinteraksi via raycast
+            
+        player.canInteract = true;
+
+        if (!InputInstance.IsInteract())
+            return;
+
         TraceLog(LOG_INFO, "Berinteraksi dengan: '%s' (tipe: %s)", player.LastHit.object->name.c_str(), type.c_str());
 
         // Percabangan logika berdasarkan tipe objek

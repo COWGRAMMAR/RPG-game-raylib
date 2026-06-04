@@ -13,11 +13,19 @@
 #include <cstdint>
 #include <string>
 
+namespace Time
+{
+    /** @brief Timestep tetap untuk update game, setara 60 FPS */
+    inline constexpr float DELTA_TIME = 1.0f / 60.0f;
+    /** @brief Batas maksimum durasi frame agar update tidak meloncat terlalu jauh */
+    inline constexpr float MAX_FRAME = 0.25f;
+}
+
 /*==============================================================================
  * Virtual Screen Constants
  *==============================================================================*/
 
-// Ukuran layar virtual yang dipakai seluruh proses rendering
+/** @brief Ukuran layar virtual yang dipakai seluruh proses rendering */
 extern const int GameScreenWidth;
 extern const int GameScreenHeight;
 
@@ -28,14 +36,14 @@ extern const int GameScreenHeight;
 /**
  * @brief Daftar state utama game
  */
-enum ScreenStateEnum : std::uint8_t
+enum ScreenState : std::uint8_t
 {
     MAIN_MENU, // State menu utama
     LOADING,   // State loading aset
     PLAY,      // State gameplay aktif
     OPTIONS    // State menu pengaturan
 };
-using ScreenState = ScreenStateEnum;
+
 
 /*==============================================================================
  * GameState Struct
@@ -46,69 +54,30 @@ using ScreenState = ScreenStateEnum;
  */
 struct GameState
 {
-    RenderTexture2D Dungeon;   /**< Render texture virtual (1280x720) - target rendering semua game */
-    float ScaleMultiplier;     /**< Rasio scale layar virtual ke window asli (dihitung tiap frame) */
-    int WindowScreenWidth;     /**< Ukuran window asli saat ini (bisa berubah kalo resize) */
-    int WindowScreenHeight;    /**< Ukuran window asli saat ini (bisa berubah kalo resize) */
-    ScreenState currentScreen; /**< State game yang aktif (MAIN_MENU / PLAY / OPTIONS) */
-    ScreenState previousScreen;/**< Screen sebelum OPTIONS - buat return button */
-    bool showFPS;              /**< Tampilkan FPS counter di HUD */
-    
-/*==============================================================================
-     * Loading State Variables
-     *==============================================================================*/
-    /**
-     * @brief Progress loading saat ini (0-100)
-     */
-    float loadingProgress;
-    /**
-     * @brief Teks status loading yang ditampilkan
-     */
-    const char* loadingText;
-    /**
-     * @brief Flag menandakan loading sudah selesai
-     */
-    bool loadingComplete;
-    /**
-     * @brief Stage loading saat ini (reset setiap masuk LOADING state)
-     * @details Dipakai untuk tracking switch statement di UpdateLoadingScreen()
-     */
-    int loadingStage;
-    /**
-     * @brief Flag menandakan asset sudah dimuat ke memori
-     * @details Jika true, Start Game berikutnya akan skip loading texture
-     */
-    bool assetsLoaded;
-    /**
-     * @brief Flag menandakan sudah pernah masuk LOADING state
-     * @details Dipakai agar InitLoadingScreen tidak dipanggil setiap frame
-     */
-    bool enteredLoading;
+    RenderTexture2D Dungeon;    // Render texture virtual (1280x720) — target rendering semua game
+    float ScaleMultiplier;      // Rasio scale layar virtual ke window asli (dihitung tiap frame)
+    int WindowScreenWidth;      // Ukuran window asli saat ini (bisa berubah kalo resize)
+    int WindowScreenHeight;     // Ukuran window asli saat ini (bisa berubah kalo resize)
+    ScreenState currentScreen;  // State game yang aktif (MAIN_MENU / PLAY / OPTIONS)
+    ScreenState previousScreen; // Screen sebelum OPTIONS — buat return button
+    bool showFPS;               // Tampilkan FPS counter di HUD
 
-    /*==============================================================================
-     * Map Switch State Variables
-     *==============================================================================*/
-    /**
-     * @brief Flag menandakan sedang dalam proses switch map
-     * @details Dipakai oleh loading screen untuk tahu harus load map baru
-     */
-    bool isSwitchingMap;
-    /**
-     * @brief Flag menandakan sedang dalam proses kembali ke map sebelumnya
-     * @details Dipakai oleh loading screen untuk tahu harus load map lama
-     */
-    bool isGoingBack;
-    /**
-     * @brief Path map tujuan yang akan dimuat
-     */
-    std::string pendingMapPath;
-    /**
-     * @brief Nama door atau spawn point tujuan
-     */
-    std::string pendingDoorName;
+    /* Loading State Variables */
+    float loadingProgress;   // Progress loading saat ini (0–100)
+    const char *loadingText; // Teks status loading yang ditampilkan
+    bool loadingComplete;    // Flag menandakan loading sudah selesai
+    int loadingStage;        // Stage loading saat ini (reset setiap masuk LOADING state)
+    bool assetsLoaded;       // Flag menandakan asset sudah dimuat ke memori
+    bool enteredLoading;     // Flag menandakan sudah pernah masuk LOADING state
+
+    /* Map Switch State Variables */
+    bool isSwitchingMap;         // Flag menandakan sedang dalam proses switch map
+    bool isGoingBack;            // Flag menandakan sedang dalam proses kembali ke map sebelumnya
+    std::string pendingMapPath;  // Path map tujuan yang akan dimuat
+    std::string pendingDoorName; // Nama door atau spawn point tujuan
 };
 
-// Pointer global ke GameState aktif
+/** @brief Pointer global ke GameState aktif */
 extern GameState *gState;
 
 /*==============================================================================
@@ -127,9 +96,7 @@ GameState InitScreen(void);
  */
 void UpdateGame(GameState *state);
 
-/**
- * @brief Inisialisasi entity dan camera di awal game
- */
+/** @brief Inisialisasi entity dan camera di awal game */
 void InitAll(void);
 
 /**
@@ -143,6 +110,8 @@ void DrawRenderTexture(GameState *state);
  * @param state Pointer ke GameState aktif
  */
 void DrawUIOverlay(GameState *state);
+
+/** @brief Draw player HUD */
 void DrawPlayerHUD();
 
 /**
@@ -152,11 +121,8 @@ void DrawPlayerHUD();
  */
 Vector2 GetVirtualMousePosition(GameState *state);
 
-/**
- * @brief Jalankan seluruh update logic game per frame
- */
+/** @brief Jalankan seluruh update logic game per frame */
 void UpdateLogicAll(void);
-void SpawnEnemiesFromMap(void);
 
 /**
  * @brief Gambar virtual screen ke window asli dengan scaling
@@ -174,37 +140,33 @@ void GameShutDown(GameState *state);
  * Window & Video Settings Functions
  *==============================================================================*/
 
-/**
- * @brief ToggleFullscreenMode()
- * Toggle antara fullscreen dan windowed mode.
- */
+/** @brief Toggle antara fullscreen dan windowed mode */
 void ToggleFullscreenMode(void);
 
 /**
- * @brief SetResolution()
- * Set ukuran window ke resolusi tertentu.
+ * @brief Set ukuran window ke resolusi tertentu
  * @param width Lebar window baru
  * @param height Tinggi window baru
  */
 void SetResolution(int width, int height);
 
 /**
- * @brief GetCurrentResolution()
- * Ambil resolusi saat ini.
+ * @brief Ambil resolusi saat ini
  * @return Rectangle berisi width dan height
  */
 Rectangle GetCurrentResolution(void);
 
 /**
- * @brief GetMonitorResolution()
- * Ambil resolusi monitor utama.
+ * @brief Ambil resolusi monitor utama
  * @return Rectangle berisi width dan height monitor
  */
 Rectangle GetMonitorResolution(void);
 
 /**
- * @brief IsFullscreen()
- * Cek apakah sedang dalam mode fullscreen.
+ * @brief Cek apakah sedang dalam mode fullscreen
  * @return true kalo fullscreen
  */
 bool IsFullscreen(void);
+
+/** @brief Jumlah enemy per spawn point (sementara) */
+constexpr int ENEMY_SPAWN_COUNT = 10;

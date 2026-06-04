@@ -1,0 +1,121 @@
+{
+    "chestClosed": {
+        "texture": "TILESET_PROPS",
+        "column": 0,
+        "row": 0,
+        "width": 1,
+        "height": 1
+    },
+    "chestOpen": {
+        "texture": "TILESET_PROPS",
+        "column": 1,
+        "row": 0,
+        "width": 1,
+        "height": 1
+    },
+    "spikeActive": {
+        "texture": "TILESET_PROPS",
+        "column": 2,
+        "row": 0,
+        "width": 1,
+        "height": 1
+    },
+    "spikeInactive": {
+        "texture": "TILESET_PROPS",
+        "column": 3,
+        "row": 0,
+        "width": 1,
+        "height": 1
+    },
+    "bomb": {
+        "texture": "TILESET_PROPS",
+        "column": 4,
+        "row": 0,
+        "width": 1,
+        "height": 1
+    },
+    "crate": {
+        "texture": "TILESET_PROPS",
+        "column": 5,
+        "row": 0,
+        "width": 1,
+        "height": 1
+    },
+    "sword1": {
+        "texture": "TILESET_ITEMS",
+        "column": 0,
+        "row": 0,
+        "width": 1,
+        "height": 1
+    },
+    "sword2": {
+        "texture": "TILESET_ITEMS",
+        "column": 0,
+        "row": 1,
+        "width": 1,
+        "height": 2
+    },
+    "bow": {
+        "texture": "TILESET_ITEMS",
+        "column": 1,
+        "row": 0,
+        "width": 1,
+        "height": 1
+    },
+    "healthPotionSmall": {
+        "texture": "TILESET_ITEMS",
+        "column": 2,
+        "row": 0,
+        "width": 1,
+        "height": 1
+    },
+    "staminaPotionSmall": {
+        "texture": "TILESET_ITEMS",
+        "column": 3,
+        "row": 0,
+        "width": 1,
+        "height": 1
+    },
+    "healthPotionMedium": {
+        "texture": "TILESET_ITEMS",
+        "column": 4,
+        "row": 0,
+        "width": 1,
+        "height": 1
+    },
+    "staminaPotionMedium": {
+        "texture": "TILESET_ITEMS",
+        "column": 5,
+        "row": 0,
+        "width": 1,
+        "height": 1
+    },
+    "healthPotionLarge": {
+        "texture": "TILESET_ITEMS",
+        "column": 6,
+        "row": 0,
+        "width": 1,
+        "height": 1
+    },
+    "staminaPotionLarge": {
+        "texture": "TILESET_ITEMS",
+        "column": 7,
+        "row": 0,
+        "width": 1,
+        "height": 1
+    },
+    "bowDraw": {
+        "texture": "TILESET_ITEMS",
+        "column": 1,
+        "row": 1,
+        "width": 1,
+        "height": 1
+    },
+    "arrow": {
+        "texture": "TILESET_ITEMS",
+        "column": 2,
+        "row": 1,
+        "width": 1,
+        "height": 1
+    }
+}

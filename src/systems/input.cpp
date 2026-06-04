@@ -1,7 +1,9 @@
 #include "input.h"
 #include "player.h"
 #include "item.h"
+#include "keybindManager.h"
 
+/** @brief Instance global input */
 PlayerInput InputInstance;
 
 PlayerInput::PlayerInput()
@@ -17,36 +19,50 @@ void PlayerInput::PollInput(void)
         return;
     }
 
-    Current.moveUp = IsKeyDown(KEY_UP) || IsKeyDown(KEY_W);
-    Current.moveDown = IsKeyDown(KEY_DOWN) || IsKeyDown(KEY_S);
-    Current.moveLeft = IsKeyDown(KEY_LEFT) || IsKeyDown(KEY_A);
-    Current.moveRight = IsKeyDown(KEY_RIGHT) || IsKeyDown(KEY_D);
+    // Movement: primary from keybinds, arrows stay as secondary
+    Current.moveUp    = IsKeyDown(keybindManager.GetKeycode(MOVE_UP))    || IsKeyDown(KEY_UP);
+    Current.moveDown  = IsKeyDown(keybindManager.GetKeycode(MOVE_DOWN))  || IsKeyDown(KEY_DOWN);
+    Current.moveLeft  = IsKeyDown(keybindManager.GetKeycode(MOVE_LEFT))  || IsKeyDown(KEY_LEFT);
+    Current.moveRight = IsKeyDown(keybindManager.GetKeycode(MOVE_RIGHT)) || IsKeyDown(KEY_RIGHT);
 
-    // --- Actions (KeyPressed — tap sekali / baru diteken) ---
-    Current.interact = IsKeyPressed(KEY_E);
-    Current.revive = IsKeyPressed(KEY_R);
-    Current.toggleInventory = IsKeyPressed(KEY_I);
-    Current.toggleMap = IsKeyPressed(KEY_M);
-    Current.dropItem = IsKeyPressed(KEY_Q);
-    Current.dropItemAll = IsKeyDown(KEY_LEFT_CONTROL) || IsKeyDown(KEY_RIGHT_CONTROL);
+    // Actions (tap)
+    Current.interact        = IsKeyPressed(keybindManager.GetKeycode(INTERACT));
+    Current.revive          = IsKeyPressed(keybindManager.GetKeycode(REVIVE));
+    Current.toggleInventory = IsKeyPressed(keybindManager.GetKeycode(TOGGLE_INVENTORY));
+    Current.toggleMap       = IsKeyPressed(keybindManager.GetKeycode(TOGGLE_MAP));
+    Current.dropItem        = IsKeyPressed(keybindManager.GetKeycode(DROP_ITEM));
 
-    Current.leftClickPressed = IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
+    // Drop-all uses the DROP_ALL key + right Ctrl as secondary mirror
+    int dropAllKey = keybindManager.GetKeycode(DROP_ALL);
+    Current.dropItemAll = IsKeyDown(dropAllKey) || IsKeyDown(KEY_RIGHT_CONTROL);
+
+    // Mouse (non-rebindable — always the same physical buttons)
+    Current.leftClickPressed  = IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
     Current.rightClickPressed = IsMouseButtonPressed(MOUSE_BUTTON_RIGHT);
-    Current.leftClickReleased = IsMouseButtonReleased(MOUSE_BUTTON_LEFT);
+    Current.leftClickReleased  = IsMouseButtonReleased(MOUSE_BUTTON_LEFT);
     Current.rightClickReleased = IsMouseButtonReleased(MOUSE_BUTTON_RIGHT);
-    Current.leftClickDown = IsMouseButtonDown(MOUSE_BUTTON_LEFT);
+    Current.leftClickDown  = IsMouseButtonDown(MOUSE_BUTTON_LEFT);
     Current.rightClickDown = IsMouseButtonDown(MOUSE_BUTTON_RIGHT);
-    Current.ctrlDown = IsKeyDown(KEY_LEFT_CONTROL) || IsKeyDown (KEY_RIGHT_CONTROL);
 
-    Current.selectSlot1 = IsKeyPressed(KEY_ONE);
-    Current.selectSlot2 = IsKeyPressed(KEY_TWO);
-    Current.selectSlot3 = IsKeyPressed(KEY_THREE);
-    Current.selectSlot4 = IsKeyPressed(KEY_FOUR);
+    // Ctrl modifier follows DROP_ALL key + right Ctrl
+    Current.ctrlDown = IsKeyDown(dropAllKey) || IsKeyDown(KEY_RIGHT_CONTROL);
 
-    Current.testLoseHP = IsKeyPressed(KEY_K);
+    // Hotbar selection
+    Current.selectSlot1 = IsKeyPressed(keybindManager.GetKeycode(HOTBAR_SLOT_1));
+    Current.selectSlot2 = IsKeyPressed(keybindManager.GetKeycode(HOTBAR_SLOT_2));
+    Current.selectSlot3 = IsKeyPressed(keybindManager.GetKeycode(HOTBAR_SLOT_3));
+    Current.selectSlot4 = IsKeyPressed(keybindManager.GetKeycode(HOTBAR_SLOT_4));
+
+    Current.testLoseHP = IsKeyPressed(keybindManager.GetKeycode(TEST_LOSE_HP));
+
+    // Rogue keys absorbed into InputState
+    Current.pauseMenu         = IsKeyPressed(keybindManager.GetKeycode(PAUSE_MENU));
+    Current.debugToggle       = IsKeyPressed(keybindManager.GetKeycode(DEBUG_TOGGLE));
+    Current.debugToggleEnemy  = IsKeyPressed(keybindManager.GetKeycode(DEBUG_TOGGLE_ENEMY));
+    Current.debugTogglePlayer = IsKeyPressed(keybindManager.GetKeycode(DEBUG_TOGGLE_PLAYER));
 
     Current.mouseWheel = GetMouseWheelMove();
-    Current.goBack = IsKeyPressed(KEY_B);
+    Current.goBack = IsKeyPressed(keybindManager.GetKeycode(GO_BACK));
 }
 
 void PlayerInput::UpdateState(void)
@@ -121,7 +137,7 @@ PlayerAction PlayerInput::ResolveAction() const
     if (slotIdx < 0 || slotIdx >= 4)
         return ACTION_NONE;
 
-    const InventoryItem &item = PlayerInstance.Hotbar[slotIdx];
+    const InventoryItem &item = PlayerInstance.GetHotbarItem(slotIdx);
     if (item.definitionId == -1)
         return ACTION_NONE;
 

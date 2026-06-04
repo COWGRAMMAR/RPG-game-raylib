@@ -1,0 +1,303 @@
+{
+    "knightIdleRight1": {
+        "texture": "SPRITESHEET_KNIGHT",
+        "column": 0,
+        "row": 0,
+        "width": 1,
+        "height": 1
+    },
+    "knightIdleRight2": {
+        "texture": "SPRITESHEET_KNIGHT",
+        "column": 1,
+        "row": 0,
+        "width": 1,
+        "height": 1
+    },
+    "knightIdleLeft1": {
+        "texture": "SPRITESHEET_KNIGHT",
+        "column": 0,
+        "row": 1,
+        "width": 1,
+        "height": 1
+    },
+    "knightIdleLeft2": {
+        "texture": "SPRITESHEET_KNIGHT",
+        "column": 1,
+        "row": 1,
+        "width": 1,
+        "height": 1
+    },
+    "knightWalkRight1": {
+        "texture": "SPRITESHEET_KNIGHT",
+        "column": 2,
+        "row": 0,
+        "width": 1,
+        "height": 1
+    },
+    "knightWalkRight2": {
+        "texture": "SPRITESHEET_KNIGHT",
+        "column": 3,
+        "row": 0,
+        "width": 1,
+        "height": 1
+    },
+    "knightWalkRight3": {
+        "texture": "SPRITESHEET_KNIGHT",
+        "column": 4,
+        "row": 0,
+        "width": 1,
+        "height": 1
+    },
+    "knightWalkRight4": {
+        "texture": "SPRITESHEET_KNIGHT",
+        "column": 5,
+        "row": 0,
+        "width": 1,
+        "height": 1
+    },
+    "knightWalkRight5": {
+        "texture": "SPRITESHEET_KNIGHT",
+        "column": 6,
+        "row": 0,
+        "width": 1,
+        "height": 1
+    },
+    "knightWalkRight6": {
+        "texture": "SPRITESHEET_KNIGHT",
+        "column": 7,
+        "row": 0,
+        "width": 1,
+        "height": 1
+    },
+    "knightWalkRight7": {
+        "texture": "SPRITESHEET_KNIGHT",
+        "column": 8,
+        "row": 0,
+        "width": 1,
+        "height": 1
+    },
+    "knightWalkLeft1": {
+        "texture": "SPRITESHEET_KNIGHT",
+        "column": 2,
+        "row": 1,
+        "width": 1,
+        "height": 1
+    },
+    "knightWalkLeft2": {
+        "texture": "SPRITESHEET_KNIGHT",
+        "column": 3,
+        "row": 1,
+        "width": 1,
+        "height": 1
+    },
+    "knightWalkLeft3": {
+        "texture": "SPRITESHEET_KNIGHT",
+        "column": 4,
+        "row": 1,
+        "width": 1,
+        "height": 1
+    },
+    "knightWalkLeft4": {
+        "texture": "SPRITESHEET_KNIGHT",
+        "column": 5,
+        "row": 1,
+        "width": 1,
+        "height": 1
+    },
+    "knightWalkLeft5": {
+        "texture": "SPRITESHEET_KNIGHT",
+        "column": 6,
+        "row": 1,
+        "width": 1,
+        "height": 1
+    },
+    "knightWalkLeft6": {
+        "texture": "SPRITESHEET_KNIGHT",
+        "column": 7,
+        "row": 1,
+        "width": 1,
+        "height": 1
+    },
+    "knightWalkLeft7": {
+        "texture": "SPRITESHEET_KNIGHT",
+        "column": 8,
+        "row": 1,
+        "width": 1,
+        "height": 1
+    },
+    "knightDeadRight": {
+        "texture": "SPRITESHEET_KNIGHT",
+        "column": 9,
+        "row": 0,
+        "width": 1,
+        "height": 1
+    },
+    "knightDeadLeft": {
+        "texture": "SPRITESHEET_KNIGHT",
+        "column": 9,
+        "row": 1,
+        "width": 1,
+        "height": 1
+    },
+    "slimeIdleLeft1": {
+        "texture": "SPRITESHEET_ENEMIES",
+        "column": 0,
+        "row": 0,
+        "width": 1,
+        "height": 1
+    },
+    "slimeIdleLeft2": {
+        "texture": "SPRITESHEET_ENEMIES",
+        "column": 1,
+        "row": 0,
+        "width": 1,
+        "height": 1
+    },
+    "slimeDeadLeft": {
+        "texture": "SPRITESHEET_ENEMIES",
+        "column": 2,
+        "row": 0,
+        "width": 1,
+        "height": 1
+    },
+    "skeletonIdleLeft1": {
+        "texture": "SPRITESHEET_ENEMIES",
+        "column": 0,
+        "row": 1,
+        "width": 1,
+        "height": 1
+    },
+    "skeletonIdleLeft2": {
+        "texture": "SPRITESHEET_ENEMIES",
+        "column": 1,
+        "row": 1,
+        "width": 1,
+        "height": 1
+    },
+    "skeletonDeadLeft": {
+        "texture": "SPRITESHEET_ENEMIES",
+        "column": 2,
+        "row": 1,
+        "width": 1,
+        "height": 1
+    },
+    "wolfIdleLeft1": {
+        "texture": "SPRITESHEET_ENEMIES",
+        "column": 0,
+        "row": 2,
+        "width": 1,
+        "height": 1
+    },
+    "wolfIdleLeft2": {
+        "texture": "SPRITESHEET_ENEMIES",
+        "column": 1,
+        "row": 2,
+        "width": 1,
+        "height": 1
+    },
+    "wolfDeadLeft": {
+        "texture": "SPRITESHEET_ENEMIES",
+        "column": 2,
+        "row": 2,
+        "width": 1,
+        "height": 1
+    },
+    "explosion1": {
+        "texture": "SPRITESHEET_EFFECTS",
+        "column": 0,
+        "row": 0,
+        "width": 3,
+        "height": 3
+    },
+    "explosion2": {
+        "texture": "SPRITESHEET_EFFECTS",
+        "column": 3,
+        "row": 0,
+        "width": 3,
+        "height": 3
+    },
+    "explosion3": {
+        "texture": "SPRITESHEET_EFFECTS",
+        "column": 6,
+        "row": 0,
+        "width": 3,
+        "height": 3
+    },
+    "explosion4": {
+        "texture": "SPRITESHEET_EFFECTS",
+        "column": 9,
+        "row": 0,
+        "width": 3,
+        "height": 3
+    },
+    "explosion5": {
+        "texture": "SPRITESHEET_EFFECTS",
+        "column": 12,
+        "row": 0,
+        "width": 3,
+        "height": 3
+    },
+    "explosion6": {
+        "texture": "SPRITESHEET_EFFECTS",
+        "column": 15,
+        "row": 0,
+        "width": 3,
+        "height": 3
+    },
+    "explosion7": {
+        "texture": "SPRITESHEET_EFFECTS",
+        "column": 0,
+        "row": 3,
+        "width": 3,
+        "height": 3
+    },
+    "explosion8": {
+        "texture": "SPRITESHEET_EFFECTS",
+        "column": 3,
+        "row": 3,
+        "width": 3,
+        "height": 3
+    },
+    "explosion9": {
+        "texture": "SPRITESHEET_EFFECTS",
+        "column": 6,
+        "row": 3,
+        "width": 3,
+        "height": 3
+    },
+    "explosion10": {
+        "texture": "SPRITESHEET_EFFECTS",
+        "column": 9,
+        "row": 3,
+        "width": 3,
+        "height": 3
+    },
+    "slashSilverBlueMedium1": {
+        "texture": "SPRITESHEET_EFFECTS",
+        "column": 13,
+        "row": 3,
+        "width": 3,
+        "height": 2
+    },
+    "slashSilverBlueMedium2": {
+        "texture": "SPRITESHEET_EFFECTS",
+        "column": 12,
+        "row": 3,
+        "width": 1,
+        "height": 1
+    },
+    "slashLightGraySmall1": {
+        "texture": "SPRITESHEET_EFFECTS",
+        "column": 17,
+        "row": 3,
+        "width": 2,
+        "height": 1
+    },
+    "slashLightGraySmall2": {
+        "texture": "SPRITESHEET_EFFECTS",
+        "column": 16,
+        "row": 3,
+        "width": 1,
+        "height": 1
+    }
+}

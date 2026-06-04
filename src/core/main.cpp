@@ -14,7 +14,12 @@
 #include "mainMenu.h"
 #include "pauseMenu.h"
 #include "loading_screen.h"
+#include "worldgenio.h"
+#include "seedmanager.h"
+#include "fonts.h"
 #include "../lib/raylib/include/raylib.h"
+#include "input.h"
+#include "keybindManager.h"
 #include "../lib/raylib/include/raymath.h"
 #include <cstdio>
 
@@ -53,6 +58,14 @@ int main()
     // Step 6: init main menu (needed for menu buttons to render)
     InitMainMenu(&state);
 
+    InitFonts();
+
+    // Load keybinds (or save defaults on first run)
+    if (!keybindManager.LoadFromFile("saves/settings.json"))
+        keybindManager.SaveToFile("saves/settings.json");
+
+    float accumulator = 0.0f;
+
     // Main Game Loop
     while (!WindowShouldClose())
     {
@@ -69,9 +82,11 @@ int main()
          *==============================================================================*/
         else if (state.currentScreen == LOADING)
         {
-            // Initialize loading screen only on first entry
-            if (!state.enteredLoading)
+            // Initialize loading screen on first entry or after returning from MAIN_MENU
+            if (!state.enteredLoading || state.loadingComplete)
             {
+                state.enteredLoading = false;
+                state.loadingComplete = false;
                 InitLoadingScreen(&state);
             }
 
@@ -110,17 +125,15 @@ int main()
                 pauseMenu.Show();
             }
 
-            // toggle pause menu dengan tombol P
-            if (IsKeyPressed(KEY_GRAVE))
+            // Poll input FIRST so pause toggle uses fresh state
+            InputInstance.PollInput();
+
+            if (InputInstance.GetState().pauseMenu)
             {
                 if (pauseMenu.IsActive())
-                {
                     pauseMenu.Hide();
-                }
                 else
-                {
                     pauseMenu.Show();
-                }
             }
 
             // update scale sebelum rendering
@@ -135,10 +148,23 @@ int main()
                 pauseMenu.Update(&state, GetVirtualMousePosition(&state), mouseClicked);
             }
 
+            // Fixed timestep
+            float frameTime = GetFrameTime();
+
+            if (frameTime > Time::MAX_FRAME)
+                frameTime = Time::MAX_FRAME;
+
+            accumulator += frameTime;
+
             // update semua logic game - skip when paused
-            if (!pauseMenu.IsActive())
+            while (accumulator >= Time::DELTA_TIME)
             {
-                UpdateLogicAll();
+                if (!pauseMenu.IsActive())
+                {
+                    UpdateLogicAll();
+                }
+
+                accumulator -= Time::DELTA_TIME;
             }
 
             // render semua ke layar virtual
@@ -148,6 +174,10 @@ int main()
             DrawRenderWindows(&state);
         }
     }
+
+    // Auto-save sebelum exit (jika run masih aktif)
+    if (g_SeedManager.IsRunActive())
+        WorldgenIO::SaveRuntimeState(g_SeedManager.GetCurrentStage());
 
     // Shutdown
     GameShutDown(&state);

@@ -1,3 +1,16 @@
+/**
+ * @file inventory.cpp
+ * @brief Implementasi Inventory Interaction System
+ *
+ * File ini berisi implementasi fungsi-fungsi inventory:
+ * - HasInventorySpace, GetActiveHotbarItem
+ * - HandleInventoryActions: right-click → drink potion / equip
+ * - UsePotion: konsumsi potion dari hotbar
+ * - AddToInventory: tambah item ke hotbar/bag dengan stack logic
+ * - SetupAttackStats: setup player attack berdasarkan weapon di hotbar
+ * - GetAttackManaCost: ambil mana cost dari weapon aktif
+ */
+
 #include "item.h"
 #include "inventory.h"
 #include "player.h"
@@ -10,22 +23,24 @@ namespace Inventory
      * Utilitas Inventory
      *==============================================================================*/
 
+    /** @brief Cek apakah inventory player masih punya slot kosong */
     bool HasInventorySpace(const Player &player)
     {
-        for (int i = 0; i < PlayerInstance.MaxHotbar; i++)
-            if (player.Hotbar[i].definitionId == -1)
+        for (int i = 0; i < player.GetMaxHotbar(); i++)
+            if (player.GetHotbarItem(i).definitionId == -1)
                 return true;
-        for (int i = 0; i < PlayerInstance.MaxBag; i++)
-            if (player.Bag[i].definitionId == -1)
+        for (int i = 0; i < player.GetMaxBag(); i++)
+            if (player.GetBagItem(i).definitionId == -1)
                 return true;
         return false;
     }
 
+    /** @brief Dapatkan item dari slot hotbar yang aktif */
     InventoryItem GetActiveHotbarItem(const Player &player)
     {
         int idx = (int)InputInstance.GetActiveSlot() - 1;
-        if (idx >= 0 && idx < PlayerInstance.MaxHotbar)
-            return player.Hotbar[idx];
+        if (idx >= 0 && idx < player.GetMaxHotbar())
+            return player.GetHotbarItem(idx);
         return {-1, 0};
     }
 
@@ -33,10 +48,14 @@ namespace Inventory
      * Input & Aksi Inventory
      *==============================================================================*/
 
+    /** @brief Handle right-click action untuk potion/equip */
     void HandleInventoryActions(Player &player)
     {
         // Inventory terbuka = block semua aksi shortcut
         if (InputInstance.IsInventoryOpen())
+            return;
+
+        if (player.IsDashing)
             return;
 
         if (!InputInstance.IsRightClickPressed())
@@ -47,7 +66,7 @@ namespace Inventory
         if (action == ACTION_DRINK_POTION)
         {
             int slotIdx = (int)InputInstance.GetActiveSlot() - 1;
-            if (slotIdx >= 0 && slotIdx < PlayerInstance.MaxHotbar)
+            if (slotIdx >= 0 && slotIdx < player.GetMaxHotbar())
                 UsePotion(player, slotIdx);
         }
         else if (action == ACTION_EQUIP_UNEQUIP)
@@ -60,9 +79,10 @@ namespace Inventory
      * Potion
      *==============================================================================*/
 
+    // Konsumsi potion di slot tertentu, cek overflow, kurangi amount
     void UsePotion(Player &player, int slotIndex)
     {
-        InventoryItem &slot = player.Hotbar[slotIndex];
+        InventoryItem &slot = player.GetHotbarItem(slotIndex);
         if (slot.definitionId == -1 || slot.amount <= 0)
         {
             Effects::AddLog("Potion telah habis!");
@@ -101,6 +121,7 @@ namespace Inventory
      * Penambahan Item ke Inventory
      *==============================================================================*/
 
+    /** @brief Tambah item ke inventory dengan priority: active slot → existing stack → empty slot */
     bool AddToInventory(Player &player, const ItemSpawn &item)
     {
         const ItemDefinition &def = itemDefs.GetById(item.definitionId);
@@ -110,9 +131,9 @@ namespace Inventory
         int activeSlot = (int)InputInstance.GetActiveSlot() - 1;
 
         // 1. Prioritaskan slot hotbar aktif
-        if (activeSlot >= 0 && activeSlot < PlayerInstance.MaxHotbar)
+        if (activeSlot >= 0 && activeSlot < player.GetMaxHotbar())
         {
-            InventoryItem &active = player.Hotbar[activeSlot];
+            InventoryItem &active = player.GetHotbarItem(activeSlot);
             if (active.definitionId == -1)
             {
                 int add = std::min(remaining, maxStack);
@@ -134,25 +155,25 @@ namespace Inventory
         // 2. Merge ke stack yang sudah ada di hotbar & bag
         if (isStackable)
         {
-            for (int i = 0; i < PlayerInstance.MaxHotbar && remaining > 0; i++)
+            for (int i = 0; i < player.GetMaxHotbar() && remaining > 0; i++)
             {
                 if (i == activeSlot)
                     continue;
-                if (player.Hotbar[i].definitionId == item.definitionId && player.Hotbar[i].amount < maxStack)
+                if (player.GetHotbarItem(i).definitionId == item.definitionId && player.GetHotbarItem(i).amount < maxStack)
                 {
-                    int space = maxStack - player.Hotbar[i].amount;
+                    int space = maxStack - player.GetHotbarItem(i).amount;
                     int add = std::min(remaining, space);
-                    player.Hotbar[i].amount += add;
+                    player.GetHotbarItem(i).amount += add;
                     remaining -= add;
                 }
             }
-            for (int i = 0; i < PlayerInstance.MaxBag && remaining > 0; i++)
+            for (int i = 0; i < player.GetMaxBag() && remaining > 0; i++)
             {
-                if (player.Bag[i].definitionId == item.definitionId && player.Bag[i].amount < maxStack)
+                if (player.GetBagItem(i).definitionId == item.definitionId && player.GetBagItem(i).amount < maxStack)
                 {
-                    int space = maxStack - player.Bag[i].amount;
+                    int space = maxStack - player.GetBagItem(i).amount;
                     int add = std::min(remaining, space);
-                    player.Bag[i].amount += add;
+                    player.GetBagItem(i).amount += add;
                     remaining -= add;
                 }
             }
@@ -162,25 +183,25 @@ namespace Inventory
             return true;
 
         // 3. Slot kosong hotbar (selain active slot)
-        for (int i = 0; i < PlayerInstance.MaxHotbar && remaining > 0; i++)
+        for (int i = 0; i < player.GetMaxHotbar() && remaining > 0; i++)
         {
             if (i == activeSlot)
                 continue;
-            if (player.Hotbar[i].definitionId == -1)
+            if (player.GetHotbarItem(i).definitionId == -1)
             {
                 int add = std::min(remaining, maxStack);
-                player.Hotbar[i] = {item.definitionId, add};
+                player.GetHotbarItem(i) = {item.definitionId, add};
                 remaining -= add;
             }
         }
 
         // 4. Slot kosong bag sebagai fallback terakhir
-        for (int i = 0; i < PlayerInstance.MaxBag && remaining > 0; i++)
+        for (int i = 0; i < player.GetMaxBag() && remaining > 0; i++)
         {
-            if (player.Bag[i].definitionId == -1)
+            if (player.GetBagItem(i).definitionId == -1)
             {
                 int add = std::min(remaining, maxStack);
-                player.Bag[i] = {item.definitionId, add};
+                player.GetBagItem(i) = {item.definitionId, add};
                 remaining -= add;
             }
         }
@@ -193,6 +214,7 @@ namespace Inventory
      * Senjata & Serangan
      *==============================================================================*/
 
+    /** @brief Setup player attack stats berdasarkan weapon di hotbar */
     void SetupAttackStats(Player &player, Direction attackFaceDir)
     {
         InventoryItem activeItem = GetActiveHotbarItem(player);
@@ -204,58 +226,31 @@ namespace Inventory
             return;
 
         const WeaponData &wpn = std::get<WeaponData>(def.data);
-
-        // Base angle menentukan orientasi awal swing
-        float baseAngle = 0.0f;
-        switch (attackFaceDir)
-        {
-        case RIGHT:
-            baseAngle = 0.0f;
-            break;
-        case DOWN:
-            baseAngle = 90.0f;
-            break;
-        case LEFT:
-            baseAngle = 180.0f;
-            break;
-        case UP:
-            baseAngle = -90.0f;
-            break;
-        }
-
-        player.Swing.baseAngle = baseAngle;
+        player.attack.weapon = &wpn;
 
         // Center offset disesuaikan per arah agar hitbox tidak miring
         switch (attackFaceDir)
         {
         case UP:
-            player.Swing.center.y -= wpn.centerOffset.y;
-            player.Swing.center.x += wpn.centerOffset.x;
+            player.attack.center.y -= wpn.centerOffset.y;
+            player.attack.center.x += wpn.centerOffset.x;
             break;
         case DOWN:
-            player.Swing.center.y += wpn.centerOffset.y;
-            player.Swing.center.x -= wpn.centerOffset.x;
+            player.attack.center.y += wpn.centerOffset.y;
+            player.attack.center.x -= wpn.centerOffset.x;
             break;
         case LEFT:
-            player.Swing.center.x -= wpn.centerOffset.x;
-            player.Swing.center.y -= wpn.centerOffset.y;
+            player.attack.center.x -= wpn.centerOffset.x;
+            player.attack.center.y -= wpn.centerOffset.y;
             break;
         case RIGHT:
-            player.Swing.center.x += wpn.centerOffset.x;
-            player.Swing.center.y += wpn.centerOffset.y;
+            player.attack.center.x += wpn.centerOffset.x;
+            player.attack.center.y += wpn.centerOffset.y;
             break;
         }
-
-        player.Swing.type = wpn.attackType;
-        player.Swing.duration = wpn.duration;
-        player.Swing.reach = wpn.reach;
-        player.Swing.breadth = wpn.breadth;
-        player.Swing.startAngle = baseAngle + wpn.startAngleOffset;
-        player.Swing.sweepAngle = wpn.sweepAngle;
-        player.Swing.damage = wpn.damage;
-        player.Swing.knockbackForce = wpn.knockbackForce;
     }
 
+    /** @brief Dapatkan mana cost dari weapon aktif */
     float GetAttackManaCost(const Player &player)
     {
         InventoryItem activeItem = GetActiveHotbarItem(player);

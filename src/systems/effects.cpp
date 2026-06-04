@@ -24,7 +24,7 @@ namespace Effects {
                 if (data.timer >= data.duration) {
                     data.active = false;
                 } else {
-                    AnimEffects::ApplyPhysics(data.position, data.velocity, 0.1f, 0.95f, dt);
+                    DamageFloat(data.position, data.velocity, 0.1f, 0.95f, dt);
                 }
             }
             currentDmg = currentDmg->next;
@@ -48,7 +48,7 @@ namespace Effects {
                 continue;
             }
 
-            entry.verticalOffset = AnimEffects::CalculateFloatOffset(entry.verticalOffset, LOG_UP_SPEED, dt);
+            entry.verticalOffset = TextFloat(entry.verticalOffset, LOG_UP_SPEED, dt);
             currentLog = currentLog->next;
         }
     }
@@ -59,7 +59,7 @@ namespace Effects {
         while (currentDmg != nullptr) {
             DamagePopup& data = currentDmg->data;
             if (data.active) {
-                float alpha = AnimEffects::CalculateFadeOut(data.timer, data.duration);
+                float alpha = FadeOut(data.timer, data.duration);
                 Color color = Fade(YELLOW, alpha);
                 
                 std::string dmgStr = std::to_string((int)data.damage);
@@ -77,7 +77,7 @@ namespace Effects {
         while (currentLog != nullptr) {
             LogEntry& entry = currentLog->data;
             
-            float alpha = AnimEffects::CalculateFadeOut(entry.timer, LOG_DURATION);
+            float alpha = FadeOut(entry.timer, LOG_DURATION);
             int fontSize = 10;
             int textWidth = MeasureText(entry.text.c_str(), fontSize);
             
@@ -101,7 +101,7 @@ namespace Effects {
         p.damage = damage;
         p.timer = 0;
         p.duration = 1.0f;
-        p.velocity = {(float)GetRandomValue(-20, 20) / 10.0f, -2.0f};
+        p.velocity = {(float)GetRandomValue(-1200, 1200) / 10.0f, -120.0f};
         p.active = true;
         damageQueue.Enqueue(p);
     }

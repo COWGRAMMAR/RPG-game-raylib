@@ -34,7 +34,8 @@ typedef enum
     ITEM_POTION, // Item potion/healing (di json nanti namanya harus ditulis potion)
     ITEM_POISON, // Item poison (di json nanti namanya harus ditulis posion)
     ITEM_ARMOR,  // Item armor (di json nanti namanya harus ditulis armor)
-    ITEM_NONE    // Tidak ada item
+    ITEM_NONE,   // Tidak ada item
+    ITEM_ANY     // Tidak ada filter kategori
 } ItemCategory;
 
 /**
@@ -63,11 +64,13 @@ typedef enum
  * Behavior Structs per Category
  *==============================================================================*/
 
-// Pindah dari combat.h — dipakai sebagai bagian dari WeaponData
+/** @brief Tipe serangan */
 enum AttackType
 {
-    ATTACK_SLASH, // (di json nanti namanya harus ditulis slash)
-    ATTACK_THRUST // (di json nanti namanya harus ditulis thrust)
+    ATTACK_SLASH,  // (di json nanti namanya harus ditulis slash)
+    ATTACK_THRUST, // (di json nanti namanya harus ditulis thrust)
+    ATTACK_PIERCE, // (di json nanti namanya harus ditulis pierce)
+    ATTACK_SLAM    // (di json nanti namanya harus ditulis slam)
 };
 
 /**
@@ -117,6 +120,7 @@ struct ItemDefinition
 {
     int id;                                               // ID numerik unik, dipakai untuk lookup di runtime
     std::string name;                                     // Nama item, sekaligus key di unordered_map
+    std::string spriteKey;                                // Key visual untuk merender item (di-load dari JSON)
     ItemCategory category;                                // Kategori item (weapon, potion, armor, dll)
     Vector2 sheetCoord;                                   // Koordinat tile di spritesheet
     Vector2 hitboxSize;                                   // Ukuran hitbox item saat di-spawn di dunia
@@ -196,14 +200,12 @@ public:
      */
     const ItemDefinition &GetById(int id) const;
 
-    /**
-     * @brief Mengambil semua definisi item.
-     * @return Referensi ke map keseluruhan definisi item
-     */
+    /** @brief Ambil semua definisi item */
     const std::unordered_map<std::string, ItemDefinition> &GetAll() const;
 
 private:
     std::unordered_map<std::string, ItemDefinition> definitions_; // Key = nama item
+    std::unordered_map<int, const ItemDefinition *> byId_;        // Key = ID numerik, untuk O(1) lookup
 };
 
 /*==============================================================================
@@ -232,7 +234,7 @@ public:
      * @brief Spawn item langsung di posisi tertentu
      * @param pos Posisi spawn item
      */
-    void SpawnItemAtLocation(Vector2 pos);
+    void SpawnItemAtLocation(Vector2 pos, std::mt19937 *rng = nullptr, ItemCategory category = ITEM_ANY);
 
     /**
      * @brief Simpan state item aktif untuk map tertentu
@@ -252,13 +254,11 @@ public:
      */
     void ClearItems();
 
-    // Daftar item yang sedang aktif di world
-    std::vector<ItemSpawn> activeItems;
+    std::vector<ItemSpawn> activeItems; // Daftar item yang sedang aktif di world
 
 private:
-    // Penyimpanan state item berdasarkan path map
-    std::map<std::string, std::vector<ItemSpawn>> savedMapItems;
-    std::unordered_map<std::string, ItemDefinition> definitions_;
+    std::map<std::string, std::vector<ItemSpawn>> savedMapItems;  // Penyimpanan state item per map
+    std::unordered_map<std::string, ItemDefinition> definitions_; // Definisi item lokal
 };
 
 /*==============================================================================
@@ -286,12 +286,9 @@ public:
      * @brief Render semua item yang belum diambil
      * @param items Daftar item yang akan dirender
      */
-    void RenderAll(std::vector<ItemSpawn> &items);
+    int RenderAll(std::vector<ItemSpawn> &items, Rectangle viewRect);
 
-    /**
-     * @brief Render satu item
-     * @param item Item yang akan dirender
-     */
+    /** @brief Render satu item */
     void Render(ItemSpawn &item);
 
 private:
@@ -319,59 +316,38 @@ public:
      */
     void SpawnAll(std::vector<ItemSpawn> &activeItems);
 
-    int PickRandomDefinitionId(std::mt19937 &rng);
+    /**
+     * @brief Pilih random definition ID dari pool item
+     * @param rng Reference ke RNG
+     * @param filterCategory Filter kategori (default: semua)
+     * @return ID definisi item yang terpilih
+     */
+    int PickRandomDefinitionId(std::mt19937 &rng, ItemCategory filterCategory = ITEM_ANY);
 
 private:
     // Daftar area spawn item yang dibaca dari Tiled
     std::vector<SpawnArea> spawnAreas;
 
-    /**
-     * @brief Load spawn area dari object layer Tiled
-     * @param layerName Nama layer yang akan dibaca
-     */
-    void LoadSpawnAreas(const std::string &layerName);
+    void LoadSpawnAreas(const std::string &layerName);                     // Load spawn area dari object layer Tiled
+    void CategorizeAreas();                                                // Kategorisasi area berdasarkan ukuran
+    SpawnAreaSize ClassifySize(float width, float height);                 // Klasifikasikan ukuran area spawn
+    void DetermineActiveAreas();                                           // Tentukan area spawn yang aktif
+    Vector2 GetRandomPosInArea(const SpawnArea &area, Vector2 hitboxSize); // Ambil posisi random di area
+    unsigned int SeedFromName(const std::string &name);                    // Buat seed random dari nama area
 
-    /**
-     * @brief Kategorisasi area berdasarkan ukuran
-     */
-    void CategorizeAreas();
-
-    /**
-     * @brief Klasifikasikan ukuran area spawn
-     * @param width Lebar area
-     * @param height Tinggi area
-     * @return Kategori ukuran spawn area
-     */
-    SpawnAreaSize ClassifySize(float width, float height);
-
-    /**
-     * @brief Tentukan area spawn yang aktif untuk run saat ini
-     */
-    void DetermineActiveAreas();
-
-    /**
-     * @brief Ambil posisi random di dalam area spawn
-     * @param area Area spawn target
-     * @return Posisi random di dalam area
-     */
-    Vector2 GetRandomPosInArea(const SpawnArea &area);
-
-    /**
-     * @brief Buat seed random dari nama area
-     * @param name Nama area spawn
-     * @return Seed hasil hash nama
-     */
-    unsigned int SeedFromName(const std::string &name);
+    int SPAWN_SIZE_SMALL_MIN = 1;  // jumlah minimum spawn untuk area kecil
+    int SPAWN_SIZE_SMALL_MAX = 2;  // jumlah maksimum spawn untuk area kecil
+    int SPAWN_SIZE_MEDIUM_MIN = 2; // jumlah minimum spawn untuk area sedang
+    int SPAWN_SIZE_MEDIUM_MAX = 3; // jumlah maksimum spawn untuk area sedang
+    int SPAWN_SIZE_LARGE_MIN = 3;  // jumlah minimum spawn untuk area besar
+    int SPAWN_SIZE_LARGE_MAX = 4;  // jumlah maksimum spawn untuk area besar
+    int SPAWN_SIZE_XLARGE_MIN = 4; // jumlah minimum spawn untuk area sangat besar
+    int SPAWN_SIZE_XLARGE_MAX = 5; // jumlah maksimum spawn untuk area sangat besar
 };
 
 /*==============================================================================
  * Free functions (backward compat, wrapper ke class di atas)
  *==============================================================================*/
-
-/**
- * @brief Load texture item
- */
-void InitItemTextures();
 
 /**
  * @brief Inisialisasi seluruh sistem item
@@ -388,10 +364,14 @@ void SpawnItemWave();
  */
 void SpawnRandomItem();
 
+/** @brief Ambil daftar item spawn aktif */
 std::vector<ItemSpawn> &GetActiveItems();
 
-// Instance global manager item
+/** @brief Instance global ItemDataManager */
 extern ItemDataManager itemData;
+/** @brief Instance global ItemRenderManager */
 extern ItemRenderManager itemRender;
+/** @brief Instance global ItemSpawnManager */
 extern ItemSpawnManager spawnManager;
+/** @brief Instance global ItemDefinitionManager */
 extern ItemDefinitionManager itemDefs;

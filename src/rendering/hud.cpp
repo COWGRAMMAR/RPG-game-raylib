@@ -13,13 +13,18 @@ extern const int GameScreenWidth;
 extern const int GameScreenHeight;
 
 // Drag & Drop State
-static int dragSlot = -1;                // slot asal drag (-1 = tidak aktif)
-static InventoryItem dragItem = {-1, 0}; // salinan item yang sedang di-drag
+/** @brief Slot asal drag */
+static int dragSlot = -1;
+/** @brief Item yang sedang di-drag */
+static InventoryItem dragItem = {-1, 0};
 
 // Split stack state
-static bool isDragSplit = false;           // true jika sedang mode split
-static int splitTotalAmount = 0;           // total item sebelum split dimulai
-static std::vector<int> splitVisitedSlots; // slot yang sudah diisi saat split
+/** @brief Flag mode split stack */
+static bool isDragSplit = false;
+/** @brief Total item sebelum split */
+static int splitTotalAmount = 0;
+/** @brief Slot yang sudah diisi saat split */
+static std::vector<int> splitVisitedSlots;
 
 /*==============================================================================
  * Internal Helpers
@@ -34,8 +39,42 @@ static void DrawItemIcon(const InventoryItem &item, Rectangle dest)
 {
     if (item.definitionId == -1)
         return;
+
     const ItemDefinition &def = itemDefs.GetById(item.definitionId);
-    DrawTileTexture(TEXTURE_ITEMS, (int)def.sheetCoord.x, (int)def.sheetCoord.y, dest);
+    const Frame &frame = GetFrame(def.spriteKey);
+
+    Rectangle src = {
+        (float)(frame.positionX * (FRAME_SIZE + FRAME_GAP)),
+        (float)(frame.positionY * (FRAME_SIZE + FRAME_GAP)),
+        (float)(frame.width * FRAME_SIZE),
+        (float)(frame.height * FRAME_SIZE)
+    };
+
+    if (def.spriteKey == "sword2")
+    {
+        src.y += 25.0f;
+        src.height -= 25.0f;
+    }
+
+    int maxDim = (src.width > src.height) ? src.width : src.height;
+    float size = dest.width / maxDim;
+
+    float renderWidth = src.width * size;
+    float renderHeight = src.height * size;
+
+    Vector2 position = {
+        dest.x + (dest.width - renderWidth) / 2.0f,
+        dest.y + (dest.height - renderHeight) / 2.0f
+    };
+
+    Rectangle drawDest = {
+        position.x,
+        position.y,
+        renderWidth,
+        renderHeight
+    };
+
+    DrawTexturePro(textures[frame.texture], src, drawDest, {0, 0}, 0.0f, WHITE);
 }
 
 /**
@@ -63,10 +102,10 @@ static void DrawTextHUD(const char *text, int x, int y, int fontSize, Color colo
  */
 static InventoryItem &GetItemBySlotIndex(int index)
 {
-    if (index >= 0 && index < PlayerInstance.MaxBag)
-        return PlayerInstance.Bag[index];
-    if (index < PlayerInstance.MaxInventory)
-        return PlayerInstance.Hotbar[index - PlayerInstance.MaxBag];
+    if (index >= 0 && index < PlayerInstance.GetMaxBag())
+        return PlayerInstance.GetBagItem(index);
+    if (index < PlayerInstance.GetMaxInventory())
+        return PlayerInstance.GetHotbarItem(index - PlayerInstance.GetMaxBag());
     static InventoryItem empty = {-1, 0};
     return empty;
 }
@@ -166,11 +205,11 @@ static void HandleMergeStack(int slotIndex)
         return;
 
     // Kumpulkan dari bag
-    for (int i = 0; i < PlayerInstance.MaxBag && target.amount < def.maxStack; i++)
+    for (int i = 0; i < PlayerInstance.GetMaxBag() && target.amount < def.maxStack; i++)
     {
         if (i == slotIndex)
             continue;
-        InventoryItem &other = PlayerInstance.Bag[i];
+        InventoryItem &other = PlayerInstance.GetBagItem(i);
         if (other.definitionId != target.definitionId)
             continue;
         if (other.amount >= def.maxStack)
@@ -185,12 +224,12 @@ static void HandleMergeStack(int slotIndex)
     }
 
     // Kumpulkan dari hotbar
-    for (int i = 0; i < PlayerInstance.MaxHotbar && target.amount < def.maxStack; i++)
+    for (int i = 0; i < PlayerInstance.GetMaxHotbar() && target.amount < def.maxStack; i++)
     {
-        int globalIdx = PlayerInstance.MaxBag + i;
+        int globalIdx = PlayerInstance.GetMaxBag() + i;
         if (globalIdx == slotIndex)
             continue;
-        InventoryItem &other = PlayerInstance.Hotbar[i];
+        InventoryItem &other = PlayerInstance.GetHotbarItem(i);
         if (other.definitionId != target.definitionId)
             continue;
         if (other.amount >= def.maxStack)
@@ -291,7 +330,7 @@ static void DrawDragGhost(Vector2 mousePos)
 /**
  * @brief Render layar inventory beserta logika drag & drop, split, dan merge.
  * @note Hanya aktif saat inventory terbuka. Drop item ke luar area inventory
- *       akan spawn item di dunia arah mouse sejauh INTERACT_RANGE.
+ *       akan spawn item di dunia arah mouse sejauh GetInteractRange.
  */
 void DrawInventory()
 {
@@ -313,7 +352,7 @@ void DrawInventory()
 
     const float slotSize = 50.0f;
     const float padding = 6.0f;
-    const int gridSize = 5;
+    const int gridSize = 4; // ukuran grid maksimum yang digambar di inventory
     const float totalGridSize = (slotSize * gridSize) + (padding * (gridSize - 1));
     const float startX = (GameScreenWidth - totalGridSize) / 2.0f;
     const float startY = (GameScreenHeight - totalGridSize) / 2.0f;
@@ -323,7 +362,7 @@ void DrawInventory()
     bool mouseReleased = InputInstance.IsLeftClickReleased();
     bool dragHandled = false; // flag agar drop ke world tidak terpanggil jika sudah dihandle
 
-    for (int i = 0; i < PlayerInstance.MaxBag; i++)
+    for (int i = 0; i < PlayerInstance.GetMaxBag(); i++)
     {
         int row = i / gridSize;
         int col = i % gridSize;
@@ -340,7 +379,7 @@ void DrawInventory()
         DrawRectangleRounded(slotRect, 0.2f, 8, slotColor);
         DrawRectangleRoundedLines(slotRect, 0.2f, 8, isDragSource ? ColorAlpha(GOLD, 0.5f) : ColorAlpha(WHITE, 0.3f));
 
-        InventoryItem &item = PlayerInstance.Bag[i];
+        InventoryItem &item = PlayerInstance.GetBagItem(i);
 
         if (item.definitionId != -1 && !isDragSource)
         {
@@ -439,8 +478,8 @@ void DrawInventory()
         }
 
         Vector2 dropPos = {
-            playerCenter.x + dropDir.x * PlayerInstance.INTERACT_RANGE,
-            playerCenter.y + dropDir.y * PlayerInstance.INTERACT_RANGE};
+            playerCenter.x + dropDir.x * PlayerInstance.GetInteractRange(),
+            playerCenter.y + dropDir.y * PlayerInstance.GetInteractRange()};
 
         ItemSpawn dropped = itemData.CreateItem(dropPos, dragItem.definitionId);
         dropped.amount = dragItem.amount;
@@ -504,11 +543,11 @@ void DrawHotbar()
     bool mousePressed = InputInstance.IsLeftClickPressed();
     bool mouseReleased = InputInstance.IsLeftClickReleased();
 
-    for (int i = 0; i < PlayerInstance.MaxHotbar; i++)
+    for (int i = 0; i < PlayerInstance.GetMaxHotbar(); i++)
     {
         Rectangle slotRect = {startX + (i * (slotSize + padding)), startY, slotSize, slotSize};
         bool isActive = (activeSlot == (int)(i + 1));
-        int globalIdx = PlayerInstance.MaxBag + i;
+        int globalIdx = PlayerInstance.GetMaxBag() + i;
         bool isHovered = isInventoryOpen && CheckCollisionPointRec(mousePos, slotRect);
         bool isDragSource = (dragSlot == globalIdx);
 
@@ -522,7 +561,7 @@ void DrawHotbar()
         Color borderColor = (isActive || isDragSource) ? GOLD : ColorAlpha(WHITE, 0.3f);
         DrawRectangleRoundedLines(slotRect, 0.4f, 8, borderColor);
 
-        InventoryItem item = PlayerInstance.Hotbar[i];
+        InventoryItem item = PlayerInstance.GetHotbarItem(i);
         if (item.definitionId != -1 && !isDragSource)
         {
             float iconDrawSize = 42.0f;
@@ -597,7 +636,11 @@ void DrawPlayerHUD()
         (avatarPos.x - spriteSize / 2.0f) + 1.0f,
         avatarPos.y - spriteSize / 2.0f,
         spriteSize, spriteSize};
-    DrawTileTexture(TEXTURE_KNIGHT, 0, 2, knightDest);
+    Frame avatarFrame = { SPRITESHEET_KNIGHT, 0, 2, 1, 1 };
+    Display avatarDisplay;
+    avatarDisplay.position = {knightDest.x, knightDest.y};
+    avatarDisplay.size = (int)knightDest.width;
+    DrawFrame(avatarFrame, avatarDisplay);
 
     DrawCircleLinesV(avatarPos, radius, ColorAlpha(GOLD, 0.6f));
     DrawCircleLinesV(avatarPos, radius + 1, ColorAlpha(GOLD, 0.3f));

@@ -2,6 +2,14 @@
 #include "item.h"
 #include "animation.h"
 
+/**
+ * @file inventory.h
+ * @brief Inventory System Module
+ *
+ * Header ini mendeklarasikan fungsi-fungsi untuk manajemen
+ * inventory player: add item, use potion, equip weapon.
+ */
+
 class Player;
 
 namespace Inventory

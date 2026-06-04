@@ -6,12 +6,20 @@
 *.bak
 /Backups/
 
+
 run_backup.bat
+floorB_tester.json
+floorC_tester.json
 
 # Personal
 *.Personal.*
 
+AGENTS.md
 # AI Agents
+.sisyphus/
+
+# Runtime save data
+saves/
 
 # Auto-downloaded raylib
 raylib/

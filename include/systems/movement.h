@@ -14,6 +14,12 @@ namespace Movement
     void HandleMovement(Player &player);
 
     /**
+     * @brief Memproses dash pemain, termasuk trigger, durasi, cooldown, dan deselerasi.
+     * @param player Referensi player yang state dash-nya diperbarui
+     */
+    void HandleDash(Player &player);
+
+    /**
      * @brief Memperbarui kamera agar mengikuti pemain dengan mulus.
      */
     void UpdateCamera(Player &player);

@@ -8,6 +8,7 @@
  * - ChestManager: chest yang bisa dibuka player untuk loot item
  * - SpikeManager: trap spike dengan timer aktif/nonaktif dan damage area
  * - BombManager: trap bomb yang meledak saat dipukul, dengan chain reaction
+ * - CrateManager: crate yang bisa dihancurkan player/bomb dan punya chance drop loot
  */
 
 #include "map.h"
@@ -24,9 +25,7 @@
  * ObjectState Enum
  *==============================================================================*/
 
-/**
- * @brief State universal untuk semua tile object
- */
+/** @brief State universal untuk semua tile object */
 enum class ObjectState
 {
     Closed,  // Chest belum dibuka
@@ -39,9 +38,7 @@ enum class ObjectState
  * TileObject Struct
  *==============================================================================*/
 
-/**
- * @brief Representasi universal untuk semua props dan trap di map
- */
+/** @brief Representasi universal untuk semua props dan trap di map */
 struct TileObject
 {
     Vector2 position;  // Posisi final setelah snap ke tile grid
@@ -61,7 +58,19 @@ struct TileObject
  */
 void SpawnObject(void);
 
-// helper encode data string
+/**
+ * @brief Trigger hit attack player ke props yang bisa dihancurkan.
+ * @param attackHitbox Hitbox serangan player
+ * @param playerBounds Bounding box player untuk efek props tertentu
+ * @param player Pointer ke player
+ */
+void HitPropsByAttack(Rectangle attackHitbox, Rectangle playerBounds, Player *player);
+
+/**
+ * @brief Encode posisi world space menjadi key string untuk tracking object.
+ * @param pos Posisi object dalam world space
+ * @return String key berbentuk "x_y"
+ */
 inline std::string EncodePos(Vector2 pos)
 {
     return std::to_string((int)pos.x) + "_" + std::to_string((int)pos.y);
@@ -82,41 +91,36 @@ public:
     /** @brief Spawn semua chest dari object layer Tiled */
     void SpawnChests(const std::vector<MapObject *> &chestObjects);
 
-    /**
-     * @brief Trigger interaksi player dengan chest terdekat
-     * @param hitPos Posisi interaksi player
-     */
+    /** @brief Trigger interaksi player dengan chest terdekat */
     void Interact(Vector2 hitPos);
 
     /** @brief Render semua chest (placeholder sprite) */
-    void Render();
+    int Render(Rectangle viewRect);
 
     /** @brief Bersihkan semua data chest */
     void Clear();
 
+    /** @brief Ambil posisi chest yang sudah dibuka */
+    const std::unordered_set<std::string> &GetConsumedPositions() const { return consumedPositions; }
+    /** @brief Set posisi chest yang sudah dibuka (buat load) */
+    void SetConsumedPositions(const std::unordered_set<std::string> &positions) { consumedPositions = positions; }
+
+    /** @brief Ambil jumlah chest yang sedang dikelola */
+    size_t GetCount() const { return chests.size(); }
+
 private:
-    std::vector<TileObject> chests;
-    std::unordered_set<std::string> consumedPositions;
+    std::vector<TileObject> chests;                    // Daftar chest yang sedang dikelola
+    std::unordered_set<std::string> consumedPositions; // Posisi chest yang sudah dikonsumsi agar tidak diproses ulang
 
-    /**
-     * @brief Cari chest terdekat dari titik hit
-     * @param hitPos Posisi hit
-     * @param threshold Toleransi jarak ke tepi bounds
-     * @return Pointer ke chest terdekat, nullptr jika tidak ada
-     */
-    TileObject *FindChest(Vector2 hitPos, float threshold = 32.0f);
-
-    /**
-     * @brief Spawn loot item secara random di sekitar chest
-     * @param chest Chest yang baru dibuka
-     */
-    void TriggerLoot(TileObject &chest);
+    TileObject *FindChest(Vector2 hitPos, float threshold = 32.0f); // Cari chest terdekat dari titik hit
+    void TriggerLoot(TileObject &chest);                            // Spawn loot item secara random di sekitar chest
 };
 
 /*==============================================================================
  * SpikeManager
  *==============================================================================*/
 
+/** @brief Callback untuk event spike */
 using SpikeCallback = std::function<void(TileObject &)>;
 
 /**
@@ -140,15 +144,16 @@ public:
     void Update(float deltaTime, Rectangle playerBounds, Player *player);
 
     /** @brief Render semua spike (placeholder sprite) */
-    void Render();
+    int Render(Rectangle viewRect);
 
     /** @brief Bersihkan semua data spike */
     void Clear();
 
+    /** @brief Ambil jumlah spike yang sedang dikelola */
+    size_t GetCount() const { return spikes.size(); }
+
 private:
-    /**
-     * @brief Data internal satu spike
-     */
+    /** @brief Data internal satu spike */
     struct SpikeData
     {
         TileObject tile;
@@ -173,28 +178,15 @@ private:
     float globalPlayerDamageCooldown = 0.0f; // Cooldown damage ke player (shared semua spike)
     float globalEnemyDamageCooldown = 0.0f;  // Cooldown damage ke enemy (shared semua spike)
 
-    std::vector<SpikeData> spikes;
+    std::vector<SpikeData> spikes; // Daftar spike yang sedang dikelola
 
-    /**
-     * @brief Generate seed dari nama object untuk randomisasi timer
-     * @param name Nama object spike dari Tiled
-     * @return Seed hasil hash nama
-     */
-    unsigned int SeedFromName(const std::string &name);
-
-    /**
-     * @brief Setup callback onActivate, onDeactivate, onDamagePlayer
-     * @param spike SpikeData target
-     */
-    void SetupCallbacks(SpikeData &spike);
+    unsigned int SeedFromName(const std::string &name); // Generate seed dari nama object untuk randomisasi timer
+    void SetupCallbacks(SpikeData &spike);              // Setup callback onActivate, onDeactivate, onDamagePlayer
 };
 
 /*==============================================================================
  * BombManager
  *==============================================================================*/
-
-using BombCallback = std::function<void(TileObject &)>;
-using BombExplodeCallback = std::function<void(TileObject &, float)>;
 
 /**
  * @brief Manager untuk semua trap bomb di map
@@ -209,6 +201,14 @@ public:
     void SpawnBombs(const std::vector<MapObject *> &bombObjects);
 
     /**
+     * @brief Trigger ledakan bomb yang terkena hitbox serangan player
+     * @param attackHitbox Hitbox serangan player
+     * @param playerBounds Bounding box player
+     * @param player Pointer ke player
+     */
+    void HitByAttack(Rectangle attackHitbox, Rectangle playerBounds, Player *player);
+
+    /**
      * @brief Update state semua bomb tiap frame
      * @param deltaTime Waktu antar frame
      * @param playerBounds Bounding box player
@@ -217,34 +217,24 @@ public:
     void Update(float deltaTime, Rectangle playerBounds, Player *player);
 
     /** @brief Render semua bomb (placeholder sprite) */
-    void Render();
+    int Render(Rectangle viewRect);
 
     /** @brief Bersihkan semua data bomb */
     void Clear();
 
-    /** @brief Spawn ulang semua bomb dari spawnPoints (debug only, disabled) */
-    void SpawnAll();
+    /** @brief Ambil jumlah bomb yang sedang dikelola */
+    size_t GetCount() const { return bombs.size(); }
 
-    /**
-     * @brief Cari bomb terdekat dari titik hit
-     * @param hitPos Posisi hit
-     * @param threshold Toleransi jarak ke tepi bounds
-     * @return Pointer ke TileObject bomb terdekat, nullptr jika tidak ada
-     */
-    TileObject *FindBomb(Vector2 hitPos, float threshold = 32.0f);
+    /** @brief Ambil posisi bomb yang sudah meledak */
+    const std::unordered_set<std::string> &GetConsumedPositions() const { return consumedPositions; }
+    /** @brief Set posisi bomb yang sudah meledak (buat load) */
+    void SetConsumedPositions(const std::unordered_set<std::string> &positions) { consumedPositions = positions; }
 
-    /**
-     * @brief Trigger ledakan bomb yang terkena hitbox serangan player
-     * @param attackHitbox Hitbox serangan player
-     * @param playerBounds Bounding box player
-     * @param player Pointer ke player
-     */
-    void HitByAttack(Rectangle attackHitbox, Rectangle playerBounds, Player *player);
+    /** @brief Cek apakah target dalam radius ledakan (nearest-point check) */
+    bool IsInExplosionRadius(Vector2 bombPos, Rectangle target);
 
 private:
-    /**
-     * @brief Data internal satu bomb
-     */
+    /** @brief Data internal satu bomb */
     struct BombData
     {
         TileObject tile;
@@ -252,47 +242,145 @@ private:
         bool isExploding;         // True selama animasi ledakan berlangsung
         bool isTriggered = false; // Guard untuk mencegah infinite loop chain reaction
         float explosionTimer;     // Sisa waktu animasi ledakan
-        BombCallback onHit;
-        BombExplodeCallback onExplode;
-        BombCallback onDamagePlayer;
     };
 
     // Konstanta bomb
     static constexpr float BOMB_EXPLOSION_RADIUS = 80.0f;  // Radius area ledakan (pixel)
     static constexpr float BOMB_DAMAGE = 25.0f;            // Damage ledakan
-    static constexpr float BOMB_EXPLOSION_DURATION = 0.3f; // Durasi animasi ledakan (detik)
+    static constexpr float BOMB_EXPLOSION_DURATION = 0.6f; // Durasi animasi ledakan (detik)
 
-    std::vector<BombData> bombs;
-    std::unordered_set<std::string> consumedPositions;
-    Player *playerRef = nullptr;
+    std::vector<BombData> bombs;                       // Daftar bomb yang sedang dikelola
+    std::unordered_set<std::string> consumedPositions; // Posisi bomb yang sudah dikonsumsi agar tidak diproses ulang
+    Player *playerRef = nullptr;                       // Referensi player terakhir untuk update/interaction bomb
 
-    /** @brief Setup callback onHit, onExplode, onDamagePlayer */
-    void SetupCallbacks(BombData &bomb);
+    TileObject *FindBomb(Vector2 hitPos, float threshold = 32.0f); // Cari bomb terdekat dari titik hit
+
+    void Explode(BombData &bomb, Rectangle playerBounds, Player *player); // Trigger ledakan, damage area, dan chain reaction
+};
+
+/*==============================================================================
+ * CrateManager
+ *==============================================================================*/
+
+/**
+ * @brief Manager untuk semua crate di map.
+ *
+ * Crate bisa dihancurkan oleh serangan player atau ledakan bomb,
+ * lalu punya peluang menjatuhkan loot.
+ */
+class CrateManager
+{
+public:
+    /** @brief Spawn semua crate dari object layer Tiled */
+    void SpawnCrates(const std::vector<MapObject *> &crateObjects);
+    /** @brief Hancurkan crate yang terkena hitbox serangan player */
+    void HitByAttack(Rectangle attackHitbox);
+    /** @brief Hapus crate yang sudah tidak aktif dari daftar runtime */
+    void Update();
+    /** @brief Hancurkan crate yang terkena radius ledakan bomb */
+    void HitByExplosion(Vector2 bombPos, BombManager *bomber);
+    /** @brief Render crate yang terlihat dalam view */
+    int Render(Rectangle viewRect);
+    /** @brief Bersihkan semua data crate */
+    void Clear();
+
+    /** @brief Ambil posisi crate yang sudah hancur */
+    const std::unordered_set<std::string> &GetConsumedPositions() const { return consumedPositions; }
+    /** @brief Set posisi crate yang sudah hancur (buat load) */
+    void SetConsumedPositions(const std::unordered_set<std::string> &positions) { consumedPositions = positions; }
 
     /**
-     * @brief Trigger ledakan bomb, damage area, dan chain reaction
-     * @param bomb BombData yang diledakkan
-     * @param playerBounds Bounding box player
-     * @param player Pointer ke player
+     * @brief Ambil jumlah crate yang sedang dikelola.
+     * @return Jumlah crate aktif di manager
      */
-    void Explode(BombData &bomb, Rectangle playerBounds, Player *player);
+    size_t GetCount() const { return crates.size(); }
 
-    /**
-     * @brief Cek apakah target berada dalam radius ledakan
-     *
-     * Pakai nearest-point check, bukan center-to-center.
-     *
-     * @param bombPos Posisi center bomb
-     * @param target Bounding box target
-     * @return true jika jarak nearest point <= BOMB_EXPLOSION_RADIUS
-     */
-    bool IsInExplosionRadius(Vector2 bombPos, Rectangle target);
+private:
+    /** @brief Data internal satu crate */
+    struct CrateData
+    {
+        TileObject tile; // Data object crate di map
+        bool isAlive;    // False jika crate sudah dihancurkan
+    };
+
+    static constexpr float CRATE_LOOT_CHANCE = 0.10f; // 10% chance drop loot
+
+    std::vector<CrateData> crates;                     // Daftar crate yang sedang dikelola
+    std::unordered_set<std::string> consumedPositions; // Posisi crate yang sudah dihancurkan agar tidak spawn ulang
+
+    TileObject *FindCrate(Vector2 hitPos, float threshold = 32.0f); // Cari crate terdekat dari titik hit
+    void Destroy(CrateData &crate);                                 // Hancurkan crate, hapus obstacle, dan trigger loot
+    void TriggerLoot(TileObject &crate);                            // Roll peluang drop loot dari crate
+};
+
+/*==============================================================================
+ * BarrierManager
+ *==============================================================================*/
+
+/**
+ * @brief Manager untuk barrier door yang nutup entrance room.
+ *
+ * Barrier aktif pas room dimuat, ngeblok entrance via DynamicObstacles.
+ * Hilang setelah kill threshold terpenuhi (default 90%).
+ * Di boss room: barrier buka → re-lock pas player masuk → buka lagi setelah boss mati.
+ */
+class BarrierManager
+{
+public:
+    /** @brief Spawn semua barrier dari object layer Tiled */
+    void SpawnBarriers(const std::vector<MapObject *> &barrierObjects);
+    /** @brief Update tiap frame — cek kill threshold & boss room state */
+    void Update();
+    /** @brief Render barrier sebagai rectangle berwarna */
+    int Render(Rectangle viewRect);
+    /** @brief Bersihkan semua data barrier */
+    void Clear();
+
+    /** @brief Ambil jumlah barrier yang sedang dikelola */
+    size_t GetCount() const { return barriers.size(); }
+    /** @brief Apakah barrier sudah pernah di-clear */
+    bool IsCleared() const { return cleared; }
+    /** @brief Apakah player sudah masuk boss room (re-lock aktif) */
+    bool HasReLocked() const { return hasReLocked; }
+    /** @brief Set state cleared */
+    void SetCleared(bool v) { cleared = v; }
+    /** @brief Set state hasReLocked */
+    void SetHasReLocked(bool v) { hasReLocked = v; }
+
+private:
+    /** @brief Data internal satu barrier */
+    struct BarrierData
+    {
+        TileObject tile;
+        bool isActive;
+        bool isBoss = false; // true kalo dari type "barrier_boss"
+    };
+
+    static constexpr float KILL_THRESHOLD = 0.9f;
+
+    std::vector<BarrierData> barriers; // Daftar barrier yang sedang dikelola
+    bool isBossMap = false;            // True kalo map ini punya boss spawn
+    bool hasReLocked = false;          // True setelah player masuk room boss dan barrier re-lock
+    bool cleared = false;              // True kalo barrier udah pernah di-clear
+    int totalEnemyCount = 0;           // Total enemy di EnemyRegistry pas spawn
+    int prevDeadCount = 0;             // DeadCount sebelumnya — buat deteksi perubahan
+    Rectangle bossStageBounds = {0};   // Bounds object "boss_stage" untuk deteksi area boss
+
+    void RemoveAllBarriers(); // Hapus semua barrier dari DynamicObstacles
+    void ReLockBarriers();    // Pasang ulang barrier (re-lock) — khusus boss room
 };
 
 /*==============================================================================
  * Global Manager Instances
  *==============================================================================*/
 
+/** @brief Instance global manager chest */
 extern ChestManager chestManager;
+/** @brief Instance global manager spike */
 extern SpikeManager spikeManager;
+/** @brief Instance global manager bomb */
 extern BombManager bombManager;
+/** @brief Instance global manager crate */
+extern CrateManager crateManager;
+/** @brief Instance global manager barrier */
+extern BarrierManager barrierManager;

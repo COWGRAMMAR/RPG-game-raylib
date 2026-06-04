@@ -3,62 +3,56 @@
 #include "effects.h"
 #include "item.h"
 #include <vector>
+#include <string>
+#include "entity.h"
+
+class Arrow : public Entity
+{
+public:
+    Vector2 Velocity;
+    Vector2 StartPos;
+    float Reach;
+    float Rotation;
+    float LifeTime;
+    float MaxLifeTime;
+    float Damage;
+    Entity* Owner;
+    bool HasHit;
+    std::string SpriteKey;
+
+    Arrow(Vector2 pos, Vector2 dir, float speed, float damage, float reach, float rotation, Entity* owner, std::string spriteKey = "arrow");
+    
+    void Update() override;
+    void Render() override;
+    Rectangle GetHitbox() const override;
+};
 
 class Player;
 
-/**
- * @brief Wadah status untuk serangan jarak dekat pemain.
- * Melacak waktu, rotasi, dan entitas yang terkena hit selama ayunan saat ini.
- */
-struct SwingAttack
-{
-    bool active = false;                 ///< Apakah serangan sedang berlangsung?
-    float timer = 0.0f;                  ///< Progres animasi saat ini
-    float duration = 0.7f;               ///< Total durasi animasi serangan
-    float startAngle = 0.0f;             ///< Rotasi awal dalam derajat
-    float currentAngle = 0.0f;           ///< Rotasi dinamis selama pembaruan
-    float sweepAngle = 180.0f;           ///< Total busur ayunan
-    Vector2 center = {0, 0};             ///< Titik asal ayunan
-    int iconX = 6;                       ///< Koordinat X ikon senjata di tileset
-    int iconY = 4;                       ///< Koordinat Y ikon senjata di tileset
-    std::vector<void *> damagedEntities; ///< Mencegah beberapa hit pada entitas yang sama per ayunan
-    bool pressRegistered = false;        ///< Mencegah klik yang "menempel" dari status sebelumnya
+class Entity;
 
-    // Properti diferensiasi senjata
-    AttackType type = ATTACK_SLASH; ///< Tipe gerakan
-    float reach = 32.0f;            ///< Jarak dari pusat ke tepi hitbox
-    float breadth = 48.0f;          ///< Lebar/Area busur ayunan
-    float thrustOffset = 0.0f;      ///< Pergerakan ke depan saat menusuk
-    float baseAngle = 0.0f;         ///< Orientasi tetap berdasarkan arah pemain
-    float damage = 25.0f;           ///< Nilai damage yang diberikan
-    float knockbackForce = 1.0f;    ///< Kekuatan dorongan balik saat hit
-};
-
-/**
- * @brief Fungsi pertarungan global untuk memproses damage dan umpan balik visual.
- */
 namespace Combat
 {
-    /**
-     * @brief Pengendali tingkat tinggi untuk input dan status pertarungan pemain.
-     */
-    void HandleCombat(Player &player);
+    struct Attack
+    {
+        bool active = false;
+        float timer = 0.0f;
+        float duration = 0.0f;
+        float raycastAngle = 0.0f;
+        Vector2 center = {0, 0};
+        std::vector<Entity *> damagedEntities;
+        bool pressHeld = false;
+        const WeaponData* weapon = nullptr;
+    };
 
-    /**
-     * @brief Logika untuk menghidupkan kembali pemain dari status DEAD.
-     */
+    void Update(Player &player);
+    void HandleDead(Player &player);
+    void HandleStamina(Player &player);
+    void HandleAttack(Player &player);
     void HandleRevive(Player &player);
-
-    /**
-     * @brief Memperbarui fisika dan hitbox dari ayunan yang aktif.
-     */
+    /** @brief Update animasi swing attack */
     void UpdateSwingAttack(Player &player, float dt);
-
-    /**
-     * @brief Me-render sprite senjata dan hitbox debug.
-     */
+    /** @brief Render visual swing attack */
     void DrawSwingAttack(Player &player);
 
-    // Sistem Damage Popup (wrapper untuk Effects)
-    void AddDamagePopup(Vector2 pos, float damage);
 }

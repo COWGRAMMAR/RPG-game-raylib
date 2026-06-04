@@ -3,9 +3,10 @@
 /**
  * @file loading_screen.h
  * @brief Loading Screen Module
- * 
- * Handle the loading screen display and asset loading sequence.
- * Shows progress while loading game assets before transitioning to gameplay.
+ *
+ * Handle tampilan loading screen dan urutan loading aset.
+ * Menampilkan progress sambil memuat aset game sebelum
+ * transisi ke gameplay.
  */
 
 #include "../lib/raylib/include/raylib.h"
@@ -17,26 +18,26 @@
  *==============================================================================*/
 
 /**
- * @brief Initialize loading screen state
- * @param state Pointer to GameState
+ * @brief Inisialisasi state loading screen
+ * @param state Pointer ke GameState
  */
 void InitLoadingScreen(GameState *state);
 
 /**
- * @brief Update loading screen logic
- * @param state Pointer to GameState
+ * @brief Update logic loading screen tiap frame
+ * @param state Pointer ke GameState
  */
 void UpdateLoadingScreen(GameState *state);
 
 /**
- * @brief Render loading screen to virtual screen
- * @param state Pointer to GameState
+ * @brief Render loading screen ke virtual screen
+ * @param state Pointer ke GameState
  */
 void RenderLoadingScreen(GameState *state);
 
 /**
- * @brief Check if loading is complete
- * @param state Pointer to GameState
- * @return true if loading is complete, false otherwise
+ * @brief Cek apakah loading sudah selesai
+ * @param state Pointer ke GameState
+ * @return true jika loading selesai
  */
 bool IsLoadingComplete(GameState *state);

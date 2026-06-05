@@ -5,6 +5,10 @@
 #include "map.h"
 #include "screen.h"
 #include "propsbehavior.h"
+#include "seedmanager.h"
+#include "worldgenio.h"
+#include "game_state_saver.h"
+#include "entities.h"
 #include "../lib/raylib/include/raymath.h"
 
 namespace Interaction
@@ -16,8 +20,8 @@ namespace Interaction
     {
         player.canInteract = false;
         UpdateRaycast(player);
-        CheckDoors(player);    ///< Interaksi berbasis kedekatan (proximity)
-        CheckProps(player);    ///< Interaksi berbasis raycast
+        CheckDoors(player);    // Interaksi berbasis kedekatan (proximity)
+        CheckProps(player);    // Interaksi berbasis raycast
     }
 
     /**
@@ -68,6 +72,10 @@ namespace Interaction
      */
     void CheckDoors(Player &player)
     {
+        // Skip kalau lagi transisi map — cegah double trigger dari fixed-timestep loop
+        if (gState->isSwitchingMap || gState->isGoingBack)
+            return;
+
         Rectangle playerHitbox = BuildHitbox(player.Position, player.GetHitboxOffsetX(), player.GetHitboxOffsetY(), player.GetHitboxWidth(), player.GetHitboxHeight());
         std::vector<MapObject *> doors = TiledHelperFunction.GetObjectsByType(DOOR_TYPE_OBJECT_NAME);
 
@@ -75,11 +83,69 @@ namespace Interaction
         {
             if (!CheckCollisionRecs(playerHitbox, door->bounds))
                 continue;
-            
+
             player.canInteract = true;
-            
+
             if (!InputInstance.IsInteract())
                 continue;
+
+            /**
+             * @brief Worldgen door handler (interaction.cpp)
+             * Deteksi door dengan property "worldgen". Signal loading screen
+             * bahwa worldgen map switch pending agar RestoreDeadEntities() di-
+             * skip — WorldgenIO handle dead entity restoration per-stage.
+             */
+            auto wgIt = door->properties.find("worldgen");
+            if (wgIt != door->properties.end() && wgIt->second.getValue<std::string>() == "true")
+            {
+                // InitRun cuma sekali per run — kalau sudah aktif, lanjut ke stage terakhir
+                if (!g_SeedManager.IsRunActive())
+                    WorldgenIO::InitRun(WorldgenIO::GetNextAvailableSlot());
+
+                player.pendingSwitchMap = true;
+                player.pendingMapPath = WorldgenIO::GetStagePath(g_SeedManager.GetCurrentStage());
+                player.pendingDoorName = "start";
+                SetWorldgenPending(true);
+                return;
+            }
+
+            // Cek door stage_exit — property "stage_exit":"next" → NextStage (finish door)
+            auto stageExitIt = door->properties.find("stage_exit");
+            if (stageExitIt != door->properties.end())
+            {
+                const std::string &val = stageExitIt->second.getValue<std::string>();
+                if (val == "next")
+                {
+                    WorldgenIO::NextStage();
+                    return;
+                }
+                if (val == "prev")
+                {
+                    WorldgenIO::PrevStage();
+                    return;
+                }
+            }
+
+            // Deteksi door boss — cuma bisa dipake kalo boss udah mati
+            if (door->name == "boss")
+            {
+                bool bossAlive = false;
+                for (auto *enemy : Entities::GetEnemyRegistry())
+                {
+                    if (enemy->rank == ENEMY_BOSS && enemy->IsActive)
+                    {
+                        bossAlive = true;
+                        break;
+                    }
+                }
+                if (!bossAlive)
+                {
+                    WorldgenIO::SaveRuntimeState(g_SeedManager.GetCurrentStage());
+                    g_SeedManager.ResetRun();
+                    gState->currentScreen = MAIN_MENU;
+                }
+                return;
+            }
 
             // Mengambil map tujuan dan ID pintu dari properti Tiled
             auto mapIt = door->properties.find("target_map");
@@ -123,9 +189,11 @@ namespace Interaction
             return; // Di luar area pandang, tidak bisa interaksi
 
         const std::string &type = player.LastHit.object->type;
-        if (type != CHEST_TYPE_OBJECT_NAME)
-            return; // Hanya objek tipe CHEST_TYPE_OBJECT_NAME yang bisa diinteraksi via raycast
-            
+
+        // Cuma chest & sign yang bisa diinteraksi via raycast
+        if (type != CHEST_TYPE_OBJECT_NAME && type != SIGN_TYPE_OBJECT_NAME)
+            return;
+
         player.canInteract = true;
 
         if (!InputInstance.IsInteract())
@@ -136,8 +204,11 @@ namespace Interaction
         // Percabangan logika berdasarkan tipe objek
         if (type == CHEST_TYPE_OBJECT_NAME)
         {
-            TraceLog(LOG_INFO, "Membuka peti: '%s'", player.LastHit.object->name.c_str());
             chestManager.Interact(player.LastHit.point);
+        }
+        else if (type == SIGN_TYPE_OBJECT_NAME)
+        {
+            signManager.Interact(player.LastHit.point);
         }
     }
 }

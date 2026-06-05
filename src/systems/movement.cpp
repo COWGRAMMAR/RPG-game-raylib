@@ -67,7 +67,7 @@ namespace Movement
         }
         player.IsMoving = moving;
 
-        if (InputInstance.IsRightClickPressed() && player.DashCooldown <= 0.0f && !player.IsDashing && player.Mana <= player.DashManaCost)
+        if (InputInstance.IsRightClickPressed() && player.DashCooldown <= 0.0f && !player.IsDashing && player.Mana < player.DashManaCost)
         {
             TraceLog(LOG_WARNING, "DASH: Mana tidak cukup! Mana: %.2f, Cost: %.2f", player.Mana, player.DashManaCost);
             Effects::AddLog("Stamina tidak cukup!");
@@ -79,11 +79,11 @@ namespace Movement
         PlayAnimation(player.Anim, nextState, nextDir);
 
         // Normalisasi kecepatan untuk kecepatan yang konsisten di semua arah (perbaikan diagonal)
-        float Length = sqrtf(player.Velocity.x * player.Velocity.x + player.Velocity.y * player.Velocity.y);
-        if (Length != 0)
+        float length = sqrtf(player.Velocity.x * player.Velocity.x + player.Velocity.y * player.Velocity.y);
+        if (length != 0)
         {
-            player.Velocity.x /= Length;
-            player.Velocity.y /= Length;
+            player.Velocity.x /= length;
+            player.Velocity.y /= length;
         }
 
         // --- Logika Sliding Collision ---
@@ -153,19 +153,19 @@ namespace Movement
      */
     void UpdateCamera(Player &player)
     {
-        float MapW = (float)tilesonMap->width * FRAME_SIZE;
-        float MapH = (float)tilesonMap->height * FRAME_SIZE;
+        float mapW = (float)tilesonMap->width * FRAME_SIZE;
+        float mapH = (float)tilesonMap->height * FRAME_SIZE;
 
         // Zoom Dinamis: Perkecil zoom sedikit untuk map yang sangat kecil agar muat di layar
-        const int MinMapTileZoom = 15;
-        float AutoZoom = (float)GameScreenWidth / (MinMapTileZoom * FRAME_SIZE);
-        float FixedZoom = 2.0f;
-        const float CameraZoom = (tilesonMap->width <= MinMapTileZoom || tilesonMap->height <= MinMapTileZoom)
-                                     ? AutoZoom
-                                     : FixedZoom;
+        int minMapTileZoom = 15;
+        float autoZoom = (float)GameScreenWidth / (minMapTileZoom * FRAME_SIZE);
+        float fixedZoom = 2.0f;
+        float cameraZoom = (tilesonMap->width <= minMapTileZoom || tilesonMap->height <= minMapTileZoom)
+                               ? autoZoom
+                               : fixedZoom;
 
         if (!isDebugMode)
-            camera.zoom = CameraZoom;
+            camera.zoom = cameraZoom;
 
         // Menargetkan titik tengah pemain
         camera.target.x = player.Position.x + (FRAME_SIZE / 2.0f);
@@ -176,24 +176,24 @@ namespace Movement
         float halfH = (GameScreenHeight / 2.0f) / camera.zoom;
 
         // Membatasi target kamera pada tepi map
-        if (MapW <= halfW * 2.0f)
-            camera.target.x = MapW / 2.0f; // Menengahkan kamera jika map lebih kecil dari viewport
+        if (mapW <= halfW * 2.0f)
+            camera.target.x = mapW / 2.0f; // Menengahkan kamera jika map lebih kecil dari viewport
         else
         {
             if (camera.target.x < halfW)
                 camera.target.x = halfW;
-            if (camera.target.x > MapW - halfW)
-                camera.target.x = MapW - halfW;
+            if (camera.target.x > mapW - halfW)
+                camera.target.x = mapW - halfW;
         }
 
-        if (MapH <= halfH * 2.0f)
-            camera.target.y = MapH / 2.0f;
+        if (mapH <= halfH * 2.0f)
+            camera.target.y = mapH / 2.0f;
         else
         {
             if (camera.target.y < halfH)
                 camera.target.y = halfH;
-            if (camera.target.y > MapH - halfH)
-                camera.target.y = MapH - halfH;
+            if (camera.target.y > mapH - halfH)
+                camera.target.y = mapH - halfH;
         }
     }
 

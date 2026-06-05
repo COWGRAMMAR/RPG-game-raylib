@@ -101,7 +101,7 @@ namespace Effects {
         p.damage = damage;
         p.timer = 0;
         p.duration = 1.0f;
-        p.velocity = {(float)GetRandomValue(-20, 20) / 10.0f, -2.0f};
+        p.velocity = {(float)GetRandomValue(-1200, 1200) / 10.0f, -120.0f};
         p.active = true;
         damageQueue.Enqueue(p);
     }

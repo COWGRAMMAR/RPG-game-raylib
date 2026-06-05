@@ -1,3 +1,14 @@
+/**
+ * @file enemy_ai.cpp
+ * @brief Implementasi Enemy AI System
+ *
+ * File ini berisi implementasi sistem AI untuk enemy:
+ * - FlowField: Dijkstra-based flow field untuk chase & return pathfinding
+ * - EnemySteering: steering behavior dengan obstacle avoidance & anti-flip
+ * - SpatialHash & Separation: spatial partitioning untuk separation force
+ * - SpawnFlowFields: flow field per spawn point untuk return behavior
+ */
+
 #include "enemy_ai.h"
 #include "screen.h"
 #include "enemy.h"
@@ -14,10 +25,15 @@
  * Globals
  *==============================================================================*/
 
+/** @brief Instance global flow field chase */
 FlowField globalFlowField;
+/** @brief Map flow field return per spawn ID */
 std::unordered_map<int, SpawnFlowFieldEntry> spawnFlowFields;
+/** @brief Antrian rebuild spawn flow field */
 std::queue<int> spawnFlowFieldRebuildQueue;
+/** @brief Cache obstacle untuk raycast */
 std::vector<MapObject> cachedObstacleList;
+/** @brief Spatial hash untuk separation */
 static SpatialHash g_spatialHash;
 
 /*==============================================================================
@@ -72,11 +88,14 @@ void FlowField::Update(Vector2 playerWorld, int mapWidth, int mapHeight)
  */
 void FlowField::Build(Vector2 goalWorld, int mapWidth, int mapHeight, int radius)
 {
-    gridWidth_ = mapWidth;
-    gridHeight_ = mapHeight;
-
-    // reset grid
-    grid_.assign(gridHeight_, std::vector<Cell>(gridWidth_));
+    // Alokasi grid cuma sekali — hindari 164 heap allocations tiap rebuild
+    if (!hasAllocatedGrid_ || gridWidth_ != mapWidth || gridHeight_ != mapHeight)
+    {
+        gridWidth_ = mapWidth;
+        gridHeight_ = mapHeight;
+        grid_.assign(gridHeight_, std::vector<Cell>(gridWidth_));
+        hasAllocatedGrid_ = true;
+    }
 
     int goalX = Clamp((int)(goalWorld.x / FLOW_FIELD_TILE_SIZE), 0, gridWidth_ - 1);
     int goalY = Clamp((int)(goalWorld.y / FLOW_FIELD_TILE_SIZE), 0, gridHeight_ - 1);
@@ -86,6 +105,11 @@ void FlowField::Build(Vector2 goalWorld, int mapWidth, int mapHeight, int radius
     int startY = std::max(0, goalY - radius);
     int endX = std::min(gridWidth_ - 1, goalX + radius);
     int endY = std::min(gridHeight_ - 1, goalY + radius);
+
+    // reset cuma area aktif — lebih murah daripada re-assign seluruh 164x164 grid
+    for (int y = startY; y <= endY; y++)
+        for (int x = startX; x <= endX; x++)
+            grid_[y][x] = Cell{};
 
     // mark walkable hanya dalam area aktif
     for (int y = startY; y <= endY; y++)
@@ -325,6 +349,9 @@ std::vector<MapObject> BuildObstacleList()
     appendType(CHEST_TYPE_OBJECT_NAME);
     appendType(BOMB_TYPE_OBJECT_NAME);
     appendType(CRATE_TYPE_OBJECT_NAME);
+    appendType(BARRIER_TYPE_OBJECT_NAME);
+    appendType(BARRIER_BOSS_TYPE_OBJECT_NAME);
+    appendType(SIGN_TYPE_OBJECT_NAME);
 
     return result;
 }
@@ -469,8 +496,7 @@ Vector2 EnemySteering::Compute(SteeringMode mode, const SteeringContext &ctx, Ra
     if (Vector2LengthSqr(SteeringDir) < 0.001f)
         SteeringDir = flowDir;
 
-    auto obstacles = cachedObstacleList;
-    ray.Cast(ctx.Position, rayDir, ctx.rayLength, obstacles);
+    ray.Cast(ctx.Position, rayDir, ctx.rayLength, cachedObstacleList);
 
     SteeringCooldown -= Time::DELTA_TIME;
 
@@ -603,7 +629,7 @@ void RebuildSpatialHash(std::vector<Enemy *> &enemies)
     g_spatialHash.Clear();
     for (int i = 0; i < (int)enemies.size(); i++)
     {
-        if (!enemies[i]->IsActive && !enemies[i]->IsAlive())
+        if (!enemies[i]->IsActive || !enemies[i]->IsAlive())
             continue;
         g_spatialHash.Insert(i, enemies[i]->Position);
     }

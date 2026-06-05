@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Configuration
-RAYLIB_VERSION="5.5"
+RAYLIB_VERSION="6.0"
 TILESON_VERSION="v1.4.0"
 JSON_VERSION="v3.12.0"
 
@@ -23,6 +23,13 @@ write_debug() {
 
 write_err() {
   echo -e "${ERR_COLOR}[ERROR] $1${RESET}"
+}
+
+get_installed_raylib_version() {
+  local header="lib/raylib/include/raylib.h"
+  if [[ -f "$header" ]]; then
+    grep -oP 'RAYLIB_VERSION\s+"\K[0-9]+\.[0-9]+' "$header" 2>/dev/null || echo ""
+  fi
 }
 
 # Download function (curl or wget)
@@ -74,7 +81,15 @@ if [[ -d "lib/raylib" ]]; then
 fi
 
 # Check if all dependencies are already installed
-if [[ -f "lib/raylib/include/raylib.h" && -f "lib/raylib/lib/libraylib.a" && -f "lib/tileson/tileson.hpp" && -f "lib/json/include/nlohmann/json.hpp" ]]; then
+INSTALLED_RAYLIB_VER=""
+if [[ -f "lib/raylib/include/raylib.h" && -f "lib/raylib/lib/libraylib.a" ]]; then
+  INSTALLED_RAYLIB_VER=$(get_installed_raylib_version)
+fi
+if [[ -n "$INSTALLED_RAYLIB_VER" && "$INSTALLED_RAYLIB_VER" != "$RAYLIB_VERSION" ]]; then
+  write_step "raylib version mismatch: installed $INSTALLED_RAYLIB_VER, needed $RAYLIB_VERSION. Reinstalling..."
+  rm -rf "lib/raylib"
+fi
+if [[ -f "lib/raylib/include/raylib.h" && -f "lib/raylib/lib/libraylib.a" && "$INSTALLED_RAYLIB_VER" == "$RAYLIB_VERSION" && -f "lib/tileson/tileson.hpp" && -f "lib/json/include/nlohmann/json.hpp" ]]; then
   write_step "All required libraries already installed"
   exit 0
 fi
@@ -101,8 +116,14 @@ install_raylib() {
 
   # Check if already installed
   if [[ -f "$install_dir/include/raylib.h" && -f "$install_dir/lib/libraylib.a" ]]; then
-    write_step "raylib already installed at $install_dir"
-    return
+    local cur_ver
+    cur_ver=$(get_installed_raylib_version)
+    if [[ "$cur_ver" == "$RAYLIB_VERSION" ]]; then
+      write_step "raylib already installed at $install_dir"
+      return
+    fi
+    write_step "raylib version mismatch at $install_dir (installed: $cur_ver, needed: $RAYLIB_VERSION). Removing..."
+    rm -rf "$install_dir"
   fi
 
   write_step "raylib not found. Downloading raylib $RAYLIB_VERSION from GitHub..."

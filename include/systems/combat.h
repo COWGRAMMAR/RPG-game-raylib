@@ -29,6 +29,7 @@ public:
 };
 
 class Player;
+
 class Entity;
 
 namespace Combat
@@ -49,7 +50,9 @@ namespace Combat
     void HandleDead(Player &player);
     void HandleStamina(Player &player);
     void HandleAttack(Player &player);
-    void HandleRevive(Player &player);
+    /** @brief Update animasi swing attack */
     void UpdateSwingAttack(Player &player, float dt);
+    /** @brief Render visual swing attack */
     void DrawSwingAttack(Player &player);
+
 }

@@ -2,6 +2,7 @@
 
 #include "../lib/raylib/include/raylib.h"
 #include "buttonTxt.h"
+#include <string>
 
 /**
  * @file videoTab.h
@@ -9,6 +10,8 @@
  * 
  * Contains fullscreen toggle and FPS display toggle.
  */
+
+static const char* VIDEO_SETTINGS_PATH = "saves/settings/videoTab.json";
 
 /**
  * @brief Me-render tab Video
@@ -42,3 +45,18 @@ bool UpdateVideoTab(
     Vector2 mousePosition,
     bool mouseClicked
 );
+
+/**
+ * @brief Memuat pengaturan video dari file JSON
+ * @param state Pointer ke GameState untuk mengisi showFPS dll
+ * @return true jika berhasil dimuat
+ */
+bool LoadVideoSettings(void* state);
+
+/**
+ * @brief Menyimpan pengaturan video ke file JSON
+ * @param fullscreen Status fullscreen saat ini
+ * @param showFPS Status tampilan FPS saat ini
+ * @return true jika berhasil disimpan
+ */
+bool SaveVideoSettings(bool fullscreen, bool showFPS);

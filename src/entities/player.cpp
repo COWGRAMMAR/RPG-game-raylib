@@ -1,3 +1,15 @@
+/**
+ * @file player.cpp
+ * @brief Implementasi Player Character
+ *
+ * File ini berisi implementasi class Player:
+ * - Init: inisialisasi stat, spawn position, collision geometry
+ * - Update: input, lifecycle, physics, combat, inventory, interaction, animation
+ * - Render: sprite rendering, hit flash, aim indicator
+ * - TakeDamage: damage processing, knockback, hit flash
+ * - HandleAction: action handler untuk drop item
+ */
+
 #include "player.h"
 #include "screen.h"
 #include "movement.h"
@@ -11,6 +23,9 @@
 #include "propsbehavior.h"
 #include <cmath>
 
+constexpr int EMPTY_ITEM_ID = -1;
+
+/** @brief Instance global player */
 Player PlayerInstance;
 
 /**
@@ -32,13 +47,13 @@ void Player::Init(GameState *state, const char *spawnObjectName)
         ManaRegenTimer = 0.0f;
 
         // Inisialisasi perlengkapan hotbar default
-        Hotbar[0] = {0, 1}; // Iron Sword
-        Hotbar[1] = {1, 1}; // Iron Axe
+        Hotbar[0] = {1, 1}; // Iron Sword
+        Hotbar[1] = {4, 1}; // bow 
         Hotbar[2] = {2, 8}; // Health Potion
         Hotbar[3] = {3, 8}; // Mana Bread
 
         for (int i = 0; i < PlayerInstance.MaxBag; i++)
-            Bag[i] = {-1, 0};
+            Bag[i] = {EMPTY_ITEM_ID, 0};
 
         isInitialized = true;
         TraceLog(LOG_INFO, "Player: Resource global dan statistik telah diinisialisasi");
@@ -69,7 +84,7 @@ void Player::Init(GameState *state, const char *spawnObjectName)
     }
     else
     {
-        Position = {((float)tilesonMap->width * 32) / 2.0f, ((float)tilesonMap->height * 32) / 2.0f};
+        Position = {((float)tilesonMap->width * FRAME_SIZE) / 2.0f, ((float)tilesonMap->height * FRAME_SIZE) / 2.0f};
     }
 
     Anim.position = Position;
@@ -84,12 +99,34 @@ void Player::Init(GameState *state, const char *spawnObjectName)
 }
 
 /**
+ * @brief Reset pemain untuk new game (health, mana, inventory, flags).
+ */
+void Player::ResetForNewGame()
+{
+    isInitialized = false;
+    Health = MaxHealth = 100.0f;
+    Mana = MaxMana = 100.0f;
+    ManaRegenTimer = 0.0f;
+    Hotbar[0] = {0, 1};
+    Hotbar[1] = {1, 1};
+    Hotbar[2] = {2, 8};
+    Hotbar[3] = {3, 8};
+    for (int i = 0; i < MaxBag; i++)
+        Bag[i] = {-1, 0};
+    Anim.isDead = false;
+    Anim.isAttacking = false;
+    HitFlashTimer = 0.0f;
+    KnockbackVelocity = {0, 0};
+    TraceLog(LOG_INFO, "PLAYER: Reset for new game");
+}
+
+/**
  * Loop update utama untuk pemain.
  * Dipanggil oleh Entities::Update() setiap frame.
  *
  * Urutan:
  * 1. Input polling
- * 2. Lifecycle checkup (revive)
+ * 2. Lifecycle checkup
  * 3. Timer & Status effects
  * 4. Physics & Knockback
  * 5. Logic modules (Movement, Combat, Inventory, Interaction)
@@ -103,12 +140,6 @@ void Player::Update()
     InputInstance.UpdateState();
 
     // 2. Pemeriksaan Lifecycle
-    if (InputInstance.IsRevive())
-    {
-        Combat::HandleRevive(*this);
-        return;
-    }
-
     if (Anim.isDead)
         return;
 
@@ -149,14 +180,16 @@ void Player::Update()
     }
 
     // 4. Fisika & Pergerakan (termasuk Knockback)
+    float fpsNorm = 60.0f;
+    float knockbackFriction = 0.85f;
     if (Vector2Length(KnockbackVelocity) > 0.1f)
     {
-        Vector2 nextPos = Vector2Add(Position, Vector2Scale(KnockbackVelocity, Time::DELTA_TIME * 60.0f));
+        Vector2 nextPos = Vector2Add(Position, Vector2Scale(KnockbackVelocity, Time::DELTA_TIME * fpsNorm));
         if (Movement::CanMove(*this, nextPos))
         {
             Position = nextPos;
         }
-        KnockbackVelocity = Vector2Scale(KnockbackVelocity, 0.85f); // Redaman gesekan
+        KnockbackVelocity = Vector2Scale(KnockbackVelocity, knockbackFriction);
     }
     else
     {
@@ -214,7 +247,8 @@ void Player::Render(void)
     }
 
     // Bayangan (Drop shadow)
-    DrawEllipse((int)Position.x + 16, (int)Position.y + 31, 10, 4, {0, 0, 0, 80});
+    int shadowRx = 10, shadowRy = 4;
+    DrawEllipse((int)Position.x + FRAME_SIZE / 2, (int)Position.y + FRAME_SIZE - 1, shadowRx, shadowRy, {0, 0, 0, 80});
 
     // Terapkan warna kilatan (merah saat terkena hit)
     Color tint = WHITE;
@@ -224,24 +258,10 @@ void Player::Render(void)
     }
 
     DrawAnimation(Anim, tint);
-
-    if (!Anim.isDead)
-    {
-        Combat::DrawSwingAttack(*this);
-        
-        if (canInteract)
-        {
-            int fontSize = 10;
-            const char* text = "[E] Interact";
-            int textW = MeasureText(text, fontSize);
-            int x = (int)Position.x + 16 - textW / 2;
-            int y = (int)Position.y - 12;
-            DrawText(text, x + 1, y + 1, fontSize, ColorAlpha(BLACK, 0.7f));
-            DrawText(text, x, y, fontSize, YELLOW);
-        }
-    }
+    Combat::DrawSwingAttack(*this);
 }
 
+/** @brief Apply damage ke player */
 void Player::TakeDamage(float amount, Vector2 knockback)
 {
     if (InvincibilityTimer > 0.0f)
@@ -250,8 +270,10 @@ void Player::TakeDamage(float amount, Vector2 knockback)
     Entity::TakeDamage(amount, knockback);
     PlaySFX("hurt");
 
-    HitFlashTimer = 0.15f;
-    KnockbackVelocity = Vector2Scale(knockback, 6.0f);
+    float hitFlashDuration = 0.15f;
+    float knockbackStrength = 6.0f;
+    HitFlashTimer = hitFlashDuration;
+    KnockbackVelocity = Vector2Scale(knockback, knockbackStrength);
 
     if (Anim.isAttacking)
     {
@@ -260,7 +282,7 @@ void Player::TakeDamage(float amount, Vector2 knockback)
         PlayAnimation(Anim, IDLE, Anim.direction);
     }
 
-    Vector2 center = {Position.x + 16, Position.y + 16};
+    Vector2 center = {Position.x + FRAME_SIZE / 2, Position.y + FRAME_SIZE / 2};
     Effects::AddDamage(center, amount);
 
     TraceLog(LOG_INFO, "PLAYER: Menerima %.1f damage. Sisa HP: %.1f", amount, Health);
@@ -270,21 +292,19 @@ void Player::TakeDamage(float amount, Vector2 knockback)
  * Private Helper Methods
  *==============================================================================*/
 
+// Cek apakah player bisa pindah ke posisi
 bool Player::CanMove(Vector2 newPosition)
 {
     return Movement::CanMove(*this, newPosition);
 }
 
+// Hitbox player di posisi tertentu
 Rectangle Player::GetPlayerHitboxAtPosition(Vector2 position)
 {
     return {position.x + HitboxOffsetX, position.y + HitboxOffsetY, HitboxWidth, HitboxHeight};
 }
 
-/**
- * @brief Gambar indicator arah aim player (debug overlay)
- * Warna berubah berdasarkan apakah arah aim valid (dot product dengan facing direction)
- * Definisi: src/player.cpp (file ini)
- */
+// Gambar indicator arah aim player (debug overlay)
 void Player::DrawAimIndicator(void)
 {
     Vector2 playerCenter = GetCenter();
@@ -319,9 +339,11 @@ void Player::DrawAimIndicator(void)
     Color outlineColor = Fade(BLACK, alpha);
 
     // Gambar outline hitam (lebih tebal)
-    DrawLineEx(playerCenter, rayEnd, 3.5f, outlineColor);
+    float outlineThickness = 3.5f;
+    float indicatorThickness = 1.5f;
+    DrawLineEx(playerCenter, rayEnd, outlineThickness, outlineColor);
     // Gambar garis utama putih (lebih tipis di atas outline)
-    DrawLineEx(playerCenter, rayEnd, 1.5f, indicatorColor);
+    DrawLineEx(playerCenter, rayEnd, indicatorThickness, indicatorColor);
 
     // Raycast hanya terhadap object layer (garis biru) untuk titik merah
     std::vector<MapObject> debugObstacles;
@@ -340,7 +362,8 @@ void Player::DrawAimIndicator(void)
     // Titik merah hanya di interseksi dengan garis biru (object layer) ketika mode debug aktif
     if (isDebugMode && LastHit.hit)
     {
-        DrawCircleV(LastHit.point, 4.0f, Fade(RED, alpha));
+        float debugCircleRadius = 4.0f;
+        DrawCircleV(LastHit.point, debugCircleRadius, Fade(RED, alpha));
     }
 }
 
@@ -348,14 +371,7 @@ void Player::DrawAimIndicator(void)
  * Action Handlers
  *==============================================================================*/
 
-/**
- * Resolve apa yang terjadi saat input aksi (misal: Left Click)
- * dilakukan berdasarkan context:
- * - Inventori terbuka → equip/unequip item
- * - Slot senjata (1/2) → attack
- * - Slot potion (3/4) → minum potion
- * Definisi: src/player.cpp (file ini)
- */
+// Handle action player
 void Player::HandleAction(void)
 {
     if (InputInstance.IsInventoryOpen())
@@ -372,7 +388,7 @@ void Player::HandleAction(void)
             break;
 
         InventoryItem &slot = Hotbar[slotIdx];
-        if (slot.definitionId == -1)
+        if (slot.definitionId == EMPTY_ITEM_ID)
             break;
 
         bool dropAll = InputInstance.IsDropItemAll();
@@ -423,14 +439,14 @@ void Player::HandleAction(void)
         if (dropAll)
         {
             dropped.amount = slot.amount;
-            slot = {-1, 0};
+            slot = {EMPTY_ITEM_ID, 0};
         }
         else
         {
             dropped.amount = 1;
             slot.amount -= 1;
             if (slot.amount <= 0)
-                slot = {-1, 0};
+                slot = {EMPTY_ITEM_ID, 0};
         }
 
         itemData.activeItems.push_back(dropped);

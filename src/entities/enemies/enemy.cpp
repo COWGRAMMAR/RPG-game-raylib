@@ -1,3 +1,15 @@
+/**
+ * @file enemy.cpp
+ * @brief Implementasi Enemy Entity System
+ *
+ * File ini berisi implementasi class Enemy:
+ * - EnemyDataManager: load/query definisi enemy dari JSON
+ * - Enemy lifecycle: Init, Update, AI state machine, Render
+ * - Spawn system: SpawnAtPoint, SpawnInRect, SpawnBoss, SpawnEnemiesFromMap
+ * - Combat: PerformAttack, TakeDamage
+ * - Utility: MoveTowards, ResolveAnimSet, ParseRank
+ */
+
 #include "enemy.h"
 #include "screen.h"
 #include "enemy_ai.h"
@@ -9,13 +21,17 @@
 #include "game_debug.h"
 #include "entities.h"
 #include "animation.h"
+#include "core/utils.h"
 #include <cmath>
 #include <fstream>
+#include <filesystem>
 #include <stdexcept>
+#include <unordered_set>
 
 using json = nlohmann::json;
 using namespace DataDriven;
 
+/** @brief Instance global definisi enemy */
 EnemyDataManager enemyData;
 
 /*==============================================================================
@@ -131,11 +147,13 @@ std::vector<std::string> EnemyDataManager::GetAllNames() const
  * Enemy — Lifecycle
  *==============================================================================*/
 
+/** @brief Default constructor */
 Enemy::Enemy()
 {
     IsActive = true;
 }
 
+/** @brief Default destructor */
 Enemy::~Enemy() {}
 
 /**
@@ -216,9 +234,11 @@ void Enemy::Update()
     if (AttackCooldownTimer > 0)
         AttackCooldownTimer -= Time::DELTA_TIME;
 
+    float fpsNorm = 60.0f;
+    float knockbackFriction = 0.85f;
     if (Vector2Length(KnockbackVelocity) > 0.1f)
     {
-        Vector2 move = Vector2Scale(KnockbackVelocity, Time::DELTA_TIME * 60.0f);
+        Vector2 move = Vector2Scale(KnockbackVelocity, Time::DELTA_TIME * fpsNorm);
         Vector2 nextX = {Position.x + move.x, Position.y};
         Vector2 nextY = {Position.x, Position.y + move.y};
 
@@ -227,7 +247,7 @@ void Enemy::Update()
         if (IsPositionSafe(nextY, HitboxWidth, HitboxHeight, HitboxOffsetX, HitboxOffsetY))
             Position.y = nextY.y;
 
-        KnockbackVelocity = Vector2Scale(KnockbackVelocity, 0.85f);
+        KnockbackVelocity = Vector2Scale(KnockbackVelocity, knockbackFriction);
     }
     else
     {
@@ -235,7 +255,8 @@ void Enemy::Update()
     }
 
     // buat ngatur sejauh apa ai enemy bisa ke update
-    const float AI_UPDATE_RANGE = FRAME_SIZE * 20.0f;
+    float aiUpdateRangeMul = 20.0f;
+    const float AI_UPDATE_RANGE = FRAME_SIZE * aiUpdateRangeMul;
 
     if (Vector2Distance(Position, PlayerInstance.GetPosition()) <= AI_UPDATE_RANGE)
         UpdateAI();
@@ -315,23 +336,7 @@ bool Enemy::CheckPlayerLoS()
 
     Vector2 dir = Vector2Normalize(Vector2Subtract(playerCenter, enemyCenter));
 
-    std::vector<MapObject> obstacles;
-    for (auto &obj : tilesonMap->Objects)
-    {
-        if (obj.layerName == COLLISION_LAYER_NAME)
-            obstacles.push_back(obj);
-    }
-
-    // Dynamic obstacles (misal: chest, benda interaktif) ikut dipertimbangkan
-    for (const auto &rect : DynamicObstacles)
-    {
-        MapObject dynObj;
-        dynObj.bounds = rect;
-        dynObj.hasPolygon = false;
-        obstacles.push_back(dynObj);
-    }
-
-    RayHitResult hit = Ray.Cast(enemyCenter, dir, DetectionRange, obstacles);
+    RayHitResult hit = Ray.Cast(enemyCenter, dir, DetectionRange, cachedObstacleList);
     return !hit.hit;
 }
 
@@ -356,11 +361,12 @@ void Enemy::HandleIdle()
         PatrolTimer = 0;
         PatrolTarget = SpawnPoint; // fallback jika tidak ada posisi valid
 
-        // Coba hingga 10 kali agar patrol target tidak di dalam dinding
-        for (int i = 0; i < 10; i++)
+        // Coba hingga beberapa kali agar patrol target tidak di dalam dinding
+        int patrolRetryLimit = 10;
+        for (int i = 0; i < patrolRetryLimit; i++)
         {
             float angle = (float)GetRandomValue(0, 360) * DEG2RAD;
-            float r = (float)GetRandomValue(32, (int)Def->stats.patrolRadius);
+            float r = (float)GetRandomValue(FRAME_SIZE, (int)Def->stats.patrolRadius);
             Vector2 potentialTarget = Vector2Add(SpawnPoint, {cosf(angle) * r, sinf(angle) * r});
 
             if (IsPositionSafe(potentialTarget, HitboxWidth, HitboxHeight, HitboxOffsetX, HitboxOffsetY))
@@ -386,8 +392,9 @@ void Enemy::HandlePatrol()
         return;
     }
 
+    float patrolArrivalDist = 10.0f;
     float dist = Vector2Distance(Position, PatrolTarget);
-    if (dist < 10.0f)
+    if (dist < patrolArrivalDist)
     {
         AIState = ENEMY_IDLE;
         PlayAnimation(Anim, IDLE, Anim.direction);
@@ -473,9 +480,10 @@ void Enemy::HandleReturn()
         return;
     }
 
+    float returnDistMul = 4.0f;
     bool hasReturned = (SpawnRect.width > 0)
                            ? CheckCollisionPointRec(GetCenter(), SpawnRect)
-                           : Vector2Distance(GetCenter(), SpawnPoint) < FRAME_SIZE * 4.0f;
+                           : Vector2Distance(GetCenter(), SpawnPoint) < FRAME_SIZE * returnDistMul;
 
     if (hasReturned)
     {
@@ -543,8 +551,9 @@ void Enemy::HandleAttack()
     else
     {
         PlayerWasInRange = false;
-        // Sedikit buffer (1.2x) agar enemy tidak langsung keluar ATTACK state saat player mundur tipis
-        if (dist > Def->stats.attackRange * 1.2f)
+        // Sedikit buffer agar enemy tidak langsung keluar ATTACK state saat player mundur tipis
+        float attackExitBuffer = 1.2f;
+        if (dist > Def->stats.attackRange * attackExitBuffer)
         {
             AIState = ENEMY_CHASE;
             PlayAnimation(Anim, WALK, Anim.direction);
@@ -567,8 +576,7 @@ void Enemy::PerformAttack()
     // cek ada obstacle nggak antara enemy dan player
     Vector2 dir = Vector2Normalize(Vector2Subtract(playerCenter, enemyCenter));
     float dist = Vector2Distance(enemyCenter, playerCenter);
-    auto obstacles = cachedObstacleList;
-    RayHitResult hit = Ray.Cast(enemyCenter, dir, dist, obstacles);
+    RayHitResult hit = Ray.Cast(enemyCenter, dir, dist, cachedObstacleList);
 
     if (hit.hit)
         return; // ada obstacle, batal serang
@@ -592,7 +600,7 @@ void Enemy::TakeDamage(float amount, Vector2 knockback)
     Entity::TakeDamage(amount, knockback);
     PlaySFX("attack");
     HitFlashTimer = 0.15f;
-    KnockbackVelocity = Vector2Scale(knockback, 6.0f);
+    KnockbackVelocity = Vector2Scale(knockback, 5.0f);
     HealthRegenTimer = Def->stats.healthRegenDelay;
 }
 
@@ -609,13 +617,15 @@ void Enemy::Render()
         return;
 
     // Shadow sederhana di bawah enemy
-    DrawEllipse((int)Position.x + 16, (int)Position.y + 30, 10, 4, {0, 0, 0, 80});
+    int shadowRx = 10, shadowRy = 4;
+    DrawEllipse((int)Position.x + FRAME_SIZE / 2, (int)Position.y + FRAME_SIZE - 2, shadowRx, shadowRy, {0, 0, 0, 80});
 
     bool shouldDraw = true;
     if (Health <= 0)
     {
         // Blink makin cepat menjelang akhir death timer
-        float blinkFreq = (DeathTimer / DeathDuration) * 15.0f;
+        float blinkSpeedMul = 15.0f;
+        float blinkFreq = (DeathTimer / DeathDuration) * blinkSpeedMul;
         shouldDraw = Blink(DeathTimer, blinkFreq);
     }
 
@@ -628,8 +638,9 @@ void Enemy::Render()
     // Health bar hanya tampil saat agresif
     if (AIState == ENEMY_CHASE || AIState == ENEMY_ATTACK)
     {
-        DrawRectangle((int)Position.x + 4, (int)Position.y + 38, 24, 4, BLACK);
-        DrawRectangle((int)Position.x + 4, (int)Position.y + 38, (int)(24 * (Health / MaxHealth)), 4, RED);
+        int hpBarX = 4, hpBarY = 38, hpBarW = 24, hpBarH = 4;
+        DrawRectangle((int)Position.x + hpBarX, (int)Position.y + hpBarY, hpBarW, hpBarH, BLACK);
+        DrawRectangle((int)Position.x + hpBarX, (int)Position.y + hpBarY, (int)(hpBarW * (Health / MaxHealth)), hpBarH, RED);
     }
 
     if (isDebugMode)
@@ -660,11 +671,147 @@ void InitEnemy()
     enemyData.Load("assets/data/enemies.json");
 }
 
-void SaveEnemiesForMap(const std::string &mapPath) {}
+/**
+ * @brief Save all active enemy states for a map to the saves/enemies/ filesystem directory.
+ * @details Serializes each live enemy's position, name, HP, AI state, patrol data, spawn point,
+ *          health regen timer, attack cooldown timer, and UUID to a JSON file. Uses atomic
+ *          write via .tmp + rename to prevent corruption. Skips inactive enemies.
+ *          Save file path derived by sanitizing mapPath (replacing / and \\ with _).
+ * @param mapPath Raw map file path used to derive save file name (e.g., "assets/maps/tutorial.json")
+ */
+void SaveEnemiesForMap(const std::string &mapPath)
+{
+    // Build per-map save file path
+    std::string safeName = mapPath;
+    for (auto &c : safeName)
+    {
+        if (c == '/' || c == '\\') c = '_';
+    }
+    std::string dir = "saves/enemies";
+    std::string filePath = dir + "/" + safeName;
 
+    std::filesystem::create_directories(dir);
+
+    json root;
+    json enemiesJson = json::array();
+
+    auto &enemyReg = Entities::GetEnemyRegistry();
+    for (const auto &enemy : enemyReg)
+
+    {
+        if (!enemy->IsActive) continue;
+        json e;
+        e["position"] = {enemy->Position.x, enemy->Position.y};
+        e["enemyName"] = enemy->Name;
+        e["currentHP"] = (int)enemy->Health;
+        e["isAlive"] = enemy->IsAlive();
+        e["maxHealth"] = enemy->MaxHealth;
+        e["aiState"] = (int)enemy->AIState;
+        e["patrolTargetX"] = enemy->PatrolTarget.x;
+        e["patrolTargetY"] = enemy->PatrolTarget.y;
+        e["patrolTimer"] = enemy->PatrolTimer;
+        e["mapObjectID"] = enemy->MapObjectID;
+        e["spawnPoint"] = {{"x", enemy->SpawnPoint.x}, {"y", enemy->SpawnPoint.y}};
+        e["healthRegenTimer"] = enemy->HealthRegenTimer;
+        e["attackCooldownTimer"] = enemy->GetAttackCooldownTimer();
+        e["uuid"] = enemy->GetUUID();
+        enemiesJson.push_back(e);
+    }
+
+    root["enemies"] = enemiesJson;
+
+    // Atomic write
+    std::string tmpPath = filePath + ".tmp";
+    std::ofstream file(tmpPath);
+    file << root.dump(4);
+    file.close();
+    std::filesystem::rename(tmpPath, filePath);
+}
+
+/**
+ * @brief Load enemy states for a map from the saves/enemies/ filesystem directory.
+ * @details Reads the per-map save file, deserializes each enemy's state, and restores
+ *          position, HP, AI state, patrol data, spawn point, timers, and UUID to the
+ *          matching Enemy instance (matched by MapObjectID + Name). Dead enemies are
+ *          registered via Entities::RegisterDeath to prevent respawn.
+ * @param mapPath Raw map file path used to derive save file name
+ * @return true if at least one enemy was restored, false if no save file or parse failed
+ */
 bool LoadEnemiesForMap(const std::string &mapPath)
 {
-    return true;
+    // Build per-map save file path
+    std::string safeName = mapPath;
+    for (auto &c : safeName)
+    {
+        if (c == '/' || c == '\\') c = '_';
+    }
+    std::string filePath = "saves/enemies/" + safeName;
+
+    if (!std::filesystem::exists(filePath))
+        return false;
+
+    try
+    {
+        std::ifstream file(filePath);
+        json root = json::parse(file);
+
+        if (!root.contains("enemies"))
+            return false;
+
+        auto &enemyReg = Entities::GetEnemyRegistry();
+        std::unordered_set<Enemy*> matchedEnemies;
+        bool anyRestored = false;
+
+        for (const auto &e : root.at("enemies"))
+        {
+            int savedMapObjectID = e.value("mapObjectID", -1);
+            bool isAlive = e.value("isAlive", true);
+
+            if (!isAlive)
+            {
+                if (savedMapObjectID >= 0)
+                    Entities::RegisterDeath(mapPath, savedMapObjectID);
+                continue;
+            }
+
+            // Find matching enemy by MapObjectID and restore state
+            for (auto &enemy : enemyReg)
+            {
+                if (enemy == nullptr || matchedEnemies.count(enemy)) continue;
+                if (enemy->MapObjectID == savedMapObjectID && enemy->Name == e.value("enemyName", ""))
+                {
+                    enemy->Position.x = e.at("position")[0].get<float>();
+                    enemy->Position.y = e.at("position")[1].get<float>();
+                    enemy->Health = e.value("currentHP", 100);
+                    enemy->MaxHealth = e.value("maxHealth", 100.0f);
+                    enemy->AIState = (EnemyAIState)e.value("aiState", 0);
+                    enemy->PatrolTarget.x = e.value("patrolTargetX", 0.0f);
+                    enemy->PatrolTarget.y = e.value("patrolTargetY", 0.0f);
+                    enemy->PatrolTimer = e.value("patrolTimer", 0.0f);
+                    if (e.contains("spawnPoint"))
+                    {
+                        enemy->SpawnPoint.x = e["spawnPoint"]["x"].get<float>();
+                        enemy->SpawnPoint.y = e["spawnPoint"]["y"].get<float>();
+                    }
+                    enemy->HealthRegenTimer = e.value("healthRegenTimer", 0.0f);
+                    enemy->SetAttackCooldownTimer(e.value("attackCooldownTimer", 0.0f));
+                    std::string uuid = e.value("uuid", "");
+                    if (!uuid.empty())
+                        enemy->SetUUID(uuid);
+                    enemy->IsActive = true;
+                    matchedEnemies.insert(enemy);
+                    anyRestored = true;
+                    break;
+                }
+            }
+        }
+
+        return anyRestored;
+    }
+    catch (...)
+    {
+        return false;
+    }
 }
 
 /**
@@ -710,14 +857,15 @@ void Enemy::MoveTowards(Vector2 target, float speed)
 const AnimationSet *ResolveAnimSet(const std::string &name)
 {
     std::string lowerName = name;
-    for (auto &c : lowerName) c = std::tolower(c);
-    
+    for (auto &c : lowerName)
+        c = std::tolower(c);
+
     auto it = loadedAnimationSets.find(lowerName);
     if (it != loadedAnimationSets.end())
     {
         return &it->second;
     }
-    
+
     it = loadedAnimationSets.find("slime");
     if (it != loadedAnimationSets.end())
     {
@@ -768,6 +916,7 @@ void SpawnAtPoint(const MapObject *obj, EnemyRank rank)
 
         Enemy *enemy = new Enemy();
         enemy->Init(spawnPos, picked.c_str(), obj->id, def);
+        enemy->SetUUID(GenerateUUID());
         enemy->SetReturnFlowField(&spawnFlowFields[obj->id].field);
         Entities::AddDynamic(enemy);
     }
@@ -809,7 +958,10 @@ void SpawnInRect(const MapObject *obj, const std::string &enemyName, float ratio
         for (int retry = 0; retry < SPAWN_RETRY_LIMIT; retry++)
         {
             spawnPos = {xDist(rng), yDist(rng)};
-            if (IsPositionSafe(spawnPos, def.hitbox.size.x, def.hitbox.size.y,
+            // Convert center (Enemy::Init expectation) ke Entity::Position (IsPositionSafe expectation)
+            Vector2 entityPos = {spawnPos.x - def.hitbox.size.x / 2.0f - def.hitbox.offset.x,
+                                 spawnPos.y - def.hitbox.size.y / 2.0f - def.hitbox.offset.y};
+            if (IsPositionSafe(entityPos, def.hitbox.size.x, def.hitbox.size.y,
                                def.hitbox.offset.x, def.hitbox.offset.y))
             {
                 valid = true;
@@ -822,6 +974,7 @@ void SpawnInRect(const MapObject *obj, const std::string &enemyName, float ratio
 
         Enemy *enemy = new Enemy();
         enemy->Init(spawnPos, enemyName.c_str(), obj->id, def);
+        enemy->SetUUID(GenerateUUID());
         enemy->SpawnRect = obj->bounds;
         enemy->SetReturnFlowField(&spawnFlowFields[obj->id].field);
         Entities::AddDynamic(enemy);
@@ -856,6 +1009,7 @@ void SpawnBoss(const MapObject *obj)
 
     Enemy *enemy = new Enemy();
     enemy->Init(spawnPos, picked.c_str(), obj->id, def);
+    enemy->SetUUID(GenerateUUID());
     enemy->SetReturnFlowField(&spawnFlowFields[obj->id].field);
     Entities::AddDynamic(enemy);
 }

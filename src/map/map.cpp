@@ -9,9 +9,11 @@
  * - Handle perpindahan map dan riwayat navigasi
  */
 
+#include <climits>
 #include "../lib/raylib/include/raymath.h"
 #include "entities.h"
 #include "mapLogic.h"
+#include "worldgenenartion.h"
 #include "map.h"
 #include "animation.h"
 #include "player.h"
@@ -29,26 +31,29 @@
  * Global Variables
  *==============================================================================*/
 
-/** Pointer ke data map yang sedang aktif */
+/** @brief Pointer ke data map aktif */
 TilesonMapData *tilesonMap = nullptr;
 
-/** Hasil parse map dari Tileson */
+/** @brief Hasil parse map */
 static std::unique_ptr<tson::Map> parsedMap = nullptr;
 
-/** Camera global untuk rendering world */
+/** @brief Camera rendering */
 Camera2D camera = {0};
 
-/** Jumlah tile yang dirender pada frame terakhir */
+/** @brief Debug: tile render count */
 int lastTilesRendered = 0;
 
-/** Range tile yang visible pada frame terakhir */
+/** @brief Debug: visible range */
 TileRange currentVisibleRange = {0, 0, 0, 0};
 
 /** Stack riwayat perpindahan map */
-static MapSystem::MapStack mapHistoryStack;
+MapSystem::MapStack mapHistoryStack;
 
 /** Path map yang sedang aktif */
 static std::string currentMapPath = "";
+
+/** Path map prefabroom */
+static std::string preFabMapPath = "";
 
 /*==============================================================================
  * Map Loading & Unloading
@@ -203,7 +208,12 @@ void LoadMap(const char *mapPath)
                            ? tilesetList[i + 1].getFirstgid() - 1
                            : INT_MAX;
 
-        tilesonMap->tilesets.push_back(info);
+        if (tilesonMap->tilesets.empty())
+            tilesonMap->tilesets.push_back({});
+        tilesonMap->tilesets[0].push_back(info);
+
+        // assign semua layer ke group 0
+        tilesonMap->layerTilesetGroup.assign(tilesonMap->layerCount, 0);
         TraceLog(LOG_INFO, "Tileson: Loaded tileset %s (gid %d-%d)", imagePath.c_str(), info.firstgid, info.lastgid);
     }
 
@@ -231,20 +241,21 @@ void UnloadMap(void)
 
         // Unload texture tileset dari GPU
         // Jangan unload jika texture sudah ada di cache (textures)
-        for (auto &ts : tilesonMap->tilesets)
+        for (auto &group : tilesonMap->tilesets)
         {
-            bool isCached = false;
-            for (int i = 0; i < MAX_TEXTURES; i++)
+            for (auto &ts : group)
             {
-                if (textures[i].id == ts.texture.id && ts.texture.id != 0)
+                bool isCached = false;
+                for (int i = 0; i < MAX_TEXTURES; i++)
                 {
-                    isCached = true;
-                    break;
+                    if (textures[i].id == ts.texture.id && ts.texture.id != 0)
+                    {
+                        isCached = true;
+                        break;
+                    }
                 }
-            }
-            if (!isCached && ts.texture.id != 0)
-            {
-                UnloadTexture(ts.texture);
+                if (!isCached && ts.texture.id != 0)
+                    UnloadTexture(ts.texture);
             }
         }
         tilesonMap->tilesets.clear();
@@ -252,6 +263,8 @@ void UnloadMap(void)
         delete tilesonMap;
         tilesonMap = nullptr;
     }
+
+    DynamicObstacles.clear();
 
     ClearEnemies();
     itemData.ClearItems();
@@ -265,23 +278,54 @@ void UnloadMap(void)
  */
 void InitMap(void)
 {
-    // Beberapa pilihan map yang tersedia (sementara di-comment)
-
-    // LoadMap("assets/maps/floorA.json");
-    // LoadMap("assets/maps/floorB.json");
-    // LoadMap("assets/maps/floorC.json");
-    // "assets/maps/tutorial.json"
-    // Map yang aktif saat ini
     currentMapPath = "assets/maps/tutorial.json";
-    // currentMapPath = "assets/maps/floorB_tester.json";
     LoadMap(currentMapPath.c_str());
+    BuildMapObjectIndex();
+}
 
-    if (!LoadEnemiesForMap(currentMapPath))
+/** @brief Generate world di map yang sudah di-load */
+void RunWorldgen(uint64_t seed, bool isBossStage)
+{
+    WorldGenPools pools(seed);
+    pools.LoadRoomPool("assets/maps/World_generation");
+    pools.LoadCorridorPool("assets/maps/World_generation/corridor");
+
+    for (auto *p : pools.GetAllRoomPrefabs())
+        BuildMapObjectIndexTarget(p);
+
+    // Index object tilesonMap harus dibangun sebelum GetSlots() — biar slot_worldgen ketemu
+    BuildMapObjectIndexTarget(tilesonMap);
+
+    WorldGenLayout layout(seed, isBossStage);
+    layout.Generate();
+
+    WorldGenCanvas canvas(tilesonMap, &pools, seed);
+    auto slots = canvas.GetSlots();
+    canvas.StampLayout(layout.GetGrid(), slots);
+
+    InitWorldgenGrid(layout.GetGrid(), slots);
+
+    BuildMapObjectIndex();
+
+    std::vector<MapObject> exitObjects;
+    for (const char *exitType : {EXIT_NORTH_TYPE_OBJECT_NAME, EXIT_SOUTH_TYPE_OBJECT_NAME,
+                                 EXIT_EAST_TYPE_OBJECT_NAME, EXIT_WEST_TYPE_OBJECT_NAME})
+        for (auto *obj : TilesonGetObjectsByType(exitType))
+            exitObjects.push_back(*obj);
+
+    for (auto &exitObj : exitObjects)
     {
-        SpawnEnemiesFromMap();
+        int tileX = (int)(exitObj.bounds.x / WG_TILE_SIZE);
+        int tileY = (int)(exitObj.bounds.y / WG_TILE_SIZE);
+        int col = tileX / WG_CELL_TILES;
+        int row = tileY / WG_CELL_TILES;
+        canvas.StampCorridor(exitObj, col, row);
     }
 
-    if (!itemData.LoadItemsForMap(currentMapPath))
+    pools.UnloadCorridorPool();
+    pools.UnloadRoomPool();
+
+    if (!LoadItemsForMapDir(currentMapPath))
     {
         SpawnItemWave();
     }
@@ -331,13 +375,15 @@ void RenderMap(void)
                     continue;
 
                 // Cari tileset yang sesuai berdasarkan range gid
-                TilesetInfo *ts = nullptr;
-                for (auto &t : tilesonMap->tilesets)
-                    if (tileId >= t.firstgid && tileId <= t.lastgid)
-                    {
-                        ts = &t;
-                        break;
-                    }
+                int groupIdx = tilesonMap->layerTilesetGroup[l];
+                auto &tilesets = tilesonMap->tilesets[groupIdx];
+
+                auto it = std::lower_bound(tilesets.begin(), tilesets.end(), tileId,
+                                           [](const TilesetInfo &t, int id)
+                                           { return t.lastgid < id; });
+                if (it == tilesets.end() || tileId < it->firstgid)
+                    continue;
+                TilesetInfo *ts = &(*it);
 
                 static bool logged = false;
                 if (!logged)
@@ -400,17 +446,19 @@ TileRange GetVisibleTileRange(void)
     return range;
 }
 
+/** @brief Dapatkan visible world rect dari camera */
 Rectangle GetVisibleWorldRect(void)
 {
     Vector2 worldMin = GetScreenToWorld2D({0.0f, 0.0f}, camera);
     Vector2 worldMax = GetScreenToWorld2D({(float)GameScreenWidth, (float)GameScreenHeight}, camera);
-    return { worldMin.x, worldMin.y, worldMax.x - worldMin.x, worldMax.y - worldMin.y };
+    return {worldMin.x, worldMin.y, worldMax.x - worldMin.x, worldMax.y - worldMin.y};
 }
 
 /*==============================================================================
  * Map Switching & Navigation
  *==============================================================================*/
 
+/** @brief Pindah ke map baru di titik tujuan tertentu */
 void SwitchMap(const char *newMapPath, const char *targetDoorName)
 {
     // Safety check biar gak load path kosong
@@ -424,7 +472,7 @@ void SwitchMap(const char *newMapPath, const char *targetDoorName)
     if (!currentMapPath.empty())
     {
         SaveEnemiesForMap(currentMapPath);
-        itemData.SaveItemsForMap(currentMapPath);
+        SaveItemsForMapDir(currentMapPath);
         mapHistoryStack.Push(currentMapPath, "");
     }
 
@@ -460,7 +508,7 @@ void GoBack(void)
 
     // Simpan state map sekarang
     SaveEnemiesForMap(currentMapPath);
-    itemData.SaveItemsForMap(currentMapPath);
+    SaveItemsForMapDir(currentMapPath);
 
     // Ambil history teratas dan pop dari stack
     MapSystem::MapHistoryEntry prev = mapHistoryStack.Pop();
@@ -478,6 +526,34 @@ void GoBack(void)
     gState->currentScreen = LOADING;
 
     TraceLog(LOG_INFO, "GoBack: transitioning to LOADING screen for map: %s", prev.mapPath.c_str());
+}
+
+/**
+ * @brief Sisakan cuma entry teratas di stack riwayat
+ *
+ * Pas stage transition via NextStage(), map saat ini di-push ke stack
+ * sebagai prev stage. Tapi kita cuman mau nyimpen 1 prev aja — tutorial
+ * atau stage yang lebih lama harus dibuang.
+ */
+void TrimStageStack(void)
+{
+    if (mapHistoryStack.IsEmpty())
+    {
+        TraceLog(LOG_INFO, "TrimStageStack: stack kosong");
+        return;
+    }
+
+    // Ambil entry teratas (prev stage), hapus sisanya, push balik
+    MapSystem::MapHistoryEntry topEntry = mapHistoryStack.Pop();
+    int removedCount = 0;
+    while (!mapHistoryStack.IsEmpty())
+    {
+        mapHistoryStack.Pop();
+        removedCount++;
+    }
+    mapHistoryStack.Push(topEntry.mapPath, topEntry.doorName);
+
+    TraceLog(LOG_INFO, "TrimStageStack: nyimpen [%s], buang %d entry", topEntry.mapPath.c_str(), removedCount);
 }
 
 /**

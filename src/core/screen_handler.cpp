@@ -20,6 +20,7 @@
 #include "item.h"
 #include "inventory.h"
 #include "animation.h"
+#include "fonts.h"
 #include "enemy.h"
 #include "enemy_ai.h"
 #include "entities.h"
@@ -29,20 +30,27 @@
 #include "pauseMenu.h"
 #include "combat.h"
 #include "interaction.h"
+#include "input.h"
 #include <cstdio>
 #include "enemy_ai.h"
 #include "../lib/raylib/include/raylib.h"
 #include "../lib/raylib/include/raymath.h"
 #include <string>
+#include <cstring>
 #include <algorithm>
 #include <cctype>
+#include <filesystem>
 #include "hud.h"
 #include "propsbehavior.h"
+#include "seedmanager.h"
+#include "worldgenio.h"
+#include "worldgenenartion.h"
 
 /*==============================================================================
  * External Variables & Macros
  *==============================================================================*/
 
+/** @brief Instance global game state */
 GameState *gState;
 
 extern PauseMenu pauseMenu;
@@ -53,7 +61,9 @@ extern PauseMenu pauseMenu;
  * Constants
  *==============================================================================*/
 
+/** @brief Skala monitor untuk UI */
 const float ScaleMultiplierMonitor = 0.7F;
+/** @brief Skala minimum monitor */
 const float ScaleMinMultiplierMonitor = 0.4F;
 
 extern const int GameScreenWidth = 1280;
@@ -98,6 +108,18 @@ void InitAll()
     globalFlowField.Invalidate(); // nanti diganti kalo nambah method ai nya
     // Spawn musuh dari map aktif
     SpawnEnemiesFromMap();
+
+    // Capture spawn pos start room buat revive
+    TiledHelperFunction.TryGetObjectPositionByName(SPAWN_OBJECT_NAME, gState->startSpawnPos);
+
+    // Cache enemy & item state buat restart
+    const char *mapPath = GetCurrentMapPath();
+    if (mapPath)
+    {
+        std::string cachePath = std::string(mapPath) + ".cache";
+        SaveEnemiesForMap(cachePath);
+        SaveItemsForMapDir(cachePath);
+    }
 }
 
 /**
@@ -127,6 +149,7 @@ GameState InitScreen()
 
     SetConfigFlags(FLAG_WINDOW_RESIZABLE);
     InitWindow(1280, 720, "Dungeon Game");
+    SetExitKey(0);  // ESC handled by keybindManager (pause toggle), not by raylib quit
     InitAudioDevice();
 
     state.WindowScreenWidth = (int)(GetMonitorWidth(0) * ScaleMultiplierMonitor);
@@ -153,6 +176,10 @@ GameState InitScreen()
     state.pendingMapPath.clear();
     state.pendingDoorName.clear();
 
+    // Create save directories at startup
+    std::filesystem::create_directories("saves/manual");
+    std::filesystem::create_directories("saves/autosave");
+
     return state;
 }
 
@@ -165,11 +192,16 @@ GameState InitScreen()
  */
 void UpdateGame(GameState *state)
 {
-    state->WindowScreenWidth = GetScreenWidth();
-    state->WindowScreenHeight = GetScreenHeight();
-    state->ScaleMultiplier = MIN(
-        (float)state->WindowScreenWidth / GameScreenWidth,
-        (float)state->WindowScreenHeight / GameScreenHeight);
+    int w = GetScreenWidth();
+    int h = GetScreenHeight();
+    if (w != state->WindowScreenWidth || h != state->WindowScreenHeight)
+    {
+        state->WindowScreenWidth = w;
+        state->WindowScreenHeight = h;
+        state->ScaleMultiplier = MIN(
+            (float)w / GameScreenWidth,
+            (float)h / GameScreenHeight);
+    }
 }
 
 /**
@@ -221,11 +253,32 @@ void UpdateLogicAll()
     // Handle pending map transitions dari Interaction namespace
     Interaction::ExecutePendingTransitions(PlayerInstance);
 
+    // Deteksi FINISH cell untuk stage transition (hanya di worldgen stage)
+    // Guard isSwitchingMap — cegah double trigger dari grid + door detection
+    if (!gState->isSwitchingMap && !gState->isGoingBack)
+    {
+        const char *mapPath = GetCurrentMapPath();
+        if (mapPath && strstr(mapPath, "worldseed/save_") != nullptr)
+        {
+            if (InputInstance.IsInteract())
+            {
+                Vector2 playerCenter = PlayerInstance.GetCenter();
+                CellType cellType = GetCellTypeAtWorldPos(playerCenter);
+                if (cellType == CELL_FINISH)
+                {
+                    WorldgenIO::NextStage();
+                }
+
+            }
+        }
+    }
+
     // Update Effects (Popups, Logs, etc)
     Effects::Update(Time::DELTA_TIME);
     spikeManager.Update(Time::DELTA_TIME, PlayerInstance.GetHitbox(), &PlayerInstance);
     bombManager.Update(Time::DELTA_TIME, PlayerInstance.GetHitbox(), &PlayerInstance);
     crateManager.Update();
+    barrierManager.Update();
 
     // Update item magnet/pickup
     Vector2 center = PlayerInstance.GetCenter();
@@ -261,7 +314,7 @@ void UpdateLogicAll()
             {
                 TraceLog(LOG_INFO, "PICKUP: inventory full");
                 item.isPickedUp = false; // balik ke world
-                
+
                 static float lastInventoryFullTime = 0.0f;
                 float currentTime = (float)GetTime();
                 if (currentTime - lastInventoryFullTime > 2.0f)
@@ -331,7 +384,10 @@ void DrawUIOverlay(GameState *state)
         DrawText(fpsText, 10, 10, 20, GREEN);
     }
 
-    // 3. Menus
+    // 3. Sign dialog overlay (placeholder UI)
+    DrawSignDialog();
+
+    // 4. Menus
     if (pauseMenu.IsActive())
     {
         Vector2 mousePos = GetVirtualMousePosition(state);
@@ -390,6 +446,7 @@ void GameShutDown(GameState *state)
 {
     CloseTextures();
     CloseSFX();
+    UnloadFonts();
 
     Entities::Shutdown();
     UnloadMap();
@@ -403,6 +460,7 @@ void GameShutDown(GameState *state)
  * Window & Video Settings Functions
  *==============================================================================*/
 
+/** @brief Toggle fullscreen mode */
 void ToggleFullscreenMode(void)
 {
     if (IsWindowFullscreen())
@@ -415,11 +473,13 @@ void ToggleFullscreenMode(void)
     }
 }
 
+/** @brief Set resolusi window */
 void SetResolution(int width, int height)
 {
     SetWindowSize(width, height);
 }
 
+/** @brief Get resolusi window saat ini */
 Rectangle GetCurrentResolution(void)
 {
     Rectangle res = {0};
@@ -428,6 +488,7 @@ Rectangle GetCurrentResolution(void)
     return res;
 }
 
+/** @brief Get resolusi monitor utama */
 Rectangle GetMonitorResolution(void)
 {
     Rectangle res = {0};
@@ -436,7 +497,28 @@ Rectangle GetMonitorResolution(void)
     return res;
 }
 
+/** @brief Cek apakah fullscreen */
 bool IsFullscreen(void)
 {
     return IsWindowFullscreen();
+}
+
+/*==============================================================================
+ * Shared Background
+ *==============================================================================*/
+
+/**
+ * @brief Gambar background gradient untuk layar non-gameplay (main menu, loading screen).
+ *
+ * Dipanggil oleh RenderMainMenuToVirtualScreen() dan RenderLoadingScreen().
+ * Begitu animated BG tersedia, cukup ganti implementasi di sini saja.
+ */
+void DrawMenuBackground(void)
+{
+    DrawRectangleGradientV(
+        0, 0,
+        GameScreenWidth, GameScreenHeight,
+        {36, 28, 58, 255},   // top: muted dark purple-blue
+        {5, 5, 15, 255}      // bottom: near-black
+    );
 }

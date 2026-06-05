@@ -31,14 +31,17 @@ struct TextPolicy
     int textWidth;
     float hoverAmount;
 
+    /** @brief Default constructor */
     TextPolicy() : text(nullptr), posX(0), posY(0), fontSize(0), textColor(BLANK), textWidth(0), hoverAmount(1.0F) {}
 
+    /** @brief Construct dengan text, posisi, font, warna, hover */
     TextPolicy(const char *text, int posX, int posY, int fontSize, Color color, float hover)
         : text(text), posX(posX), posY(posY), fontSize(fontSize), textColor(color), hoverAmount(hover)
     {
         textWidth = MeasureText(text, fontSize);
     }
 
+    /** @brief Dapatkan bounds button text */
     [[nodiscard]] Rectangle GetBounds() const
     {
         return {static_cast<float>(posX), static_cast<float>(posY), 
@@ -56,8 +59,10 @@ struct ImagePolicy
     Vector2 position;
     float hoverAmount;
 
+    /** @brief Default constructor */
     ImagePolicy() : texture({0}), position({0, 0}), hoverAmount(1.0F) {}
 
+    /** @brief Construct dari file texture dengan scale dan hover */
     ImagePolicy(const char *texturePath, Vector2 pos, float scale, float hover)
     {
         Image image = LoadImage(texturePath);
@@ -70,14 +75,48 @@ struct ImagePolicy
         hoverAmount = hover;
     }
 
-    void Unload() const
+    ImagePolicy(const ImagePolicy&) = delete;
+    ImagePolicy& operator=(const ImagePolicy&) = delete;
+
+    ImagePolicy(ImagePolicy&& other) noexcept
+        : texture(other.texture), position(other.position), hoverAmount(other.hoverAmount)
     {
-        UnloadTexture(texture);
+        other.texture = {0};
     }
 
+    ImagePolicy& operator=(ImagePolicy&& other) noexcept
+    {
+        if (this != &other)
+        {
+            Unload();
+            texture = other.texture;
+            position = other.position;
+            hoverAmount = other.hoverAmount;
+            other.texture = {0};
+        }
+        return *this;
+    }
+
+    ~ImagePolicy()
+    {
+        Unload();
+    }
+
+    void Unload()
+    {
+        if (texture.id != 0)
+        {
+            UnloadTexture(texture);
+            texture = {0};
+        }
+    }
+
+    /** @brief Dapatkan bounds button image */
     [[nodiscard]] Rectangle GetBounds() const
     {
-        return {position.x, position.y, 
+        float halfW = static_cast<float>(texture.width) / 2.0F;
+        float halfH = static_cast<float>(texture.height) / 2.0F;
+        return {position.x - halfW, position.y - halfH,
                 static_cast<float>(texture.width), static_cast<float>(texture.height)};
     }
 };
@@ -97,13 +136,21 @@ template<typename PolicyType>
 class Button
 {
 public:
+    /** @brief Default constructor */
     Button() : policy() {}
 
+    /** @brief Construct button dengan args untuk policy */
     template<typename... Args>
     Button(Args... args) : policy(args...)
     {
     }
 
+    Button(const Button&) = delete;
+    Button& operator=(const Button&) = delete;
+    Button(Button&&) = default;
+    Button& operator=(Button&&) = default;
+
+    /** @brief Destructor (unload texture kalo ImagePolicy) */
     ~Button()
     {
         if constexpr (std::is_same_v<PolicyType, ImagePolicy>)
@@ -112,6 +159,7 @@ public:
         }
     }
 
+    /** @brief Render button */
     void Draw(Vector2 mousePosition)
     {
         Color currentColor = GetNormalColor();
@@ -122,21 +170,25 @@ public:
         Render(currentColor);
     }
 
+    /** @brief Cek klik */
     [[nodiscard]] bool isClicked(Vector2 mousePosition, bool mouseClicked) const
     {
         return CheckCollisionPointRec(mousePosition, policy.GetBounds()) && mouseClicked;
     }
 
+    /** @brief Cek hover */
     [[nodiscard]] bool isHovered(Vector2 mousePosition) const
     {
         return CheckCollisionPointRec(mousePosition, policy.GetBounds());
     }
 
+    /** @brief Dapatkan bounds */
     [[nodiscard]] Rectangle GetBounds() const
     {
         return policy.GetBounds();
     }
 
+    /** @brief Perbandingan bounds */
     [[nodiscard]] bool operator==(const Button &other) const
     {
         Rectangle a = policy.GetBounds();
@@ -144,11 +196,13 @@ public:
         return a.x == b.x && a.y == b.y && a.width == b.width && a.height == b.height;
     }
 
+    /** @brief Perbandingan bounds */
     [[nodiscard]] bool operator!=(const Button &other) const
     {
         return !(*this == other);
     }
 
+    /** @brief Perbandingan bounds */
     [[nodiscard]] bool operator<(const Button &other) const
     {
         Rectangle a = policy.GetBounds();
@@ -158,22 +212,26 @@ public:
         return a.x < b.x;
     }
 
+    /** @brief Perbandingan bounds */
     [[nodiscard]] bool operator<=(const Button &other) const
     {
         return !(other < *this);
     }
 
+    /** @brief Perbandingan bounds */
     [[nodiscard]] bool operator>(const Button &other) const
     {
         return other < *this;
     }
 
+    /** @brief Perbandingan bounds */
     [[nodiscard]] bool operator>=(const Button &other) const
     {
         return !(*this < other);
     }
 
 private:
+    /** @brief Dapatkan warna normal sesuai policy */
     [[nodiscard]] Color GetNormalColor() const
     {
         if constexpr (std::is_same_v<PolicyType, TextPolicy>)
@@ -186,6 +244,7 @@ private:
         }
     }
 
+    /** @brief Render button sesuai policy type */
     void Render(Color color)
     {
         if constexpr (std::is_same_v<PolicyType, TextPolicy>)
@@ -194,10 +253,15 @@ private:
         }
         else
         {
-            DrawTextureV(policy.texture, policy.position, color);
+            Vector2 drawPos = {
+                policy.position.x - static_cast<float>(policy.texture.width) / 2.0F,
+                policy.position.y - static_cast<float>(policy.texture.height) / 2.0F
+            };
+            DrawTextureV(policy.texture, drawPos, color);
         }
     }
 
+    /** @brief Gelapkan warna dengan faktor amount */
     static Color DarkenColor(Color color, float amount)
     {
         return {
@@ -208,7 +272,7 @@ private:
         };
     }
 
-    PolicyType policy;
+    PolicyType policy; // Policy instance
 };
 
 /*==============================================================================

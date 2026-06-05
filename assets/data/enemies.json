@@ -46,7 +46,7 @@
     },
     "wolf": {
       "id": 2,
-      "rank": "normal",
+      "rank": "boss",
       "stats": {
         "maxHealth": 150.0,
         "speed": 1.7,

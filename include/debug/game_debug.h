@@ -31,21 +31,16 @@
 class Debug
 {
 public:
-    /**
-     * @brief Toggle debug mode berdasarkan input
-     */
+    /** @brief Toggle debug mode berdasarkan input */
     void Toggle(void);
 
-    /**
-     * @brief Render seluruh panel debug yang aktif
-     */
+    /** @brief Render seluruh panel debug yang aktif */
     void Draw(void);
 
-    /**
-     * @brief Render overlay debug langsung di world space
-     */
+    /** @brief Render overlay debug langsung di world space */
     void DrawWorldOverlay(void);
 
+    /** @brief Render overlay steering behavior untuk enemy */
     static void DrawSteeringOverlay(Enemy &enemy);
 
 private:
@@ -53,9 +48,7 @@ private:
      * Internal Structs
      *==========================================================================*/
 
-    /**
-     * @brief Menyimpan data satu panel debug
-     */
+    /** @brief Menyimpan data satu panel debug */
     struct DebugPanelEntry
     {
         std::string name;                        // Nama panel
@@ -67,79 +60,26 @@ private:
      * Private Helper Methods
      *==========================================================================*/
 
-    /**
-     * @brief Hitung posisi dan ukuran panel berdasarkan urutan
-     * @param index Urutan panel
-     * @param panelWidth Lebar panel
-     * @param panelHeight Tinggi panel
-     * @return Rectangle area panel di layar
-     */
-    Rectangle GetPanelBounds(int index, float panelWidth, float panelHeight) const;
+    Rectangle GetPanelBounds(int index, float panelWidth, float panelHeight) const; // Hitung posisi dan ukuran panel
+    std::vector<DebugPanelEntry> BuildActivePanels(void) const;                     // Bangun daftar panel yang aktif
 
-    /**
-     * @brief Bangun daftar panel yang sedang aktif
-     * @return Vector panel yang aktif untuk dirender
-     */
-    std::vector<DebugPanelEntry> BuildActivePanels(void) const;
-
-    /**
-     * @brief Gambar overlay collision untuk layer tertentu
-     * @param layerName Nama layer collision
-     * @param rectColor Warna rectangle collision
-     * @param polygonColor Warna polygon collision
-     * @param pointColor Warna titik polygon
-     */
-    void DrawCollisionOverlay(const std::string &layerName, Color rectColor, Color polygonColor, Color pointColor);
-
-    /**
-     * @brief Gambar overlay raycast debug
-     */
-    void DrawRaycastOverlay(void);
-    void DrawAttackOverlay(void);
-    void DrawEnemySpawnOverlay(void);
-    void DrawFlowFieldOverlay(const FlowField &field);
-
-    /**
-     * @brief Gambar frame panel debug
-     * @param bounds Area panel
-     * @param title Judul panel
-     * @param borderColor Warna border panel
-     */
-    void DrawPanelFrame(Rectangle bounds, const char *title, Color borderColor) const;
+    void DrawCollisionOverlay(const std::string &layerName, Color rectColor, Color polygonColor, Color pointColor); // Overlay collision
+    void DrawRaycastOverlay(void);                                                                                  // Overlay raycast
+    void DrawAttackOverlay(void);                                                                                   // Overlay attack
+    void DrawEnemySpawnOverlay(void);                                                                               // Overlay enemy spawn
+    void DrawFlowFieldOverlay(const FlowField &field);                                                              // Overlay flow field
+    void DrawPanelFrame(Rectangle bounds, const char *title, Color borderColor) const;                              // Frame panel debug
 
     /*==========================================================================
      * Debug Panels
      *==========================================================================*/
 
-    /**
-     * @brief Gambar panel informasi map
-     */
-    void DrawMapPanel(Rectangle bounds);
-
-    /**
-     * @brief Gambar panel informasi camera
-     */
-    void DrawCameraPanel(Rectangle bounds);
-
-    /**
-     * @brief Gambar panel informasi player
-     */
-    void DrawPlayerPanel(Rectangle bounds);
-
-    /**
-     * @brief Gambar panel zoom debug
-     */
-    void DrawZoomPanel(Rectangle bounds);
-
-    /**
-     * @brief Gambar panel informasi frustum culling
-     */
-    void DrawFrustumPanel(Rectangle bounds);
-
-    /**
-     * @brief Gambar panel informasi collision dan boundary
-     */
-    void DrawCollisionPanel(Rectangle bounds);
+    void DrawMapPanel(Rectangle bounds);       // Panel info map
+    void DrawCameraPanel(Rectangle bounds);    // Panel info camera
+    void DrawPlayerPanel(Rectangle bounds);    // Panel info player
+    void DrawZoomPanel(Rectangle bounds);      // Panel zoom debug
+    void DrawFrustumPanel(Rectangle bounds);   // Panel info frustum culling
+    void DrawCollisionPanel(Rectangle bounds); // Panel info collision dan boundary
 
     // void DebugMouse(GameState *state); // sementara tidak dipakai
 };
@@ -148,10 +88,12 @@ private:
  * Global Debug Instance
  *==============================================================================*/
 
-// Global instance debug
+/** @brief Global instance debug */
 extern Debug DebugInstance;
 
-// Flag status debug mode
+/** @brief Flag status debug mode */
 extern bool isDebugMode;
+/** @brief Flag toggle overlay flow field enemy */
 extern bool showFlowFieldOverlay;
+/** @brief Flag toggle overlay flow field player */
 extern bool showFlowFieldOverlayPlayer;

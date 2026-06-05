@@ -13,9 +13,7 @@ namespace Interaction
      */
     void HandleInteractions(Player &player);
 
-    /**
-     * @brief Melakukan transisi map jika ada yang masuk dalam antrean selama interaksi.
-     */
+    /** @brief Eksekusi transisi map yang pending */
     void ExecutePendingTransitions(Player &player);
 
     /**

@@ -1,4 +1,5 @@
 #include "animation.h"
+#include "fonts.h"
 #include "../lib/raylib/include/raymath.h"
 #include "../lib/json/include/nlohmann/json.hpp"
 #include <fstream>
@@ -13,9 +14,15 @@ Frames Management
 ====================
 */
 
+/** @brief Array global texture */
 Texture2D textures[MAX_TEXTURES];
+/** @brief Cache frame dari JSON */
 static std::unordered_map<std::string, Frame> loadedFrames;
 
+/** @brief Map string ke TextureSlot */
+Font fontKeybindHeader = {0};
+Font fontKeybindEntry = {0};
+Font fontLoadingTitle = {0};
 static TextureSlot ResolveTextureSlot(const std::string &str)
 {
     static const std::unordered_map<std::string, TextureSlot> mapping = {
@@ -113,6 +120,76 @@ void InitTextures()
     LoadFrameTexture(SPRITESHEET_EFFECTS, "assets/textures/effects.png");
     LoadFramesFromJSON();
     LoadAnimationsFromJSON();
+    InitFonts();
+}
+
+void InitFonts(void)
+{
+    static bool loaded = false;
+    if (loaded) { TraceLog(LOG_INFO, "FONTS: Already loaded, skipping"); return; }
+    loaded = true;
+
+    const char *paths[] = { "assets/fonts/", "build/bin/assets/fonts/" };
+
+    for (int pass = 0; pass < 2; pass++)
+    {
+        const char *dir = paths[pass];
+        char buf[256];
+
+        snprintf(buf, sizeof(buf), "%sNewDawn.ttf", dir);
+        if (!FileExists(buf)) { TraceLog(LOG_WARNING, "FONTS: %s NOT FOUND", buf); continue; }
+        fontKeybindHeader = LoadFontEx(buf, 32, 0, 0);
+        break;
+    }
+
+    for (int pass = 0; pass < 2; pass++)
+    {
+        const char *dir = paths[pass];
+        char buf[256];
+
+        snprintf(buf, sizeof(buf), "%sPoppins-Regular.ttf", dir);
+        if (!FileExists(buf)) { TraceLog(LOG_WARNING, "FONTS: %s NOT FOUND", buf); continue; }
+        fontKeybindEntry = LoadFontEx(buf, 30, 0, 0);
+        break;
+    }
+
+    for (int pass = 0; pass < 2; pass++)
+    {
+        const char *dir = paths[pass];
+        char buf[256];
+
+        snprintf(buf, sizeof(buf), "%sPoppins-Bold.ttf", dir);
+        if (!FileExists(buf)) { TraceLog(LOG_WARNING, "FONTS: %s NOT FOUND", buf); continue; }
+        fontLoadingTitle = LoadFontEx(buf, 32, 0, 0);
+        break;
+    }
+
+    if (fontKeybindHeader.glyphCount == 0)
+    {
+        TraceLog(LOG_WARNING, "FONTS: NewDawn.ttf loaded but has 0 glyphs (using default font fallback)");
+        fontKeybindHeader = GetFontDefault();
+    }
+    if (fontKeybindEntry.glyphCount == 0)
+    {
+        TraceLog(LOG_WARNING, "FONTS: Poppins-Regular.ttf loaded but has 0 glyphs (using default font fallback)");
+        fontKeybindEntry = GetFontDefault();
+    }
+    if (fontLoadingTitle.glyphCount == 0)
+    {
+        TraceLog(LOG_WARNING, "FONTS: Poppins-Bold.ttf loaded but has 0 glyphs (using default font fallback)");
+        fontLoadingTitle = GetFontDefault();
+    }
+
+    TraceLog(LOG_INFO, "FONTS: NewDawn (header) glyphs=%d, Poppins (entry) glyphs=%d, Poppins-Bold (loading) glyphs=%d",
+        fontKeybindHeader.glyphCount, fontKeybindEntry.glyphCount, fontLoadingTitle.glyphCount);
+}
+
+void UnloadFonts(void)
+{
+    UnloadFont(fontKeybindHeader);
+    UnloadFont(fontKeybindEntry);
+    UnloadFont(fontLoadingTitle);
+    TraceLog(LOG_INFO, "FONTS: Unloaded custom fonts");
 }
 
 void CloseTextures()
@@ -399,7 +476,7 @@ float TextFloat(float currentOffset, float speed, float dt)
 
 void DamageFloat(Vector2& pos, Vector2& vel, float gravity, float friction, float dt)
 {
-    pos = Vector2Add(pos, Vector2Scale(vel, dt * 60.0f));
+    pos = Vector2Add(pos, Vector2Scale(vel, dt));
     vel.y += gravity;
     vel.x *= friction;
 }

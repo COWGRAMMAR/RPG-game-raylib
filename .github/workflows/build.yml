@@ -1,0 +1,87 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - main
+      - nisko/dev-main
+      - nisko/dev-main-test
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          install: >-
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-cmake
+            mingw-w64-x86_64-ninja
+            mingw-w64-x86_64-ccache
+
+      - name: Setup dependencies
+        shell: pwsh
+        run: .\setup.ps1
+
+      - name: Configure CMake
+        run: cmake --preset ninja
+
+      - name: Build
+        run: cmake --build --preset ninja
+
+      - name: Build tests
+        run: cmake --build build --target test_constants
+
+      - name: Run test constant check
+        run: cd build && ctest --output-on-failure
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: rpg-game-windows
+          path: build/bin/main.exe
+
+  linux:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            ninja-build ccache \
+            libgl1-mesa-dev libxrandr-dev \
+            libxinerama-dev libxcursor-dev libxi-dev
+
+      - name: Setup dependencies
+        run: bash setup.sh
+
+      - name: Configure CMake
+        run: cmake --preset ninja
+
+      - name: Build
+        run: cmake --build --preset ninja
+
+      - name: Build tests
+        run: cmake --build build --target test_constants
+
+      - name: Run tests
+        run: cd build && ctest --output-on-failure
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: rpg-game-linux
+          path: build/bin/main

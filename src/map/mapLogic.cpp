@@ -23,13 +23,33 @@
 
 TiledHelper TiledHelperFunction;
 
+/* Collision cache — dibangun ulang tiap object index berubah */
+TiledHelper::CollisionResult gCollisionCache;
+
 /**
  * @brief Index object Tiled yang dipakai untuk lookup cepat
  *
  * Dibangun ulang lewat BuildMapObjectIndex() setelah map selesai dimuat.
  * Seluruh pointer mengarah langsung ke data object aktif di tilesonMap->Objects.
  */
-static MapObjectIndex g_mapIndex;
+
+/** @brief Bangun index object untuk target map */
+void BuildMapObjectIndexTarget(TilesonMapData *target)
+{
+    target->objectIndex.byName.clear();
+    target->objectIndex.byType.clear();
+    target->objectIndex.byLayer.clear();
+
+    for (auto &obj : target->Objects)
+    {
+        if (!obj.name.empty())
+            target->objectIndex.byName[obj.name] = &obj;
+        if (!obj.type.empty())
+            target->objectIndex.byType[obj.type].push_back(&obj);
+        if (!obj.layerName.empty())
+            target->objectIndex.byLayer[obj.layerName].push_back(&obj);
+    }
+}
 
 /**
  * @brief Bangun ulang index dari seluruh object pada map aktif
@@ -38,32 +58,53 @@ static MapObjectIndex g_mapIndex;
  */
 void BuildMapObjectIndex()
 {
-    g_mapIndex.byName.clear();
-    g_mapIndex.byType.clear();
-    g_mapIndex.byLayer.clear();
+    BuildMapObjectIndexTarget(tilesonMap);
+    RebuildCollisionCache();
+}
 
-    for (auto &obj : tilesonMap->Objects)
-    {
-        // Index berdasarkan nama object
-        if (!obj.name.empty())
-            g_mapIndex.byName[obj.name] = &obj;
+/**
+ * @brief Bangun ulang cache collision agar IsPositionSafe() gak rebuild vector tiap call
+ *
+ * Collision data di-cache dari COLLISION_LAYER_NAME.
+ * Wajib dipanggil setelah setiap perubahan object index.
+ */
+void RebuildCollisionCache()
+{
+    gCollisionCache.rects.clear();
+    gCollisionCache.polygons.clear();
 
-        // Index berdasarkan type object
-        if (!obj.type.empty())
-            g_mapIndex.byType[obj.type].push_back(&obj);
+    if (!tilesonMap)
+        return;
 
-        // Index berdasarkan layer object
-        if (!obj.layerName.empty())
-            g_mapIndex.byLayer[obj.layerName].push_back(&obj);
-    }
-
-    for (auto &[type, objs] : g_mapIndex.byType)
-        TraceLog(LOG_INFO, "byType: '%s' -> %d objects", type.c_str(), (int)objs.size());
+    TiledHelperFunction.TryGetCollisionByLayerName(COLLISION_LAYER_NAME, gCollisionCache);
 }
 
 /*==============================================================================
  * Low-level Query Functions
  *==============================================================================*/
+
+/** @brief Cari object berdasarkan nama di target map */
+MapObject *TilesonGetObjectByName(TilesonMapData *target, const std::string &name)
+{
+    auto it = target->objectIndex.byName.find(name);
+    return (it != target->objectIndex.byName.end()) ? it->second : nullptr;
+}
+
+/** @brief Ambil object berdasarkan type di target map */
+const std::vector<MapObject *> &TilesonGetObjectsByType(TilesonMapData *target, const std::string &type)
+{
+    static const std::vector<MapObject *> empty;
+    auto it = target->objectIndex.byType.find(type);
+    return (it != target->objectIndex.byType.end()) ? it->second : empty;
+}
+
+/** @brief Ambil object berdasarkan layer name di target map */
+const std::vector<MapObject *> &TilesonGetObjectsByLayerName(TilesonMapData *target, const std::string &layerName)
+{
+    static const std::vector<MapObject *> empty;
+    auto it = target->objectIndex.byLayer.find(layerName);
+    return (it != target->objectIndex.byLayer.end()) ? it->second : empty;
+}
 
 /**
  * @brief Cari satu object berdasarkan nama
@@ -72,8 +113,7 @@ void BuildMapObjectIndex()
  */
 MapObject *TilesonGetObjectByName(const std::string &name)
 {
-    auto it = g_mapIndex.byName.find(name);
-    return (it != g_mapIndex.byName.end()) ? it->second : nullptr;
+    return TilesonGetObjectByName(tilesonMap, name);
 }
 
 /**
@@ -83,9 +123,7 @@ MapObject *TilesonGetObjectByName(const std::string &name)
  */
 const std::vector<MapObject *> &TilesonGetObjectsByType(const std::string &type)
 {
-    static const std::vector<MapObject *> empty;
-    auto it = g_mapIndex.byType.find(type);
-    return (it != g_mapIndex.byType.end()) ? it->second : empty;
+    return TilesonGetObjectsByType(tilesonMap, type);
 }
 
 /**
@@ -95,9 +133,7 @@ const std::vector<MapObject *> &TilesonGetObjectsByType(const std::string &type)
  */
 const std::vector<MapObject *> &TilesonGetObjectsByLayerName(const std::string &layerName)
 {
-    static const std::vector<MapObject *> empty;
-    auto it = g_mapIndex.byLayer.find(layerName);
-    return (it != g_mapIndex.byLayer.end()) ? it->second : empty;
+    return TilesonGetObjectsByLayerName(tilesonMap, layerName);
 }
 
 /*==============================================================================
@@ -123,38 +159,6 @@ bool TiledHelper::TryGetObjectPositionByName(const std::string &objectName, Vect
 }
 
 /**
- * @brief Ambil posisi object pertama dengan type tertentu
- *
- * @param objectType Type object di Tiled
- * @param outPosition [OUT] Posisi object pertama yang ditemukan
- * @return true jika object ditemukan
- */
-bool TiledHelper::TryGetObjectPositionByType(const std::string &objectType, Vector2 &outPosition)
-{
-    const auto &objs = TilesonGetObjectsByType(objectType);
-    if (objs.empty())
-        return false;
-    outPosition = {objs[0]->bounds.x, objs[0]->bounds.y};
-    return true;
-}
-
-/**
- * @brief Ambil bounds object pertama dengan type tertentu
- *
- * @param objectType Type object di Tiled
- * @param outBounds [OUT] Bounds object pertama yang ditemukan
- * @return true jika object ditemukan
- */
-bool TiledHelper::TryGetObjectBoundsByType(const std::string &objectType, Rectangle &outBounds)
-{
-    const auto &objs = TilesonGetObjectsByType(objectType);
-    if (objs.empty())
-        return false;
-    outBounds = objs[0]->bounds;
-    return true;
-}
-
-/**
  * @brief Ambil seluruh collision data dari satu layer
  *
  * Object polygon dimasukkan ke polygons, sisanya ke rects.
@@ -166,30 +170,6 @@ bool TiledHelper::TryGetObjectBoundsByType(const std::string &objectType, Rectan
 bool TiledHelper::TryGetCollisionByLayerName(const std::string &layerName, CollisionResult &outCollision)
 {
     const auto &objs = TilesonGetObjectsByLayerName(layerName);
-    if (objs.empty())
-        return false;
-    for (auto *obj : objs)
-    {
-        if (obj->hasPolygon)
-            outCollision.polygons.push_back(obj->polygonPoints);
-        else
-            outCollision.rects.push_back(obj->bounds);
-    }
-    return true;
-}
-
-/**
- * @brief Ambil seluruh collision data dari object dengan type tertentu
- *
- * Object polygon dimasukkan ke polygons, sisanya ke rects.
- *
- * @param objectType Type object di Tiled
- * @param outCollision [OUT] Hasil collision yang ditemukan
- * @return true jika ada object dengan type tersebut
- */
-bool TiledHelper::TryGetCollisionByType(const std::string &objectType, CollisionResult &outCollision)
-{
-    const auto &objs = TilesonGetObjectsByType(objectType);
     if (objs.empty())
         return false;
     for (auto *obj : objs)
@@ -336,11 +316,7 @@ RayHitResult RayCast::Cast(Vector2 origin, Vector2 direction, float maxDistance,
     return result;
 }
 
-/**
- * Spread ray dari -halfAngleDeg sampai +halfAngleDeg relative ke forward.
- * Tiap ray dicek via Cast() — return hit dengan distance terkecil.
- * Kalo forward near-zero (enemy diem), langsung return miss.
- */
+/** @brief Cast cone ray dan return hit terdekat */
 RayHitResult RayCast::CastCone(Vector2 origin, Vector2 forward, float maxDistance,
                                float halfAngleDeg, int rayCount,
                                std::vector<MapObject> &objects)
@@ -552,15 +528,12 @@ bool IsPositionSafe(Vector2 pos, float width, float height, float offsetX, float
     if (!IsWithinWorldBounds(hitbox, worldWidth, worldHeight))
         return false;
 
-    // 3. Cek Collision (Obstacle Layer)
-    TiledHelper::CollisionResult col;
-    if (TiledHelperFunction.TryGetCollisionByLayerName(COLLISION_LAYER_NAME, col))
-    {
-        if (CheckCollisionAgainstRects(hitbox, col.rects))
-            return false;
-        if (CheckCollisionAgainstPolygons(hitbox, col.polygons))
-            return false;
-    }
+    // 3. Cek Collision via cache (Obstacle Layer)
+    // Pakai gCollisionCache biar gak rebuild vector tiap call
+    if (CheckCollisionAgainstRects(hitbox, gCollisionCache.rects))
+        return false;
+    if (CheckCollisionAgainstPolygons(hitbox, gCollisionCache.polygons))
+        return false;
 
     // 4. Cek Dynamic Obstacles (object runtime seperti bomb)
     if (CheckCollisionAgainstRects(hitbox, DynamicObstacles))

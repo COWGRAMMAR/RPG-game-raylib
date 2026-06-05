@@ -7,6 +7,7 @@
  * - SpikeManager: spawn, update timer aktif/nonaktif, damage player & enemy
  * - BombManager: spawn, explode, chain reaction, damage player & enemy
  * - CrateManager: spawn, destroy, dan loot crate
+ * - SignManager: spawn dan interaksi sign yang bisa dibaca player
  *
  * Semua manager di-spawn via SpawnObject() yang dipanggil saat map di-load.
  */
@@ -16,8 +17,10 @@
 #include "enemy.h"
 #include "enemy_ai.h"
 #include "entities.h"
+#include "core/utils.h"
 #include "game_debug.h"
 #include "animation.h"
+#include <sstream>
 
 /*==============================================================================
  * Utility Functions
@@ -92,6 +95,15 @@ void SpawnObject()
 
     auto crateObjs = TiledHelper::GetObjectsByType(CRATE_TYPE_OBJECT_NAME);
     crateManager.SpawnCrates(crateObjs);
+
+    // Spawn barriers — gabungin biasa + boss
+    auto barrierObjs = TiledHelper::GetObjectsByType(BARRIER_TYPE_OBJECT_NAME);
+    auto bossBarrierObjs = TiledHelper::GetObjectsByType(BARRIER_BOSS_TYPE_OBJECT_NAME);
+    barrierObjs.insert(barrierObjs.end(), bossBarrierObjs.begin(), bossBarrierObjs.end());
+    barrierManager.SpawnBarriers(barrierObjs);
+
+    auto signObjs = TiledHelper::GetObjectsByType(SIGN_TYPE_OBJECT_NAME);
+    signManager.SpawnSigns(signObjs);
 }
 
 /**
@@ -105,6 +117,49 @@ void HitPropsByAttack(Rectangle attackHitbox, Rectangle playerBounds, Player *pl
     bombManager.HitByAttack(attackHitbox, playerBounds, player);
 
     crateManager.HitByAttack(attackHitbox);
+}
+
+/*==============================================================================
+ * Helper: Spawn loot aman di sekitar object
+ *==============================================================================*/
+
+/**
+ * @brief Spawn item di posisi random aman di sekitar pusat object
+ *
+ * Cari posisi dengan IsPositionSafe (hitbox 20×20 = ukuran item), retry
+ * beberapa kali. Fallback ke pusat object jika semua gagal.
+ * Final safety net tetap ada di ItemDataManager::CreateItem.
+ *
+ * @param center Posisi pusat object (chest/crate)
+ * @param itemCount Jumlah item yang di-spawn
+ * @param rng Random generator
+ * @param spread Radius pencarian posisi dari center
+ * @param category Kategori item yang di-spawn
+ */
+static void SpawnLootSafe(Vector2 center, int itemCount, std::mt19937 &rng,
+                          float spread, ItemCategory category, Vector2 hitboxSize)
+{
+    float halfW = hitboxSize.x / 2.0f;
+    float halfH = hitboxSize.y / 2.0f;
+    int maxRetry = 15;
+
+    for (int i = 0; i < itemCount; i++)
+    {
+        Vector2 spawnPos = center;
+        for (int retry = 0; retry < maxRetry; retry++)
+        {
+            Vector2 candidate = {
+                center.x + (float)GetRandomValue(-(int)spread, (int)spread),
+                center.y + (float)GetRandomValue(-(int)spread, (int)spread)};
+            Vector2 topLeft = {candidate.x - halfW, candidate.y - halfH};
+            if (IsPositionSafe(topLeft, hitboxSize.x, hitboxSize.y, 0, 0))
+            {
+                spawnPos = candidate;
+                break;
+            }
+        }
+        itemData.SpawnItemAtLocation(spawnPos, &rng, category);
+    }
 }
 
 /*==============================================================================
@@ -122,7 +177,6 @@ ChestManager chestManager;
  */
 void ChestManager::SpawnChests(const std::vector<MapObject *> &chestObjects)
 {
-    TraceLog(LOG_INFO, "SpawnChests called, consumed size: %d", (int)consumedPositions.size());
     chests.clear();
     for (auto *obj : chestObjects)
     {
@@ -181,7 +235,6 @@ TileObject *ChestManager::FindChest(Vector2 hitPos, float threshold)
  */
 void ChestManager::Interact(Vector2 hitPos)
 {
-    TraceLog(LOG_INFO, "Looking for chest at (%.1f, %.1f), total chests: %d", hitPos.x, hitPos.y, (int)chests.size());
     TileObject *chest = FindChest(hitPos);
     if (!chest || chest->state == ObjectState::Open)
         return;
@@ -201,22 +254,13 @@ void ChestManager::Interact(Vector2 hitPos)
  */
 void ChestManager::TriggerLoot(TileObject &chest)
 {
-    // placeholder, rarity system nyusul
     TraceLog(LOG_INFO, "Chest opened at (%.1f, %.1f)", chest.position.x, chest.position.y);
 
     int jumlahLoot = GetRandomValue(1, 3);
-
     std::mt19937 rng(static_cast<unsigned int>(time(nullptr)));
-    for (int i = 0; i < jumlahLoot; i++)
-    {
-        // Kasih sedikit offset random (misal sejauh -20 sampai 20 pixel)
-        // Biar itemnya mencar di sekitar chest
-        Vector2 spawnPos = {
-            chest.position.x + (float)GetRandomValue(-60, 60),
-            chest.position.y + (float)GetRandomValue(-60, 60)};
 
-        itemData.SpawnItemAtLocation(spawnPos, &rng, ITEM_ANY);
-    }
+    Vector2 itemSize = itemDefs.GetMaxHitboxForCategory(ITEM_ANY);
+    SpawnLootSafe(chest.position, jumlahLoot, rng, chestSpread, ITEM_ANY, itemSize);
 }
 
 /**
@@ -250,6 +294,11 @@ int ChestManager::Render(Rectangle viewRect)
 void ChestManager::Clear()
 {
     chests.clear();
+}
+
+void ChestManager::ResetConsumed()
+{
+    consumedPositions.clear();
 }
 
 /*==============================================================================
@@ -470,6 +519,7 @@ void BombManager::SpawnBombs(const std::vector<MapObject *> &bombObjects)
         data.tile.bounds = obj->bounds;
         data.tile.state = ObjectState::Active;
         data.tile.position = SnapToTileGrid({obj->bounds.x, obj->bounds.y});
+        data.tile.uuid = GenerateUUID();
 
         data.isAlive = true;
         data.isExploding = false;
@@ -566,13 +616,14 @@ void BombManager::Explode(BombData &bomb, Rectangle playerBounds, Player *player
 
     Vector2 bombCenter = {
         bomb.tile.position.x + FRAME_SIZE / 2.0f,
-        bomb.tile.position.y + FRAME_SIZE / 2.0f
-    };
+        bomb.tile.position.y + FRAME_SIZE / 2.0f};
 
+    // player kena damage
     if (IsInExplosionRadius(bombCenter, playerBounds))
         if (player)
             player->TakeDamage(BOMB_DAMAGE);
 
+    // enemy kena damage
     for (auto entity : Entities::GetRegistry())
     {
         Enemy *enemy = dynamic_cast<Enemy *>(entity);
@@ -593,6 +644,7 @@ void BombManager::Explode(BombData &bomb, Rectangle playerBounds, Player *player
             Explode(other, playerBounds, player);
     }
 
+    // crate hilang kalo kena bomb
     crateManager.HitByExplosion(bombCenter, this);
 }
 
@@ -669,8 +721,7 @@ int BombManager::Render(Rectangle viewRect)
         {
             Vector2 bombCenter = {
                 bomb.tile.position.x + FRAME_SIZE / 2.0f,
-                bomb.tile.position.y + FRAME_SIZE / 2.0f
-            };
+                bomb.tile.position.y + FRAME_SIZE / 2.0f};
             float progress = (BOMB_EXPLOSION_DURATION - bomb.explosionTimer) / BOMB_EXPLOSION_DURATION;
             Explosion(bombCenter, BOMB_EXPLOSION_RADIUS, progress);
         }
@@ -680,8 +731,7 @@ int BombManager::Render(Rectangle viewRect)
             {
                 Vector2 bombCenter = {
                     bomb.tile.position.x + FRAME_SIZE / 2.0f,
-                    bomb.tile.position.y + FRAME_SIZE / 2.0f
-                };
+                    bomb.tile.position.y + FRAME_SIZE / 2.0f};
                 DrawCircleV(bombCenter, BOMB_EXPLOSION_RADIUS, Fade(RED, 0.15f));
                 DrawCircleLinesV(bombCenter, BOMB_EXPLOSION_RADIUS, Fade(RED, 0.5f));
             }
@@ -699,6 +749,11 @@ int BombManager::Render(Rectangle viewRect)
 void BombManager::Clear()
 {
     bombs.clear();
+}
+
+void BombManager::ResetConsumed()
+{
+    consumedPositions.clear();
 }
 
 /*==============================================================================
@@ -726,6 +781,7 @@ void CrateManager::SpawnCrates(const std::vector<MapObject *> &crateObjects)
         data.tile.bounds = obj->bounds;
         data.tile.position = snapped;
         data.tile.state = ObjectState::Active;
+        data.tile.uuid = GenerateUUID();
         data.isAlive = true;
 
         crates.push_back(data);
@@ -811,11 +867,9 @@ void CrateManager::TriggerLoot(TileObject &crate)
         return;
 
     std::mt19937 rng(static_cast<unsigned int>(time(nullptr)));
-    Vector2 spawnPos = {
-        crate.position.x + (float)GetRandomValue(-60, 60),
-        crate.position.y + (float)GetRandomValue(-60, 60)};
 
-    itemData.SpawnItemAtLocation(spawnPos, &rng, ITEM_POTION);
+    Vector2 itemSize = itemDefs.GetMaxHitboxForCategory(ITEM_POTION);
+    SpawnLootSafe(crate.position, 1, rng, crateSpread, ITEM_POTION, itemSize);
 }
 
 /**
@@ -846,4 +900,427 @@ int CrateManager::Render(Rectangle viewRect)
 void CrateManager::Clear()
 {
     crates.clear();
+}
+
+void CrateManager::ResetConsumed()
+{
+    consumedPositions.clear();
+}
+
+/*==============================================================================
+ * BarrierManager Implementation
+ *==============================================================================*/
+
+BarrierManager barrierManager;
+
+/**
+ * @brief Spawn semua barrier dari object layer Tiled
+ *
+ * 1. Cek apakah map ini punya boss spawn — untuk mode re-lock
+ * 2. Cari object "boss" (pass) sebagai detektor area room boss
+ * 3. Snap posisi ke tile grid, daftarkan ke DynamicObstacles
+ *
+ * @param barrierObjects Daftar pointer MapObject bertipe barrier
+ */
+void BarrierManager::SpawnBarriers(const std::vector<MapObject *> &barrierObjects)
+{
+    barriers.clear();
+    isBossMap = false;
+    bossStageBounds = {0};
+
+    // Cek apakah ada object boss_stage — kalo ada, ini boss map
+    isBossMap = false;
+    bossStageBounds = {0};
+    auto stageObjs = TiledHelper::GetObjectsByType(BOSS_STAGE_TYPE_OBJECT_NAME);
+    if (!stageObjs.empty())
+    {
+        isBossMap = true;
+        bossStageBounds = stageObjs[0]->bounds;
+        TraceLog(LOG_INFO, "BarrierManager: boss_stage detected at (%.0f,%.0f w=%.0f h=%.0f)",
+                 bossStageBounds.x, bossStageBounds.y, bossStageBounds.width, bossStageBounds.height);
+    }
+
+    // totalEnemyCount di-capture pas Update pertama, karena enemy belum di-spawn pas SpawnObject
+    totalEnemyCount = 0;
+
+    // JANGAN reset cleared/hasReLocked — state ini bisa di-set oleh LoadRuntimeState sebelumnya
+    // Kalo sudah cleared (dari save load), skip spawn barrier sama sekali
+    if (cleared)
+    {
+        TraceLog(LOG_INFO, "BarrierManager: stage already cleared, skipping barrier spawn");
+        return;
+    }
+
+    for (auto *obj : barrierObjects)
+    {
+        Vector2 snapped = SnapToTileGrid({obj->bounds.x, obj->bounds.y});
+
+        BarrierData data;
+        data.tile.name = obj->name;
+        data.tile.bounds = obj->bounds;
+        data.tile.position = snapped;
+        data.tile.state = ObjectState::Active;
+        data.isActive = true;
+        data.isBoss = (obj->type == BARRIER_BOSS_TYPE_OBJECT_NAME);
+
+        barriers.push_back(data);
+        DynamicObstacles.push_back(data.tile.bounds);
+    }
+}
+
+/**
+ * @brief Update tiap frame — cek kill threshold & boss room state
+ *
+ * Non-boss map: barrier hilang permanen setelah 90% enemy mati.
+ * Boss map:     barrier buka (90%) → re-lock pas player masuk → buka lagi setelah boss mati.
+ */
+void BarrierManager::Update()
+{
+    if (barriers.empty())
+        return;
+
+    // Delayed capture totalEnemyCount — enemy belum di-spawn pas SpawnObject
+    if (totalEnemyCount == 0)
+    {
+        // Di boss map: exclude boss dari hitungan threshold
+        totalEnemyCount = 0;
+        for (auto *enemy : Entities::GetEnemyRegistry())
+        {
+            if (isBossMap && enemy->rank == ENEMY_BOSS)
+                continue;
+            totalEnemyCount++;
+        }
+        TraceLog(LOG_INFO, "BarrierManager: total enemy count = %d (boss excluded: %s)",
+                 totalEnemyCount, isBossMap ? "yes" : "no");
+    }
+
+    // Kalo gak ada enemy sama sekali, langsung clear
+    if (totalEnemyCount == 0)
+    {
+        RemoveAllBarriers();
+        return;
+    }
+
+    // Hitung jumlah enemy non-boss yang sudah mati (boss map: boss excluded)
+    int deadCount = 0;
+    int bossAlive = 0;
+    for (auto *enemy : Entities::GetEnemyRegistry())
+    {
+        if (isBossMap && enemy->rank == ENEMY_BOSS)
+        {
+            if (enemy->IsActive)
+                bossAlive++;
+            continue;
+        }
+        if (!enemy->IsActive)
+            deadCount++;
+    }
+
+    // Trace tiap kali ada enemy baru yang mati
+    if (deadCount != prevDeadCount)
+    {
+        int alive = totalEnemyCount - deadCount;
+        TraceLog(LOG_INFO, "BarrierManager: enemy killed — remaining %d / total %d", alive, totalEnemyCount);
+        prevDeadCount = deadCount;
+    }
+
+    if (isBossMap)
+    {
+        /*-------- Boss map: 3-step flow --------*/
+
+        Rectangle playerBounds = PlayerInstance.GetHitbox();
+
+        if (!cleared && !hasReLocked && totalEnemyCount > 0 &&
+            (float)deadCount / (float)totalEnemyCount >= KILL_THRESHOLD)
+        {
+            // Step 1 — threshold terpenuhi, barrier buka
+            RemoveAllBarriers();
+            TraceLog(LOG_INFO, "BarrierManager: boss barrier opened (threshold met)");
+        }
+
+        if (cleared && !hasReLocked && bossStageBounds.width > 0 && bossStageBounds.height > 0)
+        {
+            // Step 2 — player masuk boss room → re-lock
+            if (CheckCollisionRecs(playerBounds, bossStageBounds))
+            {
+                ReLockBarriers();
+                hasReLocked = true;
+                TraceLog(LOG_INFO, "BarrierManager: boss barrier re-locked (player entered boss room)");
+            }
+        }
+
+        if (hasReLocked && !cleared)
+        {
+            // Step 3 — cek apa boss udah mati
+            if (bossAlive == 0)
+            {
+                RemoveAllBarriers();
+                TraceLog(LOG_INFO, "BarrierManager: boss barrier unlocked (boss defeated)");
+            }
+        }
+    }
+    else
+    {
+        /*-------- Normal map: unlock once threshold met --------*/
+        if (!cleared && totalEnemyCount > 0 &&
+            (float)deadCount / (float)totalEnemyCount >= KILL_THRESHOLD)
+        {
+            RemoveAllBarriers();
+            TraceLog(LOG_INFO, "BarrierManager: barrier opened (threshold met)");
+        }
+    }
+}
+
+/**
+ * @brief Render barrier sebagai rectangle semi-transparan
+ *
+ * Sementara pake warna YELLONG selama belum ada texture pack.
+ *
+ * @param viewRect Area kamera/viewport aktif
+ * @return Jumlah barrier yang berhasil dirender
+ */
+int BarrierManager::Render(Rectangle viewRect)
+{
+    int rendered = 0;
+    for (auto &b : barriers)
+    {
+        if (!b.isActive)
+            continue;
+        if (!CheckCollisionRecs(b.tile.bounds, viewRect))
+            continue;
+
+        DrawRectangleRec(b.tile.bounds, ColorAlpha(YELLOW, 0.3f));
+        DrawRectangleLinesEx(b.tile.bounds, 2.0f, YELLOW);
+        rendered++;
+    }
+    return rendered;
+}
+
+/**
+ * @brief Hapus semua barrier dari DynamicObstacles
+ */
+void BarrierManager::RemoveAllBarriers()
+{
+    for (auto &b : barriers)
+    {
+        if (!b.isActive)
+            continue;
+        b.isActive = false;
+        DynamicObstacles.erase(
+            std::remove_if(DynamicObstacles.begin(), DynamicObstacles.end(),
+                           [&](const Rectangle &r)
+                           {
+                               return r.x == b.tile.bounds.x && r.y == b.tile.bounds.y;
+                           }),
+            DynamicObstacles.end());
+    }
+    cleared = true;
+    RebuildObstacleCache();
+}
+
+/**
+ * @brief Pasang ulang barrier (re-lock) — khusus boss room
+ *
+ * Setelah player masuk room boss, barrier ditutup lagi
+ * dan baru akan terbuka setelah boss mati.
+ */
+void BarrierManager::ReLockBarriers()
+{
+    for (auto &b : barriers)
+    {
+        if (b.isActive)
+            continue;
+        b.isActive = true;
+        DynamicObstacles.push_back(b.tile.bounds);
+    }
+    cleared = false;
+    RebuildObstacleCache();
+}
+
+/**
+ * @brief Bersihkan semua data barrier
+ */
+void BarrierManager::Clear()
+{
+    barriers.clear();
+    cleared = false; // Default: barrier belum di-clear — di-set ulang sama LoadRuntimeState kalo ada save
+    isBossMap = false;
+    hasReLocked = false;
+    bossStageBounds = {0};
+    totalEnemyCount = 0;
+    prevDeadCount = 0;
+}
+
+/*==============================================================================
+ * SignManager Implementation
+ *==============================================================================*/
+
+SignManager signManager;
+
+/**
+ * @brief Split teks dialog jadi baris-baris
+ *
+ * Prioritas delimiter: | dulu. Kalo gak ada, fallback ke \n.
+ * Tiap baris di-trim whitespace-nya.
+ *
+ * @param text Teks mentah dari custom property Tiled
+ * @return Vektor baris dialog
+ */
+std::vector<std::string> SignManager::SplitDialog(const std::string &text)
+{
+    std::vector<std::string> lines;
+    std::stringstream ss(text);
+    std::string line;
+
+    // Coba split pake | dulu
+    bool hasPipe = text.find('|') != std::string::npos;
+    char delim = hasPipe ? '|' : '\n';
+
+    while (std::getline(ss, line, delim))
+    {
+        // Trim leading/trailing whitespace
+        size_t start = line.find_first_not_of(" \t\r");
+        size_t end = line.find_last_not_of(" \t\r");
+        if (start != std::string::npos && end != std::string::npos)
+            lines.push_back(line.substr(start, end - start + 1));
+        else if (start != std::string::npos)
+            lines.push_back(line.substr(start));
+    }
+
+    return lines;
+}
+
+/**
+ * @brief Spawn semua sign dari object layer Tiled
+ *
+ * Baca custom property "dialog" dari tiap object, split jadi baris,
+ * snap posisi ke tile grid, dan daftarkan ke DynamicObstacles.
+ *
+ * @param signObjects Daftar pointer MapObject bertipe sign
+ */
+void SignManager::SpawnSigns(const std::vector<MapObject *> &signObjects)
+{
+    signs.clear();
+    for (auto *obj : signObjects)
+    {
+        Vector2 snapped = SnapToTileGrid({obj->bounds.x, obj->bounds.y});
+
+        SignData d;
+        d.tile.name = obj->name;
+        d.tile.bounds = obj->bounds;
+        d.tile.position = snapped;
+        d.tile.state = ObjectState::Closed;
+
+        // Baca dialog dari custom property Tiled, split jadi baris
+        auto it = obj->properties.find("dialog");
+        if (it != obj->properties.end())
+            d.lines = SplitDialog(it->second.getValue<std::string>());
+        else
+            d.lines = {"(tidak ada teks)"};
+
+        signs.push_back(d);
+        DynamicObstacles.push_back(d.tile.bounds);
+
+        TraceLog(LOG_INFO, "SIGN: spawned '%s' at (%.1f, %.1f) — %d baris",
+                 obj->name.c_str(), snapped.x, snapped.y, (int)d.lines.size());
+    }
+}
+
+/**
+ * @brief Cari sign terdekat dari titik hit
+ * @param hitPos Posisi hit dari player
+ * @param threshold Toleransi jarak ke tepi bounds
+ * @return Pointer ke sign terdekat, nullptr jika tidak ada
+ */
+SignManager::SignData *SignManager::FindSign(Vector2 hitPos, float threshold)
+{
+    SignData *closest = nullptr;
+    float minDist = threshold;
+
+    for (auto &sign : signs)
+    {
+        if (IsHitInBounds(hitPos, sign.tile.bounds, threshold))
+        {
+            float dist = DistToCenter(hitPos, sign.tile.bounds);
+            if (dist < minDist)
+            {
+                minDist = dist;
+                closest = &sign;
+            }
+        }
+    }
+    return closest;
+}
+
+/**
+ * @brief Trigger interaksi player dengan sign
+ *
+ * Cari sign di sekitar hitPos, set active dialog state,
+ * lalu TraceLog tiap baris dialog.
+ *
+ * @param hitPos Posisi interaksi player
+ */
+void SignManager::Interact(Vector2 hitPos)
+{
+    if (isDialogActive)
+    {
+        DismissDialog();
+        return;
+    }
+
+    SignData *sign = FindSign(hitPos);
+    if (!sign)
+    {
+        TraceLog(LOG_WARNING, "SIGN: no sign found at (%.1f, %.1f)", hitPos.x, hitPos.y);
+        return;
+    }
+
+    isDialogActive = true;
+    activeDialogLines = sign->lines;
+
+    TraceLog(LOG_INFO, "SIGN INTERACT: '%s' — %d baris",
+             sign->tile.name.c_str(), (int)activeDialogLines.size());
+    for (size_t i = 0; i < activeDialogLines.size(); i++)
+        TraceLog(LOG_INFO, "  [%d] %s", (int)i, activeDialogLines[i].c_str());
+}
+
+/**
+ * @brief Tutup dialog sign
+ */
+void SignManager::DismissDialog()
+{
+    isDialogActive = false;
+    activeDialogLines.clear();
+    TraceLog(LOG_INFO, "SIGN: dialog ditutup");
+}
+
+/**
+ * @brief Render placeholder sign
+ *
+ * Render sebagai DARKGREEN rectangle. Belum pakai sprite.
+ *
+ * @param viewRect Bounding box area visible
+ * @return Jumlah sign yang di-render
+ */
+int SignManager::Render(Rectangle viewRect)
+{
+    int rendered = 0;
+    for (auto &s : signs)
+    {
+        if (!CheckCollisionRecs(s.tile.bounds, viewRect))
+            continue;
+
+        DrawRectangleRec(s.tile.bounds, DARKGREEN);
+        rendered++;
+    }
+    return rendered;
+}
+
+/**
+ * @brief Bersihkan semua data sign
+ */
+void SignManager::Clear()
+{
+    signs.clear();
+    DismissDialog();
 }

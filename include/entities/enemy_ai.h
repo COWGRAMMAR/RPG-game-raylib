@@ -9,15 +9,24 @@
 #include <unordered_map>
 #include <cmath>
 
+/**
+ * @file enemy_ai.h
+ * @brief Enemy AI, Flow Field & Steering Module
+ *
+ * Header ini mendeklarasikan sistem AI untuk enemy:
+ * flow field pathfinding, steering behavior, obstacle cache,
+ * spatial hash untuk separation, dan global flow field.
+ */
+
 class Enemy;
 
 /*==============================================================================
  * FlowField
  *==============================================================================*/
-constexpr int FLOW_FIELD_TILE_SIZE = FRAME_SIZE;                         // ukuran tile flow field, mengikuti FRAME_SIZE map
+constexpr int FLOW_FIELD_TILE_SIZE = FRAME_SIZE;                        // ukuran tile flow field, mengikuti FRAME_SIZE map
 constexpr float FLOW_FIELD_CENTER_OFFSET = FLOW_FIELD_TILE_SIZE * 0.5f; // offset dari pojok tile ke pusat tile
 constexpr float FLOW_FIELD_REBUILD_COOLDOWN = 0.3f;                     // jeda minimum antar rebuild flow field
-constexpr int FLOW_FIELD_PLAYER_RADIUS = 15;                            // radius area aktif flow field player dalam tile
+constexpr int FLOW_FIELD_PLAYER_RADIUS = 10;                            // radius area aktif flow field player dalam tile
 constexpr int FLOW_FIELD_RETURN_RADIUS = 18;                            // radius area aktif flow field return dalam tile
 constexpr int STEERING_GRID_RADIUS = 2;                                 // radius grid evaluasi steering di sekitar enemy
 
@@ -25,10 +34,10 @@ constexpr float FLOW_FIELD_OBSTACLE_PENALTY = 5.f; // cost tambahan untuk tile d
 constexpr float FLOW_FIELD_DIAGONAL_COST = 1.414f; // cost gerak diagonal, mendekati sqrt(2)
 constexpr float FLOW_FIELD_CARDINAL_COST = 1.0f;   // cost gerak horizontal/vertikal
 
-static constexpr float SEPARATION_RADIUS = 28.0f;   // jarak maksimum antar enemy untuk mulai saling menjauh
-static constexpr float SEPARATION_STRENGTH = 25.0f; // besar dorongan separation antar enemy
-static constexpr float MAX_SEPARATION_FORCE = 30.f; // batas maksimum gaya separation
-static constexpr int CELL_SIZE = FRAME_SIZE * 1.8f;  // ukuran cell spatial hash untuk query neighbor enemy
+static constexpr float SEPARATION_RADIUS = 28.0f;          // jarak maksimum antar enemy untuk mulai saling menjauh
+static constexpr float SEPARATION_STRENGTH = 25.0f;        // besar dorongan separation antar enemy
+static constexpr float MAX_SEPARATION_FORCE = 30.f;        // batas maksimum gaya separation
+static constexpr int CELL_SIZE = FRAME_SIZE * 1.8f;        // ukuran cell spatial hash untuk query neighbor enemy
 static constexpr float SEPARATION_FORCE_MAGNITUDE = 0.03f; // besaran nilai interpolasi untuk separation force
 
 /**
@@ -59,14 +68,10 @@ public:
      */
     Vector2 GetDirection(Vector2 worldPos) const;
 
-    /**
-     * @brief Cek apakah flow field sudah siap dipakai.
-     */
+    /** @brief Cek apakah flow field sudah siap dipakai */
     bool IsReady() const { return isReady_; }
 
-    /**
-     * @brief Notify bahwa map baru di-load — paksa rebuild pada Build() berikutnya.
-     */
+    /** @brief Notify map baru di-load — paksa rebuild build berikutnya */
     void Invalidate();
 
     /**
@@ -97,25 +102,28 @@ private:
     int gridWidth_ = 0;                   // lebar grid dalam tile
     int gridHeight_ = 0;                  // tinggi grid dalam tile
     bool isReady_ = false;                // status kesiapan flow field setelah build
+    bool hasAllocatedGrid_ = false;       // true setelah grid dialokasikan pertama kali
 
     // throttle & dirty tracking
     Vector2 lastGoalTile_ = {-1, -1}; // tile terakhir saat build dilakukan
     float rebuildCooldown_ = 0.f;     // sisa waktu cooldown rebuild
 
-    bool IsValidTile(int x, int y) const;                                            // cek apakah koordinat tile masih berada di dalam batas grid
-    void Dijkstra(int goalX, int goalY, int startX, int startY, int endX, int endY); // hitung jarak terpendek dan arah tiap tile menuju goal
-    float ComputeTileCost(int x, int y);                                             // hitung cost traversal tile, termasuk penalty jika dekat obstacle
+    bool IsValidTile(int x, int y) const;                                            // Cek apakah koordinat tile valid
+    void Dijkstra(int goalX, int goalY, int startX, int startY, int endX, int endY); // Hitung jarak terpendek tiap tile
+    float ComputeTileCost(int x, int y);                                             // Hitung cost traversal tile
 };
 
 /*==============================================================================
  * EnemySteering
  *==============================================================================*/
+/** @brief Mode steering enemy */
 enum SteeringMode
 {
     STEERING_CHASE, // steering menuju player memakai global flow field
     STEERING_RETURN // steering kembali ke spawn memakai return flow field
 };
 
+/** @brief Konteks steering untuk satu frame */
 struct SteeringContext
 {
     Vector2 Position;                           // posisi enemy saat ini
@@ -132,16 +140,17 @@ struct SteeringContext
     const FlowField *ReturnFlowField = nullptr; // flow field untuk kembali ke spawn
 };
 
+/** @brief Helper steering untuk chase dan return */
 class EnemySteering
 {
 public:
-    // hitung arah steering berdasarkan mode chase/return dan obstacle raycast
+    /** @brief Hitung arah steering berdasarkan mode chase/return dan obstacle raycast */
     Vector2 Compute(SteeringMode mode, const SteeringContext &ctx, RayCast &ray);
 
-    // cek apakah player berada dalam radius deteksi langsung enemy
+    /** @brief Cek apakah player dalam radius deteksi langsung enemy */
     bool IsPlayerInRange(const SteeringContext &ctx);
 
-    // helper debug untuk cek overlap range enemy ke hitbox player
+    /** @brief Helper debug untuk cek overlap range enemy ke hitbox player */
     bool IsInRangeDebug(Vector2 enemyCenter, Rectangle playerHitbox, float rayLength);
 
     Vector2 SteeringDir = {0, 0};        // arah steering terakhir yang dipakai
@@ -157,68 +166,64 @@ public:
     float ScoreMultiplier = 0.9f;         // bobot momentum arah lama saat scoring steering
 
 private:
-    // pilih arah terbaik dari grid kandidat di sekitar enemy
-    Vector2 EvaluateGrid(const SteeringContext &ctx, Vector2 flowDir, SteeringMode mode);
-
-    // catat perubahan arah berlawanan untuk mencegah steering bolak-balik
-    void ApplyAntiFlip(Vector2 bestDir, Vector2 prevDir);
+    Vector2 EvaluateGrid(const SteeringContext &ctx, Vector2 flowDir, SteeringMode mode); // Pilih arah terbaik dari grid kandidat
+    void ApplyAntiFlip(Vector2 bestDir, Vector2 prevDir);                                 // Catat perubahan arah untuk cegah bolak-balik
 };
 
 /*==============================================================================
  * Obstacle Cache
  *==============================================================================*/
+/** @brief Bangun daftar obstacle dari map */
 std::vector<MapObject> BuildObstacleList();
 
 extern std::vector<MapObject> cachedObstacleList; // cache obstacle untuk raycast steering dan serangan
 
+/** @brief Rebuild cache obstacle */
 void RebuildObstacleCache();
 
 /*==============================================================================
  * Spawn Flow Fields
  *==============================================================================*/
-const float RETURN_SCAN_INTERVAL = 2.0f; // interval pencarian ulang return flow field saat enemy pulang
+/** @brief Interval pencarian ulang return flow field saat enemy pulang */
+const float RETURN_SCAN_INTERVAL = 2.0f;
 
+/** @brief Entry spawn dengan flow field return */
 struct SpawnFlowFieldEntry
 {
     Vector2 spawnPos; // posisi spawn atau pusat area spawn
     FlowField field;  // flow field return menuju spawnPos
 };
 
-extern std::unordered_map<int, SpawnFlowFieldEntry> spawnFlowFields; // flow field return per ID object spawn
-extern std::queue<int> spawnFlowFieldRebuildQueue;                   // antrean ID spawn yang perlu rebuild flow field
+/** @brief Map flow field return per ID object spawn */
+extern std::unordered_map<int, SpawnFlowFieldEntry> spawnFlowFields;
+/** @brief Antrean ID spawn yang perlu rebuild flow field */
+extern std::queue<int> spawnFlowFieldRebuildQueue;
 
+/** @brief Bangun flow field untuk spawn tertentu */
 void BuildSpawnFlowFields(Vector2 spawnPos, int objId, int mapWidth, int mapHeight);
+/** @brief Temukan flow field spawn terdekat */
 FlowField *FindNearestSpawnFlowField(Vector2 position);
+/** @brief Tandai spawn flow field sebagai dirty */
 void MarkSpawnFlowFieldsDirty(Vector2 position);
 
 /*==============================================================================
  * SpatialHash
  *==============================================================================*/
+/** @brief Spatial hash untuk query neighbor enemy */
 struct SpatialHash
 {
     std::unordered_map<uint64_t, std::vector<int>> cells; // daftar index enemy per cell spatial hash
 
-    /**
-     * @brief Buat key unik dari koordinat cell spatial hash.
-     * @param cellX Koordinat cell X
-     * @param cellY Koordinat cell Y
-     * @return Key 64-bit untuk lookup cell
-     */
+    /** @brief Buat key 64-bit dari koordinat cell spatial hash */
     uint64_t Key(int cellX, int cellY)
     {
         return ((uint64_t)(uint32_t)cellX << 32) | (uint32_t)cellY;
     }
 
-    /**
-     * @brief Kosongkan semua data cell spatial hash.
-     */
+    /** @brief Kosongkan semua data cell */
     void Clear() { cells.clear(); }
 
-    /**
-     * @brief Masukkan index enemy ke cell berdasarkan posisi world space.
-     * @param index Index enemy dalam container enemy aktif
-     * @param pos Posisi enemy dalam world space
-     */
+    /** @brief Masukkan index enemy ke cell berdasarkan posisi */
     void Insert(int index, Vector2 pos)
     {
         int cx = (int)std::floor(pos.x / CELL_SIZE);
@@ -249,10 +254,13 @@ struct SpatialHash
     }
 };
 
+/** @brief Rebuild spatial hash dari daftar enemy */
 void RebuildSpatialHash(std::vector<Enemy *> &enemies);
+/** @brief Hitung separation force untuk enemy tertentu */
 Vector2 CalcSeparationForce(int index, std::vector<Enemy *> &enemies);
 
 /*==============================================================================
  * Globals
  *==============================================================================*/
-extern FlowField globalFlowField; // flow field global untuk chase menuju player
+/** @brief Flow field global untuk chase */
+extern FlowField globalFlowField;

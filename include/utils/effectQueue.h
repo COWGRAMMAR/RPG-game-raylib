@@ -16,12 +16,15 @@ struct EffectNode {
 template <typename T>
 class EffectQueue {
 public:
+    /** @brief Constructor */
     EffectQueue() : head(nullptr), tail(nullptr), count(0) {}
     
+    /** @brief Destructor */
     ~EffectQueue() {
         Clear();
     }
 
+    /** @brief Tambah data ke antrian */
     void Enqueue(T data) {
         EffectNode<T>* newNode = new EffectNode<T>{data, nullptr};
         if (tail == nullptr) {
@@ -33,6 +36,7 @@ public:
         count++;
     }
 
+    /** @brief Hapus data dari depan antrian */
     void Dequeue() {
         if (head == nullptr) return;
 
@@ -45,20 +49,24 @@ public:
         count--;
     }
 
+    /** @brief Cek apakah antrian kosong */
     bool IsEmpty() const {
         return head == nullptr;
     }
 
+    /** @brief Kosongkan seluruh antrian */
     void Clear() {
         while (!IsEmpty()) {
             Dequeue();
         }
     }
 
+    /** @brief Ambil jumlah data dalam antrian */
     int Size() const {
         return count;
     }
 
+    /** @brief Ambil node paling depan */
     EffectNode<T>* GetHead() const {
         return head;
     }

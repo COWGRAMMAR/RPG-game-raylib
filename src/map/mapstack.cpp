@@ -112,4 +112,42 @@ namespace MapSystem
         while (!IsEmpty())
             Pop();
     }
+
+    /*==========================================================================
+     * Serialization Helpers
+     *==========================================================================*/
+
+    /**
+     * @brief Ambil semua entry dari stack (top-to-bottom)
+     *
+     * @return Vector berisi entry dari top hingga bottom
+     */
+    std::vector<MapHistoryEntry> MapStack::GetAllEntries() const
+    {
+        std::vector<MapHistoryEntry> entries;
+        MapStackNode *current = top;
+        while (current != nullptr)
+        {
+            entries.push_back(current->data);
+            current = current->next;
+        }
+        return entries;
+    }
+
+    /**
+     * @brief Isi stack dari vector (entries[0] menjadi top)
+     *
+     * Stack akan dikosongkan terlebih dahulu, lalu entry dari vector
+     * dimasukkan sehingga entries[0] ada di posisi teratas.
+     *
+     * @param entries Vector entry yang akan dimasukkan
+     */
+    void MapStack::FromVector(const std::vector<MapHistoryEntry> &entries)
+    {
+        Clear();
+        for (int i = (int)entries.size() - 1; i >= 0; i--)
+        {
+            Push(entries[i].mapPath, entries[i].doorName);
+        }
+    }
 }

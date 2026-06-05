@@ -9,6 +9,7 @@
  */
 
 #include <string>
+#include <vector>
 
 /*==============================================================================
  * MapSystem Namespace
@@ -89,6 +90,18 @@ namespace MapSystem
          * @brief Hapus seluruh isi stack
          */
         void Clear();
+
+        /**
+         * @brief Ambil seluruh entry stack (top-to-bottom)
+         * @return Vector berisi semua entry, elemen pertama = top
+         */
+        std::vector<MapHistoryEntry> GetAllEntries() const;
+
+        /**
+         * @brief Isi stack dari vector (entries[0] menjadi top)
+         * @param entries Vector entry untuk mengisi stack
+         */
+        void FromVector(const std::vector<MapHistoryEntry> &entries);
 
     private:
         MapStackNode *top; // Pointer ke node teratas

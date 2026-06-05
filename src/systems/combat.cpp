@@ -9,11 +9,13 @@
 #include "effects.h"
 #include "propsbehavior.h"
 #include "../lib/raylib/include/raymath.h"
+#include "../../include/systems/audioManager.h"
 #include <algorithm>
 #include <cmath>
 #include <string>
 #include "mapLogic.h"
 #include "propsbehavior.h"
+#include "item.h"
 
 namespace Combat
 {
@@ -35,6 +37,8 @@ namespace Combat
         if (player.Health <= 0)
         {
             player.Health = 0;
+            if (!player.hasDroppedItems)
+                DropAllItems(player);
             PlayAnimation(player.Anim, DEAD, player.Anim.direction);
             player.Anim.isDead = true;
         }
@@ -125,6 +129,7 @@ namespace Combat
                     }
 
                     player.Anim.isAttacking = true;
+                    AudioManager::PlaySfx();
                     TraceLog(LOG_INFO, "PLAYER: Serangan diarahkan ke (%.2f, %.2f)", attackDir.x, attackDir.y);
 
                      const ItemDefinition &def = itemDefs.GetById(activeItem.definitionId);
@@ -432,20 +437,6 @@ namespace Combat
         slashDisplay.flip = !isRight;
 
         DrawFrame(slashFrame, slashDisplay);
-    }
-
-    void HandleRevive(Player &player)
-    {
-        if (player.Anim.isDead)
-        {
-            player.Anim.isDead = false;
-            player.Anim.isAttacking = false;
-            PlayAnimation(player.Anim, IDLE, player.Anim.direction);
-            player.Health = player.MaxHealth;
-            player.Mana = player.MaxMana;
-            player.KnockbackVelocity = {0, 0};
-            TraceLog(LOG_INFO, "PLAYER: Dihidupkan kembali!");
-        }
     }
 
     void PerformHitDetection(Player &player)

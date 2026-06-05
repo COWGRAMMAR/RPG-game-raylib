@@ -11,6 +11,7 @@
 
 #include "game_debug.h"
 #include "../lib/raylib/include/raylib.h"
+#include "input.h"
 #include "../lib/raylib/include/raymath.h"
 #include "screen.h"
 #include "map.h"
@@ -28,28 +29,21 @@
  * Global Variables
  *==============================================================================*/
 
-/** Global instance debug yang dipakai lintas file */
+/** @brief Instance global debug */
 Debug DebugInstance;
 
-/** Flag untuk menentukan apakah debug mode sedang aktif */
+/** @brief Flag debug mode */
 bool isDebugMode = false;
-bool showFlowFieldOverlay = false;       // flag untuk menampilkan overlay flow field return enemy
-bool showFlowFieldOverlayPlayer = false; // flag untuk menampilkan overlay flow field player
+/** @brief Tampilkan overlay flow field enemy */
+bool showFlowFieldOverlay = false;
+/** @brief Tampilkan overlay flow field player */
+bool showFlowFieldOverlayPlayer = false;
 
 /*==============================================================================
  * Private Helper Methods
  *==============================================================================*/
 
-/**
- * @brief Hitung bounds panel berdasarkan urutan tampil
- *
- * Panel disusun dalam layout grid dua kolom dari pojok kiri atas layar.
- *
- * @param index Urutan panel yang akan digambar
- * @param panelWidth Lebar panel
- * @param panelHeight Tinggi panel
- * @return Rectangle posisi dan ukuran panel
- */
+// Hitung bounds panel berdasarkan urutan tampil
 Rectangle Debug::GetPanelBounds(int index, float panelWidth, float panelHeight) const
 {
     // Konfigurasi grid panel debug
@@ -71,13 +65,7 @@ Rectangle Debug::GetPanelBounds(int index, float panelWidth, float panelHeight) 
     return bounds;
 }
 
-/**
- * @brief Bangun daftar panel debug yang aktif
- *
- * Urutan panel dalam vector akan dipakai sebagai urutan layout di layar.
- *
- * @return Vector berisi panel yang akan dirender
- */
+// Bangun daftar panel debug yang aktif
 std::vector<Debug::DebugPanelEntry> Debug::BuildActivePanels(void) const
 {
     std::vector<DebugPanelEntry> panels;
@@ -93,16 +81,7 @@ std::vector<Debug::DebugPanelEntry> Debug::BuildActivePanels(void) const
     return panels;
 }
 
-/**
- * @brief Gambar frame dasar untuk satu panel debug
- *
- * Panel digambar dengan background hitam semi-transparan,
- * border berwarna, dan judul di bagian atas.
- *
- * @param bounds Area panel
- * @param title Judul panel
- * @param borderColor Warna border dan judul
- */
+// Gambar frame dasar untuk satu panel debug
 void Debug::DrawPanelFrame(Rectangle bounds, const char *title, Color borderColor) const
 {
     DrawRectangle((int)bounds.x, (int)bounds.y, (int)bounds.width, (int)bounds.height, Fade(BLACK, 0.7f));
@@ -110,17 +89,7 @@ void Debug::DrawPanelFrame(Rectangle bounds, const char *title, Color borderColo
     DrawText(title, (int)bounds.x + 10, (int)bounds.y + 5, 18, borderColor);
 }
 
-/**
- * @brief Gambar overlay collision untuk layer tertentu
- *
- * Object rectangle digambar sebagai outline rectangle,
- * sedangkan object polygon digambar per edge dan titik sudut.
- *
- * @param layerName Nama layer collision
- * @param rectColor Warna rectangle collision
- * @param polygonColor Warna edge polygon
- * @param pointColor Warna titik polygon
- */
+// Gambar overlay collision untuk layer tertentu
 void Debug::DrawCollisionOverlay(const std::string &layerName, Color rectColor, Color polygonColor, Color pointColor)
 {
     const std::vector<MapObject *> &objs = TilesonGetObjectsByLayerName(layerName.c_str());
@@ -149,13 +118,7 @@ void Debug::DrawCollisionOverlay(const std::string &layerName, Color rectColor, 
     }
 }
 
-/**
- * @brief Gambar overlay raycast interaksi player
- *
- * Titik hit terakhir ditandai jika ada object yang terkena.
- * Garis raycast sudah digambar oleh DrawAimIndicator() di player.cpp
- * dengan logika warna berdasarkan sudut hadap.
- */
+// Gambar overlay raycast interaksi player
 void Debug::DrawRaycastOverlay(void)
 {
     // Gambar titik hit jika ray mengenai object (hanya saat debug mode aktif)
@@ -163,9 +126,7 @@ void Debug::DrawRaycastOverlay(void)
         DrawCircleV(PlayerInstance.LastHit.point, 4.0f, RED);
 }
 
-/**
- * @brief Gambar overlay area serangan player
- */
+// Gambar overlay area serangan player
 void Debug::DrawAttackOverlay(void)
 {
     // Hanya gambar jika player sedang menyerang
@@ -197,18 +158,17 @@ void Debug::DrawAttackOverlay(void)
     }
 
     float rad = angle * (PI / 180.0f);
-    Vector2 forward = { cosf(rad), sinf(rad) };
-    Vector2 right = { -sinf(rad), cosf(rad) };
-    
-    Vector2 edgeCenter = { 
-        playerCenter.x + forward.x * attackerRadius, 
-        playerCenter.y + forward.y * attackerRadius 
-    };
-    
-    Vector2 p1 = { edgeCenter.x + right.x * (breadth / 2.0f), edgeCenter.y + right.y * (breadth / 2.0f) };
-    Vector2 p2 = { edgeCenter.x - right.x * (breadth / 2.0f), edgeCenter.y - right.y * (breadth / 2.0f) };
-    Vector2 p3 = { p1.x + forward.x * reach, p1.y + forward.y * reach };
-    Vector2 p4 = { p2.x + forward.x * reach, p2.y + forward.y * reach };
+    Vector2 forward = {cosf(rad), sinf(rad)};
+    Vector2 right = {-sinf(rad), cosf(rad)};
+
+    Vector2 edgeCenter = {
+        playerCenter.x + forward.x * attackerRadius,
+        playerCenter.y + forward.y * attackerRadius};
+
+    Vector2 p1 = {edgeCenter.x + right.x * (breadth / 2.0f), edgeCenter.y + right.y * (breadth / 2.0f)};
+    Vector2 p2 = {edgeCenter.x - right.x * (breadth / 2.0f), edgeCenter.y - right.y * (breadth / 2.0f)};
+    Vector2 p3 = {p1.x + forward.x * reach, p1.y + forward.y * reach};
+    Vector2 p4 = {p2.x + forward.x * reach, p2.y + forward.y * reach};
 
     // Fill rotated rectangle
     Color fillColor = Fade(RED, 0.3f);
@@ -226,7 +186,7 @@ void Debug::DrawAttackOverlay(void)
     float maxX = std::max({p1.x, p2.x, p3.x, p4.x});
     float minY = std::min({p1.y, p2.y, p3.y, p4.y});
     float maxY = std::max({p1.y, p2.y, p3.y, p4.y});
-    Rectangle aabb = { minX, minY, maxX - minX, maxY - minY };
+    Rectangle aabb = {minX, minY, maxX - minX, maxY - minY};
     DrawRectangleLinesEx(aabb, 1.0f, Fade(ORANGE, 0.5f));
 
     // Gambar titik hit jika ray mengenai object
@@ -237,9 +197,7 @@ void Debug::DrawAttackOverlay(void)
     DrawText("Attack Area (Rotated OBB)", (int)minX, (int)minY - 14, 14, RED);
 }
 
-/**
- * @brief Gambar titik spawn musuh yang terdeteksi dari data map
- */
+// Gambar titik spawn musuh yang terdeteksi dari data map
 void Debug::DrawEnemySpawnOverlay(void)
 {
     if (tilesonMap == nullptr)
@@ -311,18 +269,26 @@ void Debug::DrawEnemySpawnOverlay(void)
  */
 void Debug::Toggle(void)
 {
-    if (IsKeyPressed(KEY_TAB))
+    const InputState& in = InputInstance.GetState();
+
+    if (in.debugToggle)
     {
         isDebugMode = !isDebugMode;
         TraceLog(LOG_INFO, "Debug mode: %s", isDebugMode ? "ON" : "OFF");
     }
-    if (IsKeyPressed(KEY_BACKSLASH))
+    if (in.debugToggleEnemy)
     {
         showFlowFieldOverlay = !showFlowFieldOverlay;
     }
-    if (IsKeyPressed(KEY_RIGHT_BRACKET))
+    if (in.debugTogglePlayer)
     {
         showFlowFieldOverlayPlayer = !showFlowFieldOverlayPlayer;
+    }
+
+    if (isDebugMode && IsKeyPressed(KEY_K))
+    {
+        PlayerInstance.Health = 0;
+        TraceLog(LOG_INFO, "DEBUG: Player health set to 0");
     }
 }
 
@@ -426,10 +392,10 @@ void Debug::DrawZoomPanel(Rectangle bounds)
     const float ZOOM_INCREMENT = 0.25f;
 
     // Handle zoom dengan scroll mouse
-    float MouseWheel = GetMouseWheelMove();
-    if (MouseWheel != 0)
+    float mouseWheel = GetMouseWheelMove();
+    if (mouseWheel != 0)
     {
-        camera.zoom += MouseWheel * ZOOM_INCREMENT;
+        camera.zoom += mouseWheel * ZOOM_INCREMENT;
         if (camera.zoom > MAX_ZOOM)
             camera.zoom = MAX_ZOOM;
         if (camera.zoom < MIN_ZOOM)
@@ -547,6 +513,7 @@ void Debug::DrawWorldOverlay(void)
     DrawCollisionOverlay(OBJECT_LAYER_NAME, SKYBLUE, SKYBLUE, LIGHTGRAY);
     DrawCollisionOverlay(TRAP_LAYER_NAME, BEIGE, BEIGE, LIGHTGRAY);
     DrawCollisionOverlay(ITEM_LAYER_NAME, PINK, PINK, LIGHTGRAY);
+    DrawCollisionOverlay(EXIT_LAYER_NAME, BLACK, BLACK, LIGHTGRAY);
     DrawAttackOverlay();
     if (showFlowFieldOverlayPlayer)
     {

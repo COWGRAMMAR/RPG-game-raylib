@@ -877,7 +877,8 @@ void ClearSavedState(void)
         {
             if (entry.is_directory() && entry.path().string().find("save_") != std::string::npos)
             {
-                std::filesystem::remove_all(entry.path());
+                std::error_code ec;
+                std::filesystem::remove_all(entry.path(), ec);
                 TraceLog(LOG_INFO, "[ClearSavedState] Removed stale worldgen save: %s", entry.path().string().c_str());
             }
         }

@@ -573,6 +573,11 @@ static void LoadSFXToPool(const std::string& name, const char* path) {
     if (!IsAudioDeviceReady()) return;
 
     Sound original = LoadSound(path);
+    if (original.frameCount == 0) {
+        TraceLog(LOG_WARNING, "SFX: Failed to load %s, alias creation skipped.", path);
+        return;
+    }
+    
     SoundPool pool;
     pool.sounds[0] = original;
     for (int i = 1; i < 4; i++) {
@@ -584,7 +589,7 @@ static void LoadSFXToPool(const std::string& name, const char* path) {
 
 void InitSFX()
 {
-    LoadSFXToPool("slash_hero", "assets/audio/sfx/666herohero-slash-21834.mp3");
+    LoadSFXToPool("slash_hero", "assets/audio/sfx/SwordSlash.mp3");
     LoadSFXToPool("arrow", "assets/audio/sfx/arrow.mp3");
     LoadSFXToPool("attack", "assets/audio/sfx/attack.mp3");
     LoadSFXToPool("chest", "assets/audio/sfx/chest.mp3");

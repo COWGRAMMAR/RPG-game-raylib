@@ -98,8 +98,9 @@ void UpdateMainMenu(GameState *state)
                     else
                     {
                         // Bersihkan per-map state dari sesi sebelumnya
-                        std::filesystem::remove_all("saves/enemies");
-                        std::filesystem::remove_all("saves/items");
+                        std::error_code ec;
+                        std::filesystem::remove_all("saves/enemies", ec);
+                        std::filesystem::remove_all("saves/items", ec);
                         state->enteredLoading = false;
                         state->currentScreen = LOADING;
                     }
@@ -149,8 +150,9 @@ void UpdateMainMenu(GameState *state)
             // Clean up per-map persistence from previous session so enemies/items
             // spawn fresh instead of being loaded as dead from old save files
             Entities::SetDeadEntities({});
-            std::filesystem::remove_all("saves/enemies");
-            std::filesystem::remove_all("saves/items");
+            std::error_code ec;
+            std::filesystem::remove_all("saves/enemies", ec);
+            std::filesystem::remove_all("saves/items", ec);
             state->enteredLoading = false;
             state->currentScreen = LOADING;
             waitingStartConfirm = false;

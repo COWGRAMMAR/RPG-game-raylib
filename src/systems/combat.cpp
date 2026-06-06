@@ -155,9 +155,9 @@ namespace Combat
                         {
                             AudioManager::PlaySFX("rifle");
                         }
-                        else if (player.attack.weapon->attackType == ATTACK_SLAM)
+                        else if (player.attack.weapon->attackType == ATTACK_SLAM || def.spriteKey == "hammer")
                         {
-                            AudioManager::PlaySFX("slash-mid");
+                            AudioManager::PlaySFX("slam");
                         }
                     }
 

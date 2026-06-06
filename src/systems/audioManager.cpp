@@ -362,6 +362,7 @@ void AudioManager::InitSFX()
     LoadSFXToPool("inventori", "assets/audio/sfx/inventori.mp3");
     LoadSFXToPool("pickup-item", "assets/audio/sfx/pickup-item.mp3");
     LoadSFXToPool("rifle", "assets/audio/sfx/rifle.mp3");
+    LoadSFXToPool("slam", "assets/audio/sfx/slam.mp3");
     LoadSFXToPool("slash-mid", "assets/audio/sfx/slash-mid.mp3");
     LoadSFXToPool("slash-short", "assets/audio/sfx/slash-short.mp3");
     LoadSFXToPool("walk", "assets/audio/sfx/walk.mp3");

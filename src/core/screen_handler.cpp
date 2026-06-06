@@ -222,7 +222,11 @@ void UpdateLogicAll()
         int id = spawnFlowFieldRebuildQueue.front();
         spawnFlowFieldRebuildQueue.pop();
         auto &entry = spawnFlowFields[id];
-        entry.field.Build(entry.spawnPos, tilesonMap->width, tilesonMap->height, FLOW_FIELD_RETURN_RADIUS);
+        if (entry.isDirty)
+        {
+            entry.field.Build(entry.spawnPos, tilesonMap->width, tilesonMap->height, FLOW_FIELD_RETURN_RADIUS);
+            entry.isDirty = false;
+        }
     }
 
     RebuildSpatialHash(Entities::GetEnemyRegistry());

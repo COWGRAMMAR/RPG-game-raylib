@@ -107,6 +107,8 @@ void SpawnObject()
     signManager.SpawnSigns(signObjs);
 }
 
+static bool g_PendingObstacleRebuild = false;
+
 /**
  * @brief Trigger hit attack player ke semua props yang bisa bereaksi terhadap serangan.
  * @param attackHitbox Hitbox serangan player
@@ -115,9 +117,17 @@ void SpawnObject()
  */
 void HitPropsByAttack(Rectangle attackHitbox, Rectangle playerBounds, Player *player)
 {
+    g_PendingObstacleRebuild = false;
+
     bombManager.HitByAttack(attackHitbox, playerBounds, player);
 
     crateManager.HitByAttack(attackHitbox);
+
+    if (g_PendingObstacleRebuild)
+    {
+        RebuildObstacleCache();
+        g_PendingObstacleRebuild = false;
+    }
 }
 
 /*==============================================================================
@@ -613,7 +623,7 @@ void BombManager::Explode(BombData &bomb, Rectangle playerBounds, Player *player
                        { return r.x == bomb.tile.bounds.x && r.y == bomb.tile.bounds.y; }),
         DynamicObstacles.end());
     MarkSpawnFlowFieldsDirty(bomb.tile.position);
-    RebuildObstacleCache();
+    g_PendingObstacleRebuild = true;
 
     Vector2 bombCenter = {
         bomb.tile.position.x + FRAME_SIZE / 2.0f,
@@ -852,7 +862,7 @@ void CrateManager::Destroy(CrateData &crate)
                        { return r.x == crate.tile.bounds.x && r.y == crate.tile.bounds.y; }),
         DynamicObstacles.end());
     MarkSpawnFlowFieldsDirty(crate.tile.position);
-    RebuildObstacleCache();
+    g_PendingObstacleRebuild = true;
 
     TriggerLoot(crate.tile);
 }

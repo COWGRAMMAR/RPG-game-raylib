@@ -603,7 +603,13 @@ void MarkSpawnFlowFieldsDirty(Vector2 position)
     {
         float dist = Vector2Distance(entry.spawnPos, position);
         if (dist < FLOW_FIELD_RETURN_RADIUS * FLOW_FIELD_TILE_SIZE)
-            spawnFlowFieldRebuildQueue.push(id);
+        {
+            if (!entry.isDirty)
+            {
+                entry.isDirty = true;
+                spawnFlowFieldRebuildQueue.push(id);
+            }
+        }
     }
 }
 

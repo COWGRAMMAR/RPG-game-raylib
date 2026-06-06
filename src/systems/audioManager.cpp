@@ -366,7 +366,15 @@ void AudioManager::InitSFX()
     LoadSFXToPool("slash-mid", "assets/audio/sfx/slash-mid.mp3");
     LoadSFXToPool("slash-short", "assets/audio/sfx/slash-short.mp3");
     LoadSFXToPool("walk", "assets/audio/sfx/walk.mp3");
-    TraceLog(LOG_INFO, "SFX: Successfully loaded all sound effects");
+
+    // Pre-warm audio to prevent first-play lag on Windows
+    for (auto &pair : loadedSFX)
+    {
+        SetSoundVolume(pair.second.sounds[0], 0.0f);
+        PlaySound(pair.second.sounds[0]);
+    }
+
+    TraceLog(LOG_INFO, "SFX: Successfully loaded and pre-warmed all sound effects");
 }
 
 void AudioManager::CloseSFX()

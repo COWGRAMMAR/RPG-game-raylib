@@ -11,6 +11,7 @@
  */
 
 #include "enemy.h"
+#include "../../../include/systems/audioManager.h"
 #include "screen.h"
 #include "enemy_ai.h"
 #include "player.h"
@@ -598,7 +599,7 @@ void Enemy::PerformAttack()
 void Enemy::TakeDamage(float amount, Vector2 knockback)
 {
     Entity::TakeDamage(amount, knockback);
-    PlaySFX("attack");
+    AudioManager::PlaySFX("attack");
     HitFlashTimer = 0.15f;
     KnockbackVelocity = Vector2Scale(knockback, 5.0f);
     HealthRegenTimer = Def->stats.healthRegenDelay;

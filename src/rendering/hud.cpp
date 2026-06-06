@@ -1,4 +1,5 @@
 #include "hud.h"
+#include "../../include/systems/audioManager.h"
 #include "player.h"
 #include "animation.h"
 #include "inventory.h"
@@ -692,11 +693,11 @@ void DrawPlayerHUD()
 
     if (initialDragSlot == -1 && dragSlot != -1)
     {
-        PlaySFX("inventori");
+        AudioManager::PlaySFX("inventori");
     }
     else if (initialDragSlot != -1 && dragSlot == -1)
     {
-        PlaySFX("inventori");
+        AudioManager::PlaySFX("inventori");
     }
 }
 

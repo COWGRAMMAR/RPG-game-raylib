@@ -4,6 +4,7 @@
 #include "screen.h"
 #include "input.h"
 #include "animation.h"
+#include "../../include/systems/audioManager.h"
 #include "game_debug.h"
 #include "effects.h"
 #include "../lib/raylib/include/raymath.h"
@@ -121,7 +122,7 @@ namespace Movement
             player.DashSpeed = player.DashMaxSpeed;
             player.Mana -= player.DashManaCost;
             player.ManaRegenTimer = player.ManaRegenDelay;
-            PlaySFX("dash");
+            AudioManager::PlaySFX("dash");
         }
 
         if (player.IsDashing)

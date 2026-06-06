@@ -12,6 +12,8 @@
 #include "../lib/raylib/include/raylib.h"
 #include "../core/screen.h"
 
+#include <string>
+
 /**
  * @brief Audio Manager — namespace dengan free functions
  *
@@ -128,12 +130,9 @@ void StopMusic();
  * SFX Control
  *------------------------------------------------------------------------------*/
 
-/**
- * @brief Memainkan efek suara (SFX) untuk serangan player
- *
- * Volume SFX dipengaruhi oleh _sfxVolume * _masterVolume.
- * Aman dipanggil dari combat.cpp saat player melee attack.
- */
-void PlaySfx();
+
+void InitSFX();
+void CloseSFX();
+void PlaySFX(const std::string &name);
 
 }  // namespace AudioManager

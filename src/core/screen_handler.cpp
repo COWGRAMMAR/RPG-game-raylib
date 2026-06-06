@@ -40,6 +40,7 @@
 #include <algorithm>
 #include <cctype>
 #include <filesystem>
+#include "../../include/systems/audioManager.h"
 #include "hud.h"
 #include "propsbehavior.h"
 #include "seedmanager.h"
@@ -300,7 +301,7 @@ void UpdateLogicAll()
             {
                 TraceLog(LOG_INFO, "PICKUP: added to inventory");
                 item.isAdded = true;
-                PlaySFX("pickup-item");
+                AudioManager::PlaySFX("pickup-item");
                 
                 const ItemDefinition &def = itemDefs.GetById(item.definitionId);
                 std::string logMsg = def.name;
@@ -445,7 +446,7 @@ Vector2 GetVirtualMousePosition(GameState *state)
 void GameShutDown(GameState *state)
 {
     CloseTextures();
-    CloseSFX();
+    AudioManager::CloseSFX();
     UnloadFonts();
 
     Entities::Shutdown();

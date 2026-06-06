@@ -13,6 +13,7 @@
  */
 
 #include "propsbehavior.h"
+#include "../../include/systems/audioManager.h"
 #include "item.h"
 #include "enemy.h"
 #include "enemy_ai.h"
@@ -239,7 +240,7 @@ void ChestManager::Interact(Vector2 hitPos)
     if (!chest || chest->state == ObjectState::Open)
         return;
     chest->state = ObjectState::Open;
-    PlaySFX("chest");
+    AudioManager::PlaySFX("chest");
     consumedPositions.insert(EncodePos(chest->position));
     TriggerLoot(*chest);
 }
@@ -602,7 +603,7 @@ void BombManager::Explode(BombData &bomb, Rectangle playerBounds, Player *player
     bomb.isTriggered = true;
     bomb.explosionTimer = BOMB_EXPLOSION_DURATION;
     
-    PlaySFX("explosion");
+    AudioManager::PlaySFX("explosion");
 
     consumedPositions.insert(EncodePos(bomb.tile.position));
 
@@ -844,7 +845,7 @@ void CrateManager::Destroy(CrateData &crate)
     crate.isAlive = false;
     consumedPositions.insert(EncodePos(crate.tile.position));
 
-    PlaySFX("crate");
+    AudioManager::PlaySFX("crate");
 
     DynamicObstacles.erase(
         std::remove_if(DynamicObstacles.begin(), DynamicObstacles.end(), [&](const Rectangle &r)

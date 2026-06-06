@@ -23,6 +23,7 @@
 #include "entities.h"
 #include "item.h"
 #include "core/utils.h"
+#include <map>
 #include "core/game_state_saver.h"
 #include <cmath>
 #include <fstream>
@@ -222,8 +223,15 @@ void Enemy::Update()
             DetectionRange = Def->stats.baseDetectionRange;
             Entities::RegisterDeath(GetCurrentMapPath(), MapObjectID);
 
-            if (!Def->stats.canTriggerTurnBased)
-                itemData.SpawnItemAtLocation(Position);
+            if (!Def->stats.canTriggerTurnBased) {
+                if (rank == ENEMY_ELITE) {
+                    static const std::map<ItemRarity, int> eliteWeights = {{RARITY_UNCOMMON, 70}, {RARITY_RARE, 30}};
+                    itemData.SpawnItemAtLocation(Position, eliteWeights);
+                } else {
+                    static const std::map<ItemRarity, int> normalWeights = {{RARITY_COMMON, 80}, {RARITY_UNCOMMON, 20}};
+                    itemData.SpawnItemAtLocation(Position, normalWeights);
+                }
+            }
         }
 
         DeathTimer += Time::DELTA_TIME;
@@ -285,8 +293,12 @@ void Enemy::Update()
 void Enemy::UpdateAI()
 {
     // Turn-based trigger: boss dengan HP ≤ 50% memicu combat turn-based
-    if (Def->stats.canTriggerTurnBased && Health <= MaxHealth * 0.5f)
-        isTurnBasedMode = true;
+    if (Def->stats.canTriggerTurnBased) {
+        if (Health <= MaxHealth * 0.5f)
+            isTurnBasedMode = true;
+        else
+            isTurnBasedMode = false;
+    }
 
     // Jika player mati, paksa idle agar enemy tidak terus mengejar posisi terakhir
     if (!PlayerInstance.IsAlive())
@@ -650,7 +662,9 @@ void Enemy::Render()
 
     if (shouldDraw)
     {
-        Color tint = (HitFlashTimer > 0) ? RED : WHITE;
+        Color tint = WHITE;
+        if (HitFlashTimer > 0) tint = RED;
+        else if (!isTurnBasedMode && rank == ENEMY_BOSS) tint = YELLOW;
         DrawAnimation(Anim, tint, Def->Scale);
     }
 

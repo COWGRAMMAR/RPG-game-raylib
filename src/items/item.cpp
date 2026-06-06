@@ -341,6 +341,16 @@ void ItemDataManager::SpawnItemAtLocation(Vector2 pos, std::mt19937 *rng, ItemCa
     activeItems.push_back(CreateItem(pos, defId));
 }
 
+void ItemDataManager::SpawnItemAtLocation(Vector2 pos, const std::map<ItemRarity, int> &weights, std::mt19937 *rng)
+{
+    std::mt19937 localRng(static_cast<unsigned int>(time(nullptr)));
+    std::mt19937 &useRng = rng ? *rng : localRng;
+    int defId = spawnManager.PickRandomDefinitionId(useRng, weights);
+    if (defId == -1)
+        return;
+    activeItems.push_back(CreateItem(pos, defId));
+}
+
 /**
  * @brief Simpan state activeItems untuk map tertentu
  * @param mapPath Path map sebagai key penyimpanan
@@ -859,6 +869,53 @@ int ItemSpawnManager::PickRandomDefinitionId(std::mt19937 &rng, ItemCategory fil
         return -1; // gak ada item yang cocok
 
     // Pilih random dari item dengan rarity itu
+    std::uniform_int_distribution<int> idxDist(0, (int)byRarity[pickedRarity].size() - 1);
+    return byRarity[pickedRarity][idxDist(rng)];
+}
+
+// Pilih definitionId random dengan weight map kustom (untuk enemy drops)
+int ItemSpawnManager::PickRandomDefinitionId(std::mt19937 &rng, const std::map<ItemRarity, int> &weights, ItemCategory filterCategory)
+{
+    // Kumpulkan semua item per rarity
+    std::map<ItemRarity, std::vector<int>> byRarity;
+    for (const auto &[name, def] : itemDefs.GetAll())
+    {
+        if (filterCategory != ITEM_ANY && def.category != filterCategory)
+            continue;
+        byRarity[def.rarity].push_back(def.id);
+    }
+
+    // Hitung total weight dari rarity yang ada itemnya
+    int total = 0;
+    for (const auto &[rarity, weight] : weights)
+    {
+        if (!byRarity[rarity].empty())
+            total += weight;
+    }
+
+    if (total == 0)
+        return -1;
+
+    std::uniform_int_distribution<int> rollDist(1, total);
+    int roll = rollDist(rng);
+
+    int cumulative = 0;
+    ItemRarity pickedRarity = weights.begin()->first;
+    for (const auto &[rarity, weight] : weights)
+    {
+        if (byRarity[rarity].empty())
+            continue;
+        cumulative += weight;
+        if (roll <= cumulative)
+        {
+            pickedRarity = rarity;
+            break;
+        }
+    }
+
+    if (byRarity[pickedRarity].empty())
+        return -1;
+
     std::uniform_int_distribution<int> idxDist(0, (int)byRarity[pickedRarity].size() - 1);
     return byRarity[pickedRarity][idxDist(rng)];
 }

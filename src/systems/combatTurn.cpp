@@ -4,6 +4,7 @@
 #include "item.h"
 #include "inventory.h"
 #include "screen.h"
+#include "audioManager.h"
 #include "animation.h"
 #include "map.h"
 #include "../lib/raylib/include/raylib.h"
@@ -93,7 +94,10 @@ void TurnCombat::Init(Enemy* boss, Player* player) {
     state.zoomTimer = 0.5f;
 
     // Player faces right during combat
-    player->Anim.direction = RIGHT;
+    PlayAnimation(player->Anim, IDLE, RIGHT);
+
+    // Play boss theme
+    AudioManager::PlayTrack("Boss");
 }
 
 static void TransitionTo(TurnPhase newPhase) {
@@ -312,10 +316,11 @@ void TurnCombat::Update() {
             state.keyProcessed = true;
             state.timer = 1.0f;
             state.boss->HitFlashTimer = 0.3f;
+            AudioManager::PlaySfx();
 
             // Trigger sword swing arc in front of player
             Player& p = *state.player;
-            p.Anim.direction = RIGHT;
+            PlayAnimation(p.Anim, IDLE, RIGHT);
             InventoryItem activeItem = Inventory::GetActiveHotbarItem(p);
             if (activeItem.definitionId != -1) {
                 const ItemDefinition &def = itemDefs.GetById(activeItem.definitionId);
@@ -441,6 +446,7 @@ void TurnCombat::Update() {
         if (state.lootCount == 0) {
             GrantBossLoot();
             state.message = "Boss dikalahkan! Loot didapat:";
+            AudioManager::PlayTrack("Win");
         }
         if (state.combatTimer >= 1.0f && (IsKeyPressed(KEY_ENTER) || IsMouseButtonPressed(MOUSE_LEFT_BUTTON))) {
             state.boss->Health = 0;
@@ -452,7 +458,6 @@ void TurnCombat::Update() {
 
     case TurnPhase::DEFEAT: {
         if (!state.keyProcessed) {
-            state.player->Anim.direction = RIGHT;
             PlayAnimation(state.player->Anim, DEAD, RIGHT);
             state.player->Anim.isDead = true;
             state.keyProcessed = true;
@@ -623,7 +628,7 @@ void TurnCombat::Draw() {
             int textW = MeasureText(itemText, 20);
             int groupW = iconSize + gap + textW;
             int groupX = (GameScreenWidth - groupW) / 2;
-            Rectangle iconDest = {(float)groupX, (float)itemY, (float)iconSize, (float)iconSize};
+            Rectangle iconDest = {(float)groupX, (float)itemY - 3, (float)iconSize, (float)iconSize};
             Display iconDisplay = {{iconDest.x, iconDest.y}, (int)iconDest.width, {0,0}, {0,0}, 0.0f, WHITE};
             DrawFrame(def.spriteKey, iconDisplay);
             DrawText(itemText, groupX + iconSize + gap, itemY + 4, 20, LIGHTGRAY);
@@ -633,21 +638,6 @@ void TurnCombat::Draw() {
     } else if (state.phase == TurnPhase::DEFEAT) {
         // Darken screen
         DrawRectangle(0, 0, GameScreenWidth, GameScreenHeight, ColorAlpha(BLACK, 0.5f));
-
-        // Big KALAH text with red outline
-        const char *kalahText = "KALAH";
-        int fontSize = 80;
-        int textW = MeasureText(kalahText, fontSize);
-        int textX = (GameScreenWidth - textW) / 2;
-        int textY = GameScreenHeight / 2 - fontSize / 2;
-
-        DrawText(kalahText, textX - 3, textY, fontSize, RED);
-        DrawText(kalahText, textX + 3, textY, fontSize, RED);
-        DrawText(kalahText, textX, textY - 3, fontSize, RED);
-        DrawText(kalahText, textX, textY + 3, fontSize, RED);
-        DrawText(kalahText, textX, textY, fontSize, WHITE);
-
-        DrawTextCentered("Tekan ENTER atau klik untuk melanjutkan.", GameScreenHeight - 60, 20, LIGHTGRAY);
     }
 
     // Phase indicator
@@ -660,7 +650,7 @@ void TurnCombat::Draw() {
     case TurnPhase::SHOW_RESULT: phaseText = "Boss sedang menyerang!"; break;
     case TurnPhase::BOSS_TURN: phaseText = "Giliran Boss"; break;
     case TurnPhase::VICTORY: phaseText = "MENANG!"; break;
-    case TurnPhase::DEFEAT: phaseText = "KALAH!"; break;
+    case TurnPhase::DEFEAT: phaseText = ""; break;
     default: break;
     }
     DrawTextCentered(phaseText, GameScreenHeight - 120, 18, LIGHTGRAY);
@@ -688,6 +678,9 @@ void TurnCombat::Shutdown() {
     // Restore camera
     camera.target = state.origCameraTarget;
     camera.zoom = state.origCameraZoom;
+
+    // Resume normal screen-based music
+    AudioManager::ResetToScreenTrack();
 }
 
 TurnPhase TurnCombat::GetPhase() {

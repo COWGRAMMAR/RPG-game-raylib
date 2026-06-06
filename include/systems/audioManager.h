@@ -124,6 +124,14 @@ void PlayTrack(const char* trackName);
 /** @brief Menghentikan semua music playback */
 void StopMusic();
 
+/**
+ * @brief Reset auto-switch biar track musik layar diputer ulang
+ *
+ * Panggil setelah turn-based combat selesai agar musik PLAY (DungeonMusic)
+ * kembali otomatis.
+ */
+void ResetToScreenTrack();
+
 /*------------------------------------------------------------------------------
  * SFX Control
  *------------------------------------------------------------------------------*/

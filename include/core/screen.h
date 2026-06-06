@@ -38,10 +38,13 @@ extern const int GameScreenHeight;
  */
 enum ScreenState : std::uint8_t
 {
-    MAIN_MENU, // State menu utama
-    LOADING,   // State loading aset
-    PLAY,      // State gameplay aktif
-    OPTIONS    // State menu pengaturan
+    MAIN_MENU,  // State menu utama
+    LOADING,    // State loading aset
+    PLAY,       // State gameplay aktif
+    OPTIONS,    // State menu pengaturan
+    GAME_OVER,  // State game over
+    /** @brief State menu simpan/muat */
+    SAVE_LOAD   // State menu simpan/muat
 };
 
 
@@ -75,6 +78,9 @@ struct GameState
     bool isGoingBack;            // Flag menandakan sedang dalam proses kembali ke map sebelumnya
     std::string pendingMapPath;  // Path map tujuan yang akan dimuat
     std::string pendingDoorName; // Nama door atau spawn point tujuan
+
+    /* Revive State Variables */
+    Vector2 startSpawnPos{};     // Posisi spawn start room untuk revive
 };
 
 /** @brief Pointer global ke GameState aktif */
@@ -155,6 +161,12 @@ void SetResolution(int width, int height);
  * @return Rectangle berisi width dan height
  */
 Rectangle GetCurrentResolution(void);
+
+/**
+ * @brief Gambar background gradient yang seragam untuk semua layar non-gameplay
+ * (main menu, loading screen, dll). Nantinya bisa diganti dengan animated BG.
+ */
+void DrawMenuBackground(void);
 
 /**
  * @brief Ambil resolusi monitor utama

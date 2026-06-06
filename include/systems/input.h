@@ -26,8 +26,6 @@ struct InputState
     bool moveRight;
 
     bool interact;
-    bool kill;
-    bool revive;
     bool toggleInventory;
     bool toggleMap;
     bool leftClickPressed;
@@ -45,8 +43,6 @@ struct InputState
     bool selectSlot2;
     bool selectSlot3;
     bool selectSlot4;
-
-    bool testLoseHP;
 
     // Absorbed from rogues (were hardcoded in main.cpp / debugmode.cpp)
     bool pauseMenu;
@@ -89,8 +85,6 @@ public:
     bool IsMoving() const { return Current.moveUp || Current.moveDown || Current.moveLeft || Current.moveRight; }
     /** @brief Cek apakah player menekan interact */
     bool IsInteract() const { return Current.interact; }
-    /** @brief Cek apakah player menekan revive */
-    bool IsRevive() const { return Current.revive; }
     /** @brief Cek toggle inventory */
     bool IsToggleInventory() const { return Current.toggleInventory; }
     /** @brief Cek toggle map */
@@ -123,11 +117,9 @@ public:
     bool IsSelectSlot3() const { return Current.selectSlot3; }
     /** @brief Cek select slot 4 */
     bool IsSelectSlot4() const { return Current.selectSlot4; }
-    /** @brief Cek test lose HP */
-    bool IsTestLoseHP() const { return Current.testLoseHP; }
     /** @brief Ambil slot aktif */
     ItemSlot GetActiveSlot() const { return ActiveSlot; }
-    /** @brief Cek apakah inventory terbuka */
+    void SetActiveSlot(ItemSlot slot) { ActiveSlot = slot; }
     bool IsInventoryOpen() const { return InventoryOpen; }
     /** @brief Cek apakah map terbuka */
     bool IsMapOpen() const { return MapOpen; }

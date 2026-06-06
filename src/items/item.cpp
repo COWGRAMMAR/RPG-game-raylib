@@ -11,6 +11,8 @@
  */
 
 #include "item.h"
+// include fonts.h untuk fontLoadingTitle
+#include "fonts.h"
 #include "screen.h"
 #include "inventory.h"
 #include "combat.h"
@@ -23,9 +25,12 @@
 #include "datadriven.h"
 #include "../lib/json/include/nlohmann/json.hpp"
 #include "../lib/raylib/include/raymath.h"
+#include "core/utils.h"
+#include "core/game_state_saver.h"
 #include <iostream>
 #include <vector>
 #include <fstream>
+#include <filesystem>
 #include <stdexcept>
 
 using json = nlohmann::json;
@@ -78,6 +83,33 @@ void SpawnRandomItem()
 
 /** @brief Getter untuk activeItems */
 std::vector<ItemSpawn> &GetActiveItems() { return itemData.activeItems; }
+
+/** @brief Drop semua item player ke ground dengan spread offset */
+void DropAllItems(Player &player)
+{
+    constexpr int SPREAD = 40;
+    constexpr int EMPTY_ID = -1;
+
+    auto DropSlot = [&](InventoryItem &slot)
+    {
+        if (slot.definitionId == EMPTY_ID || slot.amount <= 0)
+            return;
+        Vector2 dropPos = {
+            player.Position.x + (float)GetRandomValue(-SPREAD, SPREAD),
+            player.Position.y + (float)GetRandomValue(-SPREAD, SPREAD)};
+        ItemSpawn item = itemData.CreateItem(dropPos, slot.definitionId);
+        item.amount = slot.amount;
+        itemData.activeItems.push_back(item);
+        slot = {EMPTY_ID, 0};
+    };
+
+    for (int i = 0; i < player.GetMaxHotbar(); i++)
+        DropSlot(player.GetHotbarItem(i));
+    for (int i = 0; i < player.GetMaxBag(); i++)
+        DropSlot(player.GetBagItem(i));
+
+    player.hasDroppedItems = true;
+}
 
 /*==============================================================================
  * ItemDefinitionManager
@@ -146,7 +178,7 @@ void ItemDefinitionManager::Load(const std::string &path)
             wd.damage = SafeGet<float>(w, "damage", 10.f);                    // nilai fallback 10
             wd.reach = SafeGet<float>(w, "reach", 10.f);                      // nilai fallback 10
             wd.breadth = SafeGet<float>(w, "breadth", 10.f);                  // nilai fallback 10
-            wd.duration = SafeGet<float>(w, "duration", 0.9f);                 // nilai fallback 0.9
+            wd.duration = SafeGet<float>(w, "duration", 0.9f);                // nilai fallback 0.9
             wd.knockbackForce = SafeGet<float>(w, "knockbackForce", 1.f);     // nilai fallback 1
             wd.startAngleOffset = SafeGet<float>(w, "startAngleOffset", 0.f); // nilai fallback 0
             wd.sweepAngle = SafeGet<float>(w, "sweepAngle", 0.f);             // nilai fallback 0
@@ -216,6 +248,21 @@ const std::unordered_map<std::string, ItemDefinition> &ItemDefinitionManager::Ge
     return definitions_;
 }
 
+Vector2 ItemDefinitionManager::GetMaxHitboxForCategory(ItemCategory category) const
+{
+    Vector2 maxSize = {0, 0};
+    for (const auto &[name, def] : definitions_)
+    {
+        if (category != ITEM_ANY && def.category != category)
+            continue;
+        if (def.hitboxSize.x > maxSize.x)
+            maxSize.x = def.hitboxSize.x;
+        if (def.hitboxSize.y > maxSize.y)
+            maxSize.y = def.hitboxSize.y;
+    }
+    return maxSize;
+}
+
 /*==============================================================================
  * ItemDataSpawnManager
  *==============================================================================*/
@@ -245,9 +292,13 @@ ItemSpawn ItemDataManager::CreateItem(Vector2 pos, int definitionId)
     // cari posisi aman, maksimal `spawnPosRetryLimit` attempt
     int spawnPosRetryLimit = 5;
     Vector2 safePos = pos;
+    float halfW = def.hitboxSize.x / 2.0f;
+    float halfH = def.hitboxSize.y / 2.0f;
     for (int i = 0; i < spawnPosRetryLimit; i++)
     {
-        if (IsPositionSafe(safePos, def.hitboxSize.x, def.hitboxSize.y, 0, 0))
+        // Convert center→top-left karena IsPositionSafe expect top-left
+        Vector2 topLeft = {safePos.x - halfW, safePos.y - halfH};
+        if (IsPositionSafe(topLeft, def.hitboxSize.x, def.hitboxSize.y, 0, 0))
             break;
         safePos = {
             pos.x + (float)GetRandomValue(-32, 32),
@@ -256,17 +307,19 @@ ItemSpawn ItemDataManager::CreateItem(Vector2 pos, int definitionId)
 
     ItemSpawn item;
     item.definitionId = definitionId;
-    item.position = pos;
-    item.hitbox = {pos.x - def.hitboxSize.x / 2,
-                   pos.y - def.hitboxSize.y / 2,
+    item.position = safePos;
+    item.hitbox = {safePos.x - halfW,
+                   safePos.y - halfH,
                    def.hitboxSize.x,
                    def.hitboxSize.y};
     item.isPickedUp = false;
     item.isAdded = false;
     item.spawnTime = (float)GetTime();
 
+    item.uuid = GenerateUUID();
+
     TraceLog(LOG_INFO, "ITEM: Spawned '%s' at (%.1f, %.1f)",
-             def.name.c_str(), pos.x, pos.y);
+             def.name.c_str(), safePos.x, safePos.y);
     return item;
 }
 
@@ -321,6 +374,158 @@ bool ItemDataManager::LoadItemsForMap(const std::string &mapPath)
 void ItemDataManager::ClearItems()
 {
     activeItems.clear();
+}
+
+/*==============================================================================
+ * Per-Map File Persistence
+ *==============================================================================*/
+
+/**
+ * @brief Simpan semua item aktif untuk suatu map ke filesystem per-slot save.
+ *
+ * Menyimpan tiap field item (definitionId, position, isPickedUp, amount, uuid)
+ * ke array JSON dengan key "items". Menggunakan atomic write (.tmp + rename).
+ *
+ * @param mapPath Path map mentah untuk menurunkan nama file save
+ * @param baseDir Direktori dasar (default diganti ke path per-slot otomatis)
+ */
+void SaveItemsForMapDir(const std::string &mapPath, const std::string &baseDir)
+{
+    // Sanitize map path: replace path separators with underscores
+    std::string safeName = mapPath;
+    for (auto &c : safeName)
+    {
+        if (c == '/' || c == '\\') c = '_';
+    }
+
+    // Gunakan direktori per-slot jika baseDir adalah default
+    std::string dir = baseDir;
+    if (dir == "saves/items")
+    {
+        dir = "saves/slot_" + std::to_string(g_ActiveSaveSlot) + "/items";
+        EnsureSlotDirectory(g_ActiveSaveSlot);
+    }
+
+    std::string filePath = dir + "/" + safeName;
+
+    std::filesystem::create_directories(dir);
+
+    json root;
+    json itemsJson = json::array();
+
+    for (const auto &item : itemData.activeItems)
+    {
+        json i;
+        i["definitionId"] = item.definitionId;
+        i["positionX"] = item.position.x;
+        i["positionY"] = item.position.y;
+        i["isPickedUp"] = item.isPickedUp;
+        i["amount"] = item.amount;
+        i["uuid"] = item.uuid;
+        itemsJson.push_back(i);
+    }
+
+    root["items"] = itemsJson;
+
+    // Atomic write via .tmp + rename to prevent file corruption
+    std::string tmpPath = filePath + ".tmp";
+    std::ofstream file(tmpPath);
+    file << root.dump(4);
+    file.close();
+    std::filesystem::rename(tmpPath, filePath);
+
+    TraceLog(LOG_INFO, "SAVE: Saved %d items for map: %s", (int)itemData.activeItems.size(), mapPath.c_str());
+}
+
+/**
+ * @brief Muat item untuk suatu map dari filesystem per-slot save.
+ *
+ * Membaca file JSON, deserialiasi tiap item, rekonstruksi hitbox dari
+ * data ItemDefinition, dan mengisi itemData.activeItems.
+ *
+ * @param mapPath Path map mentah untuk menurunkan nama file save
+ * @param baseDir Direktori dasar (default diganti ke path per-slot otomatis)
+ * @return true jika item berhasil dimuat, false jika file tidak ada atau gagal parse
+ */
+bool LoadItemsForMapDir(const std::string &mapPath, const std::string &baseDir)
+{
+    // Sanitize map path: replace path separators with underscores
+    std::string safeName = mapPath;
+    for (auto &c : safeName)
+    {
+        if (c == '/' || c == '\\') c = '_';
+    }
+
+    // Gunakan direktori per-slot jika baseDir adalah default
+    std::string dir = baseDir;
+    if (dir == "saves/items")
+    {
+        dir = "saves/slot_" + std::to_string(g_ActiveSaveSlot) + "/items";
+    }
+
+    std::string filePath = dir + "/" + safeName;
+
+    if (!std::filesystem::exists(filePath))
+        return false;
+
+    try
+    {
+        std::ifstream file(filePath);
+        json root = json::parse(file);
+
+        if (!root.contains("items"))
+            return false;
+
+        itemData.activeItems.clear();
+
+        for (const auto &i : root.at("items"))
+        {
+            ItemSpawn item;
+            item.definitionId = i.value("definitionId", -1);
+            item.position = {
+                i.value("positionX", 0.0f),
+                i.value("positionY", 0.0f)
+            };
+            item.isPickedUp = i.value("isPickedUp", false);
+            item.amount = i.value("amount", 1);
+            item.uuid = i.value("uuid", "");
+
+            // Reconstruct hitbox from definition data
+            try
+            {
+                const ItemDefinition &def = itemDefs.GetById(item.definitionId);
+                item.hitbox = {
+                    item.position.x - def.hitboxSize.x / 2,
+                    item.position.y - def.hitboxSize.y / 2,
+                    def.hitboxSize.x,
+                    def.hitboxSize.y
+                };
+            }
+            catch (...)
+            {
+                // Fallback hitbox if definition is not found
+                item.hitbox = {
+                    item.position.x - 8.0f,
+                    item.position.y - 8.0f,
+                    16.0f,
+                    16.0f
+                };
+            }
+
+            item.isAdded = false;
+            item.spawnTime = (float)GetTime();
+
+            itemData.activeItems.push_back(item);
+        }
+
+        TraceLog(LOG_INFO, "LOAD: Restored %d items for map: %s", (int)itemData.activeItems.size(), mapPath.c_str());
+        return !itemData.activeItems.empty();
+    }
+    catch (...)
+    {
+        TraceLog(LOG_WARNING, "LOAD: Failed to load items for map: %s", mapPath.c_str());
+        return false;
+    }
 }
 
 /*==============================================================================
@@ -417,15 +622,19 @@ void ItemRenderManager::Render(ItemSpawn &item)
     display.size = (int)(FRAME_SIZE * scale);
     DrawFrame(def.spriteKey, display);
 
+    // stack amount item di-drop: fontLoadingTitle 14px, bg rounded hitam, di bawah sprite
     if (item.amount > 1)
     {
         std::string amountText = std::to_string(item.amount);
-        int fontSize = 8;
-        int textWidth = MeasureText(amountText.c_str(), fontSize);
+        int fontSize = 14;
+        Vector2 textSz = MeasureTextEx(fontLoadingTitle, amountText.c_str(), fontSize, 0);
         Vector2 textPos = {
-            center.x - textWidth / 2.0f,
-            (center.y + 16.0f) - 5.0f};
-        DrawText(amountText.c_str(), (int)textPos.x, (int)textPos.y, fontSize, WHITE);
+            center.x - textSz.x / 2.0f,
+            center.y + 16.0f + 2.0f};
+        DrawRectangleRounded(
+            (Rectangle){textPos.x - 4, textPos.y - 4, textSz.x + 8, textSz.y + 8},
+            0.3f, 8, ColorAlpha(BLACK, 0.8f));
+        DrawTextEx(fontLoadingTitle, amountText.c_str(), textPos, fontSize, 0, WHITE);
     }
 }
 
@@ -584,17 +793,29 @@ Vector2 ItemSpawnManager::GetRandomPosInArea(const SpawnArea &area, Vector2 hitb
 {
     int maxAttempts = 100;
 
+    float halfW = hitboxSize.x / 2.0f;
+    float halfH = hitboxSize.y / 2.0f;
+    float minX = area.bounds.x + halfW;
+    float maxX = area.bounds.x + area.bounds.width - halfW;
+    float minY = area.bounds.y + halfH;
+    float maxY = area.bounds.y + area.bounds.height - halfH;
+
     for (int i = 0; i < maxAttempts; i++)
     {
-        Vector2 pos = {
-            (float)GetRandomValue((int)area.bounds.x, (int)(area.bounds.x + area.bounds.width)),
-            (float)GetRandomValue((int)area.bounds.y, (int)(area.bounds.y + area.bounds.height))};
+        // Generate center position dengan margin hitbox agar tidak keluar area
+        Vector2 center = {
+            (float)GetRandomValue((int)minX, (int)maxX),
+            (float)GetRandomValue((int)minY, (int)maxY)};
 
-        if (IsPositionSafe(pos, hitboxSize.x, hitboxSize.y, 0, 0))
-            return pos;
+        // Convert center→top-left karena IsPositionSafe expect top-left
+        Vector2 topLeft = {center.x - halfW, center.y - halfH};
+        if (IsPositionSafe(topLeft, hitboxSize.x, hitboxSize.y, 0, 0))
+            return center;
     }
 
-    return {area.bounds.x + area.bounds.width / 2, area.bounds.y + area.bounds.height / 2};
+    // fallback ke center area
+    return {area.bounds.x + area.bounds.width / 2,
+            area.bounds.y + area.bounds.height / 2};
 }
 
 // Pilih definitionId random berdasarkan rarity weight

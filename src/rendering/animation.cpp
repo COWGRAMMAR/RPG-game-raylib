@@ -22,6 +22,7 @@ static std::unordered_map<std::string, Frame> loadedFrames;
 /** @brief Map string ke TextureSlot */
 Font fontKeybindHeader = {0};
 Font fontKeybindEntry = {0};
+Font fontLoadingTitle = {0};
 static TextureSlot ResolveTextureSlot(const std::string &str)
 {
     static const std::unordered_map<std::string, TextureSlot> mapping = {
@@ -137,7 +138,7 @@ void InitFonts(void)
 
         snprintf(buf, sizeof(buf), "%sNewDawn.ttf", dir);
         if (!FileExists(buf)) { TraceLog(LOG_WARNING, "FONTS: %s NOT FOUND", buf); continue; }
-        fontKeybindHeader = LoadFontEx(buf, 22, 0, 0);
+        fontKeybindHeader = LoadFontEx(buf, 32, 0, 0);
         break;
     }
 
@@ -148,7 +149,18 @@ void InitFonts(void)
 
         snprintf(buf, sizeof(buf), "%sPoppins-Regular.ttf", dir);
         if (!FileExists(buf)) { TraceLog(LOG_WARNING, "FONTS: %s NOT FOUND", buf); continue; }
-        fontKeybindEntry = LoadFontEx(buf, 20, 0, 0);
+        fontKeybindEntry = LoadFontEx(buf, 30, 0, 0);
+        break;
+    }
+
+    for (int pass = 0; pass < 2; pass++)
+    {
+        const char *dir = paths[pass];
+        char buf[256];
+
+        snprintf(buf, sizeof(buf), "%sPoppins-Bold.ttf", dir);
+        if (!FileExists(buf)) { TraceLog(LOG_WARNING, "FONTS: %s NOT FOUND", buf); continue; }
+        fontLoadingTitle = LoadFontEx(buf, 32, 0, 0);
         break;
     }
 
@@ -162,15 +174,25 @@ void InitFonts(void)
         TraceLog(LOG_WARNING, "FONTS: Poppins-Regular.ttf loaded but has 0 glyphs (using default font fallback)");
         fontKeybindEntry = GetFontDefault();
     }
+    if (fontLoadingTitle.glyphCount == 0)
+    {
+        TraceLog(LOG_WARNING, "FONTS: Poppins-Bold.ttf loaded but has 0 glyphs (using default font fallback)");
+        fontLoadingTitle = GetFontDefault();
+    }
 
-    TraceLog(LOG_INFO, "FONTS: NewDawn (header) glyphs=%d, Poppins (entry) glyphs=%d",
-        fontKeybindHeader.glyphCount, fontKeybindEntry.glyphCount);
+    SetTextureFilter(fontKeybindHeader.texture, TEXTURE_FILTER_POINT);
+    SetTextureFilter(fontKeybindEntry.texture, TEXTURE_FILTER_POINT);
+    SetTextureFilter(fontLoadingTitle.texture, TEXTURE_FILTER_POINT);
+
+    TraceLog(LOG_INFO, "FONTS: NewDawn (header) glyphs=%d, Poppins (entry) glyphs=%d, Poppins-Bold (loading) glyphs=%d",
+        fontKeybindHeader.glyphCount, fontKeybindEntry.glyphCount, fontLoadingTitle.glyphCount);
 }
 
 void UnloadFonts(void)
 {
     UnloadFont(fontKeybindHeader);
     UnloadFont(fontKeybindEntry);
+    UnloadFont(fontLoadingTitle);
     TraceLog(LOG_INFO, "FONTS: Unloaded custom fonts");
 }
 
@@ -481,13 +503,4 @@ float Slash(float raycastAngle, float progress)
         return raycastAngle - 30.0f;
     else
         return raycastAngle - 90.0f;
-
-    // if (progress < 1.0f / 4.0f)
-    //     return raycastAngle + 90.0f;
-    // else if (progress < 2.0f / 4.0f)
-    //     return raycastAngle + 60.0f;
-    // else if (progress < 3.0f / 4.0f)
-    //     return raycastAngle - 40.0f;
-    // else
-    //     return raycastAngle - 90.0f;
 }

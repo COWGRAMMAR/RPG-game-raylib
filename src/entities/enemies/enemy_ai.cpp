@@ -351,6 +351,7 @@ std::vector<MapObject> BuildObstacleList()
     appendType(CRATE_TYPE_OBJECT_NAME);
     appendType(BARRIER_TYPE_OBJECT_NAME);
     appendType(BARRIER_BOSS_TYPE_OBJECT_NAME);
+    appendType(SIGN_TYPE_OBJECT_NAME);
 
     return result;
 }

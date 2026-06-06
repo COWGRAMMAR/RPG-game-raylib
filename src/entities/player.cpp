@@ -49,7 +49,7 @@ void Player::Init(GameState *state, const char *spawnObjectName)
 
         // Inisialisasi perlengkapan hotbar default
         Hotbar[0] = {1, 1}; // Iron Sword
-        Hotbar[1] = {4, 1}; // Iron Axe
+        Hotbar[1] = {4, 1}; // bow 
         Hotbar[2] = {2, 8}; // Health Potion
         Hotbar[3] = {3, 8}; // Mana Bread
 
@@ -100,12 +100,34 @@ void Player::Init(GameState *state, const char *spawnObjectName)
 }
 
 /**
+ * @brief Reset pemain untuk new game (health, mana, inventory, flags).
+ */
+void Player::ResetForNewGame()
+{
+    isInitialized = false;
+    Health = MaxHealth = 100.0f;
+    Mana = MaxMana = 100.0f;
+    ManaRegenTimer = 0.0f;
+    Hotbar[0] = {0, 1};
+    Hotbar[1] = {1, 1};
+    Hotbar[2] = {2, 8};
+    Hotbar[3] = {3, 8};
+    for (int i = 0; i < MaxBag; i++)
+        Bag[i] = {-1, 0};
+    Anim.isDead = false;
+    Anim.isAttacking = false;
+    HitFlashTimer = 0.0f;
+    KnockbackVelocity = {0, 0};
+    TraceLog(LOG_INFO, "PLAYER: Reset for new game");
+}
+
+/**
  * Loop update utama untuk pemain.
  * Dipanggil oleh Entities::Update() setiap frame.
  *
  * Urutan:
  * 1. Input polling
- * 2. Lifecycle checkup (revive)
+ * 2. Lifecycle checkup
  * 3. Timer & Status effects
  * 4. Physics & Knockback
  * 5. Logic modules (Movement, Combat, Inventory, Interaction)
@@ -130,12 +152,6 @@ void Player::Update()
     InputInstance.UpdateState();
 
     // 2. Pemeriksaan Lifecycle
-    if (InputInstance.IsRevive())
-    {
-        Combat::HandleRevive(*this);
-        return;
-    }
-
     if (Anim.isDead)
         return;
 

@@ -39,10 +39,12 @@
 #include <cstring>
 #include <algorithm>
 #include <cctype>
+#include <filesystem>
 #include "hud.h"
 #include "propsbehavior.h"
 #include "combatTurn.h"
 #include "seedmanager.h"
+#include "game_state_saver.h"
 #include "worldgenio.h"
 #include "worldgenenartion.h"
 
@@ -108,6 +110,18 @@ void InitAll()
     globalFlowField.Invalidate(); // nanti diganti kalo nambah method ai nya
     // Spawn musuh dari map aktif
     SpawnEnemiesFromMap();
+
+    // Capture spawn pos start room buat revive
+    TiledHelperFunction.TryGetObjectPositionByName(SPAWN_OBJECT_NAME, gState->startSpawnPos);
+
+    // Cache enemy & item state buat restart
+    const char *mapPath = GetCurrentMapPath();
+    if (mapPath)
+    {
+        std::string cachePath = std::string(mapPath) + ".cache";
+        SaveEnemiesForMap(cachePath, "saves/cache/enemies");
+        SaveItemsForMapDir(cachePath, "saves/cache/items");
+    }
 }
 
 /**
@@ -138,7 +152,7 @@ GameState InitScreen()
 
     SetConfigFlags(FLAG_WINDOW_RESIZABLE);
     InitWindow(1280, 720, "Dungeon Game");
-    SetExitKey(KEY_NULL);  // ESC is handled by our own pause/keybind logic
+    SetExitKey(0);  // ESC handled by keybindManager (pause toggle), not by raylib quit
     InitAudioDevice();
 
     state.WindowScreenWidth = (int)(GetMonitorWidth(0) * ScaleMultiplierMonitor);
@@ -164,6 +178,9 @@ GameState InitScreen()
     state.isGoingBack = false;
     state.pendingMapPath.clear();
     state.pendingDoorName.clear();
+
+    // Save directories dibuat otomatis oleh EnsureSlotDirectory()
+    // atau WriteAutosave() saat pertama kali menyimpan.
 
     return state;
 }
@@ -279,17 +296,20 @@ void UpdateLogicAll()
     if (!gState->isSwitchingMap && !gState->isGoingBack)
     {
         const char *mapPath = GetCurrentMapPath();
-        if (mapPath && strstr(mapPath, "worldseed/save_") != nullptr)
+        if (mapPath)
         {
-            if (InputInstance.IsInteract())
+            std::string worldgenPrefix = "worldseed/save_" + std::to_string(g_ActiveSaveSlot);
+            if (strstr(mapPath, worldgenPrefix.c_str()) != nullptr)
             {
-                Vector2 playerCenter = PlayerInstance.GetCenter();
-                CellType cellType = GetCellTypeAtWorldPos(playerCenter);
-                if (cellType == CELL_FINISH)
+                if (InputInstance.IsInteract())
                 {
-                    WorldgenIO::NextStage();
+                    Vector2 playerCenter = PlayerInstance.GetCenter();
+                    CellType cellType = GetCellTypeAtWorldPos(playerCenter);
+                    if (cellType == CELL_FINISH)
+                    {
+                        WorldgenIO::NextStage();
+                    }
                 }
-
             }
         }
     }
@@ -404,7 +424,10 @@ void DrawUIOverlay(GameState *state)
         DrawText(fpsText, 10, 10, 20, GREEN);
     }
 
-    // 3. Menus
+    // 3. Sign dialog overlay (placeholder UI)
+    DrawSignDialog();
+
+    // 4. Menus
     if (pauseMenu.IsActive())
     {
         Vector2 mousePos = GetVirtualMousePosition(state);
@@ -523,4 +546,24 @@ Rectangle GetMonitorResolution(void)
 bool IsFullscreen(void)
 {
     return IsWindowFullscreen();
+}
+
+/*==============================================================================
+ * Shared Background
+ *==============================================================================*/
+
+/**
+ * @brief Gambar background gradient untuk layar non-gameplay (main menu, loading screen).
+ *
+ * Dipanggil oleh RenderMainMenuToVirtualScreen() dan RenderLoadingScreen().
+ * Begitu animated BG tersedia, cukup ganti implementasi di sini saja.
+ */
+void DrawMenuBackground(void)
+{
+    DrawRectangleGradientV(
+        0, 0,
+        GameScreenWidth, GameScreenHeight,
+        {36, 28, 58, 255},   // top: muted dark purple-blue
+        {5, 5, 15, 255}      // bottom: near-black
+    );
 }

@@ -22,9 +22,13 @@
 #include "game_debug.h"
 #include "entities.h"
 #include "item.h"
+#include "core/utils.h"
+#include "core/game_state_saver.h"
 #include <cmath>
 #include <fstream>
+#include <filesystem>
 #include <stdexcept>
+#include <unordered_set>
 
 using json = nlohmann::json;
 using namespace DataDriven;
@@ -686,13 +690,167 @@ void InitEnemy()
     enemyData.Load("assets/data/enemies.json");
 }
 
-/** @brief Simpan state enemy per map */
-void SaveEnemiesForMap(const std::string &mapPath) {}
-
-/** @brief Muat state enemy per map */
-bool LoadEnemiesForMap(const std::string &mapPath)
+/**
+ * @brief Simpan state semua enemy aktif untuk suatu map ke direktori saves/enemies/.
+ * @details Menyimpan posisi, nama, HP, state AI, data patroli, spawn point,
+ *          timer health regen, timer cooldown serangan, dan UUID setiap enemy
+ *          ke file JSON. Menggunakan atomic write via .tmp + rename untuk mencegah
+ *          korupsi. Melewati enemy yang tidak aktif.
+ *          Nama file save diturunkan dari mapPath dengan mengganti / dan \\ menjadi _.
+ *          Saat baseDir berupa default ("saves/enemies"), menggunakan direktori berbasis slot aktif: saves/slot_N/enemies/.
+ * @param mapPath Path file map mentah untuk diturunkan nama file save (contoh: "assets/maps/tutorial.json")
+ * @param baseDir Direktori dasar untuk file save. Default = dialihkan ke slot aktif.
+ */
+void SaveEnemiesForMap(const std::string &mapPath, const std::string &baseDir)
 {
-    return true;
+    // Pastikan direktori slot tersedia
+    if (baseDir == "saves/enemies")
+    {
+        EnsureSlotDirectory(g_ActiveSaveSlot);
+    }
+
+    // Build per-map save file path
+    std::string safeName = mapPath;
+    for (auto &c : safeName)
+    {
+        if (c == '/' || c == '\\') c = '_';
+    }
+    std::string dir = baseDir;
+    if (dir == "saves/enemies")
+    {
+        dir = "saves/slot_" + std::to_string(g_ActiveSaveSlot) + "/enemies";
+    }
+    std::string filePath = dir + "/" + safeName;
+
+    std::filesystem::create_directories(dir);
+
+    json root;
+    json enemiesJson = json::array();
+
+    auto &enemyReg = Entities::GetEnemyRegistry();
+    for (const auto &enemy : enemyReg)
+
+    {
+        if (!enemy->IsActive) continue;
+        json e;
+        e["position"] = {enemy->Position.x, enemy->Position.y};
+        e["enemyName"] = enemy->Name;
+        e["currentHP"] = (int)enemy->Health;
+        e["isAlive"] = enemy->IsAlive();
+        e["maxHealth"] = enemy->MaxHealth;
+        e["aiState"] = (int)enemy->AIState;
+        e["patrolTargetX"] = enemy->PatrolTarget.x;
+        e["patrolTargetY"] = enemy->PatrolTarget.y;
+        e["patrolTimer"] = enemy->PatrolTimer;
+        e["mapObjectID"] = enemy->MapObjectID;
+        e["spawnPoint"] = {{"x", enemy->SpawnPoint.x}, {"y", enemy->SpawnPoint.y}};
+        e["healthRegenTimer"] = enemy->HealthRegenTimer;
+        e["attackCooldownTimer"] = enemy->GetAttackCooldownTimer();
+        e["uuid"] = enemy->GetUUID();
+        enemiesJson.push_back(e);
+    }
+
+    root["enemies"] = enemiesJson;
+
+    // Atomic write
+    std::string tmpPath = filePath + ".tmp";
+    std::ofstream file(tmpPath);
+    file << root.dump(4);
+    file.close();
+    std::filesystem::rename(tmpPath, filePath);
+}
+
+/**
+ * @brief Muat state enemy untuk suatu map dari direktori saves/enemies/.
+ * @details Membaca file save per-map, mendeserialisasi state setiap enemy, dan
+ *          mengembalikan posisi, HP, state AI, data patroli, spawn point, timer,
+ *          dan UUID ke instance Enemy yang cocok (dicocokkan berdasarkan MapObjectID + Name).
+ *          Enemy yang mati didaftarkan via Entities::RegisterDeath untuk mencegah respawn.
+ *          Saat baseDir berupa default ("saves/enemies"), menggunakan direktori berbasis slot aktif: saves/slot_N/enemies/.
+ * @param mapPath Path file map mentah untuk diturunkan nama file save
+ * @param baseDir Direktori dasar untuk file save. Default = dialihkan ke slot aktif.
+ * @return true jika setidaknya satu enemy dipulihkan, false jika tidak ada file save atau gagal parse
+ */
+bool LoadEnemiesForMap(const std::string &mapPath, const std::string &baseDir)
+{
+    // Build per-map save file path
+    std::string safeName = mapPath;
+    for (auto &c : safeName)
+    {
+        if (c == '/' || c == '\\') c = '_';
+    }
+    std::string dir = baseDir;
+    if (dir == "saves/enemies")
+    {
+        dir = "saves/slot_" + std::to_string(g_ActiveSaveSlot) + "/enemies";
+    }
+    std::string filePath = dir + "/" + safeName;
+
+    if (!std::filesystem::exists(filePath))
+        return false;
+
+    try
+    {
+        std::ifstream file(filePath);
+        json root = json::parse(file);
+
+        if (!root.contains("enemies"))
+            return false;
+
+        auto &enemyReg = Entities::GetEnemyRegistry();
+        std::unordered_set<Enemy*> matchedEnemies;
+        bool anyRestored = false;
+
+        for (const auto &e : root.at("enemies"))
+        {
+            int savedMapObjectID = e.value("mapObjectID", -1);
+            bool isAlive = e.value("isAlive", true);
+
+            if (!isAlive)
+            {
+                if (savedMapObjectID >= 0)
+                    Entities::RegisterDeath(mapPath, savedMapObjectID);
+                continue;
+            }
+
+            // Find matching enemy by MapObjectID and restore state
+            for (auto &enemy : enemyReg)
+            {
+                if (enemy == nullptr || matchedEnemies.count(enemy)) continue;
+                if (enemy->MapObjectID == savedMapObjectID && enemy->Name == e.value("enemyName", ""))
+                {
+                    enemy->Position.x = e.at("position")[0].get<float>();
+                    enemy->Position.y = e.at("position")[1].get<float>();
+                    enemy->Health = e.value("currentHP", 100);
+                    enemy->MaxHealth = e.value("maxHealth", 100.0f);
+                    enemy->AIState = (EnemyAIState)e.value("aiState", 0);
+                    enemy->PatrolTarget.x = e.value("patrolTargetX", 0.0f);
+                    enemy->PatrolTarget.y = e.value("patrolTargetY", 0.0f);
+                    enemy->PatrolTimer = e.value("patrolTimer", 0.0f);
+                    if (e.contains("spawnPoint"))
+                    {
+                        enemy->SpawnPoint.x = e["spawnPoint"]["x"].get<float>();
+                        enemy->SpawnPoint.y = e["spawnPoint"]["y"].get<float>();
+                    }
+                    enemy->HealthRegenTimer = e.value("healthRegenTimer", 2.0f);
+                    enemy->SetAttackCooldownTimer(e.value("attackCooldownTimer", 0.0f));
+                    std::string uuid = e.value("uuid", "");
+                    if (!uuid.empty())
+                        enemy->SetUUID(uuid);
+                    enemy->IsActive = true;
+                    matchedEnemies.insert(enemy);
+                    anyRestored = true;
+                    break;
+                }
+            }
+        }
+
+        return anyRestored;
+    }
+    catch (...)
+    {
+        return false;
+    }
 }
 
 /**
@@ -844,6 +1002,7 @@ void SpawnAtPoint(const MapObject *obj, EnemyRank rank)
 
         Enemy *enemy = new Enemy();
         enemy->Init(spawnPos, picked.c_str(), obj->id, def);
+        enemy->SetUUID(GenerateUUID());
         PushOutOfWalls(enemy);
         enemy->SetReturnFlowField(&spawnFlowFields[obj->id].field);
         Entities::AddDynamic(enemy);
@@ -886,7 +1045,10 @@ void SpawnInRect(const MapObject *obj, const std::string &enemyName, float ratio
         for (int retry = 0; retry < SPAWN_RETRY_LIMIT; retry++)
         {
             spawnPos = {xDist(rng), yDist(rng)};
-            if (IsPositionSafe(spawnPos, def.hitbox.size.x, def.hitbox.size.y,
+            // Convert center (Enemy::Init expectation) ke Entity::Position (IsPositionSafe expectation)
+            Vector2 entityPos = {spawnPos.x - def.hitbox.size.x / 2.0f - def.hitbox.offset.x,
+                                 spawnPos.y - def.hitbox.size.y / 2.0f - def.hitbox.offset.y};
+            if (IsPositionSafe(entityPos, def.hitbox.size.x, def.hitbox.size.y,
                                def.hitbox.offset.x, def.hitbox.offset.y))
             {
                 valid = true;
@@ -899,6 +1061,7 @@ void SpawnInRect(const MapObject *obj, const std::string &enemyName, float ratio
 
         Enemy *enemy = new Enemy();
         enemy->Init(spawnPos, enemyName.c_str(), obj->id, def);
+        enemy->SetUUID(GenerateUUID());
         enemy->SpawnRect = obj->bounds;
         enemy->SetReturnFlowField(&spawnFlowFields[obj->id].field);
         Entities::AddDynamic(enemy);
@@ -933,6 +1096,7 @@ void SpawnBoss(const MapObject *obj)
 
     Enemy *enemy = new Enemy();
     enemy->Init(spawnPos, picked.c_str(), obj->id, def);
+    enemy->SetUUID(GenerateUUID());
     PushOutOfWalls(enemy);
     enemy->SetReturnFlowField(&spawnFlowFields[obj->id].field);
     Entities::AddDynamic(enemy);

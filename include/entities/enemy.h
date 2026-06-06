@@ -198,7 +198,11 @@ public:
     /** @brief Ambil velocity enemy dari frame terakhir */
     Vector2 GetVelocity() { return Velocity; }
 
-    /** @brief Cast ray debug dari pusat enemy */
+    // getter/setter untuk AttackCooldownTimer (private)
+    float GetAttackCooldownTimer() const { return AttackCooldownTimer; }
+    void SetAttackCooldownTimer(float t) { AttackCooldownTimer = t; }
+
+    // cast ray debug dari pusat enemy dengan mode line atau cone
     RayHitResult CastDebugRay(Vector2 dir, float maxDist, std::vector<MapObject> &obstacles,
                               RayCastMode mode, float halfAngleDeg, int rayCount)
     {
@@ -293,9 +297,9 @@ void SpawnBoss(const MapObject *obj);
 void InitEnemy();
 
 /** @brief Simpan status enemy ke file map */
-void SaveEnemiesForMap(const std::string &mapPath);
+void SaveEnemiesForMap(const std::string &mapPath, const std::string &baseDir = "saves/enemies");
 /** @brief Load status enemy dari file map */
-bool LoadEnemiesForMap(const std::string &mapPath);
+bool LoadEnemiesForMap(const std::string &mapPath, const std::string &baseDir = "saves/enemies");
 /** @brief Hapus semua enemy aktif */
 void ClearEnemies();
 

@@ -1,9 +1,9 @@
 # setup.ps1 - Auto-download raylib if not present
-# Downloads raylib 5.5 from GitHub releases to lib/raylib/
+# Downloads raylib 6.0 from GitHub releases to lib/raylib/
 
 param(
-    [string]$RaylibVersion = "5.5",
-    [string]$RepoUrl = "https://github.com/raysan5/raylib/releases/download/5.5/raylib-5.5_win64_mingw-w64.zip",
+    [string]$RaylibVersion = "6.0",
+    [string]$RepoUrl = "https://github.com/raysan5/raylib/releases/download/6.0/raylib-6.0_win64_mingw-w64.zip",
     [string]$ZipFile = "raylib.zip"
 )
 
@@ -13,6 +13,18 @@ function Write-Step($message) {
 
 function Write-Debug($message) {
     Write-Host "  [DEBUG] $message" -ForegroundColor Gray
+}
+
+function Get-InstalledRaylibVersion {
+    param([string]$basePath)
+    $headerPath = Join-Path $basePath "lib\raylib\include\raylib.h"
+    if (Test-Path $headerPath) {
+        $content = Get-Content $headerPath -Raw
+        if ($content -match 'RAYLIB_VERSION\s+"(\d+\.\d+)"') {
+            return $Matches[1]
+        }
+    }
+    return $null
 }
 
 function Write-Err($message) {
@@ -25,6 +37,8 @@ $raylibDir = Join-Path $cwd "lib\raylib"
 $tilesonDir = Join-Path $cwd "lib\tileson"
 $jsonDir = Join-Path $cwd "lib\json"
 $raylibReady = (Test-Path (Join-Path $raylibDir "include\raylib.h")) -and (Test-Path (Join-Path $raylibDir "lib\libraylib.a"))
+$raylibInstalledVersion = if ($raylibReady) { Get-InstalledRaylibVersion -basePath $cwd } else { $null }
+$raylibVersionMatch = if ($raylibInstalledVersion) { $raylibInstalledVersion -eq $RaylibVersion } else { $false }
 $tilesonReady = Test-Path (Join-Path $tilesonDir "tileson.hpp")
 $jsonReady = Test-Path (Join-Path $jsonDir "include\nlohmann\json.hpp")
 
@@ -39,9 +53,15 @@ if ($raylibReady) {
     }
 }
 
-if ($raylibReady -and $tilesonReady -and $jsonReady) {
+if ($raylibReady -and $raylibVersionMatch -and $tilesonReady -and $jsonReady) {
     Write-Step "All required libraries already installed" -ForegroundColor Green
     exit 0
+}
+
+# Version mismatch — force reinstall
+if ($raylibReady -and -not $raylibVersionMatch) {
+    Write-Step "raylib version mismatch: installed $raylibInstalledVersion, needed $RaylibVersion. Reinstalling..."
+    Remove-Item -Path $raylibDir -Recurse -Force -ErrorAction SilentlyContinue
 }
 
 function Install-Raylib() {
@@ -55,8 +75,13 @@ function Install-Raylib() {
     
     if ((Test-Path (Join-Path $installDir "include\raylib.h")) -and 
         (Test-Path (Join-Path $installDir "lib\libraylib.a"))) {
-        Write-Step "raylib already installed at $installDir"
-        return
+        $curVersion = Get-InstalledRaylibVersion -basePath $cwd
+        if ($curVersion -eq $RaylibVersion) {
+            Write-Step "raylib already installed at $installDir"
+            return
+        }
+        Write-Step "raylib version mismatch at $installDir (installed: $curVersion, needed: $RaylibVersion). Removing..."
+        Remove-Item -Path $installDir -Recurse -Force -ErrorAction SilentlyContinue
     }
     
     Write-Step "raylib not found. Downloading raylib $RaylibVersion from GitHub..."
@@ -268,7 +293,51 @@ function Remove-OldRaylib() {
     }
 }
 
+function Install-Doctest() {
+    $cwd = $PWD.Path
+    $doctestDir = Join-Path $cwd "lib\doctest"
+    $doctestFile = Join-Path $doctestDir "doctest.h"
+    $doctestUrl = "https://github.com/doctest/doctest/releases/download/v2.4.11/doctest.h"
+
+    Write-Step "Checking for doctest..."
+    Write-Debug "Doctest path: $doctestFile"
+
+    if (Test-Path $doctestFile) {
+        Write-Step "doctest.h already exists at $doctestDir"
+        return
+    }
+
+    Write-Step "doctest.h not found. Downloading doctest v2.4.11 from GitHub..."
+    Write-Debug "URL: $doctestUrl"
+
+    if (-not (Test-Path $doctestDir)) {
+        New-Item -ItemType Directory -Path $doctestDir -Force | Out-Null
+    }
+
+    try {
+        Invoke-WebRequest -Uri $doctestUrl -OutFile $doctestFile -UserAgent "PowerShell"
+    } catch {
+        Write-Err "Download failed: $_"
+        exit 1
+    }
+
+    if (Test-Path $doctestFile) {
+        $fileSize = (Get-Item $doctestFile).Length
+        if ($fileSize -gt 50KB) {
+            Write-Step "doctest installed successfully to $doctestDir ($([math]::Round($fileSize/1KB, 1)) KB)" -ForegroundColor Green
+        } else {
+            Write-Err "Downloaded file too small ($fileSize bytes), likely failed"
+            Remove-Item -Path $doctestFile -Force -ErrorAction SilentlyContinue
+            exit 1
+        }
+    } else {
+        Write-Err "Download failed - file not created"
+        exit 1
+    }
+}
+
 Remove-OldRaylib
 Install-Raylib
 Install-Tileson
 Install-NlohmannJson
+Install-Doctest

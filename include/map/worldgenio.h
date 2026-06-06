@@ -67,4 +67,7 @@ namespace WorldgenIO
 
     /** @brief Dapatkan nomor slot tertinggi yang tersedia */
     int GetTopSlot();
+
+    /** @brief Hapus semua file cache (.cache) di folder saves/ */
+    void ClearCache();
 }

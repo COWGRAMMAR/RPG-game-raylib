@@ -30,7 +30,7 @@ rpg-game-raylib/
 | `build/` | Direktori hasil kompilasi otomatis. Berisi executable (`build/bin/main.exe`) dan file sementara CMake/Ninja. **Jangan edit file di sini secara manual**. |
 | `docs/` | Dokumentasi tambahan proyek (panduan build, struktur proyek, dll). |
 | `include/` | File header (.h) yang diorganisir per modul (core, entities, items, dll). |
-| `lib/` | Dependensi pihak ketiga yang diunduh otomatis: Raylib 5.5 dan Tileson. |
+| `lib/` | Dependensi pihak ketiga yang diunduh otomatis: Raylib 6.0 dan Tileson. |
 | `src/` | File sumber (.cpp) yang diorganisir per modul, menggunakan sistem *unity build*. |
 
 ## Cara Navigasi Proyek

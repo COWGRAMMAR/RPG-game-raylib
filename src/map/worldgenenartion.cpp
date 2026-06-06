@@ -10,6 +10,7 @@
  * - WorldGenCanvas: stamping prefab dan corridor ke main map
  */
 
+#include <climits>
 #include "worldgenenartion.h"
 #include "mapLogic.h"
 #include <filesystem>
@@ -784,31 +785,34 @@ void WorldGenCanvas::ExpandLayers(int extraLayers)
  */
 void WorldGenCanvas::Stamp(TilesonMapData *source, int offsetX, int offsetY, int targetLayerOffset)
 {
-    // Cari tileset group yang sama di canvas
-    int newGroupIdx = -1;
-    for (int i = 0; i < (int)tilesonMap->tilesets.size(); i++)
-    {
-        if (tilesonMap->tilesets[i][0].texture.id == source->tilesets[0][0].texture.id)
-        {
-            newGroupIdx = i;
-            break;
-        }
-    }
-    // Kalo gak ketemu, append tileset group baru
-    if (newGroupIdx == -1)
-    {
-        newGroupIdx = (int)tilesonMap->tilesets.size();
-        tilesonMap->tilesets.push_back(source->tilesets[0]);
-    }
-
-    // Stamp tile data
+    // Stamp tile data — tiap layer source pake tileset group-nya sendiri
     for (int l = 0; l < source->layerCount; l++)
     {
         int dstLayer = targetLayerOffset + l;
         if (dstLayer >= tilesonMap->layerCount)
             break;
 
-        tilesonMap->layerTilesetGroup[dstLayer] = newGroupIdx;
+        // Cari atau buat tileset group yang cocok dengan source layer ini
+        int srcGroup = source->layerTilesetGroup[l];
+        if (srcGroup >= (int)source->tilesets.size())
+            srcGroup = 0;
+
+        int canvasGroup = -1;
+        for (int i = 0; i < (int)tilesonMap->tilesets.size(); i++)
+        {
+            if (tilesonMap->tilesets[i][0].texture.id == source->tilesets[srcGroup][0].texture.id)
+            {
+                canvasGroup = i;
+                break;
+            }
+        }
+        if (canvasGroup == -1)
+        {
+            canvasGroup = (int)tilesonMap->tilesets.size();
+            tilesonMap->tilesets.push_back(source->tilesets[srcGroup]);
+        }
+
+        tilesonMap->layerTilesetGroup[dstLayer] = canvasGroup;
 
         for (int y = 0; y < source->height; y++)
         {

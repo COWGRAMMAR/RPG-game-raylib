@@ -5,7 +5,7 @@
  * @brief Keybind configuration manager
  *
  * Maps game actions to configurable keyboard/mouse keys with JSON persistence.
- * Saves to saves/settings.json at runtime (per-user, not git-tracked).
+ * Saves to saves/settings/keybindsTab.json at runtime (per-user, not git-tracked).
  */
 
 #include <string>
@@ -34,8 +34,6 @@ enum Action {
     HOTBAR_SLOT_3,
     HOTBAR_SLOT_4,
     // Debug gameplay
-    REVIVE,
-    TEST_LOSE_HP,
     GO_BACK,
     // Menu
     PAUSE_MENU,
@@ -58,7 +56,7 @@ struct Keybind {
 /**
  * @brief Manages runtime keybind configuration with JSON persistence
  *
- * Loads from saves/settings.json at startup (falls back to safe defaults).
+ * Loads from saves/settings/keybindsTab.json at startup (falls back to safe defaults).
  * Keybinds can be changed in-game via Options > Keybinds and auto-saved.
  */
 class KeybindManager {
@@ -67,7 +65,7 @@ public:
 
     /**
      * @brief Load keybinds from JSON file
-     * @param path Path to settings file (e.g. "saves/settings.json")
+     * @param path Path to settings file (e.g. "saves/settings/keybindsTab.json")
      * @return true if loaded successfully, false if file missing/corrupt (defaults used)
      */
     bool LoadFromFile(const std::string& path);

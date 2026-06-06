@@ -27,7 +27,6 @@ void PlayerInput::PollInput(void)
 
     // Actions (tap)
     Current.interact        = IsKeyPressed(keybindManager.GetKeycode(INTERACT));
-    Current.revive          = IsKeyPressed(keybindManager.GetKeycode(REVIVE));
     Current.toggleInventory = IsKeyPressed(keybindManager.GetKeycode(TOGGLE_INVENTORY));
     Current.toggleMap       = IsKeyPressed(keybindManager.GetKeycode(TOGGLE_MAP));
     Current.dropItem        = IsKeyPressed(keybindManager.GetKeycode(DROP_ITEM));
@@ -52,8 +51,6 @@ void PlayerInput::PollInput(void)
     Current.selectSlot2 = IsKeyPressed(keybindManager.GetKeycode(HOTBAR_SLOT_2));
     Current.selectSlot3 = IsKeyPressed(keybindManager.GetKeycode(HOTBAR_SLOT_3));
     Current.selectSlot4 = IsKeyPressed(keybindManager.GetKeycode(HOTBAR_SLOT_4));
-
-    Current.testLoseHP = IsKeyPressed(keybindManager.GetKeycode(TEST_LOSE_HP));
 
     // Rogue keys absorbed into InputState
     Current.pauseMenu         = IsKeyPressed(keybindManager.GetKeycode(PAUSE_MENU));

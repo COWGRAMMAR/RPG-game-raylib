@@ -10,6 +10,7 @@
  */
 
 #include "entities.h"
+#include "../../include/map/map.h"
 #include "propsbehavior.h"
 #include <vector>
 #include <algorithm>
@@ -158,14 +159,40 @@ namespace Entities
         return DeadEntities.find(mapPath + "_" + std::to_string(objectId)) != DeadEntities.end();
     }
 
-    const std::set<std::string> &GetDeadEntries()
+    void ClearDeadEntities()
+    {
+        DeadEntities.clear();
+    }
+
+    const std::set<std::string> &GetDeadEntities()
     {
         return DeadEntities;
     }
 
-    void SetDeadEntries(const std::set<std::string> &entries)
+    void SetDeadEntities(const std::set<std::string> &entities)
     {
-        DeadEntities = entries;
+        DeadEntities = entities;
+    }
+
+    /** @brief Safety pass: deactivate any EnemyRegistry entries registered as dead. */
+    void PruneDeadEntities(void)
+    {
+        std::string currentMap = GetCurrentMapPath();
+        int pruned = 0;
+        for (auto &enemy : EnemyRegistry)
+        {
+            if (enemy == nullptr) continue;
+            if (IsAlreadyDead(currentMap, enemy->MapObjectID))
+            {
+                enemy->IsActive = false;
+                enemy->Health = 0.0f;
+                TraceLog(LOG_WARNING, "PRUNE: Deactivated dead enemy '%s' (ID=%d) that survived spawn",
+                         enemy->Name.c_str(), enemy->MapObjectID);
+                pruned++;
+            }
+        }
+        if (pruned > 0)
+            TraceLog(LOG_INFO, "PRUNE: Deactivated %d dead entit%s that survived spawn", pruned, pruned == 1 ? "y" : "ies");
     }
 }
 
@@ -177,6 +204,7 @@ void RenderTileProps(Rectangle viewRect)
     int bombRendered = bombManager.Render(viewRect);
     int crateRendered = crateManager.Render(viewRect);
     barrierManager.Render(viewRect);
+    signManager.Render(viewRect);
 }
 
 /** @brief Clear semua state tile-based props */
@@ -187,4 +215,5 @@ void ClearTileProps(void)
     bombManager.Clear();
     crateManager.Clear();
     barrierManager.Clear();
+    signManager.Clear();
 }

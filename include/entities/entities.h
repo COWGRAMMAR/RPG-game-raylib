@@ -2,6 +2,7 @@
 #include <set>
 #include <vector>
 #include <string>
+#include <set>
 #include "entity.h"
 #include "enemy.h"
 
@@ -58,13 +59,33 @@ namespace Entities
      */
     bool IsAlreadyDead(const std::string &mapPath, int objectId);
 
+    /**
+     * @brief Membersihkan semua catatan entitas mati (untuk new game).
+     */
+    void ClearDeadEntities();
+
     /** @brief Ambil reference ke enemy registry */
     std::vector<Enemy *> &GetEnemyRegistry();
 
-    /** @brief Ambil semua dead entry untuk save */
-    const std::set<std::string> &GetDeadEntries();
-    /** @brief Set dead entries (buat load) */
-    void SetDeadEntries(const std::set<std::string> &entries);
+    /**
+     * @brief Mendapatkan referensi ke set entitas yang sudah mati.
+     * @return const ref ke DeadEntities set
+     */
+    const std::set<std::string> &GetDeadEntities();
+
+    /**
+     * @brief Mengganti seluruh isi DeadEntities set.
+     * @param entities Set entitas mati baru
+     */
+    void SetDeadEntities(const std::set<std::string> &entities);
+
+    /**
+     * @brief Safety net: deactivate any EnemyRegistry entries that are registered as dead.
+     * @details Iterates the enemy registry and sets IsActive=false, Health=0 for any enemy
+     *          whose (currentMap, MapObjectID) pair exists in the DeadEntities set.
+     *          Call AFTER SpawnEnemiesFromMap + RestoreGameState as a safety pass.
+     */
+    void PruneDeadEntities(void);
 }
 
 /** @brief Render tile props (chest, trap, dll) */

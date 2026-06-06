@@ -15,6 +15,8 @@
 #include "../lib/raylib/include/raylib.h"
 #include <vector>
 #include <string>
+
+class Player; // Forward declaration untuk DropAllItems
 #include <map>
 #include <random>
 #include <algorithm>
@@ -145,7 +147,8 @@ struct ItemSpawn
     bool isPickedUp;  // True jika item sudah diambil player
     bool isAdded;     // True jika item sudah ditambahkan ke inventory
     float spawnTime;  // Timestamp saat item di-spawn (untuk efek atau despawn)
-    int amount = 1;   // Jumlah item dalam satu spawn (untuk stackable item)
+    int amount = 1;   ///< Jumlah item dalam satu spawn (untuk stackable item)
+    std::string uuid; ///< Unique identifier for persistent entity matching across save/load cycles. Generated at spawn time, persisted in save files, used for restore matching.
 };
 
 /**
@@ -203,6 +206,13 @@ public:
     /** @brief Ambil semua definisi item */
     const std::unordered_map<std::string, ItemDefinition> &GetAll() const;
 
+    /**
+     * @brief Dapatkan hitboxSize terbesar dari semua item dalam kategori tertentu
+     * @param category Kategori item yang dicek (ITEM_ANY = semua)
+     * @return Vector2 hitboxSize maksimum
+     */
+    Vector2 GetMaxHitboxForCategory(ItemCategory category) const;
+
 private:
     std::unordered_map<std::string, ItemDefinition> definitions_; // Key = nama item
     std::unordered_map<int, const ItemDefinition *> byId_;        // Key = ID numerik, untuk O(1) lookup
@@ -257,7 +267,9 @@ public:
     std::vector<ItemSpawn> activeItems; // Daftar item yang sedang aktif di world
 
 private:
-    std::map<std::string, std::vector<ItemSpawn>> savedMapItems;  // Penyimpanan state item per map
+    // Penyimpanan state item berdasarkan path map
+    // @deprecated Use SaveItemsForMapDir / LoadItemsForMapDir free functions instead
+    std::map<std::string, std::vector<ItemSpawn>> savedMapItems;
     std::unordered_map<std::string, ItemDefinition> definitions_; // Definisi item lokal
 };
 
@@ -367,6 +379,9 @@ void SpawnRandomItem();
 /** @brief Ambil daftar item spawn aktif */
 std::vector<ItemSpawn> &GetActiveItems();
 
+/** @brief Drop semua item player ke ground saat mati */
+void DropAllItems(Player &player);
+
 /** @brief Instance global ItemDataManager */
 extern ItemDataManager itemData;
 /** @brief Instance global ItemRenderManager */
@@ -375,3 +390,31 @@ extern ItemRenderManager itemRender;
 extern ItemSpawnManager spawnManager;
 /** @brief Instance global ItemDefinitionManager */
 extern ItemDefinitionManager itemDefs;
+
+/*==============================================================================
+ * Per-Map File Persistence (replaces in-memory ItemDataManager::savedMapItems)
+ *==============================================================================*/
+
+/**
+ * @brief Save all active items for a map to the specified directory.
+ *
+ * Serializes `itemData.activeItems` to a JSON file at `<baseDir>/<sanitized_path>`.
+ * Uses atomic write via .tmp file + rename to prevent corruption.
+ * Follows the same pattern as SaveEnemiesForMap() in enemy.cpp.
+ *
+ * @param mapPath Raw map file path used to derive the save file name (e.g., "assets/maps/tutorial.json")
+ * @param baseDir Base directory for save files (default: "saves/items")
+ */
+void SaveItemsForMapDir(const std::string &mapPath, const std::string &baseDir = "saves/items");
+
+/**
+ * @brief Load items for a map from the specified directory.
+ *
+ * Reads `<baseDir>/<sanitized_path>`, deserializes each item's fields,
+ * reconstructs hitboxes from definitions, and populates `itemData.activeItems`.
+ *
+ * @param mapPath Raw map file path used to derive the save file name
+ * @param baseDir Base directory for save files (default: "saves/items")
+ * @return true if items were loaded, false if no save data exists or parse failed
+ */
+bool LoadItemsForMapDir(const std::string &mapPath, const std::string &baseDir = "saves/items");

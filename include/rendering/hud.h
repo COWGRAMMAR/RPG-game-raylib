@@ -17,3 +17,8 @@ void DrawInventory();
  * @brief Render hotbar beserta logika drag & drop saat inventory terbuka.
  */
 void DrawHotbar();
+
+/**
+ * @brief Render dialog sign overlay (dim + box + text).
+ */
+void DrawSignDialog();

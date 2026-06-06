@@ -203,7 +203,7 @@
                 {
                  "height":32,
                  "id":13,
-                 "name":"chest",
+                 "name":"tutorialchest01_common",
                  "opacity":1,
                  "rotation":0,
                  "type":"chest",
@@ -259,6 +259,12 @@
                  "id":38,
                  "name":"sign1",
                  "opacity":1,
+                 "properties":[
+                        {
+                         "name":"dialog",
+                         "type":"string",
+                         "value":"pala bapak kau pecah glbk"
+                        }],
                  "rotation":0,
                  "type":"sign",
                  "visible":true,
@@ -271,6 +277,12 @@
                  "id":39,
                  "name":"sign3",
                  "opacity":1,
+                 "properties":[
+                        {
+                         "name":"dialog",
+                         "type":"string",
+                         "value":"tst etst tetet\nqjdqwjkdqw\nqdqwdq\nqwdqwqw"
+                        }],
                  "rotation":0,
                  "type":"sign",
                  "visible":true,
@@ -283,6 +295,12 @@
                  "id":40,
                  "name":"sign2",
                  "opacity":1,
+                 "properties":[
+                        {
+                         "name":"dialog",
+                         "type":"string",
+                         "value":"hell nawh twin "
+                        }],
                  "rotation":0,
                  "type":"sign",
                  "visible":true,
@@ -295,12 +313,30 @@
                  "id":41,
                  "name":"sign4",
                  "opacity":1,
+                 "properties":[
+                        {
+                         "name":"dialog",
+                         "type":"string",
+                         "value":"qeq\nyo twin\nwassaup\nhell nawg"
+                        }],
                  "rotation":0,
                  "type":"sign",
                  "visible":true,
                  "width":32,
                  "x":480,
                  "y":448
+                }, 
+                {
+                 "height":32,
+                 "id":42,
+                 "name":"chest",
+                 "opacity":1,
+                 "rotation":0,
+                 "type":"chest",
+                 "visible":true,
+                 "width":32,
+                 "x":224,
+                 "y":352
                 }],
          "opacity":1,
          "type":"objectgroup",
@@ -321,8 +357,8 @@
                  "rotation":0,
                  "type":"",
                  "visible":true,
-                 "width":64,
-                 "x":224,
+                 "width":96,
+                 "x":160,
                  "y":512
                 }],
          "opacity":1,
@@ -332,7 +368,7 @@
          "y":0
         }],
  "nextlayerid":10,
- "nextobjectid":42,
+ "nextobjectid":43,
  "orientation":"orthogonal",
  "renderorder":"right-down",
  "tiledversion":"1.12.1",

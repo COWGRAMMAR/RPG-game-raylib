@@ -18,13 +18,17 @@
 #include <vector>
 #include <map>
 #include <unordered_map>
+#include "mapstack.h"
 
 /*==============================================================================
- * Global Camera
+ * Global Camera & Map History Stack
  *==============================================================================*/
 
 /** @brief Camera global untuk rendering world */
 extern Camera2D camera;
+
+// Stack riwayat perpindahan map (global agar bisa diakses oleh save system)
+extern MapSystem::MapStack mapHistoryStack;
 
 /*==============================================================================
  * MapObject Struct
@@ -209,3 +213,12 @@ void RunWorldgen(uint64_t seed, bool isBossStage = false);
  * nyimpen 1 stage sebelumnya (bukan semua riwayat). Sisanya di-pop.
  */
 void TrimStageStack(void);
+
+/**
+ * @brief Dapatkan nama tampilan map dari file path.
+ * @param mapFilePath Path file map (contoh: "assets/maps/town.json")
+ * @return Nama map yang mudah dibaca (contoh: "Town")
+ * @note Konversi path-based: ekstrak nama file tanpa ekstensi, capitalisasi,
+ *       handle special case untuk worldgen stages.
+ */
+std::string GetMapDisplayName(const std::string& mapFilePath);

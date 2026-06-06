@@ -4,34 +4,39 @@
 #include "../lib/raylib/include/raylib.h"
 #include <algorithm>
 
-static const char* SAVE_PATH = "saves/settings.json";
+static const char* SAVE_PATH = "saves/settings/keybindsTab.json";
 
-// Section descriptors for grouping actions in the UI
+const char* GetKeybindsSettingsPath()
+{
+    return SAVE_PATH;
+}
+
 struct SectionInfo {
     const char* title;
     Color color;
-    int startAction; // index in Action enum
+    int startAction;
     int actionCount;
 };
 
 static const SectionInfo sections[] = {
-    {"MOVEMENT",   YELLOW,  0, 4},  // MOVE_UP..MOVE_RIGHT
-    {"COMBAT",     YELLOW,  4, 3},  // INTERACT..DASH_DRINK
-    {"INVENTORY",  YELLOW,  7, 4},  // TOGGLE_INVENTORY..DROP_ALL
-    {"HOTBAR",     YELLOW, 11, 4},  // HOTBAR_SLOT_1..HOTBAR_SLOT_4
-    {"DEBUG",      GRAY,   15, 7},  // REVIVE..DEBUG_TOGGLE_PLAYER
+    {"MOVEMENT",   WHITE,  0, 4},
+    {"COMBAT",     WHITE,  4, 3},
+    {"INVENTORY",  WHITE,  7, 4},
+    {"HOTBAR",     WHITE, 11, 4},
 };
 
 static const int SECTION_COUNT = sizeof(sections) / sizeof(sections[0]);
 
-// Layout constants
-static const int HEADER_HEIGHT  = 36;
-static const int ROW_HEIGHT     = 24;
-static const int COL_X          = 40;       // offset from startX
-static const int KEY_COL_W      = 180;      // width of the key-display column
-static const int SEP_W          = 20;       // gap between columns
-static const int VIEW_H         = 380;      // visible content height
-static const int HITBOX_PAD     = 2;        // padding around clickable area
+static const int HEADER_HEIGHT  = 50;
+static const int ROW_HEIGHT     = 36;
+static const int COL_X          = 40;
+static const int KEY_COL_W      = 180;
+static const int SEP_W          = 20;
+static const int HITBOX_PAD     = 2;
+
+/// Visible content area (inside the dark overlay)
+static const int CONTENT_TOP    = 90;    // from startY (contentStartY = passed startY + 90)
+static const int CONTENT_H      = 292;   // visible height (screen Y 547 - screen Y 255)
 
 static bool IsInside(int mx, int my, int x, int y, int w, int h)
 {
@@ -40,7 +45,6 @@ static bool IsInside(int mx, int my, int x, int y, int w, int h)
 
 void DrawKeybindsTab(Vector2 mousePosition, int startX, int startY)
 {
-    (void)mousePosition;
     int mx = static_cast<int>(mousePosition.x);
     int my = static_cast<int>(mousePosition.y);
 
@@ -48,18 +52,17 @@ void DrawKeybindsTab(Vector2 mousePosition, int startX, int startY)
     static int listeningAction = -1;
     static bool enteredThisFrame = false;
 
-    int contentStartY = startY + 90;
-
     // Calculate total content height
-    int totalContentHeight = 0;
+    int totalH = 0;
     for (int si = 0; si < SECTION_COUNT; si++)
     {
-        totalContentHeight += HEADER_HEIGHT;                 // section header
-        totalContentHeight += sections[si].actionCount * ROW_HEIGHT; // entries
-        totalContentHeight += ROW_HEIGHT;                    // gap after section
+        totalH += HEADER_HEIGHT;
+        totalH += sections[si].actionCount * ROW_HEIGHT;
+        totalH += ROW_HEIGHT;
     }
 
-    int maxScroll = std::max(0, totalContentHeight - VIEW_H);
+    int contentStartY = startY + CONTENT_TOP;
+    int maxScroll = std::max(0, totalH - CONTENT_H);
 
     scrollY -= static_cast<int>(GetMouseWheelMove()) * ROW_HEIGHT;
     scrollY = std::clamp(scrollY, 0, maxScroll);
@@ -68,13 +71,15 @@ void DrawKeybindsTab(Vector2 mousePosition, int startX, int startY)
     auto isVisible = [&](int localY, int h) -> bool {
         int top = screenY(localY);
         int bottom = top + h;
-        return bottom > contentStartY - HEADER_HEIGHT && top < contentStartY + VIEW_H + HEADER_HEIGHT;
+        return bottom > contentStartY && top < contentStartY + CONTENT_H;
     };
+
+    // ---- Clip to content area ----
+    BeginScissorMode(startX, contentStartY, 600, CONTENT_H);
 
     // ---- Handle rebind input ----
     if (listeningAction >= 0)
     {
-        // On the first frame after entering, drain stale keyboard events only
         if (enteredThisFrame)
         {
             while (GetKeyPressed() != 0) {}
@@ -85,9 +90,7 @@ void DrawKeybindsTab(Vector2 mousePosition, int startX, int startY)
         if (key != 0)
         {
             if (key == KEY_ESCAPE)
-            {
                 listeningAction = -1;
-            }
             else
             {
                 keybindManager.SetKeybind(static_cast<Action>(listeningAction), key, false);
@@ -116,16 +119,15 @@ void DrawKeybindsTab(Vector2 mousePosition, int startX, int startY)
     {
         const SectionInfo& sec = sections[si];
 
-        // Section header
+        // seluruh teks keybindsTab pakai fontLoadingTitle (bold)
         if (isVisible(currentLocalY, HEADER_HEIGHT))
         {
-            DrawTextEx(fontKeybindHeader, sec.title,
+            DrawTextEx(fontLoadingTitle, sec.title,
                 Vector2{(float)(startX + COL_X), (float)screenY(currentLocalY)},
-                22, 0, sec.color);
+                32, 0, sec.color);
         }
         currentLocalY += HEADER_HEIGHT;
 
-        // Action rows
         for (int ai = 0; ai < sec.actionCount; ai++)
         {
             if (!isVisible(currentLocalY, ROW_HEIGHT))
@@ -137,7 +139,6 @@ void DrawKeybindsTab(Vector2 mousePosition, int startX, int startY)
             int y = screenY(currentLocalY);
             Action action = static_cast<Action>(sec.startAction + ai);
 
-            // Key display column (clickable)
             int keyBoxX = startX + COL_X;
             int keyBoxY = y;
             int keyBoxW = KEY_COL_W;
@@ -146,29 +147,24 @@ void DrawKeybindsTab(Vector2 mousePosition, int startX, int startY)
             bool hovered = IsInside(mx, my, keyBoxX - HITBOX_PAD, keyBoxY - HITBOX_PAD,
                                     keyBoxW + HITBOX_PAD * 2, keyBoxH + HITBOX_PAD * 2);
 
-            // Background highlight
             bool isListening = (listeningAction == static_cast<int>(action));
             Color bgColor = isListening ? Color{40, 80, 40, 255}
                          : hovered ? Color{50, 50, 50, 255}
                          : BLANK;
 
             if (bgColor.a > 0)
-            {
                 DrawRectangle(keyBoxX, keyBoxY, keyBoxW, keyBoxH, bgColor);
-            }
 
-            // Key name text — always show the real key name
             const char* keyName = keybindManager.GetKeyDisplayName(action);
-            Color keyColor = isListening ? GREEN : YELLOW;
+            Color keyColor = isListening ? GREEN : WHITE;
 
-            DrawTextEx(fontKeybindEntry, keyName,
-                Vector2{(float)keyBoxX, (float)y}, 20, 0, keyColor);
-            DrawTextEx(fontKeybindEntry, "=>",
-                Vector2{(float)(keyBoxX + KEY_COL_W), (float)y}, 20, 0, GRAY);
-            DrawTextEx(fontKeybindEntry, keybindManager.GetActionName(action),
-                Vector2{(float)(keyBoxX + KEY_COL_W + SEP_W), (float)y}, 20, 0, WHITE);
+            DrawTextEx(fontLoadingTitle, keyName,
+                Vector2{(float)keyBoxX, (float)y},                 30, 0, keyColor);
+            DrawTextEx(fontLoadingTitle, "=>",
+                Vector2{(float)(keyBoxX + KEY_COL_W), (float)y}, 30, 0, GRAY);
+            DrawTextEx(fontLoadingTitle, keybindManager.GetActionName(action),
+                Vector2{(float)(keyBoxX + KEY_COL_W + SEP_W), (float)y}, 30, 0, WHITE);
 
-            // Click detection
             if (hovered && IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && listeningAction != static_cast<int>(action))
             {
                 listeningAction = static_cast<int>(action);
@@ -178,23 +174,24 @@ void DrawKeybindsTab(Vector2 mousePosition, int startX, int startY)
             currentLocalY += ROW_HEIGHT;
         }
 
-        // Gap after section
         currentLocalY += ROW_HEIGHT;
     }
+
+    EndScissorMode();
 
     // Scroll indicators
     if (maxScroll > 0)
     {
-        int indX = startX + 350;
+        int indX = startX + COL_X;
         if (scrollY > 0)
-            DrawTextEx(fontKeybindEntry, "^^^",
-                Vector2{(float)indX, (float)(contentStartY - 5)}, 16, 0, GRAY);
+            DrawTextEx(fontLoadingTitle, "^^^",
+                Vector2{(float)indX, (float)(contentStartY - 2)}, 26, 0, GRAY);
         if (scrollY < maxScroll)
-            DrawTextEx(fontKeybindEntry, "vvv",
-                Vector2{(float)indX, (float)(contentStartY + VIEW_H - 20)}, 16, 0, GRAY);
+            DrawTextEx(fontLoadingTitle, "vvv",
+                Vector2{(float)indX, (float)(contentStartY + CONTENT_H - 26)}, 26, 0, GRAY);
     }
 
-    // Listening popup — centered box over the options panel, separate from keybind list
+    // Listening popup
     if (listeningAction >= 0)
     {
         const int POPUP_W = 420;
@@ -207,13 +204,13 @@ void DrawKeybindsTab(Vector2 mousePosition, int startX, int startY)
 
         const char* line1 = "Press a key or click a mouse button.";
         const char* line2 = "ESC to cancel.";
-        Vector2 sz1 = MeasureTextEx(fontKeybindEntry, line1, 20, 0);
-        Vector2 sz2 = MeasureTextEx(fontKeybindEntry, line2, 20, 0);
-        DrawTextEx(fontKeybindEntry, line1,
-            Vector2{(float)(popupX + (POPUP_W - sz1.x) / 2), (float)(popupY + 12)},
-            20, 0, WHITE);
-        DrawTextEx(fontKeybindEntry, line2,
+        Vector2 sz1 = MeasureTextEx(fontLoadingTitle, line1, 30, 0);
+        Vector2 sz2 = MeasureTextEx(fontLoadingTitle, line2, 30, 0);
+        DrawTextEx(fontLoadingTitle, line1,
+            Vector2{(float)(popupX + (POPUP_W - sz1.x) / 2), (float)(popupY + 8)},
+            30, 0, WHITE);
+        DrawTextEx(fontLoadingTitle, line2,
             Vector2{(float)(popupX + (POPUP_W - sz2.x) / 2), (float)(popupY + 44)},
-            20, 0, GREEN);
+            30, 0, GREEN);
     }
 }

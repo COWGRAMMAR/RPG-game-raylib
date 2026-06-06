@@ -9,6 +9,7 @@
  * - SpikeManager: trap spike dengan timer aktif/nonaktif dan damage area
  * - BombManager: trap bomb yang meledak saat dipukul, dengan chain reaction
  * - CrateManager: crate yang bisa dihancurkan player/bomb dan punya chance drop loot
+ * - SignManager: spawn dan interaksi sign yang bisa dibaca player
  */
 
 #include "map.h"
@@ -45,6 +46,7 @@ struct TileObject
     Rectangle bounds;  // Bounding box asli dari MapObject Tiled
     ObjectState state; // State saat ini
     std::string name;  // Nama object dari Tiled untuk identifikasi
+    std::string uuid;  ///< Unique identifier for persistent entity matching across save/load cycles. Generated at spawn time, persisted in save files, used for restore matching.
 };
 
 /*==============================================================================
@@ -100,17 +102,24 @@ public:
     /** @brief Bersihkan semua data chest */
     void Clear();
 
+    /** @brief Reset posisi chest yang sudah dikonsumsi (untuk new game) */
+    void ResetConsumed();
+
     /** @brief Ambil posisi chest yang sudah dibuka */
     const std::unordered_set<std::string> &GetConsumedPositions() const { return consumedPositions; }
     /** @brief Set posisi chest yang sudah dibuka (buat load) */
     void SetConsumedPositions(const std::unordered_set<std::string> &positions) { consumedPositions = positions; }
 
-    /** @brief Ambil jumlah chest yang sedang dikelola */
+    /**
+     * @brief Ambil jumlah chest yang sedang dikelola.
+     * @return Jumlah chest aktif di manager
+     */
     size_t GetCount() const { return chests.size(); }
 
 private:
     std::vector<TileObject> chests;                    // Daftar chest yang sedang dikelola
     std::unordered_set<std::string> consumedPositions; // Posisi chest yang sudah dikonsumsi agar tidak diproses ulang
+    float chestSpread = 60.0f;                         // Radius sebaran loot dari chest
 
     TileObject *FindChest(Vector2 hitPos, float threshold = 32.0f); // Cari chest terdekat dari titik hit
     void TriggerLoot(TileObject &chest);                            // Spawn loot item secara random di sekitar chest
@@ -152,6 +161,14 @@ public:
     /** @brief Ambil jumlah spike yang sedang dikelola */
     size_t GetCount() const { return spikes.size(); }
 
+    // Konstanta timing dan damage spike (public untuk unit test)
+    static constexpr float SPIKE_ACTIVE_MAX = 6.0f;      // Durasi aktif maksimum (detik)
+    static constexpr float SPIKE_ACTIVE_MIN = 3.0f;      // Durasi aktif minimum (detik)
+    static constexpr float SPIKE_INACTIVE_MAX = 7.0f;    // Durasi nonaktif maksimum (detik)
+    static constexpr float SPIKE_INACTIVE_MIN = 4.0f;    // Durasi nonaktif minimum (detik)
+    static constexpr float SPIKE_DAMAGE = 10.0f;         // Damage per hit
+    static constexpr float SPIKE_DAMAGE_COOLDOWN = 1.0f; // Cooldown damage global (detik)
+
 private:
     /** @brief Data internal satu spike */
     struct SpikeData
@@ -166,14 +183,6 @@ private:
         SpikeCallback onDeactivate;
         SpikeCallback onDamagePlayer;
     };
-
-    // Konstanta timing dan damage spike
-    static constexpr float SPIKE_ACTIVE_MAX = 6.0f;      // Durasi aktif maksimum (detik)
-    static constexpr float SPIKE_ACTIVE_MIN = 3.0f;      // Durasi aktif minimum (detik)
-    static constexpr float SPIKE_INACTIVE_MAX = 7.0f;    // Durasi nonaktif maksimum (detik)
-    static constexpr float SPIKE_INACTIVE_MIN = 4.0f;    // Durasi nonaktif minimum (detik)
-    static constexpr float SPIKE_DAMAGE = 10.0f;         // Damage per hit
-    static constexpr float SPIKE_DAMAGE_COOLDOWN = 1.0f; // Cooldown damage global (detik)
 
     float globalPlayerDamageCooldown = 0.0f; // Cooldown damage ke player (shared semua spike)
     float globalEnemyDamageCooldown = 0.0f;  // Cooldown damage ke enemy (shared semua spike)
@@ -222,16 +231,39 @@ public:
     /** @brief Bersihkan semua data bomb */
     void Clear();
 
+    /** @brief Reset posisi bomb yang sudah meledak (untuk new game) */
+    void ResetConsumed();
+
     /** @brief Ambil jumlah bomb yang sedang dikelola */
     size_t GetCount() const { return bombs.size(); }
 
-    /** @brief Ambil posisi bomb yang sudah meledak */
-    const std::unordered_set<std::string> &GetConsumedPositions() const { return consumedPositions; }
-    /** @brief Set posisi bomb yang sudah meledak (buat load) */
-    void SetConsumedPositions(const std::unordered_set<std::string> &positions) { consumedPositions = positions; }
+    /**
+     * @brief Dapatkan posisi bomb yang sudah meledak (consumed).
+     * @return Const reference ke unordered_set posisi yang sudah dikonsumsi
+     */
+    const std::unordered_set<std::string>& GetConsumedPositions() const { return consumedPositions; }
 
-    /** @brief Cek apakah target dalam radius ledakan (nearest-point check) */
+    /**
+     * @brief Set posisi bomb yang sudah meledak (untuk restore save state).
+     * @param positions Set posisi yang sudah dikonsumsi
+     */
+    void SetConsumedPositions(const std::unordered_set<std::string>& positions) { consumedPositions = positions; }
+
+    /**
+     * @brief Cek apakah target berada dalam radius ledakan
+     *
+     * Pakai nearest-point check, bukan center-to-center.
+     *
+     * @param bombPos Posisi center bomb
+     * @param target Bounding box target
+     * @return true jika jarak nearest point <= BOMB_EXPLOSION_RADIUS
+     */
     bool IsInExplosionRadius(Vector2 bombPos, Rectangle target);
+
+    // Konstanta bomb (public untuk unit test)
+    static constexpr float BOMB_EXPLOSION_RADIUS = 80.0f;  // Radius area ledakan (pixel)
+    static constexpr float BOMB_DAMAGE = 25.0f;            // Damage ledakan
+    static constexpr float BOMB_EXPLOSION_DURATION = 0.6f; // Durasi animasi ledakan (detik)
 
 private:
     /** @brief Data internal satu bomb */
@@ -243,11 +275,6 @@ private:
         bool isTriggered = false; // Guard untuk mencegah infinite loop chain reaction
         float explosionTimer;     // Sisa waktu animasi ledakan
     };
-
-    // Konstanta bomb
-    static constexpr float BOMB_EXPLOSION_RADIUS = 80.0f;  // Radius area ledakan (pixel)
-    static constexpr float BOMB_DAMAGE = 25.0f;            // Damage ledakan
-    static constexpr float BOMB_EXPLOSION_DURATION = 0.6f; // Durasi animasi ledakan (detik)
 
     std::vector<BombData> bombs;                       // Daftar bomb yang sedang dikelola
     std::unordered_set<std::string> consumedPositions; // Posisi bomb yang sudah dikonsumsi agar tidak diproses ulang
@@ -289,11 +316,16 @@ public:
     /** @brief Set posisi crate yang sudah hancur (buat load) */
     void SetConsumedPositions(const std::unordered_set<std::string> &positions) { consumedPositions = positions; }
 
+    /** @brief Reset posisi crate yang sudah hancur (untuk new game) */
+    void ResetConsumed();
+
     /**
      * @brief Ambil jumlah crate yang sedang dikelola.
      * @return Jumlah crate aktif di manager
      */
     size_t GetCount() const { return crates.size(); }
+
+    static constexpr float CRATE_LOOT_CHANCE = 0.1f; // 10% chance drop loot (public untuk unit test)
 
 private:
     /** @brief Data internal satu crate */
@@ -303,10 +335,9 @@ private:
         bool isAlive;    // False jika crate sudah dihancurkan
     };
 
-    static constexpr float CRATE_LOOT_CHANCE = 0.10f; // 10% chance drop loot
-
     std::vector<CrateData> crates;                     // Daftar crate yang sedang dikelola
     std::unordered_set<std::string> consumedPositions; // Posisi crate yang sudah dihancurkan agar tidak spawn ulang
+    float crateSpread = 60.0f;                         // Radius sebaran loot dari crate
 
     TileObject *FindCrate(Vector2 hitPos, float threshold = 32.0f); // Cari crate terdekat dari titik hit
     void Destroy(CrateData &crate);                                 // Hancurkan crate, hapus obstacle, dan trigger loot
@@ -347,6 +378,8 @@ public:
     /** @brief Set state hasReLocked */
     void SetHasReLocked(bool v) { hasReLocked = v; }
 
+    static constexpr float KILL_THRESHOLD = 0.9f;
+
 private:
     /** @brief Data internal satu barrier */
     struct BarrierData
@@ -355,8 +388,6 @@ private:
         bool isActive;
         bool isBoss = false; // true kalo dari type "barrier_boss"
     };
-
-    static constexpr float KILL_THRESHOLD = 0.9f;
 
     std::vector<BarrierData> barriers; // Daftar barrier yang sedang dikelola
     bool isBossMap = false;            // True kalo map ini punya boss spawn
@@ -368,6 +399,59 @@ private:
 
     void RemoveAllBarriers(); // Hapus semua barrier dari DynamicObstacles
     void ReLockBarriers();    // Pasang ulang barrier (re-lock) — khusus boss room
+};
+
+/*==============================================================================
+ * SignManager
+ *==============================================================================*/
+
+/**
+ * @brief Manager untuk semua sign yang bisa dibaca player
+ *
+ * Sign adalah object interaktif di map yang saat di-raycast oleh player
+ * akan menampilkan teks dialog. Teks diambil dari custom property "dialog"
+ * di Tiled.
+ */
+class SignManager
+{
+public:
+    /** @brief Spawn semua sign dari object layer Tiled */
+    void SpawnSigns(const std::vector<MapObject *> &signObjects);
+
+    /** @brief Interaksi player dengan sign yang terkena raycast */
+    void Interact(Vector2 hitPos);
+
+    /** @brief Render placeholder sign (DARKGREEN rectangle) */
+    int Render(Rectangle viewRect);
+
+    /** @brief Bersihkan semua data sign */
+    void Clear();
+
+    /** @brief Apakah dialog sign sedang aktif */
+    bool IsDialogActive() const { return isDialogActive; }
+    /** @brief Ambil baris dialog yang aktif */
+    const std::vector<std::string> &GetActiveDialogLines() const { return activeDialogLines; }
+    /** @brief Tutup dialog */
+    void DismissDialog();
+
+private:
+    /** @brief Data internal satu sign */
+    struct SignData
+    {
+        TileObject tile;                // Posisi, bounds, state
+        std::vector<std::string> lines; // Baris dialog hasil split (| atau \n)
+    };
+
+    std::vector<SignData> signs; // Daftar sign yang sedang dikelola
+
+    bool isDialogActive = false;
+    std::vector<std::string> activeDialogLines;
+
+    /** @brief Split teks dialog jadi baris-baris berdasarkan | atau \n */
+    static std::vector<std::string> SplitDialog(const std::string &text);
+
+    /** @brief Cari sign terdekat dari titik hit */
+    SignData *FindSign(Vector2 hitPos, float threshold = 32.0f);
 };
 
 /*==============================================================================
@@ -384,3 +468,5 @@ extern BombManager bombManager;
 extern CrateManager crateManager;
 /** @brief Instance global manager barrier */
 extern BarrierManager barrierManager;
+/** @brief Instance global manager sign */
+extern SignManager signManager;

@@ -266,6 +266,12 @@ void Debug::Toggle(void)
     {
         showFlowFieldOverlayPlayer = !showFlowFieldOverlayPlayer;
     }
+
+    if (isDebugMode && IsKeyPressed(KEY_K))
+    {
+        PlayerInstance.Health = 0;
+        TraceLog(LOG_INFO, "DEBUG: Player health set to 0");
+    }
 }
 
 /**

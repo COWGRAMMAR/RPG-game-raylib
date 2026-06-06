@@ -120,6 +120,8 @@ void UpdateAnimation(Animation &anim, float dt);
 void DrawAnimation(const Animation &anim, Color tint = WHITE);
 /** @brief Draw efek ledakan sementara */
 void Explosion(Vector2 centerPosition, float radius, float progress);
+/** @brief Draw efek collision per tile */
+void TileCollisionEffect(Vector2 tilePosition, float progress);
 
 /** @brief Cache global animation set per entity type */
 extern std::unordered_map<std::string, AnimationSet> loadedAnimationSets;
@@ -139,13 +141,4 @@ bool Blink(float timer, float frequency);
 float SwingShortSlow(float raycastAngle, float progress, bool isRight);
 float SwingShortMid(float raycastAngle, float progress, bool isRight);
 float SwingMidMid(float raycastAngle, float progress, bool isRight);
-
-/*
-====================
-Sound Effects System
-====================
-*/
-
-void InitSFX();
-void CloseSFX();
-void PlaySFX(const std::string &name);
+

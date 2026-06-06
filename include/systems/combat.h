@@ -41,6 +41,7 @@ namespace Combat
         float duration = 0.0f;
         float raycastAngle = 0.0f;
         Vector2 center = {0, 0};
+        Vector2 startCenter = {0, 0};
         std::vector<Entity *> damagedEntities;
         bool pressHeld = false;
         const WeaponData* weapon = nullptr;
@@ -52,6 +53,8 @@ namespace Combat
     void HandleAttack(Player &player);
     /** @brief Update animasi swing attack */
     void UpdateSwingAttack(Player &player, float dt);
+    /** @brief Render efek serangan di tanah (di bawah player) */
+    void DrawSwingGroundEffect(Player &player);
     /** @brief Render visual swing attack */
     void DrawSwingAttack(Player &player);
 

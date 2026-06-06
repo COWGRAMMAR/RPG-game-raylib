@@ -116,6 +116,7 @@ namespace Combat
                     player.attack.timer = 0;
                     player.attack.damagedEntities.clear();
                     player.attack.center = playerCenter;
+                    player.attack.startCenter = playerCenter;
                     player.attack.raycastAngle = angle;
 
                     Inventory::SetupAttackStats(player, attackFaceDir);
@@ -125,29 +126,39 @@ namespace Combat
                         player.IsDashing = true;
                         player.DashDuration = player.DashDurationMax;
                         player.DashSpeed = player.DashMaxSpeed;
-                        PlaySFX("dash");
+                        AudioManager::PlaySFX("dash");
                     }
 
                     player.Anim.isAttacking = true;
-                    AudioManager::PlaySfx();
                     TraceLog(LOG_INFO, "PLAYER: Serangan diarahkan ke (%.2f, %.2f)", attackDir.x, attackDir.y);
 
-                     const ItemDefinition &def = itemDefs.GetById(activeItem.definitionId);
-                    if (def.spriteKey == "sword1")
+                    const ItemDefinition &def = itemDefs.GetById(activeItem.definitionId);
+                    if (player.attack.weapon)
                     {
-                        PlaySFX("slash-short");
-                    }
-                    else if (def.spriteKey == "sword2")
-                    {
-                        PlaySFX("slash-mid");
-                    }
-                    else if (def.spriteKey == "bow")
-                    {
-                        PlaySFX("arrow");
-                    }
-                    else if (def.spriteKey == "ak47")
-                    {
-                        PlaySFX("rifle");
+                        if (player.attack.weapon->attackType == ATTACK_THRUST || def.spriteKey == "spear")
+                        {
+                            AudioManager::PlaySFX("thrust");
+                        }
+                        else if (def.spriteKey == "sword1")
+                        {
+                            AudioManager::PlaySFX("slash-short");
+                        }
+                        else if (def.spriteKey == "sword2" || def.spriteKey == "axe" || player.attack.weapon->attackType == ATTACK_SLASH)
+                        {
+                            AudioManager::PlaySFX("slash-mid");
+                        }
+                        else if (def.spriteKey == "bow")
+                        {
+                            AudioManager::PlaySFX("arrow");
+                        }
+                        else if (def.spriteKey == "ak47")
+                        {
+                            AudioManager::PlaySFX("rifle");
+                        }
+                        else if (player.attack.weapon->attackType == ATTACK_SLAM)
+                        {
+                            AudioManager::PlaySFX("slash-mid");
+                        }
                     }
 
                     if (player.attack.weapon->attackType == ATTACK_PIERCE)
@@ -444,7 +455,7 @@ namespace Combat
         if (!player.attack.active || !player.attack.weapon)
             return;
 
-        Vector2 playerCenter = player.GetCenter();
+        Vector2 attackCenter = (player.attack.weapon->attackType == ATTACK_SLAM) ? player.attack.startCenter : player.attack.center;
         float reach = player.attack.weapon->reach;
         float breadth = player.attack.weapon->breadth;
         float attackAngle = player.attack.raycastAngle;
@@ -465,11 +476,15 @@ namespace Combat
             bool hit = false;
             if (player.attack.weapon->attackType == ATTACK_SLAM)
             {
+                float radiusTiles = std::floor(reach / 32.0f);
+                float gridSize = 2.0f * radiusTiles + 1.0f;
+                float tX = std::floor(attackCenter.x / 32.0f);
+                float tY = std::floor(attackCenter.y / 32.0f);
                 Rectangle slamAABB = {
-                    playerCenter.x - reach,
-                    playerCenter.y - reach,
-                    reach * 2.0f,
-                    reach * 2.0f
+                    (tX - radiusTiles) * 32.0f,
+                    (tY - radiusTiles) * 32.0f,
+                    gridSize * 32.0f,
+                    gridSize * 32.0f
                 };
                 if (CheckCollisionRecs(slamAABB, entity->GetHitbox()))
                 {
@@ -478,7 +493,7 @@ namespace Combat
             }
             else
             {
-                if (CheckRadialCollision(playerCenter, attackAngle, reach, breadth, attackerRadius, entity->GetHitbox()))
+                if (CheckRadialCollision(attackCenter, attackAngle, reach, breadth, attackerRadius, entity->GetHitbox()))
                 {
                     hit = true;
                 }
@@ -486,23 +501,27 @@ namespace Combat
 
             if (hit)
             {
-                ApplyHitToEntity(player, entity, playerCenter);
+                ApplyHitToEntity(player, entity, attackCenter);
             }
         }
 
         Rectangle attackAABB;
         if (player.attack.weapon->attackType == ATTACK_SLAM)
         {
+            float radiusTiles = std::floor(reach / 32.0f);
+            float gridSize = 2.0f * radiusTiles + 1.0f;
+            float tX = std::floor(attackCenter.x / 32.0f);
+            float tY = std::floor(attackCenter.y / 32.0f);
             attackAABB = {
-                playerCenter.x - reach,
-                playerCenter.y - reach,
-                reach * 2.0f,
-                reach * 2.0f
+                (tX - radiusTiles) * 32.0f,
+                (tY - radiusTiles) * 32.0f,
+                gridSize * 32.0f,
+                gridSize * 32.0f
             };
         }
         else
         {
-            attackAABB = GetAttackAABB(playerCenter, attackAngle, reach, breadth, attackerRadius);
+            attackAABB = GetAttackAABB(attackCenter, attackAngle, reach, breadth, attackerRadius);
         }
         HitPropsByAttack(attackAABB, PlayerInstance.GetHitbox(), &player);
     }
@@ -606,18 +625,64 @@ namespace Combat
 
         DrawFrame(frame, display);
 
-        // if (player.attack.active && player.attack.weapon)
-        // {
-        //     if (player.attack.weapon->attackType == ATTACK_SLASH &&
-        //         (def.spriteKey == "sword1" || def.spriteKey == "sword2" || def.spriteKey == "axe"))
-        //     {
-        //         DrawSlashTrail(player, def.spriteKey, player.attack.raycastAngle);
-        //     }
-        //     else if (player.attack.weapon->attackType == ATTACK_THRUST)
-        //     {
-        //         DrawThrustEffect(player, def.spriteKey, player.attack.raycastAngle);
-        //     }
-        // }
+        if (player.attack.active && player.attack.weapon)
+        {
+            // if (player.attack.weapon->attackType == ATTACK_SLASH &&
+            //     (def.spriteKey == "sword1" || def.spriteKey == "sword2" || def.spriteKey == "axe"))
+            // {
+            //     DrawSlashTrail(player, def.spriteKey, player.attack.raycastAngle);
+            // }
+            // else if (player.attack.weapon->attackType == ATTACK_THRUST)
+            // {
+            //     DrawThrustEffect(player, def.spriteKey, player.attack.raycastAngle);
+            // }
+            
+            // if (player.attack.weapon->attackType == ATTACK_SLAM)
+            // {
+            //     float progress = player.attack.timer / player.attack.weapon->duration;
+            //     float tX = std::floor(player.attack.startCenter.x / 32.0f);
+            //     float tY = std::floor(player.attack.startCenter.y / 32.0f);
+
+            //     for (int x = -2; x <= 2; ++x)
+            //     {
+            //         for (int y = -2; y <= 2; ++y)
+            //         {
+            //             Vector2 tilePos = {
+            //                 (tX + x) * 32.0f,
+            //                 (tY + y) * 32.0f
+            //             };
+            //             TileCollisionEffect(tilePos, progress);
+            //         }
+            //     }
+            // }
+        }
+    }
+
+    void DrawSwingGroundEffect(Player &player)
+    {
+        if (player.attack.active && player.attack.weapon)
+        {
+            if (player.attack.weapon->attackType == ATTACK_SLAM)
+            {
+                float progress = player.attack.timer / player.attack.weapon->duration;
+                float tX = std::floor(player.attack.startCenter.x / 32.0f);
+                float tY = std::floor(player.attack.startCenter.y / 32.0f);
+                float reach = player.attack.weapon->reach;
+                int radiusTiles = (int)std::floor(reach / 32.0f);
+
+                for (int x = -radiusTiles; x <= radiusTiles; ++x)
+                {
+                    for (int y = -radiusTiles; y <= radiusTiles; ++y)
+                    {
+                        Vector2 tilePos = {
+                            (tX + x) * 32.0f,
+                            (tY + y) * 32.0f
+                        };
+                        TileCollisionEffect(tilePos, progress);
+                    }
+                }
+            }
+        }
     }
 }
 

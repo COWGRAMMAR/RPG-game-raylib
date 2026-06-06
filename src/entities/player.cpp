@@ -11,6 +11,7 @@
  */
 
 #include "player.h"
+#include "../../include/systems/audioManager.h"
 #include "screen.h"
 #include "movement.h"
 #include "combat.h"
@@ -257,6 +258,7 @@ void Player::Render(void)
         tint = RED;
     }
 
+    Combat::DrawSwingGroundEffect(*this);
     DrawAnimation(Anim, tint);
     Combat::DrawSwingAttack(*this);
 }
@@ -268,7 +270,7 @@ void Player::TakeDamage(float amount, Vector2 knockback)
         return;
 
     Entity::TakeDamage(amount, knockback);
-    PlaySFX("hurt");
+    AudioManager::PlaySFX("hurt");
 
     float hitFlashDuration = 0.15f;
     float knockbackStrength = 6.0f;

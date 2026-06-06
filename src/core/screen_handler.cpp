@@ -199,74 +199,75 @@ void UpdateLogicAll()
 {
     TurnCombat::UpdateCooldown();
 
-    // If turn-based combat is active, process it and skip all normal logic
     if (TurnCombat::IsActive())
     {
         TurnCombat::Update();
-
-        // Still update effects and items for visual feedback
         Effects::Update(GetFrameTime());
-        return;
     }
-
-    // update flow field sebelum enemy di-update
-    if (tilesonMap)
-        globalFlowField.Update(PlayerInstance.GetPosition(), tilesonMap->width, tilesonMap->height);
-
-    if (!spawnFlowFieldRebuildQueue.empty() && tilesonMap)
+    else
     {
-        int id = spawnFlowFieldRebuildQueue.front();
-        spawnFlowFieldRebuildQueue.pop();
-        auto &entry = spawnFlowFields[id];
-        entry.field.Build(entry.spawnPos, tilesonMap->width, tilesonMap->height, FLOW_FIELD_RETURN_RADIUS);
-    }
+        // update flow field before enemy update
+        if (tilesonMap)
+            globalFlowField.Update(PlayerInstance.GetPosition(), tilesonMap->width, tilesonMap->height);
 
-    RebuildSpatialHash(Entities::GetEnemyRegistry());
-
-    auto &enemyReg = Entities::GetEnemyRegistry();
-    for (int i = 0; i < (int)enemyReg.size(); i++)
-    {
-        if (!enemyReg[i]->IsActive)
-            continue;
-        Vector2 sep = CalcSeparationForce(i, enemyReg);
-        // lerp force lama ke force baru
-        enemyReg[i]->SeparationForce.x = Lerp(enemyReg[i]->SeparationForce.x, sep.x, SEPARATION_FORCE_MAGNITUDE);
-        enemyReg[i]->SeparationForce.y = Lerp(enemyReg[i]->SeparationForce.y, sep.y, SEPARATION_FORCE_MAGNITUDE);
-
-        Vector2 newPos = {
-            enemyReg[i]->Position.x + enemyReg[i]->SeparationForce.x * Time::DELTA_TIME,
-            enemyReg[i]->Position.y + enemyReg[i]->SeparationForce.y * Time::DELTA_TIME};
-
-        if (IsPositionSafe(newPos, enemyReg[i]->HitboxWidth, enemyReg[i]->HitboxHeight,
-                           enemyReg[i]->HitboxOffsetX, enemyReg[i]->HitboxOffsetY))
+        if (!spawnFlowFieldRebuildQueue.empty() && tilesonMap)
         {
-            enemyReg[i]->Position = newPos;
+            int id = spawnFlowFieldRebuildQueue.front();
+            spawnFlowFieldRebuildQueue.pop();
+            auto &entry = spawnFlowFields[id];
+            entry.field.Build(entry.spawnPos, tilesonMap->width, tilesonMap->height, FLOW_FIELD_RETURN_RADIUS);
+        }
+
+        RebuildSpatialHash(Entities::GetEnemyRegistry());
+
+        auto &enemyReg = Entities::GetEnemyRegistry();
+        for (int i = 0; i < (int)enemyReg.size(); i++)
+        {
+            if (!enemyReg[i]->IsActive)
+                continue;
+            Vector2 sep = CalcSeparationForce(i, enemyReg);
+            enemyReg[i]->SeparationForce.x = Lerp(enemyReg[i]->SeparationForce.x, sep.x, SEPARATION_FORCE_MAGNITUDE);
+            enemyReg[i]->SeparationForce.y = Lerp(enemyReg[i]->SeparationForce.y, sep.y, SEPARATION_FORCE_MAGNITUDE);
+
+            Vector2 newPos = {
+                enemyReg[i]->Position.x + enemyReg[i]->SeparationForce.x * Time::DELTA_TIME,
+                enemyReg[i]->Position.y + enemyReg[i]->SeparationForce.y * Time::DELTA_TIME};
+
+            if (IsPositionSafe(newPos, enemyReg[i]->HitboxWidth, enemyReg[i]->HitboxHeight,
+                               enemyReg[i]->HitboxOffsetX, enemyReg[i]->HitboxOffsetY))
+            {
+                enemyReg[i]->Position = newPos;
+            }
         }
     }
 
     // Update semua entity (Player + semua Enemy) via Entities registry
     Entities::Update();
 
-    // Check if any enemy triggered turn-based mode after updating
-    for (Entity *entity : Entities::GetRegistry())
+    if (!TurnCombat::IsActive())
     {
-        Enemy *enemy = dynamic_cast<Enemy *>(entity);
-        if (enemy && enemy->IsActive && enemy->isTurnBasedMode)
+        // Check if any enemy triggered turn-based mode after updating
+        for (Entity *entity : Entities::GetRegistry())
         {
-            if (PlayerInstance.Health <= 0)
+            Enemy *enemy = dynamic_cast<Enemy *>(entity);
+            if (enemy && enemy->IsActive && enemy->isTurnBasedMode)
             {
-                TraceLog(LOG_INFO, "TURN: Player is dead, skipping trigger");
-                continue;
+                if (PlayerInstance.Health <= 0)
+                    continue;
+                if (TurnCombat::GetDefeatCooldown() > 0.0f)
+                    continue;
+                // Only trigger if player is close to the boss
+                Vector2 playerCenter = PlayerInstance.GetCenter();
+                Vector2 bossCenter = enemy->GetCenter();
+                float dist = Vector2Distance(playerCenter, bossCenter);
+                const float TRIGGER_RANGE = 40.0f;
+                if (dist > TRIGGER_RANGE)
+                    continue;
+                TraceLog(LOG_INFO, "TURN: Turn-based combat triggered by %s", enemy->Name.c_str());
+                TurnCombat::Init(enemy, &PlayerInstance);
+                TurnCombat::Update(); // Process first state immediately
+                break;
             }
-            if (TurnCombat::GetDefeatCooldown() > 0.0f)
-            {
-                TraceLog(LOG_INFO, "TURN: Defeat cooldown active (%.1fs), skipping", TurnCombat::GetDefeatCooldown());
-                continue;
-            }
-            TraceLog(LOG_INFO, "TURN: Turn-based combat triggered by %s", enemy->Name.c_str());
-            TurnCombat::Init(enemy, &PlayerInstance);
-            TurnCombat::Update(); // Process first state immediately
-            break;
         }
     }
 

@@ -241,6 +241,12 @@ public:
 
     Vector2 SeparationForce = {0, 0}; // Gaya separation dari enemy lain
 
+    // --- Feedback Visual & Kematian (runtime, accessible externally) ---
+    float HitFlashTimer = 0.0f;       // Timer tint merah saat terkena damage (runtime)
+    Vector2 KnockbackVelocity;        // Vektor knockback aktif (runtime)
+    float DeathTimer = 0.0f;          // Timer animasi kematian (runtime)
+    const float DeathDuration = 1.2f; // Durasi animasi kematian sebelum di-deactivate
+
 private:
     void HandleIdle();    // Jalankan state idle
     void HandlePatrol();  // Jalankan state patrol
@@ -263,12 +269,6 @@ private:
     float AttackCooldownTimer;         // Sisa waktu cooldown serangan (runtime)
     const float AttackCooldown = 1.0f; // Durasi cooldown antar serangan
     bool PlayerWasInRange = false;     // Flag mencegah serangan ganda dalam satu frame
-
-    // --- Feedback Visual & Kematian ---
-    float HitFlashTimer;              // Timer tint merah saat terkena damage (runtime)
-    Vector2 KnockbackVelocity;        // Vektor knockback aktif (runtime)
-    float DeathTimer;                 // Timer animasi kematian (runtime)
-    const float DeathDuration = 1.2f; // Durasi animasi kematian sebelum di-deactivate
 
     void MoveTowards(Vector2 target, float speed); // Helper gerak ke target dengan collision check
 };

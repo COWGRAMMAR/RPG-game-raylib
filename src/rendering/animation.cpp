@@ -396,7 +396,7 @@ void DrawAnimation(const Animation &anim, Color tint, float scale)
     }
 
     float scaledSize = FRAME_SIZE * scale;
-    float centeringOffset = (scaledSize - FRAME_SIZE) * 0.5f;
+    float centeringOffset = (FRAME_SIZE - scaledSize) * 0.5f;
     const std::string &frameId = anim.currentConfig->sprites[index];
     Display display = { anim.position, (int)scaledSize, {centeringOffset, centeringOffset}, {0,0}, 0.0f, tint };
     DrawFrame(frameId, display);

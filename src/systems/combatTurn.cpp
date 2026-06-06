@@ -5,6 +5,7 @@
 #include "inventory.h"
 #include "screen.h"
 #include "animation.h"
+#include "map.h"
 #include "../lib/raylib/include/raylib.h"
 #include "../lib/raylib/include/raymath.h"
 #include <cstdio>
@@ -30,19 +31,69 @@ static struct {
     int lootCount = 0;
 
     float defeatCooldown = 0.0f;
+
+    int selectedAction = -1;
+    int selectedPotionId = -1;
+
+    // Arena teleport
+    Vector2 origPlayerPos;
+    Vector2 origBossPos;
+    Vector2 origCameraTarget;
+    float origCameraZoom;
+
+    // Smooth zoom transition
+    float zoomTimer = 0.0f;
+    float targetZoom;
+    Vector2 targetCameraTarget;
+
 } state;
+
+static float OUTLINE_THICK = 3.0f;
 
 void TurnCombat::Init(Enemy* boss, Player* player) {
     state.active = true;
     state.phase = TurnPhase::PLAYER_CHOICE;
     state.boss = boss;
     state.player = player;
-    state.message = "Pilih gerakan yang ingin dilakukan!";
+    state.message = "Pilih gerakan (1-3), lalu ENTER untuk konfirmasi!";
     state.timer = 0.0f;
     state.lastBossAction = BossActionType::CLAW;
     state.playerDefending = false;
     state.combatTimer = 0.0f;
     state.keyProcessed = false;
+    state.selectedAction = -1;
+    state.selectedPotionId = -1;
+    // Save & teleport entities to arena
+    state.origPlayerPos = player->Position;
+    state.origBossPos = boss->Position;
+    state.origCameraTarget = camera.target;
+    state.origCameraZoom = camera.zoom;
+
+    // Arena positions: below respective panels
+    // At 2.5x zoom, screen width 1280 → world width ~512, screen height 720 → world height ~288
+    // Panel center X: player=235, boss=1045. Screen center at 640.
+    // World offset from camera target: (235-640)/2.5 = -162, (1045-640)/2.5 = +162
+    // Panel bottom Y = 180, sprite below at ~230. (230-360)/2.5 = -52 above camera target
+    float zoom = 2.5f;
+    Vector2 center = player->GetCenter();
+    float halfDist = 162.0f;
+    float yOffset = -52.0f;
+
+    Vector2 playerWorld = {center.x - halfDist, center.y + yOffset};
+    Vector2 bossWorld = {center.x + halfDist, center.y + yOffset};
+
+    player->Position.x = playerWorld.x - player->GetHitboxOffsetX() - player->GetHitboxWidth() / 2.0f;
+    player->Position.y = playerWorld.y - player->GetHitboxOffsetY() - player->GetHitboxHeight() / 2.0f;
+    boss->Position.x = bossWorld.x - boss->HitboxOffsetX - boss->HitboxWidth / 2.0f;
+    boss->Position.y = bossWorld.y - boss->HitboxOffsetY - boss->HitboxHeight / 2.0f;
+
+    // Start smooth zoom transition instead of instant jump
+    state.targetCameraTarget = Vector2Scale(Vector2Add(playerWorld, bossWorld), 0.5f);
+    state.targetZoom = zoom;
+    state.zoomTimer = 0.5f;
+
+    // Player faces right during combat
+    player->Anim.direction = RIGHT;
 }
 
 static void TransitionTo(TurnPhase newPhase) {
@@ -52,61 +103,51 @@ static void TransitionTo(TurnPhase newPhase) {
 }
 
 static float GetPlayerAttackDamage() {
-    ItemSlot slot = InputInstance.GetActiveSlot();
-    int slotIdx = (int)slot - 1;
-    if (slotIdx >= 0 && slotIdx < state.player->GetMaxHotbar()) {
-        InventoryItem& item = state.player->GetHotbarItem(slotIdx);
-        if (item.definitionId != -1) {
-            const ItemDefinition& def = itemDefs.GetById(item.definitionId);
-            if (def.category == ITEM_WEAPON) {
-                const WeaponData& w = std::get<WeaponData>(def.data);
-                return w.damage;
-            }
-        }
-    }
-    return 15.0f;
+    return (float)GetRandomValue(25, 30);
 }
 
-static bool UseHealthPotion() {
+static bool IsCriticalHit() {
+    return GetRandomValue(1, 100) <= 20;
+}
+
+static bool UsePotion(int defId) {
     Player& p = *state.player;
-    for (int i = 0; i < p.GetMaxHotbar(); i++) {
-        if (p.GetHotbarItem(i).definitionId == 2) {
-            const ItemDefinition& def = itemDefs.GetById(2);
-            const PotionData& pot = std::get<PotionData>(def.data);
-            float heal = (float)pot.healValue;
-            float oldHp = p.Health;
-            p.Health = std::min(p.Health + heal, p.MaxHealth);
-            p.GetHotbarItem(i).amount--;
-            if (p.GetHotbarItem(i).amount <= 0)
-                p.GetHotbarItem(i) = {-1, 0};
-            char buf[64];
-            snprintf(buf, sizeof(buf), "Menggunakan Health Potion! +%.0f HP (%.0f -> %.0f)", heal, oldHp, p.Health);
-            state.message = buf;
-            return true;
-        }
-    }
-    for (int i = 0; i < p.GetMaxBag(); i++) {
-        if (p.GetBagItem(i).definitionId == 2) {
-            const ItemDefinition& def = itemDefs.GetById(2);
-            const PotionData& pot = std::get<PotionData>(def.data);
-            float heal = (float)pot.healValue;
-            float oldHp = p.Health;
-            p.Health = std::min(p.Health + heal, p.MaxHealth);
-            p.GetBagItem(i).amount--;
-            if (p.GetBagItem(i).amount <= 0)
-                p.GetBagItem(i) = {-1, 0};
-            char buf[64];
-            snprintf(buf, sizeof(buf), "Menggunakan Health Potion! +%.0f HP (%.0f -> %.0f)", heal, oldHp, p.Health);
-            state.message = buf;
-            return true;
-        }
-    }
-    state.message = "Tidak ada potions! Giliran anda terbuang.";
+    const ItemDefinition& def = itemDefs.GetById(defId);
+    const PotionData& pot = std::get<PotionData>(def.data);
+    float heal = (float)pot.healValue;
+
+    auto scan = [&](int idx, bool isBag) -> bool {
+        InventoryItem& item = isBag ? p.GetBagItem(idx) : p.GetHotbarItem(idx);
+        if (item.definitionId != defId) return false;
+        float oldHp = p.Health;
+        p.Health = std::min(p.Health + heal, p.MaxHealth);
+        item.amount--;
+        if (item.amount <= 0)
+            item = {-1, 0};
+        char buf[64];
+        snprintf(buf, sizeof(buf), "Menggunakan %s! +%.0f HP (%.0f -> %.0f)", def.name.c_str(), heal, oldHp, p.Health);
+        state.message = buf;
+        return true;
+    };
+
+    for (int i = 0; i < p.GetMaxHotbar(); i++)
+        if (scan(i, false)) return true;
+    for (int i = 0; i < p.GetMaxBag(); i++)
+        if (scan(i, true)) return true;
     return false;
+}
+
+static int GetPotionIdForSlot(int slot) {
+    // slot 0 = small (id 2), 1 = medium (id 5), 2 = large (id 7)
+    int potionIds[] = {2, 5, 7};
+    if (slot >= 0 && slot < 3) return potionIds[slot];
+    return -1;
 }
 
 static void GrantBossLoot() {
     state.lootCount = 0;
+    int droppedWeapons[3] = {-1, -1, -1};
+    int weaponCount = 0;
 
     auto TryAdd = [](int defId, int amount) {
         ItemSpawn tmp;
@@ -117,8 +158,48 @@ static void GrantBossLoot() {
         }
     };
 
-    TryAdd(2, 3); // 3 Health Potions
-    TryAdd(3, 2); // 2 Mana Bread
+    auto IsWeaponDropped = [&](int defId) -> bool {
+        for (int i = 0; i < weaponCount; i++)
+            if (droppedWeapons[i] == defId) return true;
+        return false;
+    };
+
+    int pool[] = {0, 1, 2, 3, 4, 5, 6, 7, 8};
+    int poolSize = sizeof(pool) / sizeof(pool[0]);
+
+    int count = GetRandomValue(2, 3);
+    for (int i = 0; i < count; i++)
+    {
+        int attempts = 0;
+        int defId;
+        const ItemDefinition *def;
+        do {
+            int idx = GetRandomValue(0, poolSize - 1);
+            defId = pool[idx];
+            def = &itemDefs.GetById(defId);
+            attempts++;
+        } while (def->category == ITEM_WEAPON && IsWeaponDropped(defId) && attempts < 20);
+
+        if (def->category == ITEM_WEAPON && IsWeaponDropped(defId))
+            continue;
+
+        int amount;
+        if (def->category == ITEM_WEAPON)
+        {
+            amount = 1;
+            droppedWeapons[weaponCount++] = defId;
+        }
+        else
+            switch (def->rarity)
+            {
+            case RARITY_COMMON:    amount = GetRandomValue(5, 8); break;
+            case RARITY_UNCOMMON:  amount = GetRandomValue(3, 5); break;
+            case RARITY_RARE:      amount = GetRandomValue(1, 3); break;
+            default:               amount = 1; break;
+            }
+
+        TryAdd(defId, amount);
+    }
 }
 
 static void ExecuteBossTurn() {
@@ -156,9 +237,6 @@ static void ExecuteBossTurn() {
 
     if (state.player->Health <= 0) {
         state.player->Health = 0;
-        TransitionTo(TurnPhase::DEFEAT);
-    } else {
-        TransitionTo(TurnPhase::PLAYER_CHOICE);
     }
     state.combatTimer = 0.0f;
 }
@@ -168,57 +246,188 @@ void TurnCombat::Update() {
 
     state.combatTimer += GetFrameTime();
 
+    // Smooth zoom transition at start
+    if (state.zoomTimer > 0.0f) {
+        state.zoomTimer -= GetFrameTime();
+        float t = 1.0f - state.zoomTimer / 0.5f;
+        camera.zoom = Lerp(state.origCameraZoom, state.targetZoom, t);
+        camera.target.x = Lerp(state.origCameraTarget.x, state.targetCameraTarget.x, t);
+        camera.target.y = Lerp(state.origCameraTarget.y, state.targetCameraTarget.y, t);
+        if (state.zoomTimer <= 0.0f) {
+            camera.zoom = state.targetZoom;
+            camera.target = state.targetCameraTarget;
+        }
+        return;
+    }
+
     switch (state.phase) {
     case TurnPhase::PLAYER_CHOICE: {
-        if (IsKeyPressed(KEY_ONE)) {
-            state.phase = TurnPhase::PLAYER_ATTACK;
+        if (IsKeyPressed(KEY_ONE))
+            state.selectedAction = (state.selectedAction == 0) ? -1 : 0;
+        else if (IsKeyPressed(KEY_TWO))
+            state.selectedAction = (state.selectedAction == 1) ? -1 : 1;
+        else if (IsKeyPressed(KEY_THREE))
+            state.selectedAction = (state.selectedAction == 2) ? -1 : 2;
+
+        if (state.selectedAction >= 0)
+        {
+            const char *names[] = {"Attack", "Items", "Defense"};
+            state.message = TextFormat("Dipilih: %s. Tekan ENTER untuk konfirmasi.", names[state.selectedAction]);
+        }
+        else
+        {
+            state.message = "Pilih gerakan (1-3), lalu ENTER untuk konfirmasi!";
+        }
+
+        if (IsKeyPressed(KEY_ENTER) && state.selectedAction >= 0)
+        {
             state.combatTimer = 0.0f;
-        } else if (IsKeyPressed(KEY_TWO)) {
-            state.phase = TurnPhase::PLAYER_ITEM;
-            state.combatTimer = 0.0f;
-        } else if (IsKeyPressed(KEY_THREE)) {
-            state.playerDefending = true;
-            state.message = "Bertahan untuk serangan berikutnya!";
-            state.phase = TurnPhase::PLAYER_DEFEND;
-            state.combatTimer = 0.0f;
+            if (state.selectedAction == 0)
+                state.phase = TurnPhase::PLAYER_ATTACK;
+            else if (state.selectedAction == 1)
+                state.phase = TurnPhase::PLAYER_ITEM;
+            else if (state.selectedAction == 2)
+            {
+                state.playerDefending = true;
+                state.message = "Bertahan untuk serangan berikutnya!";
+                state.phase = TurnPhase::PLAYER_DEFEND;
+            }
         }
         break;
     }
 
     case TurnPhase::PLAYER_ATTACK: {
-        float dmg = GetPlayerAttackDamage();
-        float oldHp = state.boss->Health;
-        state.boss->Health = std::max(0.0f, state.boss->Health - dmg);
-        char buf[64];
-        snprintf(buf, sizeof(buf), "Kamu menyerang memberikan %.0f damage! (%.0f -> %.0f)", dmg, oldHp, state.boss->Health);
-        state.message = buf;
+        if (!state.keyProcessed) {
+            float dmg = GetPlayerAttackDamage();
+            bool critical = IsCriticalHit();
+            if (critical) dmg *= 2.0f;
+            float oldHp = state.boss->Health;
+            state.boss->Health = std::max(0.0f, state.boss->Health - dmg);
+            char buf[96];
+            if (critical)
+                snprintf(buf, sizeof(buf), "CRITICAL! %.0f damage! (%.0f -> %.0f)", dmg, oldHp, state.boss->Health);
+            else
+                snprintf(buf, sizeof(buf), "Kamu menyerang memberikan %.0f damage! (%.0f -> %.0f)", dmg, oldHp, state.boss->Health);
+            state.message = buf;
+            state.keyProcessed = true;
+            state.timer = 1.0f;
+            state.boss->HitFlashTimer = 0.3f;
 
-        if (state.boss->Health <= 0) {
-            TransitionTo(TurnPhase::VICTORY);
-        } else {
-            TransitionTo(TurnPhase::SHOW_RESULT);
+            // Trigger sword swing arc in front of player
+            Player& p = *state.player;
+            p.Anim.direction = RIGHT;
+            InventoryItem activeItem = Inventory::GetActiveHotbarItem(p);
+            if (activeItem.definitionId != -1) {
+                const ItemDefinition &def = itemDefs.GetById(activeItem.definitionId);
+                if (def.category == ITEM_WEAPON) {
+                    p.attack.active = true;
+                    p.attack.timer = 0.0f;
+                    p.attack.center = p.GetCenter();
+                    p.attack.damagedEntities.clear();
+                    p.Anim.isAttacking = true;
+                    p.attack.raycastAngle = 0.0f;
+                    Inventory::SetupAttackStats(p, RIGHT);
+                    p.attack.center.y -= 6.0f;
+                }
+            }
+        }
+        state.timer -= GetFrameTime();
+        state.player->attack.timer += GetFrameTime();
+        if (state.timer <= 0.0f) {
+            // Reset player attack state before transitioning
+            state.player->attack.active = false;
+            state.player->attack.timer = 0.0f;
+            state.player->Anim.isAttacking = false;
+            if (state.boss->Health <= 0)
+                TransitionTo(TurnPhase::VICTORY);
+            else
+                TransitionTo(TurnPhase::SHOW_RESULT);
         }
         break;
     }
 
     case TurnPhase::PLAYER_ITEM: {
-        UseHealthPotion();
-        if (state.boss->Health <= 0) {
-            TransitionTo(TurnPhase::VICTORY);
-        } else {
-            TransitionTo(TurnPhase::SHOW_RESULT);
+        if (state.keyProcessed) {
+            // After successful potion use: countdown, then transition
+            state.timer -= GetFrameTime();
+            if (state.timer <= 0.0f) {
+                if (state.boss->Health <= 0)
+                    TransitionTo(TurnPhase::VICTORY);
+                else
+                    TransitionTo(TurnPhase::SHOW_RESULT);
+            }
+        }
+        else if (state.timer > 0.0f) {
+            // 1s delay after "no potion" message
+            state.timer -= GetFrameTime();
+            state.message = "Tidak ada potion! Kembali ke menu...";
+            if (state.timer <= 0.0f) {
+                state.selectedPotionId = -1;
+                TransitionTo(TurnPhase::PLAYER_CHOICE);
+            }
+        }
+        else {
+            // Normal input: select potion type, then ENTER to confirm
+            if (IsKeyPressed(KEY_ONE))
+                state.selectedPotionId = GetPotionIdForSlot(0);
+            else if (IsKeyPressed(KEY_TWO))
+                state.selectedPotionId = GetPotionIdForSlot(1);
+            else if (IsKeyPressed(KEY_THREE))
+                state.selectedPotionId = GetPotionIdForSlot(2);
+
+            if (state.selectedPotionId >= 0)
+            {
+                const ItemDefinition &def = itemDefs.GetById(state.selectedPotionId);
+                state.message = TextFormat("Dipilih: %s. Tekan ENTER untuk memakai.", def.name.c_str());
+            }
+            else
+            {
+                state.message = "Pilih potion (1-3), lalu ENTER untuk konfirmasi!";
+            }
+
+            if (IsKeyPressed(KEY_ENTER) && state.selectedPotionId >= 0)
+            {
+                if (UsePotion(state.selectedPotionId))
+                {
+                    state.keyProcessed = true;
+                    state.timer = 1.0f;
+                }
+                else
+                {
+                    const ItemDefinition &def = itemDefs.GetById(state.selectedPotionId);
+                    state.message = TextFormat("Tidak ada %s!", def.name.c_str());
+                    state.selectedPotionId = -1;
+                    state.timer = 1.0f;
+                }
+            }
         }
         break;
     }
 
     case TurnPhase::PLAYER_DEFEND: {
-        TransitionTo(TurnPhase::SHOW_RESULT);
+        if (!state.keyProcessed) {
+            state.keyProcessed = true;
+            state.timer = 1.0f;
+        }
+        state.timer -= GetFrameTime();
+        if (state.timer <= 0.0f) {
+            TransitionTo(TurnPhase::SHOW_RESULT);
+        }
         break;
     }
 
     case TurnPhase::SHOW_RESULT: {
-        if (state.combatTimer >= 1.0f) {
+        if (!state.keyProcessed) {
             ExecuteBossTurn();
+            state.keyProcessed = true;
+            state.timer = 1.0f;
+        }
+        state.timer -= GetFrameTime();
+        if (state.timer <= 0.0f) {
+            if (state.player->Health <= 0)
+                TransitionTo(TurnPhase::DEFEAT);
+            else
+                TransitionTo(TurnPhase::PLAYER_CHOICE);
         }
         break;
     }
@@ -242,6 +451,12 @@ void TurnCombat::Update() {
     }
 
     case TurnPhase::DEFEAT: {
+        if (!state.keyProcessed) {
+            state.player->Anim.direction = RIGHT;
+            PlayAnimation(state.player->Anim, DEAD, RIGHT);
+            state.player->Anim.isDead = true;
+            state.keyProcessed = true;
+        }
         if (state.combatTimer >= 2.0f || IsKeyPressed(KEY_ENTER) || IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
             state.player->Health = 0;
             state.defeatCooldown = 6.0f;
@@ -262,7 +477,7 @@ static void DrawHealthBar(float x, float y, float w, float h, float ratio, Color
         DrawRectangleRounded((Rectangle){x, y, w * ratio, h}, 0.3f, 8, color);
         DrawRectangleRounded((Rectangle){x, y, w * ratio, h * 0.3f}, 0.3f, 8, ColorAlpha(WHITE, 0.15f));
     }
-    DrawRectangleRoundedLines((Rectangle){x, y, w, h}, 0.3f, 8, ColorAlpha(WHITE, 0.2f));
+    DrawRectangleRoundedLinesEx((Rectangle){x, y, w, h}, 0.3f, 8, 1.5f, ColorAlpha(WHITE, 0.2f));
 }
 
 static void DrawTextCentered(const char* text, int y, int fontSize, Color color) {
@@ -270,11 +485,13 @@ static void DrawTextCentered(const char* text, int y, int fontSize, Color color)
     DrawText(text, (GameScreenWidth - textW) / 2, y, fontSize, color);
 }
 
-static void DrawActionButton(const char* key, const char* label, int x, int y, int w, int h, bool highlight) {
+static void DrawActionButton(const char* key, const char* label, int x, int y, int w, int h, bool selected, bool highlight) {
     Color bg = highlight ? ColorAlpha(GOLD, 0.3f) : ColorAlpha(DARKGRAY, 0.7f);
     Color border = highlight ? GOLD : ColorAlpha(WHITE, 0.3f);
+    if (selected)
+        border = RED;
     DrawRectangleRounded((Rectangle){(float)x, (float)y, (float)w, (float)h}, 0.3f, 8, bg);
-    DrawRectangleRoundedLines((Rectangle){(float)x, (float)y, (float)w, (float)h}, 0.3f, 8, border);
+    DrawRectangleRoundedLinesEx((Rectangle){(float)x, (float)y, (float)w, (float)h}, 0.3f, 8, selected ? OUTLINE_THICK * 1.5f : OUTLINE_THICK, border);
 
     char fullLabel[64];
     snprintf(fullLabel, sizeof(fullLabel), "[%s] %s", key, label);
@@ -286,10 +503,8 @@ static void DrawActionButton(const char* key, const char* label, int x, int y, i
 void TurnCombat::Draw() {
     if (!state.active) return;
 
-    DrawRectangle(0, 0, GameScreenWidth, GameScreenHeight, ColorAlpha(BLACK, 0.75f));
-
     int topBorder = 20;
-    DrawRectangleRoundedLines((Rectangle){10, (float)topBorder, (float)GameScreenWidth - 20, (float)GameScreenHeight - (float)topBorder * 2}, 0.1f, 8, ColorAlpha(GOLD, 0.5f));
+    DrawRectangleRoundedLinesEx((Rectangle){10, (float)topBorder, (float)GameScreenWidth - 20, (float)GameScreenHeight - (float)topBorder * 2}, 0.1f, 8, OUTLINE_THICK, ColorAlpha(GOLD, 0.5f));
 
     DrawTextCentered("TURN-BASED COMBAT", 30, 28, GOLD);
 
@@ -300,7 +515,7 @@ void TurnCombat::Draw() {
     // Player panel (left)
     int playerX = 60;
     DrawRectangleRounded((Rectangle){(float)playerX, (float)panelY, (float)panelW, (float)panelH}, 0.2f, 8, ColorAlpha(BLACK, 0.5f));
-    DrawRectangleRoundedLines((Rectangle){(float)playerX, (float)panelY, (float)panelW, (float)panelH}, 0.2f, 8, ColorAlpha(BLUE, 0.5f));
+    DrawRectangleRoundedLinesEx((Rectangle){(float)playerX, (float)panelY, (float)panelW, (float)panelH}, 0.2f, 8, OUTLINE_THICK, ColorAlpha(BLUE, 0.5f));
     DrawText("PLAYER", playerX + 15, panelY + 10, 18, BLUE);
 
     float hp = state.player->Health;
@@ -322,7 +537,7 @@ void TurnCombat::Draw() {
     // Boss panel (right)
     int bossX = GameScreenWidth - 60 - panelW;
     DrawRectangleRounded((Rectangle){(float)bossX, (float)panelY, (float)panelW, (float)panelH}, 0.2f, 8, ColorAlpha(BLACK, 0.5f));
-    DrawRectangleRoundedLines((Rectangle){(float)bossX, (float)panelY, (float)panelW, (float)panelH}, 0.2f, 8, ColorAlpha(RED, 0.5f));
+    DrawRectangleRoundedLinesEx((Rectangle){(float)bossX, (float)panelY, (float)panelW, (float)panelH}, 0.2f, 8, OUTLINE_THICK, ColorAlpha(RED, 0.5f));
 
     const char* bossName = state.boss->Def ? state.boss->Def->name.c_str() : "BOSS";
     char bossLabel[64];
@@ -342,9 +557,19 @@ void TurnCombat::Draw() {
         DrawText(">>> BERTAHAN! <<<", bossX + 15, panelY + 90, 14, GREEN);
     }
 
+    // Boss sprite area — below boss panel
+    int spriteY = panelY + panelH + 10;
+    int bossSpriteX = bossX + panelW / 2 - FRAME_SIZE / 2;
+    Rectangle bossSpriteArea = {(float)bossSpriteX, (float)spriteY, (float)FRAME_SIZE, (float)FRAME_SIZE};
+
+    // Boss flash handled by Enemy::Render() via HitFlashTimer
+
+    // Slash effect removed per user request
+
     // Message area
     int msgY = panelY + panelH + 40;
-    DrawTextCentered(state.message.c_str(), msgY, 22, YELLOW);
+    bool isCritical = state.message.rfind("CRITICAL", 0) == 0;
+    DrawTextCentered(state.message.c_str(), msgY, 22, isCritical ? RED : YELLOW);
 
     // Action buttons (bottom)
     if (state.phase == TurnPhase::PLAYER_CHOICE) {
@@ -354,33 +579,75 @@ void TurnCombat::Draw() {
         int totalW = btnW * 3 + 20 * 2;
         int startX = (GameScreenWidth - totalW) / 2;
 
-        DrawActionButton("1", "Attack", startX, btnY, btnW, btnH, false);
-        DrawActionButton("2", "Items", startX + btnW + 20, btnY, btnW, btnH, false);
-        DrawActionButton("3", "Defense", startX + (btnW + 20) * 2, btnY, btnW, btnH, false);
+        DrawActionButton("1", "Attack", startX, btnY, btnW, btnH, state.selectedAction == 0, false);
+        DrawActionButton("2", "Items", startX + btnW + 20, btnY, btnW, btnH, state.selectedAction == 1, false);
+        DrawActionButton("3", "Defense", startX + (btnW + 20) * 2, btnY, btnW, btnH, state.selectedAction == 2, false);
+    } else if (state.phase == TurnPhase::PLAYER_ITEM) {
+        int btnY = GameScreenHeight - 80;
+        int btnW = 180;
+        int btnH = 50;
+        int totalW = btnW * 3 + 20 * 2;
+        int startX = (GameScreenWidth - totalW) / 2;
+        const char *potionNames[] = {"Small HP", "Medium HP", "Large HP"};
+        int potionDefs[] = {2, 5, 7};
+        int selPotion = state.selectedPotionId;
+        DrawActionButton("1", potionNames[0], startX, btnY, btnW, btnH, selPotion == potionDefs[0], false);
+        DrawActionButton("2", potionNames[1], startX + btnW + 20, btnY, btnW, btnH, selPotion == potionDefs[1], false);
+        DrawActionButton("3", potionNames[2], startX + (btnW + 20) * 2, btnY, btnW, btnH, selPotion == potionDefs[2], false);
     } else if (state.phase == TurnPhase::VICTORY) {
-        // Loot panel (right side)
-        int lootX = GameScreenWidth - 60 - 320;
-        int lootY = panelY + panelH + 20;
-        int lootW = 320;
-        int lootH = 60 + state.lootCount * 45;
-        DrawRectangleRounded((Rectangle){(float)lootX, (float)lootY, (float)lootW, (float)lootH}, 0.2f, 8, ColorAlpha(BLACK, 0.6f));
-        DrawRectangleRoundedLines((Rectangle){(float)lootX, (float)lootY, (float)lootW, (float)lootH}, 0.2f, 8, ColorAlpha(GREEN, 0.5f));
-        DrawText("LOOT", lootX + 15, lootY + 10, 20, GREEN);
+        // Darken screen
+        DrawRectangle(0, 0, GameScreenWidth, GameScreenHeight, ColorAlpha(BLACK, 0.5f));
 
+        // Big MENANG text with yellow outline
+        const char *menangText = "MENANG";
+        int fontSize = 80;
+        int textW = MeasureText(menangText, fontSize);
+        int textX = (GameScreenWidth - textW) / 2;
+        int textY = GameScreenHeight / 2 - fontSize / 2 - 40;
+
+        DrawText(menangText, textX - 3, textY, fontSize, YELLOW);
+        DrawText(menangText, textX + 3, textY, fontSize, YELLOW);
+        DrawText(menangText, textX, textY - 3, fontSize, YELLOW);
+        DrawText(menangText, textX, textY + 3, fontSize, YELLOW);
+        DrawText(menangText, textX, textY, fontSize, WHITE);
+
+        // Loot list below the title (icon + text centered as group)
+        int lootY = textY + fontSize + 20;
         for (int i = 0; i < state.lootCount; i++) {
-            int itemY = lootY + 40 + i * 45;
+            int itemY = lootY + i * 38;
             const ItemDefinition &def = itemDefs.GetById(state.loot[i].definitionId);
-            Rectangle iconDest = {(float)lootX + 15, (float)itemY, 32, 32};
-            Display iconDisplay = {{iconDest.x, iconDest.y}, (int)iconDest.width, {0,0}, {0,0}, 0.0f, WHITE};
-            DrawFrame(def.spriteKey, iconDisplay);
             char itemText[64];
             snprintf(itemText, sizeof(itemText), "%s x%d", def.name.c_str(), state.loot[i].amount);
-            DrawText(itemText, lootX + 55, itemY + 6, 18, WHITE);
+            int iconSize = 28;
+            int gap = 8;
+            int textW = MeasureText(itemText, 20);
+            int groupW = iconSize + gap + textW;
+            int groupX = (GameScreenWidth - groupW) / 2;
+            Rectangle iconDest = {(float)groupX, (float)itemY, (float)iconSize, (float)iconSize};
+            Display iconDisplay = {{iconDest.x, iconDest.y}, (int)iconDest.width, {0,0}, {0,0}, 0.0f, WHITE};
+            DrawFrame(def.spriteKey, iconDisplay);
+            DrawText(itemText, groupX + iconSize + gap, itemY + 4, 20, LIGHTGRAY);
         }
 
         DrawTextCentered("Tekan ENTER atau klik untuk melanjutkan.", GameScreenHeight - 60, 20, GREEN);
     } else if (state.phase == TurnPhase::DEFEAT) {
-        DrawTextCentered("KALAH! Tekan ENTER atau klik untuk melanjutkan.", GameScreenHeight - 60, 24, RED);
+        // Darken screen
+        DrawRectangle(0, 0, GameScreenWidth, GameScreenHeight, ColorAlpha(BLACK, 0.5f));
+
+        // Big KALAH text with red outline
+        const char *kalahText = "KALAH";
+        int fontSize = 80;
+        int textW = MeasureText(kalahText, fontSize);
+        int textX = (GameScreenWidth - textW) / 2;
+        int textY = GameScreenHeight / 2 - fontSize / 2;
+
+        DrawText(kalahText, textX - 3, textY, fontSize, RED);
+        DrawText(kalahText, textX + 3, textY, fontSize, RED);
+        DrawText(kalahText, textX, textY - 3, fontSize, RED);
+        DrawText(kalahText, textX, textY + 3, fontSize, RED);
+        DrawText(kalahText, textX, textY, fontSize, WHITE);
+
+        DrawTextCentered("Tekan ENTER atau klik untuk melanjutkan.", GameScreenHeight - 60, 20, LIGHTGRAY);
     }
 
     // Phase indicator
@@ -407,11 +674,20 @@ void TurnCombat::Shutdown() {
     state.active = false;
     state.phase = TurnPhase::INACTIVE;
     if (state.boss)
+    {
         state.boss->isTurnBasedMode = false;
+        state.boss->Position = state.origBossPos;
+    }
+    if (state.player)
+        state.player->Position = state.origPlayerPos;
     state.boss = nullptr;
     state.player = nullptr;
     state.message.clear();
     state.playerDefending = false;
+
+    // Restore camera
+    camera.target = state.origCameraTarget;
+    camera.zoom = state.origCameraZoom;
 }
 
 TurnPhase TurnCombat::GetPhase() {

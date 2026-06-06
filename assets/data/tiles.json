@@ -41,6 +41,34 @@
         "width": 1,
         "height": 1
     },
+    "barrierDown": {
+        "texture": "TILESET_PROPS",
+        "column": 6,
+        "row": 0,
+        "width": 1,
+        "height": 1
+    },
+    "barrierUp1": {
+        "texture": "TILESET_PROPS",
+        "column": 7,
+        "row": 0,
+        "width": 1,
+        "height": 1
+    },
+    "barrierUp2": {
+        "texture": "TILESET_PROPS",
+        "column": 8,
+        "row": 0,
+        "width": 1,
+        "height": 1
+    },
+    "sign": {
+        "texture": "TILESET_PROPS",
+        "column": 9,
+        "row": 0,
+        "width": 1,
+        "height": 1
+    },
     "sword1": {
         "texture": "TILESET_ITEMS",
         "column": 0,

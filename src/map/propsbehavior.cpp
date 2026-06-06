@@ -1083,17 +1083,47 @@ void BarrierManager::Update()
 int BarrierManager::Render(Rectangle viewRect)
 {
     int rendered = 0;
+    
+    // Pass 1: Render barrierDown and barrierUp1 (the base layer)
+    for (auto &b : barriers)
+    {
+        if (!CheckCollisionRecs(b.tile.bounds, viewRect))
+            continue;
+
+        Display display;
+        display.position = b.tile.position;
+
+        if (b.isActive)
+        {
+            DrawFrame("barrierUp1", display);
+        }
+        else
+        {
+            DrawFrame("barrierDown", display);
+        }
+        rendered++;
+    }
+
+    // Pass 2: Render barrierUp2 (top layer) so it is not obstructed by adjacent barrierUp1s
     for (auto &b : barriers)
     {
         if (!b.isActive)
             continue;
-        if (!CheckCollisionRecs(b.tile.bounds, viewRect))
+            
+        // We expand the viewRect slightly upwards to ensure barrierUp2 is drawn even if the base is slightly off-screen
+        Rectangle expandedView = viewRect;
+        expandedView.y -= FRAME_SIZE;
+        expandedView.height += FRAME_SIZE;
+        
+        if (!CheckCollisionRecs(b.tile.bounds, expandedView))
             continue;
 
-        DrawRectangleRec(b.tile.bounds, ColorAlpha(YELLOW, 0.3f));
-        DrawRectangleLinesEx(b.tile.bounds, 2.0f, YELLOW);
-        rendered++;
+        Display display;
+        display.position = b.tile.position;
+        display.position.y -= FRAME_SIZE;
+        DrawFrame("barrierUp2", display);
     }
+    
     return rendered;
 }
 
@@ -1311,7 +1341,9 @@ int SignManager::Render(Rectangle viewRect)
         if (!CheckCollisionRecs(s.tile.bounds, viewRect))
             continue;
 
-        DrawRectangleRec(s.tile.bounds, DARKGREEN);
+        Display display;
+        display.position = s.tile.position;
+        DrawFrame("sign", display);
         rendered++;
     }
     return rendered;

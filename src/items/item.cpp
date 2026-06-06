@@ -206,6 +206,7 @@ void ItemDefinitionManager::Load(const std::string &path)
             pd.speedMultiplier = SafeGet<float>(p, "speedMultiplier", 1.0f);
             pd.invincibilityDuration = SafeGet<float>(p, "invincibilityDuration", 0.0f);
             pd.duration = SafeGet<float>(p, "duration", 0.0f);
+            pd.cooldown = SafeGet<float>(p, "cooldown", 1.0f); // Default cooldown is 1.0f
             def.data = pd;
         }
 

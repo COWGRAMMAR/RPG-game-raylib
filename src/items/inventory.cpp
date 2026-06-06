@@ -169,6 +169,7 @@ namespace Inventory
             slot = {-1, 0};
         }
 
+        player.PotionCooldownMax = potion.cooldown;
         player.PotionCooldown = player.PotionCooldownMax;
     }
 

@@ -55,7 +55,8 @@
       "maxStack": 8,
       "potion": {
         "healValue": 20,
-        "isMana": false
+        "isMana": false,
+        "cooldown": 1.0
       }
     },
     "staminaPotionSmall": {
@@ -69,7 +70,8 @@
       "maxStack": 8,
       "potion": {
         "healValue": 15,
-        "isMana": true
+        "isMana": true,
+        "cooldown": 1.0
       }
     },
     "bow": {
@@ -105,7 +107,8 @@
       "maxStack": 8,
       "potion": {
         "healValue": 50,
-        "isMana": false
+        "isMana": false,
+        "cooldown": 5.0
       }
     },
     "staminaPotionMedium": {
@@ -119,7 +122,8 @@
       "maxStack": 8,
       "potion": {
         "healValue": 40,
-        "isMana": true
+        "isMana": true,
+        "cooldown": 5.0
       }
     },
     "healthPotionLarge": {
@@ -133,7 +137,8 @@
       "maxStack": 8,
       "potion": {
         "healValue": 100,
-        "isMana": false
+        "isMana": false,
+        "cooldown": 10.0
       }
     },
     "staminaPotionLarge": {
@@ -147,7 +152,8 @@
       "maxStack": 8,
       "potion": {
         "healValue": 80,
-        "isMana": true
+        "isMana": true,
+        "cooldown": 10.0
       }
     },
     "damagePotionSmall": {
@@ -163,7 +169,8 @@
         "healValue": 0,
         "isMana": false,
         "damageMultiplier": 1.25,
-        "duration": 30.0
+        "duration": 30.0,
+        "cooldown": 5.0
       }
     },
     "damagePotionMedium": {
@@ -179,7 +186,8 @@
         "healValue": 0,
         "isMana": false,
         "damageMultiplier": 1.5,
-        "duration": 45.0
+        "duration": 45.0,
+        "cooldown": 10.0
       }
     },
     "speedPotionSmall": {
@@ -195,7 +203,8 @@
         "healValue": 0,
         "isMana": false,
         "speedMultiplier": 1.125,
-        "duration": 20.0
+        "duration": 20.0,
+        "cooldown": 5.0
       }
     },
     "speedPotionMedium": {
@@ -211,7 +220,8 @@
         "healValue": 0,
         "isMana": false,
         "speedMultiplier": 1.25,
-        "duration": 35.0
+        "duration": 35.0,
+        "cooldown": 10.0
       }
     },
     "invincibilityPotionSmall": {
@@ -227,7 +237,8 @@
         "healValue": 0,
         "isMana": false,
         "invincibilityDuration": 5.0,
-        "duration": 5.0
+        "duration": 5.0,
+        "cooldown": 5.0
       }
     },
     "invincibilityPotionMedium": {
@@ -243,7 +254,8 @@
         "healValue": 0,
         "isMana": false,
         "invincibilityDuration": 10.0,
-        "duration": 10.0
+        "duration": 10.0,
+        "cooldown": 10.0
       }
     },
     "ak47": {

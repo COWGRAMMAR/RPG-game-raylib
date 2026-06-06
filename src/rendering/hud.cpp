@@ -468,6 +468,19 @@ void DrawInventory()
                 char buf[12]; sprintf(buf, "%d", item.amount);
                 DrawText(buf, (int)(slotRect.x + slotSize - 30), (int)(slotRect.y + slotSize - 20), 14, WHITE);
             }
+
+            const ItemDefinition &def = itemDefs.GetById(item.definitionId);
+            if (def.category == ITEM_POTION && PlayerInstance.PotionCooldown > 0.0f && PlayerInstance.PotionCooldownMax > 0.0f)
+            {
+                float ratio = PlayerInstance.PotionCooldown / PlayerInstance.PotionCooldownMax;
+                float startAngle = 270.0f;
+                float endAngle = 270.0f + (360.0f * ratio);
+                Vector2 center = {
+                    slotRect.x + slotRect.width / 2.0f,
+                    slotRect.y + slotRect.height / 2.0f
+                };
+                DrawCircleSector(center, iconSize / 2.0f + 4.0f, startAngle, endAngle, 36, ColorAlpha(BLACK, 0.65f));
+            }
         }
 
         if (isHovered && mousePressed && dragSlot == -1 && !isDragSplit && item.definitionId != -1)
@@ -608,6 +621,19 @@ void DrawHotbar()
                 int fontSize = 12;
                 int textW = MeasureText(amtBuf, fontSize);
                 DrawTextHUD(amtBuf, (int)(slotRect.x + slotRect.width - textW - 4), (int)(slotRect.y + slotRect.height - 13.5), fontSize, WHITE);
+            }
+
+            const ItemDefinition &def = itemDefs.GetById(item.definitionId);
+            if (def.category == ITEM_POTION && PlayerInstance.PotionCooldown > 0.0f && PlayerInstance.PotionCooldownMax > 0.0f)
+            {
+                float ratio = PlayerInstance.PotionCooldown / PlayerInstance.PotionCooldownMax;
+                float startAngle = 270.0f;
+                float endAngle = 270.0f + (360.0f * ratio);
+                Vector2 center = {
+                    slotRect.x + slotRect.width / 2.0f,
+                    slotRect.y + slotRect.height / 2.0f
+                };
+                DrawCircleSector(center, iconDrawSize / 2.0f + 4.0f, startAngle, endAngle, 36, ColorAlpha(BLACK, 0.65f));
             }
         }
 

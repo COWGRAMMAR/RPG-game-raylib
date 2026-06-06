@@ -103,6 +103,7 @@ struct PotionData
     float speedMultiplier;       // (optional) misal 1.0 = normal, 1.3 = +30%
     float invincibilityDuration; // waktu kebal dalam detik
     float duration;              // durasi efek potion
+    float cooldown;              // waktu tunggu sebelum potion berikutnya bisa digunakan
 };
 
 /**

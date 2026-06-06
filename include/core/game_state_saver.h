@@ -281,7 +281,7 @@ bool WriteAutosave(const std::string& filename);
 /**
  * @brief Read saved state from JSON file
  * @details Reads and deserializes a JSON save file into the global saved state structs.
- *          Validates version == SAVE_VERSION (currently 2).
+ *          Validates version == SAVE_VERSION (currently 3).
  * @param path Path to the save file
  * @return true if successful, false if file not found, parse error, or version mismatch
  */

@@ -10,7 +10,7 @@
       "isStackable": false,
       "maxStack": 1,
       "weapon": {
-        "damage": 15.0,
+        "damage": 25.0,
         "reach": 36.0,
         "breadth": 54.0,
         "duration": 0.3,
@@ -32,7 +32,7 @@
       "isStackable": false,
       "maxStack": 1,
       "weapon": {
-        "damage": 25.0,
+        "damage": 35.0,
         "reach": 48.0,
         "breadth": 70.0,
         "duration": 0.4,
@@ -278,7 +278,7 @@
       "isStackable": false,
       "maxStack": 1,
       "weapon": {
-        "damage": 25.0,
+        "damage": 35.0,
         "reach": 80.0,
         "breadth": 20.0,
         "duration": 0.35,
@@ -300,7 +300,7 @@
       "isStackable": false,
       "maxStack": 1,
       "weapon": {
-        "damage": 35.0,
+        "damage": 40.0,
         "reach": 48.0,
         "breadth": 70.0,
         "duration": 0.4,
@@ -322,7 +322,7 @@
       "isStackable": false,
       "maxStack": 1,
       "weapon": {
-        "damage": 45.0,
+        "damage": 60.0,
         "reach": 64.0,
         "breadth": 64.0,
         "duration": 0.5,

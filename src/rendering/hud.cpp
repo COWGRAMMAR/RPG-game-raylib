@@ -78,14 +78,26 @@ static void DrawItemIcon(const InventoryItem &item, Rectangle dest)
         dest.y + (dest.height - renderHeight) / 2.0f
     };
 
+    bool isMelee = false;
+    if (def.category == ITEM_WEAPON)
+    {
+        const WeaponData* wd = std::get_if<WeaponData>(&def.data);
+        if (wd && wd->attackType != ATTACK_PIERCE)
+        {
+            isMelee = true;
+        }
+    }
+
+    Vector2 origin = isMelee ? Vector2{ renderWidth / 2.0f, renderHeight / 2.0f } : Vector2{ 0.0f, 0.0f };
+
     Rectangle drawDest = {
-        position.x,
-        position.y,
+        position.x + origin.x,
+        position.y + origin.y,
         renderWidth,
         renderHeight
     };
 
-    DrawTexturePro(textures[frame.texture], src, drawDest, {0, 0}, 0.0f, WHITE);
+    DrawTexturePro(textures[frame.texture], src, drawDest, origin, isMelee ? -45.0f : 0.0f, WHITE);
 }
 
 /**

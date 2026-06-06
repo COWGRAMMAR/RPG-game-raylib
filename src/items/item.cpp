@@ -605,6 +605,18 @@ void ItemRenderManager::Render(ItemSpawn &item)
     Display display;
     display.position = renderPos;
     display.size = (int)(FRAME_SIZE * scale);
+
+    if (def.category == ITEM_WEAPON)
+    {
+        const WeaponData* wd = std::get_if<WeaponData>(&def.data);
+        if (wd && wd->attackType != ATTACK_PIERCE)
+        {
+            display.rotation = -45.0f;
+            display.origin = { (float)display.size / 2.0f, (float)display.size / 2.0f };
+            display.offset = display.origin;
+        }
+    }
+
     DrawFrame(def.spriteKey, display);
 
     if (item.amount > 1)

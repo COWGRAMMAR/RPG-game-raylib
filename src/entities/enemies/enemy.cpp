@@ -16,7 +16,7 @@
 #include "player.h"
 #include "map.h"
 #include "datadriven.h"
-#include "../lib/raylib/include/raymath.h"
+#include "raymath.h"
 #include "../lib/json/include/nlohmann/json.hpp"
 #include "game_debug.h"
 #include "entities.h"

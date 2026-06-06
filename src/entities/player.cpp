@@ -19,7 +19,7 @@
 #include "inventory.h"
 #include "mapLogic.h"
 #include "game_debug.h"
-#include "../lib/raylib/include/raymath.h"
+#include "raymath.h"
 #include "propsbehavior.h"
 #include <cmath>
 

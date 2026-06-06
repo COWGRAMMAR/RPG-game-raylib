@@ -10,7 +10,7 @@
 #include "../../include/core/screen.h"
 #include "../../include/core/seedmanager.h"
 #include "../../include/map/worldgenio.h"
-#include "../../lib/raylib/include/raylib.h"
+#include "raylib.h"
 #include <array>
 #include <filesystem>
 #include "../../include/ui/popup.h"

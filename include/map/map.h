@@ -11,7 +11,7 @@
  * - Hitung visible tile range untuk culling
  */
 
-#include "../lib/raylib/include/raylib.h"
+#include "raylib.h"
 #include "../lib/tileson/tileson.hpp"
 #include "screen.h"
 #include <string>

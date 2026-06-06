@@ -24,7 +24,7 @@
 #include "mapLogic.h"
 #include "datadriven.h"
 #include "../lib/json/include/nlohmann/json.hpp"
-#include "../lib/raylib/include/raymath.h"
+#include "raymath.h"
 #include "core/utils.h"
 #include "core/game_state_saver.h"
 #include <iostream>

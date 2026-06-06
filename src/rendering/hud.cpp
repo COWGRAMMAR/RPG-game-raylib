@@ -7,7 +7,7 @@
 #include "inv-bst-sort.h"
 #include "effectQueue.h"
 #include "propsbehavior.h"
-#include "../lib/raylib/include/raymath.h"
+#include "raymath.h"
 #include <cstdio>
 #include <vector>
 #include <string>

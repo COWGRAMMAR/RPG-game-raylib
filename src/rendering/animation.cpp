@@ -407,7 +407,7 @@ void UpdateAnimation(Animation &anim, float dt)
     }
 }
 
-void DrawAnimation(const Animation &anim, Color tint)
+void DrawAnimation(const Animation &anim, Color tint, float scale)
 {
     if (!anim.currentConfig || anim.currentConfig->sprites.empty()) return;
 
@@ -417,8 +417,10 @@ void DrawAnimation(const Animation &anim, Color tint)
         index = 0;
     }
 
+    float scaledSize = FRAME_SIZE * scale;
+    float centeringOffset = (FRAME_SIZE - scaledSize) * 0.5f;
     const std::string &frameId = anim.currentConfig->sprites[index];
-    Display display = { anim.position, FRAME_SIZE, {0,0}, {0,0}, 0.0f, tint };
+    Display display = { anim.position, (int)scaledSize, {centeringOffset, centeringOffset}, {0,0}, 0.0f, tint };
     DrawFrame(frameId, display);
 }
 

@@ -245,6 +245,7 @@ public:
      * @param pos Posisi spawn item
      */
     void SpawnItemAtLocation(Vector2 pos, std::mt19937 *rng = nullptr, ItemCategory category = ITEM_ANY);
+    void SpawnItemAtLocation(Vector2 pos, const std::map<ItemRarity, int> &weights, std::mt19937 *rng = nullptr);
 
     /**
      * @brief Simpan state item aktif untuk map tertentu
@@ -335,6 +336,7 @@ public:
      * @return ID definisi item yang terpilih
      */
     int PickRandomDefinitionId(std::mt19937 &rng, ItemCategory filterCategory = ITEM_ANY);
+    int PickRandomDefinitionId(std::mt19937 &rng, const std::map<ItemRarity, int> &weights, ItemCategory filterCategory = ITEM_ANY);
 
 private:
     // Daftar area spawn item yang dibaca dari Tiled

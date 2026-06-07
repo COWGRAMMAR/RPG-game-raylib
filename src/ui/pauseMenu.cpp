@@ -104,15 +104,6 @@ bool OptionsScreen::IsActive() const
 }
 
 /**
- * @brief Mengatur layar kembali saat BACK diklik
- * @param screen Layar tujuan
- */
-void OptionsScreen::SetReturnScreen(ScreenState screen)
-{
-    returnScreen = screen;
-}
-
-/**
  * @brief Mendapatkan daftar resolusi yang tersedia berdasarkan monitor
  * @return Vektor berisi ResOption (width, height, label)
  */

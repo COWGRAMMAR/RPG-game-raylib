@@ -85,7 +85,7 @@ public:
     void Draw(Vector2 mousePosition);
 
     /** @brief Set layar tujuan saat tombol BACK diklik */
-    void SetReturnScreen(ScreenState screen);
+    void SetReturnScreen(ScreenState screen) { returnScreen = screen; }
 
 private:
     /**

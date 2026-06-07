@@ -9,7 +9,7 @@
  * OptionsScreen.
  */
 
-#include "../lib/raylib/include/raylib.h"
+#include "raylib.h"
 #include "button.h"
 #include "screen.h"
 #include "popup.h"

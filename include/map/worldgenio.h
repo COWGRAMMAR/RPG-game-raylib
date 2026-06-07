@@ -1,7 +1,7 @@
 #pragma once
 #include <string>
 
-#include "../lib/raylib/include/raylib.h"
+#include "raylib.h"
 
 /**
  * @file worldgenio.h

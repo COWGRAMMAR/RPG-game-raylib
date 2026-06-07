@@ -8,7 +8,7 @@
  * dan state utama game untuk proses update serta rendering.
  */
 
-#include "../lib/raylib/include/raylib.h"
+#include "raylib.h"
 #include <atomic>
 #include <cstdint>
 #include <string>

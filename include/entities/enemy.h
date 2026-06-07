@@ -1,7 +1,7 @@
 #pragma once
 
 #include "entity.h"
-#include "../lib/raylib/include/raylib.h"
+#include "raylib.h"
 #include "animation.h"
 #include "mapLogic.h"
 #include "enemy_ai.h"

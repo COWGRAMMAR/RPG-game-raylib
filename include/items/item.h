@@ -12,7 +12,7 @@
  * - Save/load state item per map
  */
 
-#include "../lib/raylib/include/raylib.h"
+#include "raylib.h"
 #include <vector>
 #include <string>
 

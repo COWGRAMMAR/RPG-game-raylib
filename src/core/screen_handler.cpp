@@ -219,17 +219,6 @@ void UpdateLogicAll()
 
     if (TurnCombat::IsActive())
     {
-        // current
-        int id = spawnFlowFieldRebuildQueue.front();
-        spawnFlowFieldRebuildQueue.pop();
-        auto &entry = spawnFlowFields[id];
-        if (entry.isDirty)
-        {
-            entry.field.Build(entry.spawnPos, tilesonMap->width, tilesonMap->height, FLOW_FIELD_RETURN_RADIUS);
-            entry.isDirty = false;
-        }
-
-        // incoming
         TurnCombat::Update();
         Effects::Update(GetFrameTime());
     }
@@ -244,7 +233,11 @@ void UpdateLogicAll()
             int id = spawnFlowFieldRebuildQueue.front();
             spawnFlowFieldRebuildQueue.pop();
             auto &entry = spawnFlowFields[id];
-            entry.field.Build(entry.spawnPos, tilesonMap->width, tilesonMap->height, FLOW_FIELD_RETURN_RADIUS);
+            if (entry.isDirty)
+            {
+                entry.field.Build(entry.spawnPos, tilesonMap->width, tilesonMap->height, FLOW_FIELD_RETURN_RADIUS);
+                entry.isDirty = false;
+            }
         }
 
         RebuildSpatialHash(Entities::GetEnemyRegistry());

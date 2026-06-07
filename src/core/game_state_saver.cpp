@@ -1249,18 +1249,6 @@ void ResetWorldseed(int slotIndex)
 
     if (std::filesystem::exists(path))
     {
-        // current
-        for (auto& entry : std::filesystem::directory_iterator(worldseedDir))
-        {
-            if (entry.is_directory() && entry.path().string().find("save_") != std::string::npos)
-            {
-                std::error_code ec;
-                std::filesystem::remove_all(entry.path(), ec);
-                TraceLog(LOG_INFO, "[ClearSavedState] Removed stale worldgen save: %s", entry.path().string().c_str());
-            }
-        }
-
-        // incoming
         std::filesystem::remove_all(path);
         TraceLog(LOG_INFO, "[ResetWorldseed] Removed worldgen save: %s", path.c_str());
     }

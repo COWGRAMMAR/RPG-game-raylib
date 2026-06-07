@@ -123,34 +123,6 @@ void UpdateMainMenu(GameState *state)
         }
     }
 
-    // current
-    // Handle Start Game confirmation
-    if (waitingStartConfirm && startNewPopup.IsActive())
-    {
-        startNewPopup.Update(mousePosition, mouseClicked);
-        if (startNewPopup.IsConfirmClicked())
-        {
-            DeleteSaveFile("saves/manual/slot0.json");
-            ClearSavedState();
-            // Reset worldgen flag for fresh start
-            SetWorldgenPending(false);
-            // Clean up per-map persistence from previous session so enemies/items
-            // spawn fresh instead of being loaded as dead from old save files
-            Entities::SetDeadEntities({});
-            std::error_code ec;
-            std::filesystem::remove_all("saves/enemies", ec);
-            std::filesystem::remove_all("saves/items", ec);
-            state->enteredLoading = false;
-            state->currentScreen = LOADING;
-            waitingStartConfirm = false;
-        }
-        else if (!startNewPopup.IsActive())
-        {
-            waitingStartConfirm = false;
-        }
-    }
-
-    // incoming
     // Handle Load Game confirmation
     if (waitingLoadConfirm && loadPopup.IsActive())
     {

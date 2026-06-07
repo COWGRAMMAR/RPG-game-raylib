@@ -16,8 +16,8 @@
 #include "mapLogic.h"
 #include "animation.h"
 #include "player.h"
-#include "../lib/raylib/include/raylib.h"
-#include "../lib/raylib/include/raymath.h"
+#include "raylib.h"
+#include "raymath.h"
 #include <random>
 #include <unordered_set>
 #include <string>

@@ -9,7 +9,7 @@
  * - Resume, Save, Load, Options, Controls, Quit
  */
 
-#include "../lib/raylib/include/raylib.h"
+#include "raylib.h"
 #include "button.h"
 #include "screen.h"
 #include <array>

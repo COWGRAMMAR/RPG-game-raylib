@@ -48,7 +48,7 @@ cmake --preset ninja && cmake --build --preset ninja
 
 Ini akan:
 
-1. Download Raylib 6.0 ke `lib/raylib/` (otomatis sesuai OS)
+1. Download Raylib 6.0 ke direktori platform-specific (`lib/raylib-windows/` di Windows, `lib/raylib-linux/` di Linux, `lib/raylib-macos/` di macOS)
 2. Compile semua file .cpp (Unity build)
 3. Link dengan library
 4. Copy raylib.dll ke folder output (Windows)

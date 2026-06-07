@@ -33,8 +33,8 @@
 #include "input.h"
 #include <cstdio>
 #include "enemy_ai.h"
-#include "../lib/raylib/include/raylib.h"
-#include "../lib/raylib/include/raymath.h"
+#include "raylib.h"
+#include "raymath.h"
 #include <string>
 #include <cstring>
 #include <algorithm>

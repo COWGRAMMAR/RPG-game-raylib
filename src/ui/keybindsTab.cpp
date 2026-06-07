@@ -1,7 +1,7 @@
 #include "keybindsTab.h"
 #include "fonts.h"
 #include "keybindManager.h"
-#include "../lib/raylib/include/raylib.h"
+#include "raylib.h"
 #include <algorithm>
 
 static const char* SAVE_PATH = "saves/settings/keybindsTab.json";

@@ -24,7 +24,7 @@
 #include <algorithm>
 #include <cstring>
 #include <cctype>
-#include "../../lib/raylib/include/raylib.h"
+#include "raylib.h"
 
 /*==============================================================================
  * Konstanta Loading

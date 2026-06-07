@@ -20,6 +20,7 @@ floorC_tester.json
 .agent/
 .cache/
 AGENTS.md
+docs/trader-plan.md
 
 # Runtime save data
 saves/

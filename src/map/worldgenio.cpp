@@ -17,6 +17,7 @@
 #include <nlohmann/json.hpp>
 #include <fstream>
 #include <filesystem>
+#include <unordered_set>
 
 namespace fs = std::filesystem;
 
@@ -42,7 +43,8 @@ namespace WorldgenIO
 
     static std::string GetRuntimePath(int slot)
     {
-        return GetSlotDir(slot) + "/runtime.json";
+        int uiSlot = g_ActiveSaveSlot >= 0 ? g_ActiveSaveSlot : 0;
+        return GetSlotDir(slot) + "/runtime_" + std::to_string(uiSlot) + ".json";
     }
 
     /**
@@ -52,7 +54,7 @@ namespace WorldgenIO
      */
     std::string GetStagePath(int stageIndex)
     {
-        int slot = (g_ActiveSaveSlot >= 0) ? g_ActiveSaveSlot : g_SeedManager.GetCurrentSlot();
+        int slot = g_SeedManager.GetCurrentSlot();
         char buf[256];
         snprintf(buf, sizeof(buf), "%s/maps/stage_%d.json", GetSlotDir(slot).c_str(), stageIndex + 1);
         return std::string(buf);
@@ -133,6 +135,7 @@ namespace WorldgenIO
     {
         ClearCache();
         g_SeedManager.InitRun(saveSlot);
+        CleanupOrphanedSlots();
 
         std::string slotDir = GetSlotDir(saveSlot);
         std::string mapsDir = slotDir + "/maps";
@@ -186,7 +189,7 @@ namespace WorldgenIO
      */
     bool SaveRuntimeState(int stageIndex)
     {
-        int slot = (g_ActiveSaveSlot >= 0) ? g_ActiveSaveSlot : g_SeedManager.GetCurrentSlot();
+        int slot = g_SeedManager.GetCurrentSlot();
         std::string rtPath = GetRuntimePath(slot);
 
         nlohmann::json root;
@@ -254,7 +257,7 @@ namespace WorldgenIO
      */
     bool LoadRuntimeState(int stageIndex)
     {
-        int slot = (g_ActiveSaveSlot >= 0) ? g_ActiveSaveSlot : g_SeedManager.GetCurrentSlot();
+        int slot = g_SeedManager.GetCurrentSlot();
         std::string rtPath = GetRuntimePath(slot);
 
         if (!fs::exists(rtPath))
@@ -387,4 +390,81 @@ namespace WorldgenIO
         TrimStageStack();
     }
 
+    void CleanupOrphanedSlots()
+    {
+        const int TOTAL_SAVE_SLOTS = 12; // 6 manual + 6 autosave
+        std::unordered_set<int> activeSlots;
+
+        // Current active run
+        if (g_SeedManager.IsRunActive())
+            activeSlots.insert(g_SeedManager.GetCurrentSlot());
+
+        // Scan manual saves
+        for (int i = 0; i < TOTAL_SAVE_SLOTS; i++)
+        {
+            std::string path = GetSlotPath(i, "manual");
+            if (fs::exists(path))
+            {
+                try
+                {
+                    std::ifstream in(path);
+                    nlohmann::json root;
+                    in >> root;
+                    int ws = root.value("worldgenSlot", -1);
+                    if (ws >= 0)
+                        activeSlots.insert(ws);
+                }
+                catch (...) {}
+            }
+        }
+
+        // Scan autosave files
+        for (int i = 0; i < TOTAL_SAVE_SLOTS; i++)
+        {
+            std::string dir = GetSlotPath(i, "autosave");
+            if (fs::exists(dir))
+            {
+                for (auto &entry : fs::directory_iterator(dir))
+                {
+                    if (entry.path().extension() != ".json")
+                        continue;
+                    try
+                    {
+                        std::ifstream in(entry.path().string());
+                        nlohmann::json root;
+                        in >> root;
+                        int ws = root.value("worldgenSlot", -1);
+                        if (ws >= 0)
+                            activeSlots.insert(ws);
+                    }
+                    catch (...) {}
+                }
+            }
+        }
+
+        // Delete orphaned worldseed save directories
+        if (!fs::exists(WORLDSEED_DIR))
+            return;
+
+        int cleanedCount = 0;
+        for (auto &entry : fs::directory_iterator(WORLDSEED_DIR))
+        {
+            if (!entry.is_directory())
+                continue;
+
+            std::string dirName = entry.path().filename().string();
+            if (dirName.rfind("save_", 0) != 0)
+                continue;
+
+            int slotNum = std::stoi(dirName.substr(5));
+            if (activeSlots.find(slotNum) == activeSlots.end())
+            {
+                fs::remove_all(entry.path());
+                cleanedCount++;
+            }
+        }
+
+        if (cleanedCount > 0)
+            TraceLog(LOG_INFO, "Cleaned up %d orphan worldgen slot(s)", cleanedCount);
+    }
 } // namespace WorldgenIO

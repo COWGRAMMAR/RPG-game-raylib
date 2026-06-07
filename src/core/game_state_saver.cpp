@@ -170,7 +170,7 @@ bool WriteSaveFile(const std::string& path)
     root["saveType"] = "manual";       ///< "manual" or "autosave"
     root["playTime"] = 0.0f;           ///< Placeholder: gameplay timer deferred
     root["mapDisplayName"] = savedPlayerState.mapDisplayName;
-    root["worldgenSlot"] = (g_ActiveSaveSlot >= 0) ? g_ActiveSaveSlot : -1;  ///< -1 = unassigned, maps to worldseed/save_N/
+    root["worldgenSlot"] = g_SeedManager.IsRunActive() ? g_SeedManager.GetCurrentSlot() : -1;  ///< -1 = unassigned, maps to worldseed/save_N/
 
     // Player section
     json playerJson;

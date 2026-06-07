@@ -67,6 +67,23 @@ void InitLoadingScreen(GameState *state)
     }
 }
 
+// Ekstrak index stage (0-based) dari map path worldgen, misal: stage_2.json -> 1
+// Dipakai kalo ada 2 save di 1 worldgen slot: meta.json punya stage lebih tinggi,
+// tapi save yang di-load butuh seed stage yang bener.
+static int ExtractStageFromPath(const std::string& mapPath)
+{
+    auto pos = mapPath.find("stage_");
+    if (pos == std::string::npos) return 0;
+    pos += 6;
+    int num = 0;
+    while (pos < mapPath.size() && isdigit((unsigned char)mapPath[pos]))
+    {
+        num = num * 10 + (mapPath[pos] - '0');
+        pos++;
+    }
+    return (num > 0) ? num - 1 : 0;
+}
+
 /**
  * @brief UpdateLoadingScreen()
  * Update logic loading screen dan sequence loading asset.
@@ -118,7 +135,7 @@ void UpdateLoadingScreen(GameState *state)
              * intentional. Clear worldgen pending flag setelah load agar
              * RestoreDeadEntities selanjutnya jalan normal.
              */
-            if (!isBack && state->pendingMapPath.find("worldseed/save_" + std::to_string(g_ActiveSaveSlot)) != std::string::npos)
+            if (!isBack && state->pendingMapPath.find("worldseed/save_") != std::string::npos)
             {
                 int stageIdx = g_SeedManager.GetCurrentStage();
                 uint64_t seed = g_SeedManager.GetSeed(stageIdx);
@@ -232,9 +249,14 @@ void UpdateLoadingScreen(GameState *state)
                 BuildMapObjectIndex();
 
                 // Worldgen: regenerate layout + runtime state like normal switch path
-                if (savedMapState.mapPath.find("worldseed/save_" + std::to_string(g_ActiveSaveSlot)) != std::string::npos)
+                if (savedMapState.mapPath.find("worldseed/save_") != std::string::npos)
                 {
-                    int stageIdx = g_SeedManager.GetCurrentStage();
+                    if (savedPlayerState.worldgenSlot >= 0)
+                        g_SeedManager.LoadMeta(WorldgenIO::GetMetaPath(savedPlayerState.worldgenSlot));
+                    // Ambil stage dari mapPath bukan meta.json — bisa beda kalo 2 save
+                    // di worldgen slot sama punya stage berbeda (meta.json cermin save terjauh)
+                    int stageIdx = ExtractStageFromPath(savedMapState.mapPath);
+                    g_SeedManager.SetCurrentStage(stageIdx);
                     uint64_t seed = g_SeedManager.GetSeed(stageIdx);
                     RunWorldgen(seed, stageIdx == SeedManager::SEED_COUNT - 1);
                     WorldgenIO::LoadRuntimeState(stageIdx);
@@ -258,8 +280,16 @@ void UpdateLoadingScreen(GameState *state)
          * di-skip — WorldgenIO's LoadRuntimeState akan handle dead entities
          * dari per-stage runtime data saat worldgen switch nanti.
          */
-        if (HasSavedState() && savedMapState.mapPath.find("worldseed/save_" + std::to_string(g_ActiveSaveSlot)) != std::string::npos)
+        if (HasSavedState() && savedMapState.mapPath.find("worldseed/save_") != std::string::npos)
+        {
+            if (savedPlayerState.worldgenSlot >= 0)
+                g_SeedManager.LoadMeta(WorldgenIO::GetMetaPath(savedPlayerState.worldgenSlot));
+            // Override lagi — LoadMeta di atas (worldgen generation) udah di-fix,
+            // tapi LoadMeta kedua ini override balik currentStage dari meta.json.
+            int stageIdx = ExtractStageFromPath(savedMapState.mapPath);
+            g_SeedManager.SetCurrentStage(stageIdx);
             SetWorldgenPending(true);
+        }
 
         // Restore dead entities BEFORE InitAll to prevent dead enemies respawning.
         // Skip if save points to a worldgen map -- WorldgenIO's LoadRuntimeState
@@ -315,8 +345,41 @@ void UpdateLoadingScreen(GameState *state)
         if (HasSavedState() && !savedMapState.mapPath.empty())
         {
             LoadMap(savedMapState.mapPath.c_str());
-            SetCurrentMapPath(savedMapState.mapPath.c_str());
-            BuildMapObjectIndex();
+
+            // Hanya lanjut kalo LoadMap sukses (tilesonMap valid)
+            if (tilesonMap != nullptr)
+            {
+                SetCurrentMapPath(savedMapState.mapPath.c_str());
+                BuildMapObjectIndex();
+
+                // Worldgen: regenerate layout + runtime state seperti fast path
+                if (savedMapState.mapPath.find("worldseed/save_") != std::string::npos)
+                {
+                    if (savedPlayerState.worldgenSlot >= 0)
+                    {
+                        std::string metaPath = WorldgenIO::GetMetaPath(savedPlayerState.worldgenSlot);
+                        if (g_SeedManager.LoadMeta(metaPath))
+                        {
+                            // Ambil stage dari mapPath (per-save) bukan meta.json (bisa outdated)
+                            // karena 2 save di worldgen slot sama bisa punya stage berbeda
+                            int stageIdx = ExtractStageFromPath(savedMapState.mapPath);
+                            g_SeedManager.SetCurrentStage(stageIdx);
+                            uint64_t seed = g_SeedManager.GetSeed(stageIdx);
+                            RunWorldgen(seed, stageIdx == SeedManager::SEED_COUNT - 1);
+                            WorldgenIO::LoadRuntimeState(stageIdx);
+                            BuildMapObjectIndex(); // Rebuild setelah worldgen ganti konten map
+                        }
+                        else
+                        {
+                            TraceLog(LOG_WARNING, "Worldgen meta not found for slot %d — save corrupted", savedPlayerState.worldgenSlot);
+                        }
+                    }
+                }
+            }
+            else
+            {
+                TraceLog(LOG_WARNING, "LoadMap failed for '%s' — worldseed data may have been deleted", savedMapState.mapPath.c_str());
+            }
         }
         else
         {
@@ -333,6 +396,20 @@ void UpdateLoadingScreen(GameState *state)
         break;
 
     default:
+        /**
+         * @brief Crash guard: kalo LoadMap gagal (worldseed dir kehapus),
+         * tilesonMap null — skip InitAll dan balik ke MAIN_MENU.
+         */
+        if (tilesonMap == nullptr)
+        {
+            state->loadingText = "Load failed — corrupted save, returning to menu...";
+            state->loadingComplete = true;
+            state->assetsLoaded = true;
+            state->currentScreen = MAIN_MENU;
+            InitMainMenu(state);
+            break;
+        }
+
         state->loadingComplete = true;
         state->assetsLoaded = true;
         state->loadingText = "Loading complete!";
@@ -345,8 +422,16 @@ void UpdateLoadingScreen(GameState *state)
          * di-skip — WorldgenIO's LoadRuntimeState akan handle dead entities
          * dari per-stage runtime data saat worldgen switch nanti.
          */
-        if (HasSavedState() && savedMapState.mapPath.find("worldseed/save_" + std::to_string(g_ActiveSaveSlot)) != std::string::npos)
+        if (HasSavedState() && savedMapState.mapPath.find("worldseed/save_") != std::string::npos)
+        {
+            if (savedPlayerState.worldgenSlot >= 0)
+                g_SeedManager.LoadMeta(WorldgenIO::GetMetaPath(savedPlayerState.worldgenSlot));
+            // Override currentStage dari mapPath save — meta.json bisa outdated kalo
+            // ada save lain di worldgen slot sama yang udah maju ke stage berikutnya
+            int stageIdx = ExtractStageFromPath(savedMapState.mapPath);
+            g_SeedManager.SetCurrentStage(stageIdx);
             SetWorldgenPending(true);
+        }
 
         // Restore dead entities BEFORE InitAll to prevent dead enemies respawning.
         // Skip if save points to a worldgen map -- WorldgenIO's LoadRuntimeState

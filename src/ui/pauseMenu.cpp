@@ -647,6 +647,7 @@ void PauseMenu::Update(GameState* state, Vector2 mousePosition, bool mouseClicke
             bombManager.ResetConsumed();
             crateManager.ResetConsumed();
             barrierManager.Clear();
+            mapHistoryStack.Clear();
 
             // Spawn enemies fresh dari map, lalu restore state dari cache kalo ada
             SpawnEnemiesFromMap();

@@ -76,9 +76,9 @@ void LoadMap(const char *mapPath)
     tson::Tileson t;
     parsedMap = t.parse(mapPath);
 
-    if (parsedMap->getStatus() != tson::ParseStatus::OK)
+    if (parsedMap == nullptr || parsedMap->getStatus() != tson::ParseStatus::OK)
     {
-        TraceLog(LOG_ERROR, "Tileson: Failed to parse map: %s", parsedMap->getStatusMessage().c_str());
+        TraceLog(LOG_ERROR, "Tileson: Failed to parse map: %s", parsedMap ? parsedMap->getStatusMessage().c_str() : "file not found or could not be opened");
         return;
     }
 

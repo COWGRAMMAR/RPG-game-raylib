@@ -8,6 +8,8 @@
 
 #include "../../include/ui/saveLoadScreen.h"
 #include "../../include/core/game_state_saver.h"
+#include "../../include/core/seedmanager.h"
+#include "../../include/map/worldgenio.h"
 #include "fonts.h"
 #include "../lib/json/include/nlohmann/json.hpp"
 
@@ -136,6 +138,7 @@ void SaveLoadScreen::Update(GameState* state, Vector2 mousePosition, bool mouseC
             m_showOverwritePopup = false;
             SetActiveSlot(m_selectedSlot);
             SaveGameState(state);
+            WorldgenIO::SaveRuntimeState(g_SeedManager.GetCurrentStage());
             WriteSaveFile(GetSlotPath(m_selectedSlot, "manual"));
             active = false;
             state->currentScreen = returnScreen;
@@ -182,6 +185,7 @@ void SaveLoadScreen::Update(GameState* state, Vector2 mousePosition, bool mouseC
                 } else {
                     SetActiveSlot(clickedSlot);
                     SaveGameState(state);
+                    WorldgenIO::SaveRuntimeState(g_SeedManager.GetCurrentStage());
                     WriteSaveFile(GetSlotPath(clickedSlot, "manual"));
                     active = false;
                     state->currentScreen = returnScreen;

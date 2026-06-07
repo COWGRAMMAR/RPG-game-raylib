@@ -700,10 +700,10 @@ Kedua sistem save berjalan paralel dengan tanggung jawab terpisah:
 | **DeadEntities** | Overwrite per stage via `LoadRuntimeState` | Simpan/restore via `savedMapState.deadEntities` |
 | **Pemicu Save** | Stage transition, pause menu | Pause menu, map switch, autosave timer |
 | **Pemicu Load** | Map switch ke worldgen stage | Load Game dari main menu atau pause menu |
-| **Slot Mapping** | Menggunakan `g_ActiveSaveSlot` atau fallback ke `g_SeedManager.GetCurrentSlot()` | Menggunakan `g_ActiveSaveSlot` yang di-set oleh `SetActiveSlot()` |
+| **Slot Mapping** | Menggunakan `g_SeedManager.GetCurrentSlot()` (worldgen slot) | Menggunakan `g_ActiveSaveSlot` yang di-set oleh `SetActiveSlot()` |
 
 Keduanya dipanggil barengan di pause menu (pauseMenu.cpp:359-361), memastikan player state dan worldgen runtime state konsisten saat save.
-WorldgenIO menggunakan `g_ActiveSaveSlot` untuk menentukan folder `worldseed/save_N/` yang sesuai dengan slot save aktif. Jika `g_ActiveSaveSlot < 0`, fallback ke `g_SeedManager.GetCurrentSlot()`.
+WorldgenIO selalu menggunakan `g_SeedManager.GetCurrentSlot()` untuk menentukan folder `worldseed/save_N/`. Ini independen dari `g_ActiveSaveSlot` (game save slot) karena worldgen slot dan game save slot bisa berbeda — misalnya saat player load save dari slot 0 lalu masuk worldgen yang assign slot baru.
 
 ### SetWorldgenPending Flag
 
@@ -758,7 +758,7 @@ Tanpa cleanup ini, worldgen run baru akan mendeteksi `save_1` yang sudah ada dan
 
 ### Integrasi manual.json dengan Worldgen
 
-Save Game mid-worldgen menghasilkan `manual.json` dengan `savedMapState.mapPath` yang menunjuk ke `worldseed/save_N/maps/stage_M.json`. Seluruh mapping slot dikelola via `worldgenSlot` field di `SavedPlayerState` dan `g_ActiveSaveSlot`. Saat Load Game dari main menu, loading screen mendeteksi path worldgen dan:
+Save Game mid-worldgen menghasilkan `manual.json` dengan `savedMapState.mapPath` yang menunjuk ke `worldseed/save_N/maps/stage_M.json`. `worldgenSlot` diisi dari `g_SeedManager.GetCurrentSlot()` saat worldgen aktif (bukan dari `g_ActiveSaveSlot`). Saat Load Game dari main menu, loading screen mendeteksi path worldgen dengan substring `"worldseed/save_"` (tanpa spesifik slot) dan:
 
 1. Meng-set `SetWorldgenPending(true)` untuk melewati `RestoreDeadEntities()`
 2. Di stage 1 loading, masuk ke jalur worldgen (loading_screen.cpp:110)

@@ -260,7 +260,8 @@ void UpdateLogicAll()
         const char *mapPath = GetCurrentMapPath();
         if (mapPath)
         {
-            std::string worldgenPrefix = "worldseed/save_" + std::to_string(g_ActiveSaveSlot);
+            int wgSlot = g_SeedManager.IsRunActive() ? g_SeedManager.GetCurrentSlot() : g_ActiveSaveSlot;
+            std::string worldgenPrefix = "worldseed/save_" + std::to_string(wgSlot);
             if (strstr(mapPath, worldgenPrefix.c_str()) != nullptr)
             {
                 if (InputInstance.IsInteract())

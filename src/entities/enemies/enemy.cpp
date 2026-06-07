@@ -23,6 +23,7 @@
 #include "entities.h"
 #include "item.h"
 #include "core/utils.h"
+#include "audioManager.h"
 #include <map>
 #include "core/game_state_saver.h"
 #include <cmath>
@@ -294,10 +295,15 @@ void Enemy::UpdateAI()
 {
     // Turn-based trigger: boss dengan HP ≤ 50% memicu combat turn-based
     if (Def->stats.canTriggerTurnBased) {
-        if (Health <= MaxHealth * 0.5f)
-            isTurnBasedMode = true;
-        else
-            isTurnBasedMode = false;
+        bool belowHalf = (Health <= MaxHealth * 0.5f);
+        if (belowHalf && !bossMusicPlaying) {
+            AudioManager::PlayTrack("Boss");
+            bossMusicPlaying = true;
+        } else if (!belowHalf && bossMusicPlaying) {
+            AudioManager::StopMusic();
+            bossMusicPlaying = false;
+        }
+        isTurnBasedMode = belowHalf;
     }
 
     // Jika player mati, paksa idle agar enemy tidak terus mengejar posisi terakhir
@@ -664,7 +670,6 @@ void Enemy::Render()
     {
         Color tint = WHITE;
         if (HitFlashTimer > 0) tint = RED;
-        else if (!isTurnBasedMode && rank == ENEMY_BOSS) tint = YELLOW;
         DrawAnimation(Anim, tint, Def->Scale);
     }
 
@@ -873,6 +878,17 @@ bool LoadEnemiesForMap(const std::string &mapPath, const std::string &baseDir)
 
 void ClearEnemies()
 {
+    // Stop boss music jika ada boss dengan music aktif sebelum entity dihapus
+    for (Entity *entity : Entities::GetRegistry())
+    {
+        Enemy *enemy = dynamic_cast<Enemy *>(entity);
+        if (enemy && enemy->bossMusicPlaying)
+        {
+            AudioManager::StopMusic();
+            AudioManager::ResetToScreenTrack();
+            break;
+        }
+    }
     Entities::Clear();
 }
 

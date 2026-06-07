@@ -277,7 +277,7 @@ void UpdateLogicAll()
                 Vector2 playerCenter = PlayerInstance.GetCenter();
                 Vector2 bossCenter = enemy->GetCenter();
                 float dist = Vector2Distance(playerCenter, bossCenter);
-                const float TRIGGER_RANGE = 40.0f;
+                const float TRIGGER_RANGE = 200.0f;
                 if (dist > TRIGGER_RANGE)
                     continue;
                 TraceLog(LOG_INFO, "TURN: Turn-based combat triggered by %s", enemy->Name.c_str());

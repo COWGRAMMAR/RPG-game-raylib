@@ -666,6 +666,7 @@ void TurnCombat::Shutdown() {
     if (state.boss)
     {
         state.boss->isTurnBasedMode = false;
+        state.boss->bossMusicPlaying = false;
         state.boss->Position = state.origBossPos;
     }
     if (state.player)

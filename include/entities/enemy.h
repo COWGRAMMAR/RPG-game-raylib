@@ -171,6 +171,7 @@ public:
     // --- Turn-Based ---
     bool isTurnBasedMode = false; // True jika sedang dalam mode combat turn-based
     bool isMyTurn = false;        // True jika giliran enemy di mode turn-based
+    bool bossMusicPlaying = false; // True jika boss music sedang diputar karena HP < 50%
 
     // --- Animasi ---
     Animation Anim;              // State animasi aktif (runtime)

@@ -26,8 +26,8 @@
 #include "../../include/ui/audioTab.h"
 #include "../../include/systems/audioManager.h"
 #include "../../include/map/propsbehavior.h"
-#include "../../lib/raylib/include/raylib.h"
-#include "../../lib/raylib/include/raymath.h"
+#include "raylib.h"
+#include "raymath.h"
 #include <cstdio>
 #include <filesystem>
 

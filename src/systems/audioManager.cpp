@@ -8,7 +8,7 @@
  */
 
 #include "../../include/systems/audioManager.h"
-#include "../../lib/raylib/include/raylib.h"
+#include "raylib.h"
 #include <cstring>
 
 /*==============================================================================

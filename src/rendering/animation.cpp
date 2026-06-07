@@ -1,6 +1,6 @@
 #include "animation.h"
 #include "fonts.h"
-#include "../lib/raylib/include/raymath.h"
+#include "raymath.h"
 #include "../lib/json/include/nlohmann/json.hpp"
 #include <fstream>
 #include <unordered_map>

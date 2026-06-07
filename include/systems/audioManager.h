@@ -9,7 +9,7 @@
  * ke JSON lewat audioTab, sementara AudioManager menangani runtime.
  */
 
-#include "../lib/raylib/include/raylib.h"
+#include "raylib.h"
 #include "../core/screen.h"
 
 /**

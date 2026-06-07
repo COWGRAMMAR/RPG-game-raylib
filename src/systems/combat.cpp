@@ -8,7 +8,7 @@
 #include "player.h"
 #include "effects.h"
 #include "propsbehavior.h"
-#include "../lib/raylib/include/raymath.h"
+#include "raymath.h"
 #include "../../include/systems/audioManager.h"
 #include <algorithm>
 #include <cmath>

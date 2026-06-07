@@ -9,7 +9,7 @@
 #include "worldgenio.h"
 #include "game_state_saver.h"
 #include "entities.h"
-#include "../lib/raylib/include/raymath.h"
+#include "raymath.h"
 
 namespace Interaction
 {

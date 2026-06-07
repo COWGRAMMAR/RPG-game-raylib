@@ -12,7 +12,7 @@
  * - World boundary check
  */
 
-#include "raylib.h"
+#include "../lib/raylib/include/raylib.h"
 #include "../lib/tileson/tileson.hpp"
 #include "map.h"
 #include <vector>

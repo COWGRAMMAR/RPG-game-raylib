@@ -8,7 +8,7 @@
  * panel informasi runtime dan overlay debug di world space.
  */
 
-#include "raylib.h"
+#include "../lib/raylib/include/raylib.h"
 #include "enemy.h"
 #include <string>
 #include <vector>

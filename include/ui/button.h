@@ -8,7 +8,7 @@
  *Policy-based design buat flexibility.
  */
 
-#include "raylib.h"
+#include "../lib/raylib/include/raylib.h"
 #include <string>
 #include <iostream>
 #include <type_traits>

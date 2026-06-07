@@ -9,7 +9,7 @@
  * transisi ke gameplay.
  */
 
-#include "raylib.h"
+#include "../lib/raylib/include/raylib.h"
 #include "screen.h"
 #include "animation.h"
 

@@ -7,7 +7,7 @@
  * Contains volume controls (sliders) and audio settings persistence.
  */
 
-#include "raylib.h"
+#include "../lib/raylib/include/raylib.h"
 #include "buttonTxt.h"
 #include "../systems/audioManager.h"
 

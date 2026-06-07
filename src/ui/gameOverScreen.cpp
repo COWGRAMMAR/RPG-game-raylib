@@ -2,7 +2,7 @@
 #include "player.h"
 #include "item.h"
 #include "inventory.h"
-#include "raylib.h"
+#include "../lib/raylib/include/raylib.h"
 #include "button.h"
 
 static Texture2D goTitle = {0};

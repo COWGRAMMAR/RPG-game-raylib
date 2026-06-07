@@ -5,7 +5,7 @@
 #define NOMINMAX
 #endif
 
-#define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
+#define DOCTEST_CONFIG_IMPLEMENT
 #include "../lib/doctest/doctest.h"
 
 // Provide WinMain entry point (raylib provides this for the main game, but
@@ -405,5 +405,5 @@ TEST_CASE("SeedManager::SEED_COUNT == 5")
 
 TEST_CASE("SAVE_VERSION == 2")
 {
-    CHECK(SAVE_VERSION == 3);
+    CHECK(SAVE_VERSION == 2);
 }

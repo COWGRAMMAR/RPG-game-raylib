@@ -1,5 +1,5 @@
 #include "keybindManager.h"
-#include "raylib.h"
+#include "../lib/raylib/include/raylib.h"
 #include "../lib/json/include/nlohmann/json.hpp"
 #include <fstream>
 #include <filesystem>

@@ -59,6 +59,7 @@ target_include_directories(main PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/debug>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/utils>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib/tileson>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib/raylib/include>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib/json/include>
 )
 
@@ -68,10 +69,9 @@ target_compile_options(main PRIVATE "SHELL:-include cstdint" "SHELL:-include alg
 
 # Raylib library
 if(WIN32)
-    set(RAYLIB_PATH "${CMAKE_CURRENT_SOURCE_DIR}/lib/raylib-windows/lib/libraylib.a")
-    set(RAYLIB_DLL "${CMAKE_CURRENT_SOURCE_DIR}/lib/raylib-windows/lib/raylib.dll")
+    set(RAYLIB_PATH "${CMAKE_CURRENT_SOURCE_DIR}/lib/raylib/lib/libraylib.a")
+    set(RAYLIB_DLL "${CMAKE_CURRENT_SOURCE_DIR}/lib/raylib/lib/raylib.dll")
 
-    target_include_directories(main PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/lib/raylib-windows/include")
     target_link_libraries(main PRIVATE "${RAYLIB_PATH}")
     target_link_libraries(main PRIVATE opengl32 gdi32 winmm)
 
@@ -92,19 +92,14 @@ add_custom_command(TARGET main POST_BUILD
         "$<TARGET_FILE_DIR:main>/assets"
     COMMENT "Copying assets folder to output directory"
 )
-elseif(APPLE)
-    set(RAYLIB_PATH "${CMAKE_CURRENT_SOURCE_DIR}/lib/raylib-macos/lib/libraylib.a")
-
-    target_include_directories(main PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/lib/raylib-macos/include")
-    target_link_libraries(main PRIVATE "${RAYLIB_PATH}")
-    target_link_libraries(main PRIVATE -framework OpenGL -framework Cocoa -framework IOKit -framework CoreVideo)
 elseif(UNIX)
-    set(RAYLIB_PATH "${CMAKE_CURRENT_SOURCE_DIR}/lib/raylib-linux/lib/libraylib.a")
-
-    target_include_directories(main PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/lib/raylib-linux/include")
+    set(RAYLIB_PATH "${CMAKE_CURRENT_SOURCE_DIR}/lib/raylib/lib/libraylib.a")
     target_link_libraries(main PRIVATE "${RAYLIB_PATH}")
-    target_link_libraries(main PRIVATE GL m pthread dl rt)
-    target_link_libraries(main PRIVATE X11 Xrandr Xinerama Xcursor Xi)
+    if(APPLE)
+        target_link_libraries(main PRIVATE -framework OpenGL -framework Cocoa -framework IOKit -framework CoreVideo)
+    else()
+        target_link_libraries(main PRIVATE GL m pthread dl rt)
+    endif()
 endif()
 
 # Test target — compile-time constants test (Phase 1)
@@ -121,18 +116,9 @@ target_include_directories(test_constants PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include/utils
     ${CMAKE_CURRENT_SOURCE_DIR}/include/systems
     ${CMAKE_CURRENT_SOURCE_DIR}/lib/tileson
+    ${CMAKE_CURRENT_SOURCE_DIR}/lib/raylib/include
     ${CMAKE_CURRENT_SOURCE_DIR}/lib/json/include
 )
-
-# Platform-specific raylib include for test target
-if(WIN32)
-    target_include_directories(test_constants PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/lib/raylib-windows/include)
-elseif(APPLE)
-    target_include_directories(test_constants PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/lib/raylib-macos/include)
-else()
-    target_include_directories(test_constants PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/lib/raylib-linux/include)
-endif()
-
 set_target_properties(test_constants PROPERTIES UNITY_BUILD OFF WIN32_EXECUTABLE FALSE)
 enable_testing()
 add_test(NAME constants_test COMMAND test_constants)

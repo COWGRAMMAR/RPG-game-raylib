@@ -26,7 +26,7 @@ write_err() {
 }
 
 get_installed_raylib_version() {
-  local header="$RAYLIB_INSTALL_DIR/include/raylib.h"
+  local header="lib/raylib/include/raylib.h"
   if [[ -f "$header" ]]; then
     grep -oP 'RAYLIB_VERSION\s+"\K[0-9]+\.[0-9]+' "$header" 2>/dev/null || echo ""
   fi
@@ -54,19 +54,16 @@ case "$OS_TYPE" in
     RAYLIB_URL="${RAYLIB_URL:-https://github.com/raysan5/raylib/releases/download/${RAYLIB_VERSION}/raylib-${RAYLIB_VERSION}_linux_amd64.tar.gz}"
     RAYLIB_ARCHIVE="raylib.tar.gz"
     RAYLIB_EXTRACT_DIR="raylib-${RAYLIB_VERSION}_linux_amd64"
-    RAYLIB_INSTALL_DIR="lib/raylib-linux"
     ;;
   Darwin)
     RAYLIB_URL="${RAYLIB_URL:-https://github.com/raysan5/raylib/releases/download/${RAYLIB_VERSION}/raylib-${RAYLIB_VERSION}_macos.tar.gz}"
     RAYLIB_ARCHIVE="raylib.tar.gz"
     RAYLIB_EXTRACT_DIR="raylib-${RAYLIB_VERSION}_macos"
-    RAYLIB_INSTALL_DIR="lib/raylib-macos"
     ;;
   MINGW*|MSYS*|CYGWIN*)
     RAYLIB_URL="${RAYLIB_URL:-https://github.com/raysan5/raylib/releases/download/${RAYLIB_VERSION}/raylib-${RAYLIB_VERSION}_win64_mingw-w64.zip}"
     RAYLIB_ARCHIVE="raylib.zip"
     RAYLIB_EXTRACT_DIR="raylib-${RAYLIB_VERSION}_win64_mingw-w64"
-    RAYLIB_INSTALL_DIR="lib/raylib-windows"
     ;;
   *)
     write_err "Unsupported OS: $OS_TYPE"
@@ -78,21 +75,21 @@ TILESON_URL="https://github.com/SSBMTonberry/tileson/releases/download/${TILESON
 JSON_URL="https://github.com/nlohmann/json/releases/download/${JSON_VERSION}/include.zip"
 
 # Clean junk files from existing raylib install
-if [[ -d "$RAYLIB_INSTALL_DIR" ]]; then
+if [[ -d "lib/raylib" ]]; then
   write_debug "Cleaning junk files from existing raylib install"
-  rm -f "$RAYLIB_INSTALL_DIR/CHANGELOG" "$RAYLIB_INSTALL_DIR/LICENSE" "$RAYLIB_INSTALL_DIR/README.md"
+  rm -f "lib/raylib/CHANGELOG" "lib/raylib/LICENSE" "lib/raylib/README.md"
 fi
 
 # Check if all dependencies are already installed
 INSTALLED_RAYLIB_VER=""
-if [[ -f "$RAYLIB_INSTALL_DIR/include/raylib.h" && -f "$RAYLIB_INSTALL_DIR/lib/libraylib.a" ]]; then
+if [[ -f "lib/raylib/include/raylib.h" && -f "lib/raylib/lib/libraylib.a" ]]; then
   INSTALLED_RAYLIB_VER=$(get_installed_raylib_version)
 fi
 if [[ -n "$INSTALLED_RAYLIB_VER" && "$INSTALLED_RAYLIB_VER" != "$RAYLIB_VERSION" ]]; then
   write_step "raylib version mismatch: installed $INSTALLED_RAYLIB_VER, needed $RAYLIB_VERSION. Reinstalling..."
-  rm -rf "$RAYLIB_INSTALL_DIR"
+  rm -rf "lib/raylib"
 fi
-if [[ -f "$RAYLIB_INSTALL_DIR/include/raylib.h" && -f "$RAYLIB_INSTALL_DIR/lib/libraylib.a" && "$INSTALLED_RAYLIB_VER" == "$RAYLIB_VERSION" && -f "lib/tileson/tileson.hpp" && -f "lib/json/include/nlohmann/json.hpp" ]]; then
+if [[ -f "lib/raylib/include/raylib.h" && -f "lib/raylib/lib/libraylib.a" && "$INSTALLED_RAYLIB_VER" == "$RAYLIB_VERSION" && -f "lib/tileson/tileson.hpp" && -f "lib/json/include/nlohmann/json.hpp" ]]; then
   write_step "All required libraries already installed"
   exit 0
 fi
@@ -110,7 +107,7 @@ remove_old_raylib() {
 
 # Install raylib
 install_raylib() {
-  local install_dir="$RAYLIB_INSTALL_DIR"
+  local install_dir="lib/raylib"
   local zip_path="$RAYLIB_ARCHIVE"
   local temp_extract="$RAYLIB_EXTRACT_DIR"
 
@@ -189,12 +186,6 @@ install_raylib() {
 
   # Clean up archive
   rm -f "$zip_path"
-
-  # Clean up old lib/raylib directory if it exists
-  if [[ -d "lib/raylib" ]]; then
-    write_debug "Removing old lib/raylib directory"
-    rm -rf "lib/raylib"
-  fi
 }
 
 # Install tileson

@@ -1,5 +1,4 @@
 /build/
-/build-linux/
 /main.exe
 *.o
 .clangd
@@ -23,10 +22,6 @@ AGENTS.md
 # Runtime save data
 saves/
 **/worldseed/*
-
-# Auto-downloaded raylib archives
-*.tar.gz
-*.zip
 
 # Auto-downloaded raylib
 raylib/

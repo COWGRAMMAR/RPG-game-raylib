@@ -10,9 +10,9 @@
  */
 
 #include "game_debug.h"
-#include "raylib.h"
+#include "../lib/raylib/include/raylib.h"
 #include "input.h"
-#include "raymath.h"
+#include "../lib/raylib/include/raymath.h"
 #include "screen.h"
 #include "map.h"
 #include "mapLogic.h"

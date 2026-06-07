@@ -19,9 +19,8 @@
 #include "inventory.h"
 #include "mapLogic.h"
 #include "game_debug.h"
-#include "raymath.h"
+#include "../lib/raylib/include/raymath.h"
 #include "propsbehavior.h"
-#include "combatTurn.h"
 #include <cmath>
 
 constexpr int EMPTY_ITEM_ID = -1;
@@ -136,17 +135,6 @@ void Player::ResetForNewGame()
  */
 void Player::Update()
 {
-    // Timer tetap jalan meskipun turn-based freeze
-    if (HitFlashTimer > 0)
-        HitFlashTimer -= Time::DELTA_TIME;
-
-    if (TurnCombat::IsActive())
-    {
-        Anim.position = Position;
-        UpdateAnimation(Anim, Time::DELTA_TIME);
-        return;
-    }
-
     // 1. Memproses Input
     InputInstance.PollInput();
     InputInstance.UpdateState();
@@ -154,6 +142,10 @@ void Player::Update()
     // 2. Pemeriksaan Lifecycle
     if (Anim.isDead)
         return;
+
+    // 3. Timer & Efek Status
+    if (HitFlashTimer > 0)
+        HitFlashTimer -= Time::DELTA_TIME;
 
     // 4. Fisika & Pergerakan (termasuk Knockback)
     float fpsNorm = 60.0f;

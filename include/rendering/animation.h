@@ -1,5 +1,5 @@
 #pragma once
-#include "raylib.h"
+#include "../lib/raylib/include/raylib.h"
 #include <string>
 #include <vector>
 #include <unordered_map>
@@ -116,7 +116,7 @@ void PlayAnimation(Animation &anim, State state, Direction direction);
 /** @brief Update timer dan sprite index animasi */
 void UpdateAnimation(Animation &anim, float dt);
 /** @brief Draw animasi di posisi entity */
-void DrawAnimation(const Animation &anim, Color tint = WHITE, float scale = 1.0f);
+void DrawAnimation(const Animation &anim, Color tint = WHITE);
 /** @brief Draw efek ledakan sementara */
 void Explosion(Vector2 centerPosition, float radius, float progress);
 

@@ -12,7 +12,7 @@
  * - Save/load state item per map
  */
 
-#include "raylib.h"
+#include "../lib/raylib/include/raylib.h"
 #include <vector>
 #include <string>
 
@@ -245,7 +245,6 @@ public:
      * @param pos Posisi spawn item
      */
     void SpawnItemAtLocation(Vector2 pos, std::mt19937 *rng = nullptr, ItemCategory category = ITEM_ANY);
-    void SpawnItemAtLocation(Vector2 pos, const std::map<ItemRarity, int> &weights, std::mt19937 *rng = nullptr);
 
     /**
      * @brief Simpan state item aktif untuk map tertentu
@@ -336,7 +335,6 @@ public:
      * @return ID definisi item yang terpilih
      */
     int PickRandomDefinitionId(std::mt19937 &rng, ItemCategory filterCategory = ITEM_ANY);
-    int PickRandomDefinitionId(std::mt19937 &rng, const std::map<ItemRarity, int> &weights, ItemCategory filterCategory = ITEM_ANY);
 
 private:
     // Daftar area spawn item yang dibaca dari Tiled
@@ -398,25 +396,23 @@ extern ItemDefinitionManager itemDefs;
  *==============================================================================*/
 
 /**
- * @brief Save all active items for a map to the specified directory.
+ * @brief Save all active items for a map to the saves/items/ filesystem directory.
  *
- * Serializes `itemData.activeItems` to a JSON file at `<baseDir>/<sanitized_path>`.
+ * Serializes `itemData.activeItems` to a JSON file at `saves/items/<sanitized_path>`.
  * Uses atomic write via .tmp file + rename to prevent corruption.
  * Follows the same pattern as SaveEnemiesForMap() in enemy.cpp.
  *
  * @param mapPath Raw map file path used to derive the save file name (e.g., "assets/maps/tutorial.json")
- * @param baseDir Base directory for save files (default: "saves/items")
  */
-void SaveItemsForMapDir(const std::string &mapPath, const std::string &baseDir = "saves/items");
+void SaveItemsForMapDir(const std::string &mapPath);
 
 /**
- * @brief Load items for a map from the specified directory.
+ * @brief Load items for a map from the saves/items/ filesystem directory.
  *
- * Reads `<baseDir>/<sanitized_path>`, deserializes each item's fields,
+ * Reads `saves/items/<sanitized_path>`, deserializes each item's fields,
  * reconstructs hitboxes from definitions, and populates `itemData.activeItems`.
  *
  * @param mapPath Raw map file path used to derive the save file name
- * @param baseDir Base directory for save files (default: "saves/items")
  * @return true if items were loaded, false if no save data exists or parse failed
  */
-bool LoadItemsForMapDir(const std::string &mapPath, const std::string &baseDir = "saves/items");
+bool LoadItemsForMapDir(const std::string &mapPath);

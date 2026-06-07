@@ -16,7 +16,6 @@
 #include "../../include/ui/videoTab.h"
 #include "../../include/ui/audioTab.h"
 #include "../../include/ui/keybindsTab.h"
-#include "../../include/ui/saveLoadScreen.h"
 #include "../../include/core/game_state_saver.h"
 #include "../../include/map/worldgenio.h"
 #include "../../include/core/seedmanager.h"
@@ -27,12 +26,6 @@
 #include "enemy_ai.h"
 #include "map.h"
 #include "mapLogic.h"
-
-/*==============================================================================
- * External References
- *==============================================================================*/
-
-extern SaveLoadScreen saveLoadScreen;
 
 /*==============================================================================
  * Static Variables (Popup Notifications)
@@ -101,6 +94,15 @@ void OptionsScreen::Hide()
 bool OptionsScreen::IsActive() const
 {
     return active;
+}
+
+/**
+ * @brief Mengatur layar kembali saat BACK diklik
+ * @param screen Layar tujuan
+ */
+void OptionsScreen::SetReturnScreen(ScreenState screen)
+{
+    returnScreen = screen;
 }
 
 /**
@@ -519,19 +521,19 @@ void PauseMenu::HandleButtonClick(int buttonIndex, GameState* state)
         case 0: // Resume
             Hide();
             break;
-        case 1:
-            // Save Game — buka SaveLoadScreen dalam mode save
-            state->previousScreen = PLAY;
-            saveLoadScreen.SetMode(SaveLoadMode::SAVE_MODE);
-            state->currentScreen = SAVE_LOAD;
-            Hide();
+        case 1: // Save
+            WorldgenIO::SaveRuntimeState(g_SeedManager.GetCurrentStage());
+            SaveGameState(state);
+            if (WriteSaveFile("saves/manual/slot0.json"))
+                savePopup.Show();
+            else
+                saveErrorPopup.Show();
             break;
-        case 2:
-            // Load Game — buka SaveLoadScreen dalam mode load
-            state->previousScreen = PLAY;
-            saveLoadScreen.SetMode(SaveLoadMode::LOAD_MODE);
-            state->currentScreen = SAVE_LOAD;
-            Hide();
+        case 2: // Load
+            if (HasSaveFile("saves/manual/slot0.json"))
+                loadConfirmPopup.Show();
+            else
+                noSavePopup.Show();
             break;
         case 3: // Settings
             state->currentScreen = OPTIONS;
@@ -581,7 +583,7 @@ void PauseMenu::Update(GameState* state, Vector2 mousePosition, bool mouseClicke
     if (loadConfirmPopup.IsActive()) {
         loadConfirmPopup.Update(mousePosition, mouseClicked);
         if (loadConfirmPopup.IsConfirmClicked()) {
-            if (ReadSaveFile(GetSlotPath(g_ActiveSaveSlot, "manual")))
+            if (ReadSaveFile("saves/manual/slot0.json"))
             {
                 loadConfirmPopup.Hide();
                 state->enteredLoading = false;
@@ -594,7 +596,7 @@ void PauseMenu::Update(GameState* state, Vector2 mousePosition, bool mouseClicke
             else
             {
                 loadConfirmPopup.Hide();
-                DeleteSaveFile(GetSlotPath(g_ActiveSaveSlot, "manual"));
+                DeleteSaveFile("saves/manual/slot0.json");
                 pauseCorruptPopup.Show();
             }
         }
@@ -646,8 +648,8 @@ void PauseMenu::Update(GameState* state, Vector2 mousePosition, bool mouseClicke
             if (mapPath)
             {
                 std::string cachePath = std::string(mapPath) + ".cache";
-                cacheLoaded = LoadEnemiesForMap(cachePath, "saves/cache/enemies");
-                cacheLoaded = LoadItemsForMapDir(cachePath, "saves/cache/items") || cacheLoaded;
+                cacheLoaded = LoadEnemiesForMap(cachePath);
+                cacheLoaded = LoadItemsForMapDir(cachePath) || cacheLoaded;
             }
 
             // Fallback: kalo cache gak ada, spawn item fresh dari map
@@ -679,8 +681,8 @@ void PauseMenu::Update(GameState* state, Vector2 mousePosition, bool mouseClicke
                 if (curPath)
                 {
                     std::string cp = std::string(curPath) + ".cache";
-                    SaveEnemiesForMap(cp, "saves/cache/enemies");
-                    SaveItemsForMapDir(cp, "saves/cache/items");
+                    SaveEnemiesForMap(cp);
+                    SaveItemsForMapDir(cp);
                 }
             }
 

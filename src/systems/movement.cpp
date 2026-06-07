@@ -6,7 +6,7 @@
 #include "animation.h"
 #include "game_debug.h"
 #include "effects.h"
-#include "raymath.h"
+#include "../lib/raylib/include/raymath.h"
 #include <cmath>
 
 namespace Movement

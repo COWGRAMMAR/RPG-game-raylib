@@ -9,7 +9,7 @@
  * - Resume, Save, Load, Options, Controls, Quit
  */
 
-#include "raylib.h"
+#include "../lib/raylib/include/raylib.h"
 #include "button.h"
 #include "screen.h"
 #include <array>
@@ -85,7 +85,7 @@ public:
     void Draw(Vector2 mousePosition);
 
     /** @brief Set layar tujuan saat tombol BACK diklik */
-    void SetReturnScreen(ScreenState screen) { returnScreen = screen; }
+    void SetReturnScreen(ScreenState screen);
 
 private:
     /**

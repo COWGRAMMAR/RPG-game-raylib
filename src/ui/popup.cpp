@@ -24,6 +24,7 @@ Popup::Popup(const char* message, const char* buttonText, float hoverAmount)
     : active(false), hasCancelButton(false), message(message), subMessage(nullptr),
       buttonText(buttonText), cancelText(nullptr), hoverAmount(hoverAmount), confirmClicked(false), position({0, 0}), width(0), height(0), bgTexture({0}), textYOffset(0), buttonYOffset(0)
 {
+    CalculateDimensions();
 }
 
 /**
@@ -39,6 +40,7 @@ Popup::Popup(const char* message, const char* confirmText, const char* cancelTex
       buttonText(confirmText), cancelText(cancelText), hoverAmount(hoverAmount), confirmClicked(false),
       position({0, 0}), width(0), height(0), bgTexture({0}), textYOffset(0), buttonYOffset(0)
 {
+    CalculateDimensions();
 }
 
 /**

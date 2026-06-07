@@ -11,7 +11,7 @@
  * - Hitung visible tile range untuk culling
  */
 
-#include "raylib.h"
+#include "../lib/raylib/include/raylib.h"
 #include "../lib/tileson/tileson.hpp"
 #include "screen.h"
 #include <string>
@@ -213,12 +213,3 @@ void RunWorldgen(uint64_t seed, bool isBossStage = false);
  * nyimpen 1 stage sebelumnya (bukan semua riwayat). Sisanya di-pop.
  */
 void TrimStageStack(void);
-
-/**
- * @brief Dapatkan nama tampilan map dari file path.
- * @param mapFilePath Path file map (contoh: "assets/maps/town.json")
- * @return Nama map yang mudah dibaca (contoh: "Town")
- * @note Konversi path-based: ekstrak nama file tanpa ekstensi, capitalisasi,
- *       handle special case untuk worldgen stages.
- */
-std::string GetMapDisplayName(const std::string& mapFilePath);

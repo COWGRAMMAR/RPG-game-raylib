@@ -15,7 +15,7 @@
 #include "map.h"
 #include "mapLogic.h"
 #include "player.h"
-#include "../lib/raylib/include/raymath.h"
+#include "raymath.h"
 #include <queue>
 #include <cfloat>
 #include <limits>

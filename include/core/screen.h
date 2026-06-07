@@ -8,7 +8,7 @@
  * dan state utama game untuk proses update serta rendering.
  */
 
-#include "../lib/raylib/include/raylib.h"
+#include "raylib.h"
 #include <atomic>
 #include <cstdint>
 #include <string>
@@ -42,8 +42,11 @@ enum ScreenState : std::uint8_t
     LOADING,    // State loading aset
     PLAY,       // State gameplay aktif
     OPTIONS,    // State menu pengaturan
-    GAME_OVER   // State game over
+    GAME_OVER,  // State game over
+    /** @brief State menu simpan/muat */
+    SAVE_LOAD   // State menu simpan/muat
 };
+
 
 /*==============================================================================
  * GameState Struct

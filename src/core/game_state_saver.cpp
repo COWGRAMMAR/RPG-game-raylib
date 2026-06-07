@@ -50,6 +50,103 @@ bool hasSavedState = false;
 static bool worldgenPending = false;
 
 /*==============================================================================
+ * Active Slot Tracking
+ *==============================================================================*/
+
+/**
+ * @brief Slot save yang sedang aktif
+ * -1 = tidak ada slot aktif (default/main menu)
+ * 0-4 = slot manual yang aktif
+ */
+int g_ActiveSaveSlot = -1;
+
+/**
+ * @brief Flag apakah ada slot yang sedang aktif
+ */
+bool g_SaveSlotActive = false;
+
+/**
+ * @brief Set slot save yang aktif.
+ * @param slot Nomor slot (0-4), -1 untuk menonaktifkan
+ */
+void SetActiveSlot(int slot)
+{
+    g_ActiveSaveSlot = slot;
+    g_SaveSlotActive = (slot >= 0 && slot <= 4);
+    TraceLog(LOG_INFO, "[SetActiveSlot] Slot %d %s", slot, g_SaveSlotActive ? "activated" : "deactivated");
+}
+
+/**
+ * @brief Dapatkan slot save yang aktif.
+ * @return Nomor slot aktif, -1 jika tidak ada
+ */
+int GetActiveSlot(void)
+{
+    return g_ActiveSaveSlot;
+}
+
+/**
+ * @brief Cek apakah ada slot yang sedang aktif.
+ * @return true jika ada slot aktif
+ */
+bool IsSlotActive(void)
+{
+    return g_SaveSlotActive;
+}
+
+/**
+ * @brief Dapatkan path file save untuk slot dan tipe tertentu.
+ * @param slot Nomor slot (0-4)
+ * @param type Tipe save ("manual" atau "autosave")
+ * @return Path lengkap file save
+ * @note Slot 2, type "manual" -> "saves/slot_2/manual/manual.json"
+ *       Slot 2, type "autosave" -> "saves/slot_2/autosave/"
+ */
+std::string GetSlotPath(int slot, const std::string& type)
+{
+    char buf[128];
+    if (type == "manual")
+    {
+        snprintf(buf, sizeof(buf), "saves/slot_%d/manual/manual.json", slot);
+    }
+    else if (type == "autosave")
+    {
+        snprintf(buf, sizeof(buf), "saves/slot_%d/autosave", slot);
+    }
+    else
+    {
+        snprintf(buf, sizeof(buf), "saves/slot_%d/%s", slot, type.c_str());
+    }
+    return std::string(buf);
+}
+
+/*==============================================================================
+ * Slot Directory Utilities
+ *==============================================================================*/
+
+/**
+ * @brief Pastikan direktori slot save tersedia.
+ * @param slot Nomor slot (0-4)
+ * @details Membuat struktur direktori:
+ *          - saves/slot_N/manual/
+ *          - saves/slot_N/autosave/
+ *          - saves/slot_N/enemies/
+ *          - saves/slot_N/items/
+ *          Tidak melakukan apa-apa jika direktori sudah ada.
+ */
+void EnsureSlotDirectory(int slot)
+{
+    const char* subdirs[] = {"manual", "autosave", "enemies", "items"};
+    for (const char* subdir : subdirs)
+    {
+        char buf[128];
+        snprintf(buf, sizeof(buf), "saves/slot_%d/%s", slot, subdir);
+        std::filesystem::create_directories(buf);
+        TraceLog(LOG_INFO, "[EnsureSlotDirectory] %s", buf);
+    }
+}
+
+/*==============================================================================
  * File I/O Functions
  *==============================================================================*/
 
@@ -67,6 +164,13 @@ bool WriteSaveFile(const std::string& path)
     char buf[64];
     std::strftime(buf, sizeof(buf), "%Y-%m-%dT%H:%M:%S", std::gmtime(&t));
     root["timestamp"] = std::string(buf);
+
+    // Multi-slot metadata
+    root["slotIndex"] = (g_ActiveSaveSlot >= 0) ? g_ActiveSaveSlot : -1;  ///< -1 = unassigned, 0-4 = manual slot
+    root["saveType"] = "manual";       ///< "manual" or "autosave"
+    root["playTime"] = 0.0f;           ///< Placeholder: gameplay timer deferred
+    root["mapDisplayName"] = savedPlayerState.mapDisplayName;
+    root["worldgenSlot"] = (g_ActiveSaveSlot >= 0) ? g_ActiveSaveSlot : -1;  ///< -1 = unassigned, maps to worldseed/save_N/
 
     // Player section
     json playerJson;
@@ -195,31 +299,38 @@ bool WriteSaveFile(const std::string& path)
 }
 
 /**
- * WriteAutosave - Simpan state game ke direktori saves/autosave/.
+ * WriteAutosave - Simpan state game ke direktori autosave per-slot.
  * Membuat nama file dengan timestamp (autosave_DD-MM-YYYY-HH-MM-SS.json)
- * agar autosave tidak saling menimpa. Maksimal 5 file autosave —
+ * agar autosave tidak saling menimpa. Maksimal 5 file autosave per slot --
  * jika lebih, file terlama akan dihapus.
+ * Path tujuan: saves/slot_N/autosave/autosave_DD-MM-YYYY-HH-MM-SS.json
  */
 bool WriteAutosave(const std::string&)
 {
+    if (g_ActiveSaveSlot < 0) return false;
+
+    EnsureSlotDirectory(g_ActiveSaveSlot);
+
     std::time_t t = std::time(nullptr);
     char buf[64];
     std::strftime(buf, sizeof(buf), "autosave_%d-%m-%Y-%H-%M-%S.json", std::localtime(&t));
     std::string autosaveName(buf);
-    TraceLog(LOG_INFO, "Autosaving to saves/autosave/%s", autosaveName.c_str());
+    std::string dir = GetSlotPath(g_ActiveSaveSlot, "autosave");
+    TraceLog(LOG_INFO, "Autosaving to %s/%s", dir.c_str(), autosaveName.c_str());
     SaveGameState(gState);
-    std::string dir = "saves/autosave";
-    std::filesystem::create_directories(dir);
 
     bool result = WriteSaveFile(dir + "/" + autosaveName);
 
-    // Batasi maksimal 5 slot autosave — hapus file terlama jika melebihi
+    // Batasi maksimal 5 file autosave per slot — hapus file terlama jika melebihi
     constexpr int MAX_AUTOSAVE_SLOTS = 5;
     std::vector<std::filesystem::path> autosaveFiles;
-    for (const auto& entry : std::filesystem::directory_iterator(dir))
+    if (std::filesystem::exists(dir))
     {
-        if (entry.path().filename().string().find("autosave_") == 0 && entry.path().extension() == ".json")
-            autosaveFiles.push_back(entry.path());
+        for (const auto& entry : std::filesystem::directory_iterator(dir))
+        {
+            if (entry.path().filename().string().find("autosave_") == 0 && entry.path().extension() == ".json")
+                autosaveFiles.push_back(entry.path());
+        }
     }
     if (autosaveFiles.size() > MAX_AUTOSAVE_SLOTS)
     {
@@ -262,11 +373,16 @@ bool ReadSaveFile(const std::string& path)
             return false;
         }
 
-        // Validate version
+        // Validate version — only v3 is supported
         int version = root.at("version").get<int>();
+        if (version == 2)
+        {
+            TraceLog(LOG_WARNING, "Save file is v2 format (no longer supported): %s. Migration needed.", path.c_str());
+            return false;
+        }
         if (version != SAVE_VERSION)
         {
-            TraceLog(LOG_WARNING, "Save file version mismatch (expected %d): %s", SAVE_VERSION, path.c_str());
+            TraceLog(LOG_WARNING, "Save file version mismatch (expected %d, got %d): %s", SAVE_VERSION, version, path.c_str());
             return false;
         }
 
@@ -337,7 +453,7 @@ bool ReadSaveFile(const std::string& path)
                 enemy.patrolTimer = e.value("patrolTimer", 0.0f);
                 enemy.mapObjectID = e.value("mapObjectID", -1);
                 enemy.spawnPoint = e.value("spawnPoint", nlohmann::json({{"x", 0}, {"y", 0}}));
-                enemy.healthRegenTimer = e.value("healthRegenTimer", 0.0f);
+                enemy.healthRegenTimer = e.value("healthRegenTimer", 2.0f);
                 enemy.attackCooldownTimer = e.value("attackCooldownTimer", 0.0f);
                 enemy.uuid = e.value("uuid", "");
                 savedEnemyStates.push_back(enemy);
@@ -400,6 +516,18 @@ bool ReadSaveFile(const std::string& path)
         if (map.contains("crateConsumedPositions"))
             savedMapState.crateConsumedPositions = map.at("crateConsumedPositions");
 
+        // Read multi-slot metadata (v3+ fields, optional for backward compat)
+        if (root.contains("slotIndex"))
+            savedPlayerState.slotIndex = root.at("slotIndex").get<int>();
+        if (root.contains("saveType"))
+            savedPlayerState.saveType = root.value("saveType", "manual");
+        if (root.contains("playTime"))
+            savedPlayerState.playTime = root.value("playTime", 0.0f);
+        if (root.contains("mapDisplayName"))
+            savedPlayerState.mapDisplayName = root.value("mapDisplayName", "");
+        if (root.contains("worldgenSlot"))
+            savedPlayerState.worldgenSlot = root.value("worldgenSlot", -1);
+
         hasSavedState = true;
         TraceLog(LOG_INFO, "Save file %s loaded successfully (%d enemies, %d items)", path.c_str(), (int)savedEnemyStates.size(), (int)savedItemStates.size());
         return true;
@@ -441,6 +569,222 @@ void DeleteSaveFile(const std::string& path)
 }
 
 /*==============================================================================
+ * Migration v2 -> v3
+ *==============================================================================*/
+
+/**
+ * @brief Periksa apakah migrasi v2->v3 diperlukan.
+ * @return true jika file saves/manual/slot0.json ada DAN sentinel
+ *         saves/.migration_completed_v3 tidak ada.
+ */
+bool NeedsMigration(void)
+{
+    bool oldSaveExists = std::filesystem::exists("saves/manual/slot0.json");
+    bool sentinelExists = std::filesystem::exists("saves/.migration_completed_v3");
+    bool needs = oldSaveExists && !sentinelExists;
+    TraceLog(LOG_INFO, "[Migration] NeedsMigration: oldSave=%d sentinel=%d -> %s",
+             oldSaveExists, sentinelExists, needs ? "YES" : "NO");
+    return needs;
+}
+
+/**
+ * @brief Tandai migrasi sebagai selesai dengan menulis sentinel.
+ * Membuat file kosong saves/.migration_completed_v3.
+ */
+void MarkMigrationComplete(void)
+{
+    std::ofstream sentinel("saves/.migration_completed_v3");
+    if (sentinel.is_open())
+    {
+        sentinel.close();
+        TraceLog(LOG_INFO, "[Migration] Sentinel written: saves/.migration_completed_v3");
+    }
+    else
+    {
+        TraceLog(LOG_WARNING, "[Migration] Failed to write sentinel file!");
+    }
+}
+
+/**
+ * @brief Jalankan pipeline migrasi v2->v3.
+ * @return true jika semua langkah berhasil, false jika ada yang gagal.
+ *
+ * Urutan:
+ *  1. Copy saves/manual/slot0.json -> saves/slot_0/manual/manual.json (v2->v3 upgrade)
+ *  2. Pindahkan saves/enemies/ -> saves/slot_0/enemies/
+ *  3. Pindahkan saves/items/ -> saves/slot_0/items/
+ *  4. Hapus direktori lama + tulis sentinel
+ *
+ * Atomic: jika langkah manapun gagal, abort tanpa cleanup.
+ * Sentinel mencegah migrasi ulang pada launch berikutnya.
+ */
+bool RunMigration(void)
+{
+    TraceLog(LOG_INFO, "[Migration] Starting v2->v3 migration pipeline...");
+
+    /*----------------------------------------------------------------------
+     * Task 14: Copy saves/manual/slot0.json -> saves/slot_0/manual/manual.json
+     * dengan upgrade v2->v3.
+     *----------------------------------------------------------------------*/
+    {
+        if (!std::filesystem::exists("saves/manual/slot0.json"))
+        {
+            TraceLog(LOG_WARNING, "[Migration] slot0.json not found, aborting.");
+            return false;
+        }
+
+        try
+        {
+            std::ifstream srcFile("saves/manual/slot0.json");
+            json root = json::parse(srcFile);
+            srcFile.close();
+
+            // Upgrade version from 2 to 3
+            root["version"] = 3;
+
+            // Add v3 fields if not present
+            if (!root.contains("slotIndex"))     root["slotIndex"] = 0;
+            if (!root.contains("saveType"))      root["saveType"] = "manual";
+            if (!root.contains("playTime"))      root["playTime"] = 0.0f;
+            if (!root.contains("mapDisplayName")) root["mapDisplayName"] = "";
+            if (!root.contains("worldgenSlot"))  root["worldgenSlot"] = -1;
+
+            // Ensure target directory exists
+            std::filesystem::create_directories("saves/slot_0/manual");
+
+            // Atomic write: .tmp + rename
+            std::string targetPath = "saves/slot_0/manual/manual.json";
+            std::string tmpPath = targetPath + ".tmp";
+            if (std::filesystem::exists(tmpPath))
+                std::filesystem::remove(tmpPath);
+
+            std::ofstream outFile(tmpPath);
+            outFile << root.dump(4);
+            outFile.close();
+
+            std::filesystem::rename(tmpPath, targetPath);
+
+            if (!std::filesystem::exists(targetPath))
+            {
+                TraceLog(LOG_WARNING, "[Migration] Failed to write %s", targetPath.c_str());
+                return false;
+            }
+
+            TraceLog(LOG_INFO, "[Migration] Task 14: Copied slot0.json -> %s (v2->v3)", targetPath.c_str());
+        }
+        catch (const std::exception& e)
+        {
+            TraceLog(LOG_WARNING, "[Migration] Task 14 failed: %s", e.what());
+            return false;
+        }
+    }
+
+    /*----------------------------------------------------------------------
+     * Task 15: Pindahkan saves/enemies/ -> saves/slot_0/enemies/
+     *----------------------------------------------------------------------*/
+    {
+        if (std::filesystem::exists("saves/enemies") && std::filesystem::is_directory("saves/enemies"))
+        {
+            EnsureSlotDirectory(0); // ensures saves/slot_0/enemies/ exists
+
+            try
+            {
+                for (const auto& entry : std::filesystem::directory_iterator("saves/enemies"))
+                {
+                    if (entry.path().extension() == ".json")
+                    {
+                        std::string dest = "saves/slot_0/enemies/" + entry.path().filename().string();
+                        std::filesystem::rename(entry.path(), dest);
+                        TraceLog(LOG_INFO, "[Migration] Moved %s -> %s",
+                                 entry.path().filename().string().c_str(), dest.c_str());
+                    }
+                }
+                TraceLog(LOG_INFO, "[Migration] Task 15: Enemy files moved successfully.");
+            }
+            catch (const std::exception& e)
+            {
+                TraceLog(LOG_WARNING, "[Migration] Task 15 failed: %s", e.what());
+                return false;
+            }
+        }
+        else
+        {
+            TraceLog(LOG_INFO, "[Migration] Task 15: saves/enemies/ not found, skipping.");
+        }
+    }
+
+    /*----------------------------------------------------------------------
+     * Task 16: Pindahkan saves/items/ -> saves/slot_0/items/
+     *----------------------------------------------------------------------*/
+    {
+        if (std::filesystem::exists("saves/items") && std::filesystem::is_directory("saves/items"))
+        {
+            EnsureSlotDirectory(0); // ensures saves/slot_0/items/ exists
+
+            try
+            {
+                for (const auto& entry : std::filesystem::directory_iterator("saves/items"))
+                {
+                    if (entry.path().extension() == ".json")
+                    {
+                        std::string dest = "saves/slot_0/items/" + entry.path().filename().string();
+                        std::filesystem::rename(entry.path(), dest);
+                        TraceLog(LOG_INFO, "[Migration] Moved %s -> %s",
+                                 entry.path().filename().string().c_str(), dest.c_str());
+                    }
+                }
+                TraceLog(LOG_INFO, "[Migration] Task 16: Item files moved successfully.");
+            }
+            catch (const std::exception& e)
+            {
+                TraceLog(LOG_WARNING, "[Migration] Task 16 failed: %s", e.what());
+                return false;
+            }
+        }
+        else
+        {
+            TraceLog(LOG_INFO, "[Migration] Task 16: saves/items/ not found, skipping.");
+        }
+    }
+
+    /*----------------------------------------------------------------------
+     * Task 17: Hapus direktori lama + tulis sentinel
+     *----------------------------------------------------------------------*/
+    {
+        try
+        {
+            // Hapus direktori flat lama
+            if (std::filesystem::exists("saves/manual") && std::filesystem::is_directory("saves/manual"))
+            {
+                std::filesystem::remove_all("saves/manual");
+                TraceLog(LOG_INFO, "[Migration] Removed saves/manual/");
+            }
+            if (std::filesystem::exists("saves/enemies") && std::filesystem::is_directory("saves/enemies"))
+            {
+                std::filesystem::remove_all("saves/enemies");
+                TraceLog(LOG_INFO, "[Migration] Removed saves/enemies/");
+            }
+            if (std::filesystem::exists("saves/items") && std::filesystem::is_directory("saves/items"))
+            {
+                std::filesystem::remove_all("saves/items");
+                TraceLog(LOG_INFO, "[Migration] Removed saves/items/");
+            }
+
+            // Tulis sentinel
+            MarkMigrationComplete();
+
+            TraceLog(LOG_INFO, "[Migration] v2->v3 migration completed successfully.");
+            return true;
+        }
+        catch (const std::exception& e)
+        {
+            TraceLog(LOG_WARNING, "[Migration] Task 17 failed: %s", e.what());
+            return false;
+        }
+    }
+}
+
+/*==============================================================================
  * State Save/Restore Functions
  *==============================================================================*/
 
@@ -453,6 +797,21 @@ void DeleteSaveFile(const std::string& path)
 void SaveGameState(GameState *state)
 {
     TraceLog(LOG_INFO, "Saving game state...");
+
+    // Jalankan migrasi v2->v3 jika diperlukan (sebelum EnsureSlotDirectory)
+    if (NeedsMigration())
+    {
+        bool migrated = RunMigration();
+        if (!migrated)
+        {
+            TraceLog(LOG_WARNING, "[Migration] Pipeline failed, proceeding with normal save anyway.");
+        }
+    }
+
+    // Pastikan direktori slot tersedia sebelum menulis
+    if (g_ActiveSaveSlot >= 0)
+        EnsureSlotDirectory(g_ActiveSaveSlot);
+
     /*==============================================================================
      * Save Player State
      *==============================================================================*/
@@ -538,6 +897,7 @@ void SaveGameState(GameState *state)
      *==============================================================================*/
     const char *mapPath = GetCurrentMapPath();
     savedMapState.mapPath = (mapPath == nullptr || mapPath[0] == '\0') ? "assets/maps/tutorial.json" : std::string(mapPath);
+    savedPlayerState.mapDisplayName = GetMapDisplayName(savedMapState.mapPath);
     savedMapState.cameraTarget = camera.target;
     savedMapState.cameraZoom = camera.zoom;
 
@@ -676,6 +1036,9 @@ void RestoreGameState(GameState *state)
                         enemy->SpawnPoint.y = saved.spawnPoint["y"].get<float>();
                     }
                     enemy->HealthRegenTimer = saved.healthRegenTimer;
+                    // Grace: if timer is 0 and enemy is at full health, set to 2.0f to prevent instant regen after load
+                    if (saved.healthRegenTimer <= 0.0f && enemy->Health >= enemy->MaxHealth)
+                        enemy->HealthRegenTimer = 2.0f;
                     enemy->SetAttackCooldownTimer(saved.attackCooldownTimer);
                     enemy->IsActive = true;
                     matchedEnemies.insert(enemy);
@@ -702,6 +1065,9 @@ void RestoreGameState(GameState *state)
                             enemy->SpawnPoint.y = saved.spawnPoint["y"].get<float>();
                         }
                         enemy->HealthRegenTimer = saved.healthRegenTimer;
+                        // Grace: if timer is 0 and enemy is at full health, set to 2.0f to prevent instant regen after load
+                        if (saved.healthRegenTimer <= 0.0f && enemy->Health >= enemy->MaxHealth)
+                            enemy->HealthRegenTimer = 2.0f;
                         enemy->SetAttackCooldownTimer(saved.attackCooldownTimer);
                         enemy->IsActive = true;
                         matchedEnemies.insert(enemy);
@@ -831,11 +1197,11 @@ bool IsWorldgenPending(void)
 }
 
 /**
- * @brief ClearSavedState()
- * Bersihkan state tersimpan untuk fresh start.
- * Juga membersihkan folder worldseed/save_* untuk worldgen fresh start.
+ * @brief ResetMemoryState()
+ * Reset semua state memory untuk fresh start — TIDAK menghapus worldseed directories.
+ * Gunakan ResetWorldseed(slotIndex) secara terpisah jika perlu cleanup worldseed.
  */
-void ClearSavedState(void)
+void ResetMemoryState(void)
 {
     hasSavedState = false;
     savedPlayerState.position = {0};
@@ -868,18 +1234,22 @@ void ClearSavedState(void)
     chestManager.ResetConsumed();
     bombManager.ResetConsumed();
     crateManager.ResetConsumed();
+}
 
-    // Clean up stale worldseed save_N folders for a fresh worldgen start
-    const char* worldseedDir = "assets/maps/World_generation/worldseed";
-    if (std::filesystem::exists(worldseedDir))
+/**
+ * @brief ResetWorldseed()
+ * Hapus folder worldseed/save_{slotIndex} untuk fresh worldgen start.
+ * @param slotIndex Nomor slot yang akan dibersihkan (0-99)
+ */
+void ResetWorldseed(int slotIndex)
+{
+    char buf[128];
+    snprintf(buf, sizeof(buf), "assets/maps/World_generation/worldseed/save_%d", slotIndex);
+    std::string path(buf);
+
+    if (std::filesystem::exists(path))
     {
-        for (auto& entry : std::filesystem::directory_iterator(worldseedDir))
-        {
-            if (entry.is_directory() && entry.path().string().find("save_") != std::string::npos)
-            {
-                std::filesystem::remove_all(entry.path());
-                TraceLog(LOG_INFO, "[ClearSavedState] Removed stale worldgen save: %s", entry.path().string().c_str());
-            }
-        }
+        std::filesystem::remove_all(path);
+        TraceLog(LOG_INFO, "[ResetWorldseed] Removed worldgen save: %s", path.c_str());
     }
 }

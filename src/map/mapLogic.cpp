@@ -11,8 +11,8 @@
  */
 
 #include "mapLogic.h"
-#include "../lib/raylib/include/raylib.h"
-#include "../lib/raylib/include/raymath.h"
+#include "raylib.h"
+#include "raymath.h"
 #include "../lib/tileson/tileson.hpp"
 #include "map.h"
 #include "animation.h"

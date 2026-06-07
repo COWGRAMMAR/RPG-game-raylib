@@ -26,7 +26,7 @@
  * Constants
  *==============================================================================*/
 
-static constexpr int SAVE_VERSION = 2;      /**< Current save file format version */
+static constexpr int SAVE_VERSION = 3;      /**< Current save file format version */
 
 /*==============================================================================
  * Saved State Structures
@@ -57,6 +57,12 @@ struct SavedPlayerState {
     float dashCooldown;                  /**< Remaining dash cooldown timer */
     float manaRegenTimer;                /**< Timer delay before mana regen begins */
     nlohmann::json swingAttack;          /**< Serialized attack state: active, timer, duration, raycastAngle, center, pressHeld */
+
+    int slotIndex = -1;                  /**< Save slot index (0-4 manual, -1 unassigned) */
+    std::string saveType = "manual";     /**< "manual" or "autosave" */
+    float playTime = 0.0f;               /**< Placeholder play time (tracking deferred) */
+    std::string mapDisplayName;          /**< Human-readable map name for UI preview */
+    int worldgenSlot = -1;               /**< Worldgen slot mapping (-1 = unassigned) */
 };
 
 /**
@@ -128,6 +134,62 @@ extern SavedMapState savedMapState;
 extern bool hasSavedState;
 
 /*==============================================================================
+ * Active Slot Tracking
+ *==============================================================================*/
+
+/** @brief Slot save yang sedang aktif (-1 = tidak ada) */
+extern int g_ActiveSaveSlot;
+
+/** @brief Flag apakah ada slot yang sedang aktif */
+extern bool g_SaveSlotActive;
+
+/**
+ * @brief Set slot save yang aktif.
+ * @param slot Nomor slot (0-4 valid, -1 = inactive)
+ * @note Dipanggil saat: manual save, manual load, autosave, new game.
+ *       Reset ke -1 saat kembali ke main menu.
+ */
+void SetActiveSlot(int slot);
+
+/**
+ * @brief Dapatkan slot save yang aktif.
+ * @return Nomor slot aktif, -1 jika tidak ada
+ */
+int GetActiveSlot(void);
+
+/**
+ * @brief Cek apakah ada slot yang sedang aktif.
+ * @return true jika ada slot aktif
+ */
+bool IsSlotActive(void);
+
+/**
+ * @brief Dapatkan path file save untuk slot dan tipe tertentu.
+ * @param slot Nomor slot (0-4)
+ * @param type Tipe save ("manual" atau "autosave")
+ * @return Path lengkap file save (contoh: "saves/slot_2/manual/manual.json")
+ * @note Untuk tipe "manual", return path ke file manual.json.
+ *       Untuk tipe "autosave", return path ke direktori autosave (tanpa nama file).
+ */
+std::string GetSlotPath(int slot, const std::string& type);
+
+/*==============================================================================
+ * Slot Directory Utilities
+ *==============================================================================*/
+
+/**
+ * @brief Pastikan direktori slot save tersedia.
+ * @param slot Nomor slot (0-4)
+ * @details Membuat struktur direktori:
+ *          - saves/slot_N/manual/
+ *          - saves/slot_N/autosave/
+ *          - saves/slot_N/enemies/
+ *          - saves/slot_N/items/
+ *          Tidak melakukan apa-apa jika direktori sudah ada.
+ */
+void EnsureSlotDirectory(int slot);
+
+/*==============================================================================
  * State Save/Restore Functions
  *==============================================================================*/
 
@@ -164,10 +226,20 @@ void RestoreDeadEntities(void);
 bool HasSavedState(void);
 
 /**
- * @brief Bersihkan state tersimpan
- * @details Untuk new game dari awal (fresh start)
+ * @brief Reset memory state only, does NOT clear worldseed directories
+ * @details Reset semua state yang tersimpan di memory untuk fresh start.
+ *          Tidak menghapus folder worldseed/save_* — gunakan ResetWorldseed() untuk itu.
  */
-void ClearSavedState(void);
+void ResetMemoryState(void);
+
+/**
+ * @brief Hapus worldseed save_N untuk slot tertentu
+ * @param slotIndex Nomor slot yang akan dibersihkan worldseednya
+ * @details Menghapus folder assets/maps/World_generation/worldseed/save_{slotIndex}
+ *          jika ada. Cocok dipanggil saat New Game confirm untuk membersihkan
+ *          worldseed slot tertentu tanpa menyentuh state memory.
+ */
+void ResetWorldseed(int slotIndex);
 
 /**
  * @brief Set or clear the worldgen pending flag
@@ -197,18 +269,19 @@ bool IsWorldgenPending(void);
 bool WriteSaveFile(const std::string& path);
 
 /**
- * @brief Write a timestamped autosave to saves/autosave/ directory
- * @details Calls SaveGameState() then writes to saves/autosave/autosave_DD-MM-YYYY-HH-MM-SS.json.
+ * @brief Write a timestamped autosave to per-slot autosave directory
+ * @details Calls SaveGameState() then writes to saves/slot_N/autosave/autosave_DD-MM-YYYY-HH-MM-SS.json.
  *          Each call generates a unique filename so autosaves never overwrite each other.
- *          Creates the autosave directory if it doesn't exist.
- * @return true if successful, false if write failed
+ *          Creates the slot directory if it doesn't exist.
+ *          After write, prunes to keep only the 5 newest autosave files per slot.
+ * @return true if successful, false if write failed or no active slot
  */
 bool WriteAutosave(const std::string& filename);
 
 /**
  * @brief Read saved state from JSON file
  * @details Reads and deserializes a JSON save file into the global saved state structs.
- *          Validates version == SAVE_VERSION (currently 2).
+ *          Validates version == SAVE_VERSION (currently 3).
  * @param path Path to the save file
  * @return true if successful, false if file not found, parse error, or version mismatch
  */
@@ -226,3 +299,35 @@ bool HasSaveFile(const std::string& path);
  * @param path Path to the save file to delete
  */
 void DeleteSaveFile(const std::string& path);
+
+/*==============================================================================
+ * Migration v2 -> v3
+ *==============================================================================*/
+
+/**
+ * @brief Periksa apakah migrasi v2->v3 diperlukan.
+ * @return true jika file saves/manual/slot0.json ada DAN sentinel
+ *         saves/.migration_completed_v3 tidak ada.
+ * @details Sentinel mencegah migrasi ulang pada launch berikutnya.
+ *          Panggil sekali saat startup sebelum menyimpan.
+ */
+bool NeedsMigration(void);
+
+/**
+ * @brief Jalankan pipeline migrasi v2->v3.
+ * @return true jika semua langkah berhasil, false jika ada yang gagal.
+ * @details Urutan:
+ *          1. Copy saves/manual/slot0.json -> saves/slot_0/manual/manual.json (v2->v3 upgrade)
+ *          2. Pindahkan saves/enemies/ -> saves/slot_0/enemies/
+ *          3. Pindahkan saves/items/ -> saves/slot_0/items/
+ *          4. Hapus direktori lama + tulis sentinel
+ *          Jika langkah manapun gagal, abort tanpa cleanup.
+ */
+bool RunMigration(void);
+
+/**
+ * @brief Tandai migrasi sebagai selesai dengan menulis sentinel.
+ * @details Membuat file kosong saves/.migration_completed_v3.
+ *          Sentinel dicek oleh NeedsMigration() untuk skip migrasi.
+ */
+void MarkMigrationComplete(void);

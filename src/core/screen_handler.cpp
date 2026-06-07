@@ -33,8 +33,8 @@
 #include "input.h"
 #include <cstdio>
 #include "enemy_ai.h"
-#include "../lib/raylib/include/raylib.h"
-#include "../lib/raylib/include/raymath.h"
+#include "raylib.h"
+#include "raymath.h"
 #include <string>
 #include <cstring>
 #include <algorithm>
@@ -42,7 +42,9 @@
 #include <filesystem>
 #include "hud.h"
 #include "propsbehavior.h"
+#include "combatTurn.h"
 #include "seedmanager.h"
+#include "game_state_saver.h"
 #include "worldgenio.h"
 #include "worldgenenartion.h"
 
@@ -117,8 +119,8 @@ void InitAll()
     if (mapPath)
     {
         std::string cachePath = std::string(mapPath) + ".cache";
-        SaveEnemiesForMap(cachePath);
-        SaveItemsForMapDir(cachePath);
+        SaveEnemiesForMap(cachePath, "saves/cache/enemies");
+        SaveItemsForMapDir(cachePath, "saves/cache/items");
     }
 }
 
@@ -131,6 +133,7 @@ static std::string ToLower(std::string str)
                    { return std::tolower(c); });
     return str;
 }
+
 
 /**
  * @brief Inisialisasi window, audio, dan render texture virtual
@@ -176,9 +179,8 @@ GameState InitScreen()
     state.pendingMapPath.clear();
     state.pendingDoorName.clear();
 
-    // Create save directories at startup
-    std::filesystem::create_directories("saves/manual");
-    std::filesystem::create_directories("saves/autosave");
+    // Save directories dibuat otomatis oleh EnsureSlotDirectory()
+    // atau WriteAutosave() saat pertama kali menyimpan.
 
     return state;
 }
@@ -212,43 +214,79 @@ void UpdateGame(GameState *state)
  */
 void UpdateLogicAll()
 {
-    // update flow field sebelum enemy di-update
-    if (tilesonMap)
-        globalFlowField.Update(PlayerInstance.GetPosition(), tilesonMap->width, tilesonMap->height);
+    TurnCombat::UpdateCooldown();
 
-    if (!spawnFlowFieldRebuildQueue.empty() && tilesonMap)
+    if (TurnCombat::IsActive())
     {
-        int id = spawnFlowFieldRebuildQueue.front();
-        spawnFlowFieldRebuildQueue.pop();
-        auto &entry = spawnFlowFields[id];
-        entry.field.Build(entry.spawnPos, tilesonMap->width, tilesonMap->height, FLOW_FIELD_RETURN_RADIUS);
+        TurnCombat::Update();
+        Effects::Update(GetFrameTime());
     }
-
-    RebuildSpatialHash(Entities::GetEnemyRegistry());
-
-    auto &enemyReg = Entities::GetEnemyRegistry();
-    for (int i = 0; i < (int)enemyReg.size(); i++)
+    else
     {
-        if (!enemyReg[i]->IsActive)
-            continue;
-        Vector2 sep = CalcSeparationForce(i, enemyReg);
-        // lerp force lama ke force baru
-        enemyReg[i]->SeparationForce.x = Lerp(enemyReg[i]->SeparationForce.x, sep.x, SEPARATION_FORCE_MAGNITUDE);
-        enemyReg[i]->SeparationForce.y = Lerp(enemyReg[i]->SeparationForce.y, sep.y, SEPARATION_FORCE_MAGNITUDE);
+        // update flow field before enemy update
+        if (tilesonMap)
+            globalFlowField.Update(PlayerInstance.GetPosition(), tilesonMap->width, tilesonMap->height);
 
-        Vector2 newPos = {
-            enemyReg[i]->Position.x + enemyReg[i]->SeparationForce.x * Time::DELTA_TIME,
-            enemyReg[i]->Position.y + enemyReg[i]->SeparationForce.y * Time::DELTA_TIME};
-
-        if (IsPositionSafe(newPos, enemyReg[i]->HitboxWidth, enemyReg[i]->HitboxHeight,
-                           enemyReg[i]->HitboxOffsetX, enemyReg[i]->HitboxOffsetY))
+        if (!spawnFlowFieldRebuildQueue.empty() && tilesonMap)
         {
-            enemyReg[i]->Position = newPos;
+            int id = spawnFlowFieldRebuildQueue.front();
+            spawnFlowFieldRebuildQueue.pop();
+            auto &entry = spawnFlowFields[id];
+            entry.field.Build(entry.spawnPos, tilesonMap->width, tilesonMap->height, FLOW_FIELD_RETURN_RADIUS);
+        }
+
+        RebuildSpatialHash(Entities::GetEnemyRegistry());
+
+        auto &enemyReg = Entities::GetEnemyRegistry();
+        for (int i = 0; i < (int)enemyReg.size(); i++)
+        {
+            if (!enemyReg[i]->IsActive)
+                continue;
+            Vector2 sep = CalcSeparationForce(i, enemyReg);
+            enemyReg[i]->SeparationForce.x = Lerp(enemyReg[i]->SeparationForce.x, sep.x, SEPARATION_FORCE_MAGNITUDE);
+            enemyReg[i]->SeparationForce.y = Lerp(enemyReg[i]->SeparationForce.y, sep.y, SEPARATION_FORCE_MAGNITUDE);
+
+            Vector2 newPos = {
+                enemyReg[i]->Position.x + enemyReg[i]->SeparationForce.x * Time::DELTA_TIME,
+                enemyReg[i]->Position.y + enemyReg[i]->SeparationForce.y * Time::DELTA_TIME};
+
+            if (IsPositionSafe(newPos, enemyReg[i]->HitboxWidth, enemyReg[i]->HitboxHeight,
+                               enemyReg[i]->HitboxOffsetX, enemyReg[i]->HitboxOffsetY))
+            {
+                enemyReg[i]->Position = newPos;
+            }
         }
     }
 
     // Update semua entity (Player + semua Enemy) via Entities registry
     Entities::Update();
+
+    if (!TurnCombat::IsActive())
+    {
+        // Check if any enemy triggered turn-based mode after updating
+        for (Entity *entity : Entities::GetRegistry())
+        {
+            Enemy *enemy = dynamic_cast<Enemy *>(entity);
+            if (enemy && enemy->IsActive && enemy->isTurnBasedMode)
+            {
+                if (PlayerInstance.Health <= 0)
+                    continue;
+                if (TurnCombat::GetDefeatCooldown() > 0.0f)
+                    continue;
+                // Only trigger if player is close to the boss
+                Vector2 playerCenter = PlayerInstance.GetCenter();
+                Vector2 bossCenter = enemy->GetCenter();
+                float dist = Vector2Distance(playerCenter, bossCenter);
+                const float TRIGGER_RANGE = 200.0f;
+                if (dist > TRIGGER_RANGE)
+                    continue;
+                TraceLog(LOG_INFO, "TURN: Turn-based combat triggered by %s", enemy->Name.c_str());
+                TurnCombat::Init(enemy, &PlayerInstance);
+                TurnCombat::Update(); // Process first state immediately
+                break;
+            }
+        }
+    }
 
     // Handle pending map transitions dari Interaction namespace
     Interaction::ExecutePendingTransitions(PlayerInstance);
@@ -258,17 +296,20 @@ void UpdateLogicAll()
     if (!gState->isSwitchingMap && !gState->isGoingBack)
     {
         const char *mapPath = GetCurrentMapPath();
-        if (mapPath && strstr(mapPath, "worldseed/save_") != nullptr)
+        if (mapPath)
         {
-            if (InputInstance.IsInteract())
+            std::string worldgenPrefix = "worldseed/save_" + std::to_string(g_ActiveSaveSlot);
+            if (strstr(mapPath, worldgenPrefix.c_str()) != nullptr)
             {
-                Vector2 playerCenter = PlayerInstance.GetCenter();
-                CellType cellType = GetCellTypeAtWorldPos(playerCenter);
-                if (cellType == CELL_FINISH)
+                if (InputInstance.IsInteract())
                 {
-                    WorldgenIO::NextStage();
+                    Vector2 playerCenter = PlayerInstance.GetCenter();
+                    CellType cellType = GetCellTypeAtWorldPos(playerCenter);
+                    if (cellType == CELL_FINISH)
+                    {
+                        WorldgenIO::NextStage();
+                    }
                 }
-
             }
         }
     }
@@ -391,6 +432,12 @@ void DrawUIOverlay(GameState *state)
     {
         Vector2 mousePos = GetVirtualMousePosition(state);
         pauseMenu.Draw(mousePos);
+    }
+
+    // 4. Turn-based combat overlay
+    if (TurnCombat::IsActive())
+    {
+        TurnCombat::Draw();
     }
 }
 

@@ -1,6 +1,6 @@
 #include "animation.h"
 #include "fonts.h"
-#include "../lib/raylib/include/raymath.h"
+#include "raymath.h"
 #include "../lib/json/include/nlohmann/json.hpp"
 #include <fstream>
 #include <unordered_map>
@@ -179,6 +179,10 @@ void InitFonts(void)
         TraceLog(LOG_WARNING, "FONTS: Poppins-Bold.ttf loaded but has 0 glyphs (using default font fallback)");
         fontLoadingTitle = GetFontDefault();
     }
+
+    SetTextureFilter(fontKeybindHeader.texture, TEXTURE_FILTER_POINT);
+    SetTextureFilter(fontKeybindEntry.texture, TEXTURE_FILTER_POINT);
+    SetTextureFilter(fontLoadingTitle.texture, TEXTURE_FILTER_POINT);
 
     TraceLog(LOG_INFO, "FONTS: NewDawn (header) glyphs=%d, Poppins (entry) glyphs=%d, Poppins-Bold (loading) glyphs=%d",
         fontKeybindHeader.glyphCount, fontKeybindEntry.glyphCount, fontLoadingTitle.glyphCount);
@@ -403,7 +407,7 @@ void UpdateAnimation(Animation &anim, float dt)
     }
 }
 
-void DrawAnimation(const Animation &anim, Color tint)
+void DrawAnimation(const Animation &anim, Color tint, float scale)
 {
     if (!anim.currentConfig || anim.currentConfig->sprites.empty()) return;
 
@@ -413,8 +417,10 @@ void DrawAnimation(const Animation &anim, Color tint)
         index = 0;
     }
 
+    float scaledSize = FRAME_SIZE * scale;
+    float centeringOffset = (FRAME_SIZE - scaledSize) * 0.5f;
     const std::string &frameId = anim.currentConfig->sprites[index];
-    Display display = { anim.position, FRAME_SIZE, {0,0}, {0,0}, 0.0f, tint };
+    Display display = { anim.position, (int)scaledSize, {centeringOffset, centeringOffset}, {0,0}, 0.0f, tint };
     DrawFrame(frameId, display);
 }
 

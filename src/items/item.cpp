@@ -24,8 +24,9 @@
 #include "mapLogic.h"
 #include "datadriven.h"
 #include "../lib/json/include/nlohmann/json.hpp"
-#include "../lib/raylib/include/raymath.h"
+#include "raymath.h"
 #include "core/utils.h"
+#include "core/game_state_saver.h"
 #include <iostream>
 #include <vector>
 #include <fstream>
@@ -340,6 +341,16 @@ void ItemDataManager::SpawnItemAtLocation(Vector2 pos, std::mt19937 *rng, ItemCa
     activeItems.push_back(CreateItem(pos, defId));
 }
 
+void ItemDataManager::SpawnItemAtLocation(Vector2 pos, const std::map<ItemRarity, int> &weights, std::mt19937 *rng)
+{
+    std::mt19937 localRng(static_cast<unsigned int>(time(nullptr)));
+    std::mt19937 &useRng = rng ? *rng : localRng;
+    int defId = spawnManager.PickRandomDefinitionId(useRng, weights);
+    if (defId == -1)
+        return;
+    activeItems.push_back(CreateItem(pos, defId));
+}
+
 /**
  * @brief Simpan state activeItems untuk map tertentu
  * @param mapPath Path map sebagai key penyimpanan
@@ -380,14 +391,15 @@ void ItemDataManager::ClearItems()
  *==============================================================================*/
 
 /**
- * @brief Save all active items for a map to the saves/items/ filesystem directory.
+ * @brief Simpan semua item aktif untuk suatu map ke filesystem per-slot save.
  *
- * Serializes each item's fields (definitionId, position, isPickedUp, amount, uuid)
- * to a JSON array under the "items" key. Uses atomic write (.tmp + rename).
+ * Menyimpan tiap field item (definitionId, position, isPickedUp, amount, uuid)
+ * ke array JSON dengan key "items". Menggunakan atomic write (.tmp + rename).
  *
- * @param mapPath Raw map path used to derive save file name
+ * @param mapPath Path map mentah untuk menurunkan nama file save
+ * @param baseDir Direktori dasar (default diganti ke path per-slot otomatis)
  */
-void SaveItemsForMapDir(const std::string &mapPath)
+void SaveItemsForMapDir(const std::string &mapPath, const std::string &baseDir)
 {
     // Sanitize map path: replace path separators with underscores
     std::string safeName = mapPath;
@@ -396,7 +408,14 @@ void SaveItemsForMapDir(const std::string &mapPath)
         if (c == '/' || c == '\\') c = '_';
     }
 
-    std::string dir = "saves/items";
+    // Gunakan direktori per-slot jika baseDir adalah default
+    std::string dir = baseDir;
+    if (dir == "saves/items")
+    {
+        dir = "saves/slot_" + std::to_string(g_ActiveSaveSlot) + "/items";
+        EnsureSlotDirectory(g_ActiveSaveSlot);
+    }
+
     std::string filePath = dir + "/" + safeName;
 
     std::filesystem::create_directories(dir);
@@ -429,15 +448,16 @@ void SaveItemsForMapDir(const std::string &mapPath)
 }
 
 /**
- * @brief Load items for a map from the saves/items/ filesystem directory.
+ * @brief Muat item untuk suatu map dari filesystem per-slot save.
  *
- * Reads the JSON file, deserializes each item, reconstructs hitboxes from
- * ItemDefinition data, and populates itemData.activeItems.
+ * Membaca file JSON, deserialiasi tiap item, rekonstruksi hitbox dari
+ * data ItemDefinition, dan mengisi itemData.activeItems.
  *
- * @param mapPath Raw map path used to derive save file name
- * @return true if items were loaded, false if no save file or parse failed
+ * @param mapPath Path map mentah untuk menurunkan nama file save
+ * @param baseDir Direktori dasar (default diganti ke path per-slot otomatis)
+ * @return true jika item berhasil dimuat, false jika file tidak ada atau gagal parse
  */
-bool LoadItemsForMapDir(const std::string &mapPath)
+bool LoadItemsForMapDir(const std::string &mapPath, const std::string &baseDir)
 {
     // Sanitize map path: replace path separators with underscores
     std::string safeName = mapPath;
@@ -446,7 +466,14 @@ bool LoadItemsForMapDir(const std::string &mapPath)
         if (c == '/' || c == '\\') c = '_';
     }
 
-    std::string filePath = "saves/items/" + safeName;
+    // Gunakan direktori per-slot jika baseDir adalah default
+    std::string dir = baseDir;
+    if (dir == "saves/items")
+    {
+        dir = "saves/slot_" + std::to_string(g_ActiveSaveSlot) + "/items";
+    }
+
+    std::string filePath = dir + "/" + safeName;
 
     if (!std::filesystem::exists(filePath))
         return false;
@@ -842,6 +869,53 @@ int ItemSpawnManager::PickRandomDefinitionId(std::mt19937 &rng, ItemCategory fil
         return -1; // gak ada item yang cocok
 
     // Pilih random dari item dengan rarity itu
+    std::uniform_int_distribution<int> idxDist(0, (int)byRarity[pickedRarity].size() - 1);
+    return byRarity[pickedRarity][idxDist(rng)];
+}
+
+// Pilih definitionId random dengan weight map kustom (untuk enemy drops)
+int ItemSpawnManager::PickRandomDefinitionId(std::mt19937 &rng, const std::map<ItemRarity, int> &weights, ItemCategory filterCategory)
+{
+    // Kumpulkan semua item per rarity
+    std::map<ItemRarity, std::vector<int>> byRarity;
+    for (const auto &[name, def] : itemDefs.GetAll())
+    {
+        if (filterCategory != ITEM_ANY && def.category != filterCategory)
+            continue;
+        byRarity[def.rarity].push_back(def.id);
+    }
+
+    // Hitung total weight dari rarity yang ada itemnya
+    int total = 0;
+    for (const auto &[rarity, weight] : weights)
+    {
+        if (!byRarity[rarity].empty())
+            total += weight;
+    }
+
+    if (total == 0)
+        return -1;
+
+    std::uniform_int_distribution<int> rollDist(1, total);
+    int roll = rollDist(rng);
+
+    int cumulative = 0;
+    ItemRarity pickedRarity = weights.begin()->first;
+    for (const auto &[rarity, weight] : weights)
+    {
+        if (byRarity[rarity].empty())
+            continue;
+        cumulative += weight;
+        if (roll <= cumulative)
+        {
+            pickedRarity = rarity;
+            break;
+        }
+    }
+
+    if (byRarity[pickedRarity].empty())
+        return -1;
+
     std::uniform_int_distribution<int> idxDist(0, (int)byRarity[pickedRarity].size() - 1);
     return byRarity[pickedRarity][idxDist(rng)];
 }

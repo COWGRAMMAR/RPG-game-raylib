@@ -1,7 +1,7 @@
 #pragma once
 
 #include "entity.h"
-#include "../lib/raylib/include/raylib.h"
+#include "raylib.h"
 #include "animation.h"
 #include "mapLogic.h"
 #include "enemy_ai.h"
@@ -89,12 +89,14 @@ struct EnemyHitboxData
 /** @brief Single source of truth untuk satu tipe enemy, di-load dari JSON */
 struct EnemyDefinition
 {
-    int id;                      // ID unik, digunakan sebagai key lookup
-    std::string name;            // Nama tipe enemy (e.g. "Slime", "Skeleton")
-    EnemyRank rank;              // Rank enemy untuk filter spawn dan balancing
-    EnemyStats stats;            // Statistik gameplay
-    EnemyHitboxData hitbox;      // Konfigurasi hitbox
-    const AnimationSet *animSet; // Pointer ke AnimationSet global, di-resolve dari type
+    int id;                      ///< ID unik, digunakan sebagai key lookup
+    std::string name;            ///< Nama tipe enemy (e.g. "Slime", "Skeleton")
+    EnemyStats stats;            ///< Statistik gameplay
+    EnemyHitboxData hitbox;      ///< Konfigurasi hitbox
+    EnemyRank rank = ENEMY_NORMAL; ///< Rank untuk spawn/balance
+    float Scale = 1.0f;           ///< Skala visual (1.0 = normal, 1.25 = elite, 1.75 = boss)
+    std::string AnimSetName;      ///< Nama AnimationSet yang digunakan (e.g. "Slime", "Skeleton", "Wolf")
+    const AnimationSet *animSet;  ///< Pointer ke AnimationSet global, di-resolve dari AnimSetName
 };
 
 /** @brief Data-driven manager untuk definisi enemy */
@@ -103,6 +105,8 @@ class EnemyDataManager
 public:
     /** @brief Load definisi enemy dari file JSON */
     void Load(const std::string &path);
+    bool Has(const std::string &name) const;
+    
     /** @brief Ambil definisi enemy berdasarkan nama */
     const EnemyDefinition &Get(const std::string &name) const;
     /** @brief Ambil semua nama enemy yang sudah di-load */
@@ -167,6 +171,7 @@ public:
     // --- Turn-Based ---
     bool isTurnBasedMode = false; // True jika sedang dalam mode combat turn-based
     bool isMyTurn = false;        // True jika giliran enemy di mode turn-based
+    bool bossMusicPlaying = false; // True jika boss music sedang diputar karena HP < 50%
 
     // --- Animasi ---
     Animation Anim;              // State animasi aktif (runtime)
@@ -241,6 +246,12 @@ public:
 
     Vector2 SeparationForce = {0, 0}; // Gaya separation dari enemy lain
 
+    // --- Feedback Visual & Kematian (runtime, accessible externally) ---
+    float HitFlashTimer = 0.0f;       // Timer tint merah saat terkena damage (runtime)
+    Vector2 KnockbackVelocity;        // Vektor knockback aktif (runtime)
+    float DeathTimer = 0.0f;          // Timer animasi kematian (runtime)
+    const float DeathDuration = 1.2f; // Durasi animasi kematian sebelum di-deactivate
+
 private:
     void HandleIdle();    // Jalankan state idle
     void HandlePatrol();  // Jalankan state patrol
@@ -263,12 +274,6 @@ private:
     float AttackCooldownTimer;         // Sisa waktu cooldown serangan (runtime)
     const float AttackCooldown = 1.0f; // Durasi cooldown antar serangan
     bool PlayerWasInRange = false;     // Flag mencegah serangan ganda dalam satu frame
-
-    // --- Feedback Visual & Kematian ---
-    float HitFlashTimer;              // Timer tint merah saat terkena damage (runtime)
-    Vector2 KnockbackVelocity;        // Vektor knockback aktif (runtime)
-    float DeathTimer;                 // Timer animasi kematian (runtime)
-    const float DeathDuration = 1.2f; // Durasi animasi kematian sebelum di-deactivate
 
     void MoveTowards(Vector2 target, float speed); // Helper gerak ke target dengan collision check
 };
@@ -293,9 +298,9 @@ void SpawnBoss(const MapObject *obj);
 void InitEnemy();
 
 /** @brief Simpan status enemy ke file map */
-void SaveEnemiesForMap(const std::string &mapPath);
+void SaveEnemiesForMap(const std::string &mapPath, const std::string &baseDir = "saves/enemies");
 /** @brief Load status enemy dari file map */
-bool LoadEnemiesForMap(const std::string &mapPath);
+bool LoadEnemiesForMap(const std::string &mapPath, const std::string &baseDir = "saves/enemies");
 /** @brief Hapus semua enemy aktif */
 void ClearEnemies();
 

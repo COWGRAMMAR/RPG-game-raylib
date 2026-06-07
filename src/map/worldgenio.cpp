@@ -8,6 +8,7 @@
 
 #include "worldgenio.h"
 #include "seedmanager.h"
+#include "game_state_saver.h"
 #include "map.h"
 #include "propsbehavior.h"
 #include "entities.h"
@@ -44,10 +45,14 @@ namespace WorldgenIO
         return GetSlotDir(slot) + "/runtime.json";
     }
 
-    /** @brief Dapatkan path file map untuk stage tertentu */
+    /**
+     * @brief Dapatkan path file map untuk stage tertentu
+     * @param stageIndex Index stage (0-based)
+     * @return Path lengkap ke file JSON map di slot aktif
+     */
     std::string GetStagePath(int stageIndex)
     {
-        int slot = g_SeedManager.GetCurrentSlot();
+        int slot = (g_ActiveSaveSlot >= 0) ? g_ActiveSaveSlot : g_SeedManager.GetCurrentSlot();
         char buf[256];
         snprintf(buf, sizeof(buf), "%s/maps/stage_%d.json", GetSlotDir(slot).c_str(), stageIndex + 1);
         return std::string(buf);
@@ -109,7 +114,7 @@ namespace WorldgenIO
     /** @brief Hapus hanya file .cache dari folder saves/enemies dan saves/items */
     void ClearCache()
     {
-        const std::string dirs[] = {"saves/enemies", "saves/items"};
+        const std::string dirs[] = {"saves/cache/enemies", "saves/cache/items"};
         for (const auto &dir : dirs)
         {
             if (!fs::exists(dir))
@@ -174,10 +179,14 @@ namespace WorldgenIO
 
     /*=== Runtime State ===*/
 
-    /** @brief Simpan state runtime stage tertentu */
+    /**
+     * @brief Simpan state runtime stage tertentu
+     * @param stageIndex Index stage yang akan di-save
+     * @return true jika berhasil
+     */
     bool SaveRuntimeState(int stageIndex)
     {
-        int slot = g_SeedManager.GetCurrentSlot();
+        int slot = (g_ActiveSaveSlot >= 0) ? g_ActiveSaveSlot : g_SeedManager.GetCurrentSlot();
         std::string rtPath = GetRuntimePath(slot);
 
         nlohmann::json root;
@@ -238,10 +247,14 @@ namespace WorldgenIO
         return true;
     }
 
-    /** @brief Muat state runtime stage tertentu */
+    /**
+     * @brief Muat state runtime stage tertentu
+     * @param stageIndex Index stage yang akan di-load
+     * @return true jika berhasil
+     */
     bool LoadRuntimeState(int stageIndex)
     {
-        int slot = g_SeedManager.GetCurrentSlot();
+        int slot = (g_ActiveSaveSlot >= 0) ? g_ActiveSaveSlot : g_SeedManager.GetCurrentSlot();
         std::string rtPath = GetRuntimePath(slot);
 
         if (!fs::exists(rtPath))

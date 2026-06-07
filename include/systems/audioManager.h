@@ -9,7 +9,7 @@
  * ke JSON lewat audioTab, sementara AudioManager menangani runtime.
  */
 
-#include "../lib/raylib/include/raylib.h"
+#include "raylib.h"
 #include "../core/screen.h"
 
 /**
@@ -123,6 +123,14 @@ void PlayTrack(const char* trackName);
 
 /** @brief Menghentikan semua music playback */
 void StopMusic();
+
+/**
+ * @brief Reset auto-switch biar track musik layar diputer ulang
+ *
+ * Panggil setelah turn-based combat selesai agar musik PLAY (DungeonMusic)
+ * kembali otomatis.
+ */
+void ResetToScreenTrack();
 
 /*------------------------------------------------------------------------------
  * SFX Control

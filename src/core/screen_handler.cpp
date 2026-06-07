@@ -40,6 +40,7 @@
 #include <algorithm>
 #include <cctype>
 #include <filesystem>
+#include "../../include/systems/audioManager.h"
 #include "hud.h"
 #include "propsbehavior.h"
 #include "combatTurn.h"
@@ -232,7 +233,11 @@ void UpdateLogicAll()
             int id = spawnFlowFieldRebuildQueue.front();
             spawnFlowFieldRebuildQueue.pop();
             auto &entry = spawnFlowFields[id];
-            entry.field.Build(entry.spawnPos, tilesonMap->width, tilesonMap->height, FLOW_FIELD_RETURN_RADIUS);
+            if (entry.isDirty)
+            {
+                entry.field.Build(entry.spawnPos, tilesonMap->width, tilesonMap->height, FLOW_FIELD_RETURN_RADIUS);
+                entry.isDirty = false;
+            }
         }
 
         RebuildSpatialHash(Entities::GetEnemyRegistry());
@@ -341,7 +346,8 @@ void UpdateLogicAll()
             {
                 TraceLog(LOG_INFO, "PICKUP: added to inventory");
                 item.isAdded = true;
-
+                AudioManager::PlaySFX("pickup-item");
+                
                 const ItemDefinition &def = itemDefs.GetById(item.definitionId);
                 std::string logMsg = def.name;
                 if (item.amount > 1)
@@ -491,6 +497,7 @@ Vector2 GetVirtualMousePosition(GameState *state)
 void GameShutDown(GameState *state)
 {
     CloseTextures();
+    AudioManager::CloseSFX();
     UnloadFonts();
 
     Entities::Shutdown();

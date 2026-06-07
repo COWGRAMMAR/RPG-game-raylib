@@ -7,8 +7,8 @@
 #include "audioManager.h"
 #include "animation.h"
 #include "map.h"
-#include "../lib/raylib/include/raylib.h"
-#include "../lib/raylib/include/raymath.h"
+#include <raylib.h>
+#include <raymath.h>
 #include <cstdio>
 #include <algorithm>
 
@@ -316,7 +316,7 @@ void TurnCombat::Update() {
             state.keyProcessed = true;
             state.timer = 1.0f;
             state.boss->HitFlashTimer = 0.3f;
-            AudioManager::PlaySfx();
+            AudioManager::PlaySFX("slash-short");
 
             // Trigger sword swing arc in front of player
             Player& p = *state.player;

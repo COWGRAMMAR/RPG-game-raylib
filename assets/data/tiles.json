@@ -41,6 +41,34 @@
         "width": 1,
         "height": 1
     },
+    "barrierDown": {
+        "texture": "TILESET_PROPS",
+        "column": 6,
+        "row": 0,
+        "width": 1,
+        "height": 1
+    },
+    "barrierUp1": {
+        "texture": "TILESET_PROPS",
+        "column": 7,
+        "row": 0,
+        "width": 1,
+        "height": 1
+    },
+    "barrierUp2": {
+        "texture": "TILESET_PROPS",
+        "column": 8,
+        "row": 0,
+        "width": 1,
+        "height": 1
+    },
+    "sign": {
+        "texture": "TILESET_PROPS",
+        "column": 9,
+        "row": 0,
+        "width": 1,
+        "height": 1
+    },
     "sword1": {
         "texture": "TILESET_ITEMS",
         "column": 0,
@@ -50,10 +78,10 @@
     },
     "sword2": {
         "texture": "TILESET_ITEMS",
-        "column": 0,
+        "column": 4,
         "row": 1,
-        "width": 1,
-        "height": 2
+        "width": 2,
+        "height": 1
     },
     "bow": {
         "texture": "TILESET_ITEMS",
@@ -115,6 +143,83 @@
         "texture": "TILESET_ITEMS",
         "column": 2,
         "row": 1,
+        "width": 1,
+        "height": 1
+    },
+    "damagePotionSmall": {
+        "texture": "TILESET_ITEMS",
+        "column": 8,
+        "row": 0,
+        "width": 1,
+        "height": 1
+    },
+    "damagePotionMedium": {
+        "texture": "TILESET_ITEMS",
+        "column": 9,
+        "row": 0,
+        "width": 1,
+        "height": 1
+    },
+    "speedPotionSmall": {
+        "texture": "TILESET_ITEMS",
+        "column": 1,
+        "row": 2,
+        "width": 1,
+        "height": 1
+    },
+    "speedPotionMedium": {
+        "texture": "TILESET_ITEMS",
+        "column": 2,
+        "row": 2,
+        "width": 1,
+        "height": 1
+    },
+    "invincibilityPotionSmall": {
+        "texture": "TILESET_ITEMS",
+        "column": 8,
+        "row": 1,
+        "width": 1,
+        "height": 1
+    },
+    "invincibilityPotionMedium": {
+        "texture": "TILESET_ITEMS",
+        "column": 9,
+        "row": 1,
+        "width": 1,
+        "height": 1
+    },
+    "ak47": {
+        "texture": "TILESET_ITEMS",
+        "column": 3,
+        "row": 1,
+        "width": 1,
+        "height": 1
+    },
+    "spear": {
+        "texture": "TILESET_ITEMS",
+        "column": 3,
+        "row": 2,
+        "width": 2,
+        "height": 1
+    },
+    "axe": {
+        "texture": "TILESET_ITEMS",
+        "column": 6,
+        "row": 1,
+        "width": 2,
+        "height": 1
+    },
+    "hammer": {
+        "texture": "TILESET_ITEMS",
+        "column": 0,
+        "row": 1,
+        "width": 1,
+        "height": 1
+    },
+    "bullet": {
+        "texture": "TILESET_ITEMS",
+        "column": 0,
+        "row": 2,
         "width": 1,
         "height": 1
     }

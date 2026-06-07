@@ -21,6 +21,7 @@
 #include "../../include/core/seedmanager.h"
 #include "../../include/map/worldgenio.h"
 #include "../../include/rendering/fonts.h"
+#include "../../include/systems/audioManager.h"
 #include <algorithm>
 #include <cstring>
 #include <cctype>
@@ -305,6 +306,7 @@ void UpdateLoadingScreen(GameState *state)
     case 0:
         state->loadingText = "Loading game textures...";
         InitTextures();
+        AudioManager::InitSFX();
         state->loadingStage++;
         state->loadingProgress = (float)state->loadingStage / TOTAL_LOADING_STAGES * 100.0F;
         break;

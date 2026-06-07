@@ -205,6 +205,11 @@ void ItemDefinitionManager::Load(const std::string &path)
             PotionData pd;
             pd.healValue = SafeGet<int>(p, "healValue", 0); // nilai fallback 0
             pd.isMana = SafeGet<bool>(p, "isMana", false);  // nilai fallback false
+            pd.damageMultiplier = SafeGet<float>(p, "damageMultiplier", 1.0f);
+            pd.speedMultiplier = SafeGet<float>(p, "speedMultiplier", 1.0f);
+            pd.invincibilityDuration = SafeGet<float>(p, "invincibilityDuration", 0.0f);
+            pd.duration = SafeGet<float>(p, "duration", 0.0f);
+            pd.cooldown = SafeGet<float>(p, "cooldown", 1.0f); // Default cooldown is 1.0f
             def.data = pd;
         }
 
@@ -630,6 +635,18 @@ void ItemRenderManager::Render(ItemSpawn &item)
     Display display;
     display.position = renderPos;
     display.size = (int)(FRAME_SIZE * scale);
+
+    if (def.category == ITEM_WEAPON)
+    {
+        const WeaponData* wd = std::get_if<WeaponData>(&def.data);
+        if (wd && wd->attackType != ATTACK_PIERCE)
+        {
+            display.rotation = -45.0f;
+            display.origin = { (float)display.size / 2.0f, (float)display.size / 2.0f };
+            display.offset = display.origin;
+        }
+    }
+
     DrawFrame(def.spriteKey, display);
 
     // stack amount item di-drop: fontLoadingTitle 14px, bg rounded hitam, di bawah sprite

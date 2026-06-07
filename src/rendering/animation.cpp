@@ -229,6 +229,10 @@ void DrawFrame(Frame frame, Display display)
         (float)(frame.width * FRAME_SIZE),
         (float)(frame.height * FRAME_SIZE)
     };
+    if (display.flip)
+    {
+        src.width = -src.width;
+    }
     Rectangle dest = {
         display.position.x + display.offset.x,
         display.position.y + display.offset.y,
@@ -456,6 +460,26 @@ void Explosion(Vector2 centerPosition, float radius, float progress)
     DrawFrame(frameName, display);
 }
 
+void TileCollisionEffect(Vector2 tilePosition, float progress)
+{
+    std::string frameName;
+    int frameIndex = (int)(progress * 5.0f);
+    if (frameIndex < 0) frameIndex = 0;
+    if (frameIndex > 4) frameIndex = 4;
+    frameName = "collision" + std::to_string(frameIndex + 1);
+
+    Display display;
+    display.position = tilePosition;
+    display.size = 32;
+    display.offset = {0, 0};
+    display.origin = {0, 0};
+    display.tint = WHITE;
+    display.rotation = 0.0f;
+    display.flip = false;
+
+    DrawFrame(frameName, display);
+}
+
 /*
 ====================
 Procedural Animation
@@ -495,12 +519,67 @@ bool Blink(float timer, float frequency)
     return (int)(timer * frequency * 10.0f) % 2 == 0;
 }
 
-float Slash(float raycastAngle, float progress)
+float SwingShortSlow(float raycastAngle, float progress, bool isRight)
 {
-    if (progress < 1.0f / 4.0f)
-        return raycastAngle + 90.0f;
-    else if (progress < 2.0f / 4.0f)
-        return raycastAngle - 30.0f;
+    float sign = isRight ? 1.0f : -1.0f;
+    if (progress < 1.0f / 10.0f)
+        return raycastAngle - (90.0f * sign);
+    else if (progress < 2.0f / 10.0f)
+        return raycastAngle - (89.0f * sign);
+    else if (progress < 3.0f / 10.0f)
+        return raycastAngle - (87.0f * sign);
+    else if (progress < 4.0f / 10.0f)
+        return raycastAngle - (84.0f * sign);
+    else if (progress < 5.0f / 10.0f)
+        return raycastAngle - (80.0f * sign);
+    else if (progress < 6.0f / 10.0f)
+        return raycastAngle + (80.0f * sign);
+    else if (progress < 7.0f / 10.0f)
+        return raycastAngle + (84.0f * sign);
+    else if (progress < 8.0f / 10.0f)
+        return raycastAngle + (87.0f * sign);
+    else if (progress < 9.0f / 10.0f)
+        return raycastAngle + (89.0f * sign);
     else
-        return raycastAngle - 90.0f;
+        return raycastAngle + (90.0f * sign);
 }
+
+float SwingShortMid(float raycastAngle, float progress, bool isRight)
+{
+    float sign = isRight ? 1.0f : -1.0f;
+    if (progress < 1.0f / 6.0f)
+        return raycastAngle - (90.0f * sign);
+    else if (progress < 2.0f / 6.0f)
+        return raycastAngle - (80.0f * sign);
+    else if (progress < 3.0f / 6.0f)
+        return raycastAngle - (60.0f * sign);
+    else if (progress < 4.0f / 6.0f)
+        return raycastAngle + (60.0f * sign);
+    else if (progress < 5.0f / 6.0f)
+        return raycastAngle + (80.0f * sign);
+    else
+        return raycastAngle + (90.0f * sign);
+}
+
+float SwingMidMid(float raycastAngle, float progress, bool isRight)
+{
+    float sign = isRight ? 1.0f : -1.0f;
+    if (progress < 1.0f / 8.0f)
+        return raycastAngle - (90.0f * sign);
+    else if (progress < 2.0f / 8.0f)
+        return raycastAngle - (87.0f * sign);
+    else if (progress < 3.0f / 8.0f)
+        return raycastAngle - (80.0f * sign);
+    else if (progress < 4.0f / 8.0f)
+        return raycastAngle - (65.0f * sign);
+    else if (progress < 5.0f / 8.0f)
+        return raycastAngle + (65.0f * sign);
+    else if (progress < 6.0f / 8.0f)
+        return raycastAngle + (80.0f * sign);
+    else if (progress < 7.0f / 8.0f)
+        return raycastAngle + (87.0f * sign);
+    else
+        return raycastAngle + (90.0f * sign);
+}
+
+

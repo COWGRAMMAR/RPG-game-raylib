@@ -11,6 +11,7 @@
  */
 
 #include "player.h"
+#include "../../include/systems/audioManager.h"
 #include "screen.h"
 #include "movement.h"
 #include "combat.h"
@@ -155,6 +156,42 @@ void Player::Update()
     if (Anim.isDead)
         return;
 
+    // 3. Timer & Efek Status
+    if (HitFlashTimer > 0)
+        HitFlashTimer -= Time::DELTA_TIME;
+
+    if (BuffDamageTimer > 0)
+    {
+        BuffDamageTimer -= Time::DELTA_TIME;
+        if (BuffDamageTimer <= 0)
+        {
+            BuffDamageTimer = 0;
+            BuffDamageMultiplier = 1.0f;
+            Effects::AddLog("Efek Damage Berakhir");
+        }
+    }
+
+    if (BuffSpeedTimer > 0)
+    {
+        BuffSpeedTimer -= Time::DELTA_TIME;
+        if (BuffSpeedTimer <= 0)
+        {
+            BuffSpeedTimer = 0;
+            BuffSpeedMultiplier = 1.0f;
+            Effects::AddLog("Efek Speed Berakhir");
+        }
+    }
+
+    if (InvincibilityTimer > 0)
+    {
+        InvincibilityTimer -= Time::DELTA_TIME;
+        if (InvincibilityTimer <= 0)
+        {
+            InvincibilityTimer = 0;
+            Effects::AddLog("Efek Kebal Berakhir");
+        }
+    }
+
     // 4. Fisika & Pergerakan (termasuk Knockback)
     float fpsNorm = 60.0f;
     float knockbackFriction = 0.85f;
@@ -233,6 +270,7 @@ void Player::Render(void)
         tint = RED;
     }
 
+    Combat::DrawSwingGroundEffect(*this);
     DrawAnimation(Anim, tint);
     Combat::DrawSwingAttack(*this);
 }
@@ -240,7 +278,11 @@ void Player::Render(void)
 /** @brief Apply damage ke player */
 void Player::TakeDamage(float amount, Vector2 knockback)
 {
+    if (InvincibilityTimer > 0.0f)
+        return;
+
     Entity::TakeDamage(amount, knockback);
+    AudioManager::PlaySFX("hurt");
 
     float hitFlashDuration = 0.15f;
     float knockbackStrength = 6.0f;

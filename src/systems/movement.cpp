@@ -4,6 +4,7 @@
 #include "screen.h"
 #include "input.h"
 #include "animation.h"
+#include "../../include/systems/audioManager.h"
 #include "game_debug.h"
 #include "effects.h"
 #include "raymath.h"
@@ -23,30 +24,47 @@ namespace Movement
 
         HandleDash(player);
 
+        bool isThrustDashing = false;
+        Vector2 thrustDir = {0, 0};
+        if (player.Anim.isAttacking && player.attack.active && player.attack.weapon && player.attack.weapon->attackType == ATTACK_THRUST && player.IsDashing)
+        {
+            isThrustDashing = true;
+            float rad = player.attack.raycastAngle * (PI / 180.0f);
+            thrustDir = { cosf(rad), sinf(rad) };
+        }
+
         // Mengambil vektor input mentah
-        if (InputInstance.IsMoveUp())
+        if (isThrustDashing)
         {
-            player.Velocity.y -= 1;
-            if (!player.Anim.isAttacking) nextDir = UP;
+            player.Velocity = thrustDir;
             moving = true;
         }
-        if (InputInstance.IsMoveDown())
+        else
         {
-            player.Velocity.y += 1;
-            if (!player.Anim.isAttacking) nextDir = DOWN;
-            moving = true;
-        }
-        if (InputInstance.IsMoveLeft())
-        {
-            player.Velocity.x -= 1;
-            if (!player.Anim.isAttacking) nextDir = LEFT;
-            moving = true;
-        }
-        if (InputInstance.IsMoveRight())
-        {
-            player.Velocity.x += 1;
-            if (!player.Anim.isAttacking) nextDir = RIGHT;
-            moving = true;
+            if (InputInstance.IsMoveUp())
+            {
+                player.Velocity.y -= 1;
+                if (!player.Anim.isAttacking) nextDir = UP;
+                moving = true;
+            }
+            if (InputInstance.IsMoveDown())
+            {
+                player.Velocity.y += 1;
+                if (!player.Anim.isAttacking) nextDir = DOWN;
+                moving = true;
+            }
+            if (InputInstance.IsMoveLeft())
+            {
+                player.Velocity.x -= 1;
+                if (!player.Anim.isAttacking) nextDir = LEFT;
+                moving = true;
+            }
+            if (InputInstance.IsMoveRight())
+            {
+                player.Velocity.x += 1;
+                if (!player.Anim.isAttacking) nextDir = RIGHT;
+                moving = true;
+            }
         }
         player.IsMoving = moving;
 
@@ -71,7 +89,7 @@ namespace Movement
 
         // --- Logika Sliding Collision ---
         // Memeriksa sumbu X dan Y secara independen. Jika salah satu terhalang, sumbu lainnya masih bisa bergerak.
-        float totalSpeed = player.Speed + player.DashSpeed;
+        float totalSpeed = (player.Speed + player.DashSpeed) * player.BuffSpeedMultiplier;
         Vector2 nextX = {player.Position.x + player.Velocity.x * totalSpeed, player.Position.y};
         Vector2 nextY = {player.Position.x, player.Position.y + player.Velocity.y * totalSpeed};
 
@@ -104,6 +122,7 @@ namespace Movement
             player.DashSpeed = player.DashMaxSpeed;
             player.Mana -= player.DashManaCost;
             player.ManaRegenTimer = player.ManaRegenDelay;
+            AudioManager::PlaySFX("dash");
         }
 
         if (player.IsDashing)

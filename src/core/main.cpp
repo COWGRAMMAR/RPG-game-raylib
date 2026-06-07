@@ -91,6 +91,7 @@ int main()
     state.loadingComplete = false;
     state.loadingStage = 0;
     state.assetsLoaded = false;
+    state.enteredLoading = false;
 
     // Step 5: init options screen (hidden initially)
     optionsScreen.Show();

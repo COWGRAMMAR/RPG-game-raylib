@@ -199,29 +199,36 @@ public:
     int GetMaxInventory() const { return MaxInventory; }
 
     // combat stat
-    Combat::Attack attack = {};         // Data status serangan saat ini
-    float Mana = 100.0f;                // Poin mana saat ini
-    float MaxMana = 100.0f;             // Poin mana maksimum
-    float ManaRegenTimer = 0.0f;        // Timer untuk jeda pemulihan mana
-    const float ManaRegenDelay = 2.0f;  // Delay sebelum regen mana dimulai
-    const float ManaRegenRate = 10.0f;  // Kecepatan regen mana per detik
-    const float AttackManaCost = 10.0f; // Biaya mana per serangan
+    Combat::Attack attack = {};  ///< Data status serangan saat ini
+    float Mana = 100.0f;         ///< Poin mana saat ini
+    float MaxMana = 100.0f;      ///< Poin mana maksimum
+    float ManaRegenTimer = 0.0f; ///< Timer untuk jeda pemulihan mana
+    const float ManaRegenDelay = 0.0f;
+    const float ManaRegenRate = 5.0f;
+    const float AttackManaCost = 10.0f;
 
     // movement
-    float Speed = 6.0f;          // Kecepatan gerak dasar
-    float DashSpeed = 0.0f;       // Current dash speed tambahan
-    float DashMaxSpeed = 4.0f;    // Max dash speed
-    float DashDecel = 0.06f;      // Lerp factor deselerasi
-    float DashCooldown = 0.0f;    // Timer cooldown
-    float DashCooldownMax = 0.6f; // Durasi cooldown
-    float DashDuration = 0.0f;    // Timer durasi dash aktif
-    float DashDurationMax = 0.1f; // Max durasi dash
-    float DashManaCost = 8.0f;    // Biaya mana per dash
-    bool IsDashing = false;       // Flag sedang dashing
-    bool IsMoving = false;        // Flag sedang bergerak
-    bool canInteract = false;     // Flag bisa interaksi
-    float PotionCooldown = 0.0f;  // Timer cooldown potion
-    float PotionCooldownMax = 1.0f; // Durasi cooldown potion
+    float Speed = 3.5f;           ///< Kecepatan gerak dasar
+    float DashSpeed = 0.0f;       // current dash speed tambahan
+    float DashMaxSpeed = 4.0f;    // max dash speed
+    float DashDecel = 0.06f;      // lerp factor deselerasi
+    float DashCooldown = 0.0f;    // timer cooldown
+    float DashCooldownMax = 1.0f; // durasi cooldown
+    float DashDuration = 0.0f;
+    float DashDurationMax = 0.1f;
+    float DashManaCost = 5.0f;
+    bool IsDashing = false;
+    bool IsMoving = false;
+    bool canInteract = false;
+    float PotionCooldown = 0.0f;
+    float PotionCooldownMax = 1.0f;
+
+    // Buff states
+    float BuffDamageMultiplier = 1.0f;
+    float BuffSpeedMultiplier = 1.0f;
+    float BuffDamageTimer = 0.0f;
+    float BuffSpeedTimer = 0.0f;
+    float InvincibilityTimer = 0.0f;
 
     // Feedback visual/fisika
     float HitFlashTimer = 0.0f;         // Durasi efek kilatan saat terkena hit

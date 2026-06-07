@@ -11,6 +11,7 @@
  */
 
 #include "enemy.h"
+#include "../../../include/systems/audioManager.h"
 #include "screen.h"
 #include "enemy_ai.h"
 #include "combatTurn.h"
@@ -21,6 +22,7 @@
 #include "../lib/json/include/nlohmann/json.hpp"
 #include "game_debug.h"
 #include "entities.h"
+#include "animation.h"
 #include "item.h"
 #include "core/utils.h"
 #include "audioManager.h"
@@ -634,10 +636,9 @@ void Enemy::PerformAttack()
 void Enemy::TakeDamage(float amount, Vector2 knockback)
 {
     Entity::TakeDamage(amount, knockback);
-    float hitFlashDuration = 0.15f;
-    float knockbackStrength = 6.0f;
-    HitFlashTimer = hitFlashDuration;
-    KnockbackVelocity = Vector2Scale(knockback, knockbackStrength);
+    AudioManager::PlaySFX("attack");
+    HitFlashTimer = 0.15f;
+    KnockbackVelocity = Vector2Scale(knockback, 5.0f);
     HealthRegenTimer = Def->stats.healthRegenDelay;
 }
 

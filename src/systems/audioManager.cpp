@@ -8,7 +8,7 @@
  */
 
 #include "../../include/systems/audioManager.h"
-#include "../../lib/raylib/include/raylib.h"
+#include "raylib.h"
 #include <cstring>
 #include <unordered_map>
 
@@ -17,7 +17,7 @@
  *==============================================================================*/
 
 /** @brief Array music tracks yang sudah di-load */
-static Music _tracks[5] = {};
+static Music _tracks[7] = {};
 
 
 
@@ -46,13 +46,17 @@ static bool _initialized = false;
  * Index 2: GameOver.mp3 — GAME_OVER
  * Index 3: Dungeon.mp3 — unused spare
  * Index 4: Subwoofer Lullaby.mp3 — unused spare
+ * Index 5: BossMusic.mp3 — turn-based boss fight
+ * Index 6: WinTheme.mp3 — turn-based victory
  */
 static const char* TRACK_FILES[] = {
     "assets/audio/music/MainMenu.mp3",
     "assets/audio/music/DungeonMusic.mp3",
     "assets/audio/music/GameOver.mp3",
     "assets/audio/music/Dungeon.mp3",
-    "assets/audio/music/Minecraft Volume Alpha - 3 - Subwoofer Lullaby.mp3"
+    "assets/audio/music/Minecraft Volume Alpha - 3 - Subwoofer Lullaby.mp3",
+    "assets/audio/music/BossMusic.mp3",
+    "assets/audio/music/WinTheme.mp3"
 };
 
 static const int TRACK_COUNT = sizeof(TRACK_FILES) / sizeof(TRACK_FILES[0]);
@@ -316,6 +320,13 @@ void AudioManager::StopMusic()
         _activeTrackIndex = -1;
         TraceLog(LOG_INFO, "AUDIO: Music dihentikan");
     }
+}
+
+void AudioManager::ResetToScreenTrack()
+{
+    if (!_initialized) return;
+    _lastMusicScreen = MAIN_MENU;
+    TraceLog(LOG_INFO, "AUDIO: Reset track untuk auto-switch");
 }
 
 /*==============================================================================

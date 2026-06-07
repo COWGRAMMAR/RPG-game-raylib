@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../lib/raylib/include/raylib.h"
+#include "raylib.h"
 #include "buttonTxt.h"
 
 /** @brief Generic popup UI */
@@ -29,6 +29,13 @@ public:
     /** @brief Render popup ke layar */
     void Draw(Vector2 mousePosition);
 
+    /** @brief Set background texture dari file */
+    void SetBackgroundTexture(const char* path);
+
+    // deklarasi method untuk offset Y teks dan tombol
+    void SetTextYOffset(int offset);
+    void SetButtonYOffset(int offset);
+
 private:
     /** @brief Hitung dimensi popup berdasarkan teks */
     void CalculateDimensions();
@@ -48,4 +55,8 @@ private:
     int width;
     int height;
     Rectangle backgroundRect;
+    Texture2D bgTexture;
+    // member variable untuk offset Y teks dan tombol
+    int textYOffset;
+    int buttonYOffset;
 };

@@ -8,7 +8,7 @@
  *Policy-based design buat flexibility.
  */
 
-#include "../lib/raylib/include/raylib.h"
+#include "raylib.h"
 #include <string>
 #include <iostream>
 #include <type_traits>
@@ -30,13 +30,14 @@ struct TextPolicy
     Color textColor;
     int textWidth;
     float hoverAmount;
+    Font font;
 
     /** @brief Default constructor */
-    TextPolicy() : text(nullptr), posX(0), posY(0), fontSize(0), textColor(BLANK), textWidth(0), hoverAmount(1.0F) {}
+    TextPolicy() : text(nullptr), posX(0), posY(0), fontSize(0), textColor(BLANK), textWidth(0), hoverAmount(1.0F), font(GetFontDefault()) {}
 
     /** @brief Construct dengan text, posisi, font, warna, hover */
-    TextPolicy(const char *text, int posX, int posY, int fontSize, Color color, float hover)
-        : text(text), posX(posX), posY(posY), fontSize(fontSize), textColor(color), hoverAmount(hover)
+    TextPolicy(const char *text, int posX, int posY, int fontSize, Color color, float hover, Font font = GetFontDefault())
+        : text(text), posX(posX), posY(posY), fontSize(fontSize), textColor(color), hoverAmount(hover), font(font)
     {
         textWidth = MeasureText(text, fontSize);
     }
@@ -249,7 +250,9 @@ private:
     {
         if constexpr (std::is_same_v<PolicyType, TextPolicy>)
         {
-            DrawText(policy.text, policy.posX, policy.posY, policy.fontSize, color);
+            DrawTextEx(policy.font, policy.text,
+                Vector2{static_cast<float>(policy.posX), static_cast<float>(policy.posY)},
+                policy.fontSize, 0, color);
         }
         else
         {

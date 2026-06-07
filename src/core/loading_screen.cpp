@@ -25,7 +25,7 @@
 #include <algorithm>
 #include <cstring>
 #include <cctype>
-#include "../../lib/raylib/include/raylib.h"
+#include "raylib.h"
 
 /*==============================================================================
  * Konstanta Loading
@@ -119,7 +119,7 @@ void UpdateLoadingScreen(GameState *state)
              * intentional. Clear worldgen pending flag setelah load agar
              * RestoreDeadEntities selanjutnya jalan normal.
              */
-            if (!isBack && state->pendingMapPath.find("worldseed/save_") != std::string::npos)
+            if (!isBack && state->pendingMapPath.find("worldseed/save_" + std::to_string(g_ActiveSaveSlot)) != std::string::npos)
             {
                 int stageIdx = g_SeedManager.GetCurrentStage();
                 uint64_t seed = g_SeedManager.GetSeed(stageIdx);
@@ -172,8 +172,8 @@ void UpdateLoadingScreen(GameState *state)
                 if (currentPath)
                 {
                     std::string cachePath = std::string(currentPath) + ".cache";
-                    SaveEnemiesForMap(cachePath);
-                    SaveItemsForMapDir(cachePath);
+                    SaveEnemiesForMap(cachePath, "saves/cache/enemies");
+                    SaveItemsForMapDir(cachePath, "saves/cache/items");
                 }
             }
 
@@ -233,7 +233,7 @@ void UpdateLoadingScreen(GameState *state)
                 BuildMapObjectIndex();
 
                 // Worldgen: regenerate layout + runtime state like normal switch path
-                if (savedMapState.mapPath.find("worldseed/save_") != std::string::npos)
+                if (savedMapState.mapPath.find("worldseed/save_" + std::to_string(g_ActiveSaveSlot)) != std::string::npos)
                 {
                     int stageIdx = g_SeedManager.GetCurrentStage();
                     uint64_t seed = g_SeedManager.GetSeed(stageIdx);
@@ -259,7 +259,7 @@ void UpdateLoadingScreen(GameState *state)
          * di-skip — WorldgenIO's LoadRuntimeState akan handle dead entities
          * dari per-stage runtime data saat worldgen switch nanti.
          */
-        if (HasSavedState() && savedMapState.mapPath.find("worldseed/save_") != std::string::npos)
+        if (HasSavedState() && savedMapState.mapPath.find("worldseed/save_" + std::to_string(g_ActiveSaveSlot)) != std::string::npos)
             SetWorldgenPending(true);
 
         // Restore dead entities BEFORE InitAll to prevent dead enemies respawning.
@@ -289,8 +289,8 @@ void UpdateLoadingScreen(GameState *state)
             if (currentPath)
             {
                 std::string cachePath = std::string(currentPath) + ".cache";
-                SaveEnemiesForMap(cachePath);
-                SaveItemsForMapDir(cachePath);
+                SaveEnemiesForMap(cachePath, "saves/cache/enemies");
+                SaveItemsForMapDir(cachePath, "saves/cache/items");
             }
         }
 
@@ -347,7 +347,7 @@ void UpdateLoadingScreen(GameState *state)
          * di-skip — WorldgenIO's LoadRuntimeState akan handle dead entities
          * dari per-stage runtime data saat worldgen switch nanti.
          */
-        if (HasSavedState() && savedMapState.mapPath.find("worldseed/save_") != std::string::npos)
+        if (HasSavedState() && savedMapState.mapPath.find("worldseed/save_" + std::to_string(g_ActiveSaveSlot)) != std::string::npos)
             SetWorldgenPending(true);
 
         // Restore dead entities BEFORE InitAll to prevent dead enemies respawning.

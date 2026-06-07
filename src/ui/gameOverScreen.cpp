@@ -2,13 +2,14 @@
 #include "player.h"
 #include "item.h"
 #include "inventory.h"
-#include "../lib/raylib/include/raylib.h"
+#include "raylib.h"
 #include "button.h"
 
 static Texture2D goTitle = {0};
 static buttonImage reviveBtn;
+static buttonImage settingsBtn;
 static buttonImage goToMain;
-static float goTitleY, goToMainY;
+static float goTitleY;
 static bool goLoaded = false;
 
 void InitGameOverScreen()
@@ -20,17 +21,23 @@ void InitGameOverScreen()
     UnloadImage(img);
 
     img = LoadImage("assets/textures/gameOver/gameover-revive.png");
-    float reviveH = (float)img.height;
+    float btnH = (float)img.height;
     UnloadImage(img);
 
     goTitleY = (GameScreenHeight - goTitle.height) / 2.0F - 80;
-    float goReviveTopY = goTitleY + goTitle.height + 10;
-    goToMainY = goReviveTopY + reviveH + 85;
+    float topY = goTitleY + goTitle.height + 10;
+    float gap = 20.0f;
 
-    Vector2 revivePos = {GameScreenWidth / 2.0F, goReviveTopY + reviveH / 2.0F};
+    // tombol Settings baru di antara Revive dan To Main dengan gap 20px
+    Vector2 revivePos = {GameScreenWidth / 2.0F, topY + btnH / 2.0F};
     reviveBtn = buttonImage("assets/textures/gameOver/gameover-revive.png", revivePos, 1.0F, 0.6F);
 
-    Vector2 toMainPos = {GameScreenWidth / 2.0F, goToMainY};
+    topY += btnH + gap;
+    Vector2 settingsPos = {GameScreenWidth / 2.0F, topY + btnH / 2.0F};
+    settingsBtn = buttonImage("assets/textures/gameOver/gameover-settings.png", settingsPos, 1.0F, 0.6F);
+
+    topY += btnH + gap;
+    Vector2 toMainPos = {GameScreenWidth / 2.0F, topY + btnH / 2.0F};
     goToMain = buttonImage("assets/textures/gameOver/gameover-to-main.png", toMainPos, 1.0F, 0.6F);
 
     goLoaded = true;
@@ -54,6 +61,14 @@ void UpdateGameOverScreen(GameState *state)
         PlayerInstance.Position = state->startSpawnPos;
         PlayerInstance.hasDroppedItems = false;
         state->currentScreen = PLAY;
+        return;
+    }
+
+    // klik Settings navigasi ke OPTIONS dengan previousScreen = GAME_OVER
+    if (settingsBtn.isClicked(mousePos, mouseClicked))
+    {
+        state->previousScreen = GAME_OVER;
+        state->currentScreen = OPTIONS;
         return;
     }
 
@@ -81,6 +96,7 @@ void RenderGameOverScreen(GameState *state)
 
     Vector2 mousePos = GetVirtualMousePosition(state);
     reviveBtn.Draw(mousePos);
+    settingsBtn.Draw(mousePos);
     goToMain.Draw(mousePos);
 
     EndTextureMode();

@@ -1,7 +1,7 @@
 #include "keybindsTab.h"
 #include "fonts.h"
 #include "keybindManager.h"
-#include "../lib/raylib/include/raylib.h"
+#include "raylib.h"
 #include <algorithm>
 
 static const char* SAVE_PATH = "saves/settings/keybindsTab.json";
@@ -19,10 +19,10 @@ struct SectionInfo {
 };
 
 static const SectionInfo sections[] = {
-    {"MOVEMENT",   YELLOW,  0, 4},
-    {"COMBAT",     YELLOW,  4, 3},
-    {"INVENTORY",  YELLOW,  7, 4},
-    {"HOTBAR",     YELLOW, 11, 4},
+    {"MOVEMENT",   WHITE,  0, 4},
+    {"COMBAT",     WHITE,  4, 3},
+    {"INVENTORY",  WHITE,  7, 4},
+    {"HOTBAR",     WHITE, 11, 4},
 };
 
 static const int SECTION_COUNT = sizeof(sections) / sizeof(sections[0]);
@@ -119,9 +119,10 @@ void DrawKeybindsTab(Vector2 mousePosition, int startX, int startY)
     {
         const SectionInfo& sec = sections[si];
 
+        // seluruh teks keybindsTab pakai fontLoadingTitle (bold)
         if (isVisible(currentLocalY, HEADER_HEIGHT))
         {
-            DrawTextEx(fontKeybindHeader, sec.title,
+            DrawTextEx(fontLoadingTitle, sec.title,
                 Vector2{(float)(startX + COL_X), (float)screenY(currentLocalY)},
                 32, 0, sec.color);
         }
@@ -155,13 +156,13 @@ void DrawKeybindsTab(Vector2 mousePosition, int startX, int startY)
                 DrawRectangle(keyBoxX, keyBoxY, keyBoxW, keyBoxH, bgColor);
 
             const char* keyName = keybindManager.GetKeyDisplayName(action);
-            Color keyColor = isListening ? GREEN : YELLOW;
+            Color keyColor = isListening ? GREEN : WHITE;
 
-            DrawTextEx(fontKeybindEntry, keyName,
+            DrawTextEx(fontLoadingTitle, keyName,
                 Vector2{(float)keyBoxX, (float)y},                 30, 0, keyColor);
-            DrawTextEx(fontKeybindEntry, "=>",
+            DrawTextEx(fontLoadingTitle, "=>",
                 Vector2{(float)(keyBoxX + KEY_COL_W), (float)y}, 30, 0, GRAY);
-            DrawTextEx(fontKeybindEntry, keybindManager.GetActionName(action),
+            DrawTextEx(fontLoadingTitle, keybindManager.GetActionName(action),
                 Vector2{(float)(keyBoxX + KEY_COL_W + SEP_W), (float)y}, 30, 0, WHITE);
 
             if (hovered && IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && listeningAction != static_cast<int>(action))
@@ -183,10 +184,10 @@ void DrawKeybindsTab(Vector2 mousePosition, int startX, int startY)
     {
         int indX = startX + COL_X;
         if (scrollY > 0)
-            DrawTextEx(fontKeybindEntry, "^^^",
+            DrawTextEx(fontLoadingTitle, "^^^",
                 Vector2{(float)indX, (float)(contentStartY - 2)}, 26, 0, GRAY);
         if (scrollY < maxScroll)
-            DrawTextEx(fontKeybindEntry, "vvv",
+            DrawTextEx(fontLoadingTitle, "vvv",
                 Vector2{(float)indX, (float)(contentStartY + CONTENT_H - 26)}, 26, 0, GRAY);
     }
 
@@ -203,12 +204,12 @@ void DrawKeybindsTab(Vector2 mousePosition, int startX, int startY)
 
         const char* line1 = "Press a key or click a mouse button.";
         const char* line2 = "ESC to cancel.";
-        Vector2 sz1 = MeasureTextEx(fontKeybindEntry, line1, 30, 0);
-        Vector2 sz2 = MeasureTextEx(fontKeybindEntry, line2, 30, 0);
-        DrawTextEx(fontKeybindEntry, line1,
+        Vector2 sz1 = MeasureTextEx(fontLoadingTitle, line1, 30, 0);
+        Vector2 sz2 = MeasureTextEx(fontLoadingTitle, line2, 30, 0);
+        DrawTextEx(fontLoadingTitle, line1,
             Vector2{(float)(popupX + (POPUP_W - sz1.x) / 2), (float)(popupY + 8)},
             30, 0, WHITE);
-        DrawTextEx(fontKeybindEntry, line2,
+        DrawTextEx(fontLoadingTitle, line2,
             Vector2{(float)(popupX + (POPUP_W - sz2.x) / 2), (float)(popupY + 44)},
             30, 0, GREEN);
     }

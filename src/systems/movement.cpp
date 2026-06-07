@@ -7,7 +7,7 @@
 #include "../../include/systems/audioManager.h"
 #include "game_debug.h"
 #include "effects.h"
-#include "../lib/raylib/include/raymath.h"
+#include "raymath.h"
 #include <cmath>
 
 namespace Movement

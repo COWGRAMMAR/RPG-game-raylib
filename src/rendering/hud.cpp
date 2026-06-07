@@ -1,12 +1,14 @@
 #include "hud.h"
 #include "../../include/systems/audioManager.h"
+// include fonts.h untuk fontLoadingTitle
+#include "fonts.h"
 #include "player.h"
 #include "animation.h"
 #include "inventory.h"
 #include "inv-bst-sort.h"
 #include "effectQueue.h"
 #include "propsbehavior.h"
-#include "../lib/raylib/include/raymath.h"
+#include "raymath.h"
 #include <cstdio>
 #include <vector>
 #include <string>
@@ -107,15 +109,15 @@ static void DrawItemIcon(const InventoryItem &item, Rectangle dest)
  * @param fontSize Ukuran font.
  * @param color Warna teks.
  */
+// DrawTextHUD pakai fontLoadingTitle dengan padding tetap 4px
 static void DrawTextHUD(const char *text, int x, int y, int fontSize, Color color)
 {
-    int textWidth = MeasureText(text, fontSize);
-    float padX = (float)fontSize * 0.8f;
-    float padY = (float)fontSize * 0.5f;
+    Vector2 textSize = MeasureTextEx(fontLoadingTitle, text, fontSize, 0);
+    float pad = 4.0f;
     DrawRectangleRounded(
-        (Rectangle){(float)x - padX / 2.0f, (float)y - padY / 2.0f, (float)textWidth + padX, (float)fontSize + padY},
+        (Rectangle){(float)x - pad, (float)y - pad, textSize.x + pad * 2, (float)fontSize + pad * 2},
         0.3f, 8, ColorAlpha(BLACK, 0.8f));
-    DrawText(text, x, y, fontSize, color);
+    DrawTextEx(fontLoadingTitle, text, Vector2{(float)x, (float)y}, fontSize, 0, color);
 }
 
 /**
@@ -427,10 +429,15 @@ void DrawInventory()
             float iconSize = 50.0f;
             Rectangle dest = {slotRect.x + (slotSize - iconSize) / 2.0f, slotRect.y + (slotSize - iconSize) / 2.0f, iconSize, iconSize};
             DrawItemIcon(item, dest);
+            // stack amount bag: fontLoadingTitle 18px dengan background rounded hitam
             if (item.amount > 1)
             {
                 char buf[12]; sprintf(buf, "%d", item.amount);
-                DrawText(buf, (int)(slotRect.x + slotSize - 30), (int)(slotRect.y + slotSize - 20), 14, WHITE);
+                Vector2 sz = MeasureTextEx(fontLoadingTitle, buf, 18, 0);
+                float bx = slotRect.x + slotSize - 34;
+                float by = slotRect.y + slotSize - 24;
+                DrawRectangleRounded((Rectangle){bx - 4, by - 4, sz.x + 8, 18 + 8}, 0.3f, 8, ColorAlpha(BLACK, 0.8f));
+                DrawTextEx(fontLoadingTitle, buf, Vector2{bx, by}, 18, 0, WHITE);
             }
         }
 
@@ -463,10 +470,15 @@ void DrawInventory()
             float iconSize = 50.0f;
             Rectangle dest = {slotRect.x + (slotSize - iconSize) / 2.0f, slotRect.y + (slotSize - iconSize) / 2.0f, iconSize, iconSize};
             DrawItemIcon(item, dest);
+            // stack amount hotbar (inventory open): fontLoadingTitle 18px
             if (item.amount > 1)
             {
                 char buf[12]; sprintf(buf, "%d", item.amount);
-                DrawText(buf, (int)(slotRect.x + slotSize - 30), (int)(slotRect.y + slotSize - 20), 14, WHITE);
+                Vector2 sz = MeasureTextEx(fontLoadingTitle, buf, 18, 0);
+                float bx = slotRect.x + slotSize - 34;
+                float by = slotRect.y + slotSize - 24;
+                DrawRectangleRounded((Rectangle){bx - 4, by - 4, sz.x + 8, 18 + 8}, 0.3f, 8, ColorAlpha(BLACK, 0.8f));
+                DrawTextEx(fontLoadingTitle, buf, Vector2{bx, by}, 18, 0, WHITE);
             }
 
             const ItemDefinition &def = itemDefs.GetById(item.definitionId);
@@ -531,7 +543,32 @@ void DrawInventory()
         dragItem = {-1, 0};
     }
 
-    DrawTextHUD("Press 'I' to Close", GameScreenWidth / 2 - 85, (int)(bgY + bgH + 15), 20, GRAY);
+    // "Press 'I' to Close" di-center pake MeasureTextEx
+    {
+        Vector2 closeSz = MeasureTextEx(fontLoadingTitle, "Press 'I' to Close", 20, 0);
+        DrawTextHUD("Press 'I' to Close", (int)(GameScreenWidth / 2.0f - closeSz.x / 2.0f), (int)(bgY + bgH + 15), 20, GRAY);
+    }
+
+    // keybind hints (Merge, Split, Arrange, Drop) di kanan atas pakai fontLoadingTitle
+    {
+        const char* hints[] = {"[Left-Click Drag] Arrange", "[Ctrl+Click] Merge", "[Right-Click Drag] Split", "[Drop Outside Menu] Drop"};
+        int hintCount = sizeof(hints) / sizeof(hints[0]);
+        int hintFontSize = 25;
+        float rightX = (float)GameScreenWidth - 20.0f;
+        float hintY = 20.0f;
+        float lineGap = 32.0f;
+
+        for (int i = 0; i < hintCount; i++)
+        {
+            Vector2 hintSz = MeasureTextEx(fontLoadingTitle, hints[i], hintFontSize, 0);
+            float hintX = rightX - hintSz.x;
+            DrawRectangleRounded(
+                (Rectangle){hintX - 4, hintY - 4, hintSz.x + 8, hintSz.y + 8},
+                0.3f, 8, ColorAlpha(BLACK, 0.8f));
+            DrawTextEx(fontLoadingTitle, hints[i], Vector2{hintX, hintY}, hintFontSize, 0, WHITE);
+            hintY += lineGap;
+        }
+    }
 }
 
 /**
@@ -614,13 +651,14 @@ void DrawHotbar()
                 iconDrawSize, iconDrawSize};
             DrawItemIcon(item, dest);
 
+            // stack amount hotbar (tertutup): fontLoadingTitle 16px
             if (item.amount > 0)
             {
                 char amtBuf[12];
                 sprintf(amtBuf, "%d", item.amount);
-                int fontSize = 12;
-                int textW = MeasureText(amtBuf, fontSize);
-                DrawTextHUD(amtBuf, (int)(slotRect.x + slotRect.width - textW - 4), (int)(slotRect.y + slotRect.height - 13.5), fontSize, WHITE);
+                int fontSize = 16;
+                Vector2 textSz = MeasureTextEx(fontLoadingTitle, amtBuf, fontSize, 0);
+                DrawTextHUD(amtBuf, (int)(slotRect.x + slotRect.width - textSz.x - 4), (int)(slotRect.y + slotRect.height - textSz.y - 2), fontSize, WHITE);
             }
 
             const ItemDefinition &def = itemDefs.GetById(item.definitionId);

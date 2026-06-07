@@ -6,8 +6,9 @@
  */
 
 #include "videoTab.h"
+#include "fonts.h"
 #include "screen.h"
-#include "../lib/raylib/include/raylib.h"
+#include "raylib.h"
 #include "../lib/json/include/nlohmann/json.hpp"
 #include <fstream>
 #include <filesystem>
@@ -22,11 +23,16 @@ void DrawVideoTab(
     int startY)
 {
     int contentStartY = startY + 100;
-    const int fontSize = 24;
+    // ukuran font dinaikkan dari 28 → 34 agar lebih terbaca
+    const int fontSize = 34;
     int labelX = startX + 40;
 
-    DrawText("Fullscreen", labelX, contentStartY + 15, fontSize, WHITE);
-    DrawText("Show FPS", labelX, contentStartY + 75, fontSize, WHITE);
+    DrawTextEx(fontLoadingTitle, "Fullscreen",
+        Vector2{static_cast<float>(labelX), static_cast<float>(contentStartY + 12)},
+        fontSize, 0, WHITE);
+    DrawTextEx(fontLoadingTitle, "Show FPS",
+        Vector2{static_cast<float>(labelX), static_cast<float>(contentStartY + 72)},
+        fontSize, 0, WHITE);
 
     fullscreenButton.Draw(mousePosition);
     fpsButton.Draw(mousePosition);

@@ -141,4 +141,4 @@ bool Blink(float timer, float frequency);
 float SwingShortSlow(float raycastAngle, float progress, bool isRight);
 float SwingShortMid(float raycastAngle, float progress, bool isRight);
 float SwingMidMid(float raycastAngle, float progress, bool isRight);
-
+

@@ -10,7 +10,7 @@
  */
 
 #include <climits>
-#include "../lib/raylib/include/raymath.h"
+#include "raymath.h"
 #include "entities.h"
 #include "mapLogic.h"
 #include "worldgenenartion.h"
@@ -572,4 +572,47 @@ const char *GetCurrentMapPath(void)
 void SetCurrentMapPath(const char *newPath)
 {
     currentMapPath = (newPath != nullptr && newPath[0] != '\0') ? newPath : "";
+}
+
+/**
+ * @brief Dapatkan nama tampilan map dari file path.
+ * @param mapFilePath Path file map
+ * @return Nama map yang mudah dibaca
+ */
+std::string GetMapDisplayName(const std::string& mapFilePath)
+{
+    // Handle empty path
+    if (mapFilePath.empty())
+        return "Unknown";
+
+    // Extract filename from path
+    std::string filename = mapFilePath;
+    size_t lastSlash = filename.find_last_of("/\\");
+    if (lastSlash != std::string::npos)
+        filename = filename.substr(lastSlash + 1);
+
+    // Remove extension
+    size_t dot = filename.find_last_of('.');
+    if (dot != std::string::npos)
+        filename = filename.substr(0, dot);
+
+    // Handle worldgen stage files: "stage_2" → "Stage 2"
+    if (filename.rfind("stage_", 0) == 0)
+    {
+        std::string number = filename.substr(6); // after "stage_"
+        return "Stage " + number;
+    }
+
+    // Capitalize first letter
+    if (!filename.empty())
+        filename[0] = std::toupper(static_cast<unsigned char>(filename[0]));
+
+    // Replace underscores with spaces
+    for (size_t i = 0; i < filename.size(); i++)
+    {
+        if (filename[i] == '_')
+            filename[i] = ' ';
+    }
+
+    return filename;
 }

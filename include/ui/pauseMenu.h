@@ -9,7 +9,7 @@
  * - Resume, Save, Load, Options, Controls, Quit
  */
 
-#include "../lib/raylib/include/raylib.h"
+#include "raylib.h"
 #include "button.h"
 #include "screen.h"
 #include <array>
@@ -85,7 +85,7 @@ public:
     void Draw(Vector2 mousePosition);
 
     /** @brief Set layar tujuan saat tombol BACK diklik */
-    void SetReturnScreen(ScreenState screen);
+    void SetReturnScreen(ScreenState screen) { returnScreen = screen; }
 
 private:
     /**
@@ -241,8 +241,8 @@ private:
     /// Flag apakah texture sudah dimuat
     bool texturesLoaded;
 
-    /// Array tombol gambar (6 buah)
-    std::array<buttonImage, 6> buttons;
+    /// Array tombol gambar (7 buah)
+    std::array<buttonImage, 7> buttons;
 
     /// Texture background panel
     Texture2D bgTexture;

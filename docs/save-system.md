@@ -301,3 +301,219 @@ Urutan pemanggilan kritis untuk correctness:
 2. `InitAll()` — spawn enemies, items, props
 3. `ApplyPostSpawn(snap)` — HARUS setelah semua spawn selesai
 4. `ApplyCheckpointData(snap)` — untuk map switch, dipanggil setelah `InitAll()` (menggantikan `ApplyPostSpawn`)
+
+---
+
+## 9. Riwayat Perubahan (Changelog)
+
+> Berikut adalah riwayat perubahan sistem save, cache, dan restart dari sesi pengembangan sebelumnya.
+> Mencakup pipeline yang diubah, bug yang diperbaiki, dan catatan untuk developer selanjutnya.
+
+---
+
+### Pipeline Restart
+
+```
+Pause Menu → Tombol Restart
+  │
+  ├─ [1] Clear runtime state
+  │   (Entities::Clear, itemData, ClearTileProps, DeadEntities,
+  │    chestManager, spikeManager, bombManager, crateManager, barrierManager)
+  │
+  ├─ [2] SpawnEnemiesFromMap()
+  │   ├─ Worldgen:       spawn dari RNG + seed → bisa beda tiap spawn
+  │   └─ Non-worldgen:   spawn dari JSON statis map → selalu sama
+  │
+  ├─ [3] Load cache (.cache) — overlay state di atas hasil spawn
+  │   ├─ Ada:  restore enemy & item ke kondisi saat capture
+  │   └─ Gak:  fallback SpawnItemWave() (spawn item fresh)
+  │
+  ├─ [4] Reset player
+  │   ├─ ResetForNewGame() + Init(state, SPAWN_OBJECT_NAME)
+  │   ├─ hasDroppedItems = false
+  │   └─ Camera reset ke posisi player
+  │
+  ├─ [5] Re-init dunia
+  │   ├─ SpawnObject()
+  │   ├─ RebuildObstacleCache()
+  │   └─ globalFlowField.Invalidate()
+  │
+  ├─ [6] Re-capture cache (biar restart berikutnya pake state segar)
+  │
+  └─ PLAY
+```
+
+**Perbedaan Worldgen vs Non-Worldgen**
+
+| Aspek | Worldgen | Non-worldgen |
+|---|---|---|
+| **Sumber spawn enemy** | RNG dari seed → bisa beda tiap spawn | JSON statis map → selalu sama |
+| **Urgensi cache** | Wajib — biar restart deterministik | Opsional — spawn dari JSON selalu sama |
+| **Map layout** | Tetap (worldseed hasil RunWorldgen) | Tetap (loaded dari Tiled JSON) |
+| **Fallback kalo .cache gak ada** | Musuh/item bisa beda tiap restart | Musuh/item selalu sama |
+
+---
+
+### Pipeline Save/Load (Legacy)
+
+**Save (Pause → Save / Return to Menu):**
+```
+SaveGameState()
+  ├─ Baca player state → savedPlayerState
+  ├─ Baca enemy registry → savedEnemyStates
+  ├─ Baca active items → savedItemStates
+  ├─ Baca map state → savedMapState
+  │   (path, deadEntities, chestsOpened, dll)
+  ├─ Worldgen: WorldgenIO::SaveRuntimeState(currentStage)
+  │   → simpan chests, crates, bombs, deadEnemies,
+  │     itemDrops, barrier ke worldseed/save_N/runtime.json
+  └─ WriteSaveFile("saves/manual/slot0.json")
+```
+
+**Load (Main Menu → Load Game) — legacy fast path:**
+```
+LoadMap(savedMapState.mapPath)
+  ├─ Worldgen? → RunWorldgen(seed, isBoss) + LoadRuntimeState(stageIdx)
+  ├─ SetWorldgenPending()
+  ├─ RestoreDeadEntities() — skip kalo worldgen
+  ├─ InitAll()
+  ├─ RestoreGameState()
+  ├─ PruneDeadEntities()
+  └─ PLAY
+```
+
+---
+
+### Bugs Fixed (Legacy)
+
+**Bug #1 — ClearCache() Hapus Semua File**
+| Item | Detail |
+|---|---|
+| **Lokasi** | `src/map/worldgenio.cpp:110-122` |
+| **Gejala** | `ClearCache()` di `InitRun()` hapus SEMUA file di `saves/enemies/` dan `saves/items/` |
+| **Akibat** | Save state enemy/item per-map ilang |
+| **Fix** | Filter dengan `.cache` extension |
+
+**Bug #2 — Layout Prefab Hilang Pas Load Game Worldgen**
+| Item | Detail |
+|---|---|
+| **Lokasi** | `src/core/loading_screen.cpp` fast path |
+| **Gejala** | Load game mid-worldgen lewat fast path → layout prefab ilang |
+| **Fix** | Tambah `RunWorldgen()` + `LoadRuntimeState()` di fast path |
+
+**Bug #3 — Crash Worldgen Run Ke-2**
+| Item | Detail |
+|---|---|
+| **Lokasi** | `src/systems/interaction.cpp:102` + `src/core/game_state_saver.cpp:838` |
+| **Gejala** | New Game → worldgen run 1 sukses → main menu → New Game crash |
+| **Akar** | `ClearSavedState()` hapus worldseed folder tapi `SeedManager::isRunActive` masih true |
+| **Fix** | `g_SeedManager.ResetRun()` di `ClearSavedState()` |
+
+**Bug #4 — Cache Basi Setelah Load Game / Restart**
+| Item | Detail |
+|---|---|
+| **Lokasi** | `src/core/loading_screen.cpp` fast path, `src/ui/pauseMenu.cpp` restart flow |
+| **Gejala** | Setelah load game atau restart, file `.cache` masih pake snapshot dari sesi sebelumnya |
+| **Fix** | Re-capture `.cache` di akhir fast path dan akhir restart flow |
+
+**Bug #5 — WinMain Infinite Loop (Unit Test)**
+| Item | Detail |
+|---|---|
+| **Lokasi** | `tests/constants_test.cpp` |
+| **Gejala** | Stack overflow pas jalan `test_constants.exe` |
+| **Akar** | MinGW-UCRT CRT wrapper panggil `WinMain` → panggil `main` lagi → infinite loop |
+| **Fix** | Panggil `doctest::Context::run()` langsung dari `WinMain` |
+
+---
+
+### Concern / Catatan untuk Developer
+
+**1. Cancel Load Hapus Worldseed (mainMenu.cpp:176):** `ClearSavedState()` dipanggil saat user cancel popup Load Game — otomatis hapus worldseed. Rekomendasi: pisah `ResetMemoryState()` dan `ResetWorldseed()`.
+
+**2. Cache vs Save Separation:** File `.cache` dan `.json` ada di folder yang sama (`saves/enemies/`, `saves/items/`). Hati-hati fungsi cleanup jangan salah sasaran.
+
+**3. Single Save Slot (Legacy):** Manual save dulu cuma `saves/manual/slot0.json`. Multi-slot sudah diimplementasi di Wave 5 (SaveLoadScreen UI).
+
+**4. Worldseed Multiple Slot Isolation:** `ClearSavedState()` dulu hapus SEMUA worldseed. Sekarang sudah slot-specific via `worldgenSlot` field.
+
+**5. WinMain Infinite Loop (MinGW-UCRT):** Jangan panggil `main()` dari `WinMain()` — panggil `doctest::Context::run()` langsung.
+
+**6. Restart Flow Notes:** Restart tidak manggil `ClearSavedState()` atau `ClearCache()`. Cache di-re-capture di akhir restart. Kalo `.cache` gak ada, fallback ke `SpawnItemWave()`.
+
+---
+
+### Wave 1 — Data Safety Fixes (2026-06-05)
+
+Commit `9617d40`
+
+| Perubahan | Detail |
+|---|---|
+| Split `ClearSavedState()` → `ResetPlayer()` + `ResetCamera()` + `ResetMap()` | Setiap fungsi hanya reset satu aspek |
+| Pindah inisialisasi camera cache ke `screen_handler.cpp` | Tersedia sebelum restart/load flow |
+| Default `healthRegenTimer = 0.0f` | Cegah undefined behavior |
+
+### Wave 2 — Save Format v3 + Utilities (2026-06-05)
+
+Commits `8e9586d`, `3def89e`, `1b01b2e`
+
+- **SAVE_VERSION** dinaikkan 2 → 3
+- Field baru: `slotIndex`, `saveType`, `playTime`, `mapDisplayName`, `worldgenSlot`
+- Fungsi baru: `GetActiveSlot()`, `SetActiveSlot()`, `IsSlotActive()`, `GetSlotPath()`, `GetMapDisplayName()`
+- Variabel global: `g_ActiveSaveSlot`, `g_SaveSlotActive`
+
+### Wave 3 — Per-Slot Directory Routing (2026-06-05)
+
+Commits `a15840b`, `601f360`
+
+- Setiap slot 0-4 punya direktori terisolasi: `saves/slot_N/{manual,autosave,enemies,items}/`
+- Fungsi baru: `EnsureSlotDirectory()`
+- Autosave per-slot dengan rotating 5 file, timestamp-based
+- Isolasi penuh: path routing via `GetSlotPath()`, worldgen mapping via `worldgenSlot`
+
+### Wave 4 — v2→v3 Migration Pipeline (2026-06-05)
+
+Commit `87768b0`
+
+- Fungsi: `NeedsMigration()`, `RunMigration()`, `MarkMigrationComplete()`
+- Sentinel: `saves/.migration_completed_v3`
+- Pipeline 4 langkah: copy slot0.json → rename enemies/ → rename items/ → hapus old + tulis sentinel
+- Atomic: jika langkah 1 gagal, pipeline berhenti, save lama tetap utuh
+
+### Wave 5 — SaveLoadScreen UI (2026-06-05)
+
+Commits `959d1e6`, `694234f`, `d88611c`, `b8d182f`, `fd7e2c7`
+
+- File baru: `include/ui/saveLoadScreen.h`, `src/ui/saveLoadScreen.cpp`
+- 5 manual slot + 5 autosave slot, layout 3+2 grid
+- Mode: SAVE_MODE (simpan) / LOAD_MODE (muat)
+- Wiring: Pause Menu → Save/Load, Main Menu → Load
+
+### Wave 6 — Option C SaveManager + Worldseed Stage Removal (2026-06-08)
+
+- File baru: `include/core/savemanager.h` (403 baris), `src/core/savemanager.cpp` (1190 baris)
+- GameSnapshot sebagai single source of truth
+- Hapus `SaveRuntimeState/LoadRuntimeState` — tuntas cross-slot contamination
+- Struktur direktori baru: `saves/slot_N/{manual,autosave,checkpoints}/`
+- Items: full replacement dari snapshot (bukan partial match)
+
+### Wave 7 — Legacy Cleanup (2026-06-08)
+
+- Hapus `HasSaveFile()`, `DeleteSaveSlot()`, `RestoreDeadEntities()` dari `game_state_saver`
+- Hapus subdir `enemies/` dan `items/` dari `EnsureSlotDirectory()`
+- Hapus Migration Tasks 15-17 dari `RunMigration()`
+- Testing values dikembalikan ke production
+- Hapus `docs/save-refactor-plan.md`
+- Filesystem: hapus `saves/slot_0/`, `saves/slot_1/`, worldseed lama, sentinel
+
+### Wave 8 — SaveManager Alignment + Main Merge (2026-06-08)
+
+Commit `83c23e3` — Finalisasi wiring SaveManager ke semua module.
+Commit `18de54e` — Update player attributes + SAVE_VERSION kembali ke **3** (Wave 7 sebelumnya menurunkan ke 2).
+Merge `9307fff` — 53 commit origin/main, fast-forward, zero conflict.
+
+Perubahan terakhir pada dokumentasi:
+| File | Perubahan |
+|---|---|
+| `docs/save-system.md` | Restrukturasi: SNAPSHOT_VERSION=1, koreksi API, hapus percakapan informal |
+| `.agent/save-system-context.md` | Baru — konteks AI agent berbahasa Inggris |
+| `docs/save-system-changelog.md` | Digabung ke sini (Section 9) |

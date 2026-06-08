@@ -24,7 +24,7 @@
 #include "mapLogic.h"
 #include "datadriven.h"
 #include "../lib/json/include/nlohmann/json.hpp"
-#include "../lib/raylib/include/raymath.h"
+#include "raymath.h"
 #include "core/utils.h"
 #include "core/game_state_saver.h"
 #include <iostream>
@@ -205,6 +205,11 @@ void ItemDefinitionManager::Load(const std::string &path)
             PotionData pd;
             pd.healValue = SafeGet<int>(p, "healValue", 0); // nilai fallback 0
             pd.isMana = SafeGet<bool>(p, "isMana", false);  // nilai fallback false
+            pd.damageMultiplier = SafeGet<float>(p, "damageMultiplier", 1.0f);
+            pd.speedMultiplier = SafeGet<float>(p, "speedMultiplier", 1.0f);
+            pd.invincibilityDuration = SafeGet<float>(p, "invincibilityDuration", 0.0f);
+            pd.duration = SafeGet<float>(p, "duration", 0.0f);
+            pd.cooldown = SafeGet<float>(p, "cooldown", 1.0f); // Default cooldown is 1.0f
             def.data = pd;
         }
 
@@ -336,6 +341,16 @@ void ItemDataManager::SpawnItemAtLocation(Vector2 pos, std::mt19937 *rng, ItemCa
     std::mt19937 localRng(static_cast<unsigned int>(time(nullptr)));
     std::mt19937 &useRng = rng ? *rng : localRng;
     int defId = spawnManager.PickRandomDefinitionId(useRng, category);
+    if (defId == -1)
+        return;
+    activeItems.push_back(CreateItem(pos, defId));
+}
+
+void ItemDataManager::SpawnItemAtLocation(Vector2 pos, const std::map<ItemRarity, int> &weights, std::mt19937 *rng)
+{
+    std::mt19937 localRng(static_cast<unsigned int>(time(nullptr)));
+    std::mt19937 &useRng = rng ? *rng : localRng;
+    int defId = spawnManager.PickRandomDefinitionId(useRng, weights);
     if (defId == -1)
         return;
     activeItems.push_back(CreateItem(pos, defId));
@@ -474,6 +489,18 @@ void ItemRenderManager::Render(ItemSpawn &item)
     Display display;
     display.position = renderPos;
     display.size = (int)(FRAME_SIZE * scale);
+
+    if (def.category == ITEM_WEAPON)
+    {
+        const WeaponData* wd = std::get_if<WeaponData>(&def.data);
+        if (wd && wd->attackType != ATTACK_PIERCE)
+        {
+            display.rotation = -45.0f;
+            display.origin = { (float)display.size / 2.0f, (float)display.size / 2.0f };
+            display.offset = display.origin;
+        }
+    }
+
     DrawFrame(def.spriteKey, display);
 
     // stack amount item di-drop: fontLoadingTitle 14px, bg rounded hitam, di bawah sprite
@@ -713,6 +740,53 @@ int ItemSpawnManager::PickRandomDefinitionId(std::mt19937 &rng, ItemCategory fil
         return -1; // gak ada item yang cocok
 
     // Pilih random dari item dengan rarity itu
+    std::uniform_int_distribution<int> idxDist(0, (int)byRarity[pickedRarity].size() - 1);
+    return byRarity[pickedRarity][idxDist(rng)];
+}
+
+// Pilih definitionId random dengan weight map kustom (untuk enemy drops)
+int ItemSpawnManager::PickRandomDefinitionId(std::mt19937 &rng, const std::map<ItemRarity, int> &weights, ItemCategory filterCategory)
+{
+    // Kumpulkan semua item per rarity
+    std::map<ItemRarity, std::vector<int>> byRarity;
+    for (const auto &[name, def] : itemDefs.GetAll())
+    {
+        if (filterCategory != ITEM_ANY && def.category != filterCategory)
+            continue;
+        byRarity[def.rarity].push_back(def.id);
+    }
+
+    // Hitung total weight dari rarity yang ada itemnya
+    int total = 0;
+    for (const auto &[rarity, weight] : weights)
+    {
+        if (!byRarity[rarity].empty())
+            total += weight;
+    }
+
+    if (total == 0)
+        return -1;
+
+    std::uniform_int_distribution<int> rollDist(1, total);
+    int roll = rollDist(rng);
+
+    int cumulative = 0;
+    ItemRarity pickedRarity = weights.begin()->first;
+    for (const auto &[rarity, weight] : weights)
+    {
+        if (byRarity[rarity].empty())
+            continue;
+        cumulative += weight;
+        if (roll <= cumulative)
+        {
+            pickedRarity = rarity;
+            break;
+        }
+    }
+
+    if (byRarity[pickedRarity].empty())
+        return -1;
+
     std::uniform_int_distribution<int> idxDist(0, (int)byRarity[pickedRarity].size() - 1);
     return byRarity[pickedRarity][idxDist(rng)];
 }

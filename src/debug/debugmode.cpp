@@ -10,9 +10,9 @@
  */
 
 #include "game_debug.h"
-#include "../lib/raylib/include/raylib.h"
+#include "raylib.h"
 #include "input.h"
-#include "../lib/raylib/include/raymath.h"
+#include "raymath.h"
 #include "screen.h"
 #include "map.h"
 #include "mapLogic.h"
@@ -138,6 +138,28 @@ void Debug::DrawAttackOverlay(void)
     float breadth = PlayerInstance.attack.weapon->breadth;
     float angle = PlayerInstance.attack.raycastAngle;
     float attackerRadius = PlayerInstance.GetHitboxWidth() / 2.0f;
+
+    if (PlayerInstance.attack.weapon->attackType == ATTACK_SLAM)
+    {
+        float tX = std::floor(PlayerInstance.attack.startCenter.x / 32.0f);
+        float tY = std::floor(PlayerInstance.attack.startCenter.y / 32.0f);
+        float radiusTiles = std::floor(reach / 32.0f);
+        float gridSize = 2.0f * radiusTiles + 1.0f;
+        Rectangle slamAABB = {
+            (tX - radiusTiles) * 32.0f,
+            (tY - radiusTiles) * 32.0f,
+            gridSize * 32.0f,
+            gridSize * 32.0f
+        };
+        DrawRectangleRec(slamAABB, Fade(RED, 0.3f));
+        DrawRectangleLinesEx(slamAABB, 2.0f, RED);
+
+        if (PlayerInstance.LastHit.hit)
+            DrawCircleV(PlayerInstance.LastHit.point, 4.0f, VIOLET);
+
+        DrawText("Attack Area (Slam AABB)", (int)slamAABB.x, (int)slamAABB.y - 14, 14, RED);
+        return;
+    }
 
     float rad = angle * (PI / 180.0f);
     Vector2 forward = {cosf(rad), sinf(rad)};

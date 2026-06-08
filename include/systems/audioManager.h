@@ -9,8 +9,10 @@
  * ke JSON lewat audioTab, sementara AudioManager menangani runtime.
  */
 
-#include "../lib/raylib/include/raylib.h"
+#include "raylib.h"
 #include "../core/screen.h"
+
+#include <string>
 
 /**
  * @brief Audio Manager — namespace dengan free functions
@@ -124,16 +126,21 @@ void PlayTrack(const char* trackName);
 /** @brief Menghentikan semua music playback */
 void StopMusic();
 
+/**
+ * @brief Reset auto-switch biar track musik layar diputer ulang
+ *
+ * Panggil setelah turn-based combat selesai agar musik PLAY (DungeonMusic)
+ * kembali otomatis.
+ */
+void ResetToScreenTrack();
+
 /*------------------------------------------------------------------------------
  * SFX Control
  *------------------------------------------------------------------------------*/
 
-/**
- * @brief Memainkan efek suara (SFX) untuk serangan player
- *
- * Volume SFX dipengaruhi oleh _sfxVolume * _masterVolume.
- * Aman dipanggil dari combat.cpp saat player melee attack.
- */
-void PlaySfx();
+
+void InitSFX();
+void CloseSFX();
+void PlaySFX(const std::string &name);
 
 }  // namespace AudioManager

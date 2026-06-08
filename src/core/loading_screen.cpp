@@ -22,10 +22,11 @@
 #include "../../include/map/worldgenio.h"
 #include "../../include/core/savemanager.h"
 #include "../../include/rendering/fonts.h"
+#include "../../include/systems/audioManager.h"
 #include <algorithm>
 #include <cstring>
 #include <cctype>
-#include "../../lib/raylib/include/raylib.h"
+#include "raylib.h"
 
 /*==============================================================================
  * Konstanta Loading
@@ -323,6 +324,7 @@ static void HandleInitialLoad(GameState* state)
             g_ActiveSaveSlot, state->assetsLoaded, HasSavedState(), savedMapState.mapPath.c_str(), savedPlayerState.worldgenSlot);
         state->loadingText = "Loading game textures...";
         InitTextures();
+        AudioManager::InitSFX();
         state->loadingStage++;
         state->loadingProgress = (float)state->loadingStage / TOTAL_LOADING_STAGES * 100.0F;
         break;

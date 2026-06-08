@@ -1,4 +1,5 @@
 #include "hud.h"
+#include "../../include/systems/audioManager.h"
 // include fonts.h untuk fontLoadingTitle
 #include "fonts.h"
 #include "player.h"
@@ -7,7 +8,7 @@
 #include "inv-bst-sort.h"
 #include "effectQueue.h"
 #include "propsbehavior.h"
-#include "../lib/raylib/include/raymath.h"
+#include "raymath.h"
 #include <cstdio>
 #include <vector>
 #include <string>
@@ -59,10 +60,13 @@ static void DrawItemIcon(const InventoryItem &item, Rectangle dest)
         (float)(frame.height * FRAME_SIZE)
     };
 
-    if (def.spriteKey == "sword2")
+    if (def.spriteKey == "sword2" || def.spriteKey == "axe")
     {
-        src.y += 25.0f;
-        src.height -= 25.0f;
+        src.width = 39.0f;
+    }
+    else if (def.spriteKey == "spear")
+    {
+        src.width = 50.0f;
     }
 
     int maxDim = (src.width > src.height) ? src.width : src.height;
@@ -76,14 +80,26 @@ static void DrawItemIcon(const InventoryItem &item, Rectangle dest)
         dest.y + (dest.height - renderHeight) / 2.0f
     };
 
+    bool isMelee = false;
+    if (def.category == ITEM_WEAPON)
+    {
+        const WeaponData* wd = std::get_if<WeaponData>(&def.data);
+        if (wd && wd->attackType != ATTACK_PIERCE)
+        {
+            isMelee = true;
+        }
+    }
+
+    Vector2 origin = isMelee ? Vector2{ renderWidth / 2.0f, renderHeight / 2.0f } : Vector2{ 0.0f, 0.0f };
+
     Rectangle drawDest = {
-        position.x,
-        position.y,
+        position.x + origin.x,
+        position.y + origin.y,
         renderWidth,
         renderHeight
     };
 
-    DrawTexturePro(textures[frame.texture], src, drawDest, {0, 0}, 0.0f, WHITE);
+    DrawTexturePro(textures[frame.texture], src, drawDest, origin, isMelee ? -45.0f : 0.0f, WHITE);
 }
 
 /**
@@ -464,6 +480,19 @@ void DrawInventory()
                 DrawRectangleRounded((Rectangle){bx - 4, by - 4, sz.x + 8, 18 + 8}, 0.3f, 8, ColorAlpha(BLACK, 0.8f));
                 DrawTextEx(fontLoadingTitle, buf, Vector2{bx, by}, 18, 0, WHITE);
             }
+
+            const ItemDefinition &def = itemDefs.GetById(item.definitionId);
+            if (def.category == ITEM_POTION && PlayerInstance.PotionCooldown > 0.0f && PlayerInstance.PotionCooldownMax > 0.0f)
+            {
+                float ratio = PlayerInstance.PotionCooldown / PlayerInstance.PotionCooldownMax;
+                float startAngle = 270.0f;
+                float endAngle = 270.0f + (360.0f * ratio);
+                Vector2 center = {
+                    slotRect.x + slotRect.width / 2.0f,
+                    slotRect.y + slotRect.height / 2.0f
+                };
+                DrawCircleSector(center, iconSize / 2.0f + 4.0f, startAngle, endAngle, 36, ColorAlpha(BLACK, 0.65f));
+            }
         }
 
         if (isHovered && mousePressed && dragSlot == -1 && !isDragSplit && item.definitionId != -1)
@@ -631,6 +660,19 @@ void DrawHotbar()
                 Vector2 textSz = MeasureTextEx(fontLoadingTitle, amtBuf, fontSize, 0);
                 DrawTextHUD(amtBuf, (int)(slotRect.x + slotRect.width - textSz.x - 4), (int)(slotRect.y + slotRect.height - textSz.y - 2), fontSize, WHITE);
             }
+
+            const ItemDefinition &def = itemDefs.GetById(item.definitionId);
+            if (def.category == ITEM_POTION && PlayerInstance.PotionCooldown > 0.0f && PlayerInstance.PotionCooldownMax > 0.0f)
+            {
+                float ratio = PlayerInstance.PotionCooldown / PlayerInstance.PotionCooldownMax;
+                float startAngle = 270.0f;
+                float endAngle = 270.0f + (360.0f * ratio);
+                Vector2 center = {
+                    slotRect.x + slotRect.width / 2.0f,
+                    slotRect.y + slotRect.height / 2.0f
+                };
+                DrawCircleSector(center, iconDrawSize / 2.0f + 4.0f, startAngle, endAngle, 36, ColorAlpha(BLACK, 0.65f));
+            }
         }
 
         if (isInventoryOpen)
@@ -662,6 +704,8 @@ void DrawHotbar()
  */
 void DrawPlayerHUD()
 {
+    int initialDragSlot = dragSlot;
+
     float health = PlayerInstance.GetHealth();
     float maxHealth = PlayerInstance.GetMaxHealth();
     float healthRatio = (maxHealth > 0) ? health / maxHealth : 0;
@@ -680,35 +724,57 @@ void DrawPlayerHUD()
     Vector2 avatarPos = {padding + avatarSize / 2.0f, (float)GameScreenHeight - padding - avatarSize / 2.0f};
     float radius = avatarSize / 2.0f;
 
-    DrawCircleV({avatarPos.x + 2, avatarPos.y + 2}, radius + 2, ColorAlpha(BLACK, 0.4f));
-    DrawCircleV(avatarPos, radius, DARKGRAY);
+    // DrawCircleV({avatarPos.x + 2, avatarPos.y + 2}, radius + 2, ColorAlpha(BLACK, 0.4f));
+    // DrawCircleV(avatarPos, radius, DARKGRAY);
 
-    float spriteSize = avatarSize - 10.0f;
-    Rectangle knightDest = {
-        (avatarPos.x - spriteSize / 2.0f) + 1.0f,
-        avatarPos.y - spriteSize / 2.0f,
-        spriteSize, spriteSize};
-    Frame avatarFrame = { SPRITESHEET_KNIGHT, 0, 2, 1, 1 };
-    Display avatarDisplay;
-    avatarDisplay.position = {knightDest.x, knightDest.y};
-    avatarDisplay.size = (int)knightDest.width;
-    DrawFrame(avatarFrame, avatarDisplay);
+    // float spriteSize = avatarSize - 10.0f;
+    // Rectangle knightDest = {
+    //     (avatarPos.x - spriteSize / 2.0f) + 1.0f,
+    //     avatarPos.y - spriteSize / 2.0f,
+    //     spriteSize, spriteSize};
+    // Frame avatarFrame = { SPRITESHEET_KNIGHT, 0, 2, 1, 1 };
+    // Display avatarDisplay;
+    // avatarDisplay.position = {knightDest.x, knightDest.y};
+    // avatarDisplay.size = (int)knightDest.width;
+    // DrawFrame(avatarFrame, avatarDisplay);
 
-    DrawCircleLinesV(avatarPos, radius, ColorAlpha(GOLD, 0.6f));
-    DrawCircleLinesV(avatarPos, radius + 1, ColorAlpha(GOLD, 0.3f));
+    // DrawCircleLinesV(avatarPos, radius, ColorAlpha(GOLD, 0.6f));
+    // DrawCircleLinesV(avatarPos, radius + 1, ColorAlpha(GOLD, 0.3f));
 
-    float barsX = padding + avatarSize + avatarPadding;
-    Vector2 healthPos = {barsX, (float)GameScreenHeight - padding - (barHeight * 2) - gap};
-    Vector2 manaPos = {barsX, (float)GameScreenHeight - padding - barHeight};
+    float barsX = padding;
+    const float dashBarHeight = 6.0f;
+    
+    Vector2 dashPos = {barsX, (float)GameScreenHeight - padding - dashBarHeight};
+    Vector2 manaPos = {barsX, dashPos.y - gap - barHeight};
+    Vector2 healthPos = {barsX, manaPos.y - gap - barHeight};
 
-    DrawTextHUD(PlayerInstance.GetName(), (int)healthPos.x + 7, (int)healthPos.y - 35, 20, WHITE);
+    // DrawTextHUD(PlayerInstance.GetName(), (int)healthPos.x + 7, (int)healthPos.y - 35, 20, WHITE);
     DrawStatBar(healthPos, barWidth, barHeight, healthRatio, RED, (int)health);
     DrawStatBar(manaPos, barWidth, barHeight, manaRatio, GOLD, (int)mana);
+
+    float dashCooldownRatio = 1.0f;
+    if (PlayerInstance.DashCooldownMax > 0.0f) {
+        float currentCd = PlayerInstance.DashCooldown < 0.0f ? 0.0f : PlayerInstance.DashCooldown;
+        dashCooldownRatio = 1.0f - (currentCd / PlayerInstance.DashCooldownMax);
+    }
+    
+    DrawRectangleRounded((Rectangle){dashPos.x, dashPos.y, barWidth, dashBarHeight}, 0.5f, 8, DARKGRAY);
+    if (dashCooldownRatio > 0.0f)
+        DrawRectangleRounded((Rectangle){dashPos.x, dashPos.y, barWidth * dashCooldownRatio, dashBarHeight}, 0.5f, 8, SKYBLUE);
 
     DrawHotbar();
     DrawInventory();
     if (InputInstance.IsInventoryOpen())
         DrawDragGhost(GetVirtualMousePosition(gState));
+
+    if (initialDragSlot == -1 && dragSlot != -1)
+    {
+        AudioManager::PlaySFX("inventori");
+    }
+    else if (initialDragSlot != -1 && dragSlot == -1)
+    {
+        AudioManager::PlaySFX("inventori");
+    }
 }
 
 /**

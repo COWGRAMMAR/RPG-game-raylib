@@ -1,6 +1,6 @@
 #include "animation.h"
 #include "fonts.h"
-#include "../lib/raylib/include/raymath.h"
+#include "raymath.h"
 #include "../lib/json/include/nlohmann/json.hpp"
 #include <fstream>
 #include <unordered_map>
@@ -229,6 +229,10 @@ void DrawFrame(Frame frame, Display display)
         (float)(frame.width * FRAME_SIZE),
         (float)(frame.height * FRAME_SIZE)
     };
+    if (display.flip)
+    {
+        src.width = -src.width;
+    }
     Rectangle dest = {
         display.position.x + display.offset.x,
         display.position.y + display.offset.y,
@@ -407,7 +411,7 @@ void UpdateAnimation(Animation &anim, float dt)
     }
 }
 
-void DrawAnimation(const Animation &anim, Color tint)
+void DrawAnimation(const Animation &anim, Color tint, float scale)
 {
     if (!anim.currentConfig || anim.currentConfig->sprites.empty()) return;
 
@@ -417,8 +421,10 @@ void DrawAnimation(const Animation &anim, Color tint)
         index = 0;
     }
 
+    float scaledSize = FRAME_SIZE * scale;
+    float centeringOffset = (FRAME_SIZE - scaledSize) * 0.5f;
     const std::string &frameId = anim.currentConfig->sprites[index];
-    Display display = { anim.position, FRAME_SIZE, {0,0}, {0,0}, 0.0f, tint };
+    Display display = { anim.position, (int)scaledSize, {centeringOffset, centeringOffset}, {0,0}, 0.0f, tint };
     DrawFrame(frameId, display);
 }
 
@@ -450,6 +456,26 @@ void Explosion(Vector2 centerPosition, float radius, float progress)
     display.position.x = centerPosition.x - (3.0f * display.size) / 2.0f;
     display.position.y = centerPosition.y - (3.0f * display.size) / 2.0f;
     display.offset = {0, 0};
+
+    DrawFrame(frameName, display);
+}
+
+void TileCollisionEffect(Vector2 tilePosition, float progress)
+{
+    std::string frameName;
+    int frameIndex = (int)(progress * 5.0f);
+    if (frameIndex < 0) frameIndex = 0;
+    if (frameIndex > 4) frameIndex = 4;
+    frameName = "collision" + std::to_string(frameIndex + 1);
+
+    Display display;
+    display.position = tilePosition;
+    display.size = 32;
+    display.offset = {0, 0};
+    display.origin = {0, 0};
+    display.tint = WHITE;
+    display.rotation = 0.0f;
+    display.flip = false;
 
     DrawFrame(frameName, display);
 }
@@ -493,12 +519,67 @@ bool Blink(float timer, float frequency)
     return (int)(timer * frequency * 10.0f) % 2 == 0;
 }
 
-float Slash(float raycastAngle, float progress)
+float SwingShortSlow(float raycastAngle, float progress, bool isRight)
 {
-    if (progress < 1.0f / 4.0f)
-        return raycastAngle + 90.0f;
-    else if (progress < 2.0f / 4.0f)
-        return raycastAngle - 30.0f;
+    float sign = isRight ? 1.0f : -1.0f;
+    if (progress < 1.0f / 10.0f)
+        return raycastAngle - (90.0f * sign);
+    else if (progress < 2.0f / 10.0f)
+        return raycastAngle - (89.0f * sign);
+    else if (progress < 3.0f / 10.0f)
+        return raycastAngle - (87.0f * sign);
+    else if (progress < 4.0f / 10.0f)
+        return raycastAngle - (84.0f * sign);
+    else if (progress < 5.0f / 10.0f)
+        return raycastAngle - (80.0f * sign);
+    else if (progress < 6.0f / 10.0f)
+        return raycastAngle + (80.0f * sign);
+    else if (progress < 7.0f / 10.0f)
+        return raycastAngle + (84.0f * sign);
+    else if (progress < 8.0f / 10.0f)
+        return raycastAngle + (87.0f * sign);
+    else if (progress < 9.0f / 10.0f)
+        return raycastAngle + (89.0f * sign);
     else
-        return raycastAngle - 90.0f;
+        return raycastAngle + (90.0f * sign);
 }
+
+float SwingShortMid(float raycastAngle, float progress, bool isRight)
+{
+    float sign = isRight ? 1.0f : -1.0f;
+    if (progress < 1.0f / 6.0f)
+        return raycastAngle - (90.0f * sign);
+    else if (progress < 2.0f / 6.0f)
+        return raycastAngle - (80.0f * sign);
+    else if (progress < 3.0f / 6.0f)
+        return raycastAngle - (60.0f * sign);
+    else if (progress < 4.0f / 6.0f)
+        return raycastAngle + (60.0f * sign);
+    else if (progress < 5.0f / 6.0f)
+        return raycastAngle + (80.0f * sign);
+    else
+        return raycastAngle + (90.0f * sign);
+}
+
+float SwingMidMid(float raycastAngle, float progress, bool isRight)
+{
+    float sign = isRight ? 1.0f : -1.0f;
+    if (progress < 1.0f / 8.0f)
+        return raycastAngle - (90.0f * sign);
+    else if (progress < 2.0f / 8.0f)
+        return raycastAngle - (87.0f * sign);
+    else if (progress < 3.0f / 8.0f)
+        return raycastAngle - (80.0f * sign);
+    else if (progress < 4.0f / 8.0f)
+        return raycastAngle - (65.0f * sign);
+    else if (progress < 5.0f / 8.0f)
+        return raycastAngle + (65.0f * sign);
+    else if (progress < 6.0f / 8.0f)
+        return raycastAngle + (80.0f * sign);
+    else if (progress < 7.0f / 8.0f)
+        return raycastAngle + (87.0f * sign);
+    else
+        return raycastAngle + (90.0f * sign);
+}
+
+

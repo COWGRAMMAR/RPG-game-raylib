@@ -1,4 +1,5 @@
 /build/
+/build-linux/
 /main.exe
 *.o
 .clangd
@@ -28,6 +29,10 @@ docs/trader-plan.md
 # Runtime save data
 saves/
 **/worldseed/*
+
+# Auto-downloaded raylib archives
+*.tar.gz
+*.zip
 
 # Auto-downloaded raylib
 raylib/

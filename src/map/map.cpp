@@ -10,7 +10,7 @@
  */
 
 #include <climits>
-#include "../lib/raylib/include/raymath.h"
+#include "raymath.h"
 #include "entities.h"
 #include "mapLogic.h"
 #include "worldgenenartion.h"

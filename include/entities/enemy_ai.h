@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../lib/raylib/include/raylib.h"
+#include "raylib.h"
 #include "map.h"
 #include "mapLogic.h"
 #include "animation.h"
@@ -192,6 +192,7 @@ struct SpawnFlowFieldEntry
 {
     Vector2 spawnPos; // posisi spawn atau pusat area spawn
     FlowField field;  // flow field return menuju spawnPos
+    bool isDirty = false; // flag agar tidak duplicate masuk queue
 };
 
 /** @brief Map flow field return per ID object spawn */

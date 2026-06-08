@@ -27,8 +27,8 @@
 #include "../../include/ui/audioTab.h"
 #include "../../include/systems/audioManager.h"
 #include "../../include/map/propsbehavior.h"
-#include "../../lib/raylib/include/raylib.h"
-#include "../../lib/raylib/include/raymath.h"
+#include "raylib.h"
+#include "raymath.h"
 #include <cstdio>
 #include <filesystem>
 
@@ -92,6 +92,7 @@ int main()
     state.loadingComplete = false;
     state.loadingStage = 0;
     state.assetsLoaded = false;
+    state.enteredLoading = false;
 
     // Step 5: init options screen (hidden initially)
     optionsScreen.Show();

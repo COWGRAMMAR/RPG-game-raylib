@@ -1,5 +1,5 @@
 # setup.ps1 - Auto-download raylib if not present
-# Downloads raylib 6.0 from GitHub releases to lib/raylib/
+# Downloads raylib 6.0 from GitHub releases to lib/raylib-windows/
 
 param(
     [string]$RaylibVersion = "6.0",
@@ -17,7 +17,7 @@ function Write-Debug($message) {
 
 function Get-InstalledRaylibVersion {
     param([string]$basePath)
-    $headerPath = Join-Path $basePath "lib\raylib\include\raylib.h"
+    $headerPath = Join-Path $basePath "lib\raylib-windows\include\raylib.h"
     if (Test-Path $headerPath) {
         $content = Get-Content $headerPath -Raw
         if ($content -match 'RAYLIB_VERSION\s+"(\d+\.\d+)"') {
@@ -33,7 +33,7 @@ function Write-Err($message) {
 
 # Early exit if all libs already exist
 $cwd = $PWD.Path
-$raylibDir = Join-Path $cwd "lib\raylib"
+$raylibDir = Join-Path $cwd "lib\raylib-windows"
 $tilesonDir = Join-Path $cwd "lib\tileson"
 $jsonDir = Join-Path $cwd "lib\json"
 $raylibReady = (Test-Path (Join-Path $raylibDir "include\raylib.h")) -and (Test-Path (Join-Path $raylibDir "lib\libraylib.a"))
@@ -66,7 +66,7 @@ if ($raylibReady -and -not $raylibVersionMatch) {
 
 function Install-Raylib() {
     $cwd = $PWD.Path
-    $installDir = Join-Path $cwd "lib\raylib"
+    $installDir = Join-Path $cwd "lib\raylib-windows"
     $zipPath = Join-Path $cwd $ZipFile
     $tempExtract = Join-Path $cwd "raylib-$($RaylibVersion)_win64_mingw-w64"
     
@@ -148,6 +148,11 @@ function Install-Raylib() {
     
     if ((Test-Path $headerPath) -and (Test-Path $libPath)) {
         Write-Step "raylib installed successfully to $installDir" -ForegroundColor Green
+        $oldRaylibDir = Join-Path $cwd "lib/raylib"
+        if (Test-Path $oldRaylibDir) {
+            Remove-Item -Recurse -Force $oldRaylibDir -ErrorAction SilentlyContinue
+            Write-Step "Removed old lib/raylib/ directory"
+        }
     } else {
         Write-Err "Installation verification failed!"
         Write-Debug "Header exists: $(Test-Path $headerPath)"

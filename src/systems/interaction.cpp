@@ -9,7 +9,7 @@
 #include "worldgenio.h"
 #include "game_state_saver.h"
 #include "entities.h"
-#include "../lib/raylib/include/raymath.h"
+#include "raymath.h"
 
 namespace Interaction
 {
@@ -100,7 +100,10 @@ namespace Interaction
             {
                 // InitRun cuma sekali per run — kalau sudah aktif, lanjut ke stage terakhir
                 if (!g_SeedManager.IsRunActive())
-                    WorldgenIO::InitRun(WorldgenIO::GetNextAvailableSlot());
+                {
+                    int slot = (g_ActiveSaveSlot >= 0) ? g_ActiveSaveSlot : WorldgenIO::GetNextAvailableSlot();
+                    WorldgenIO::InitRun(slot);
+                }
 
                 player.pendingSwitchMap = true;
                 player.pendingMapPath = WorldgenIO::GetStagePath(g_SeedManager.GetCurrentStage());

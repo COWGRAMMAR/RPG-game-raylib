@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../lib/raylib/include/raylib.h"
+#include "raylib.h"
 #include "map.h"
 #include "screen.h"
 #include "animation.h"
@@ -199,13 +199,13 @@ public:
     int GetMaxInventory() const { return MaxInventory; }
 
     // combat stat
-    Combat::Attack attack = {};         // Data status serangan saat ini
-    float Mana = 100.0f;                // Poin mana saat ini
-    float MaxMana = 100.0f;             // Poin mana maksimum
-    float ManaRegenTimer = 0.0f;        // Timer untuk jeda pemulihan mana
-    const float ManaRegenDelay = 2.0f;  // Delay sebelum regen mana dimulai
-    const float ManaRegenRate = 10.0f;  // Kecepatan regen mana per detik
-    const float AttackManaCost = 10.0f; // Biaya mana per serangan
+    Combat::Attack attack = {};  ///< Data status serangan saat ini
+    float Mana = 100.0f;         ///< Poin mana saat ini
+    float MaxMana = 100.0f;      ///< Poin mana maksimum
+    float ManaRegenTimer = 0.0f; ///< Timer untuk jeda pemulihan mana
+    const float ManaRegenDelay = 0.0f;
+    const float ManaRegenRate = 5.0f;
+    const float AttackManaCost = 10.0f;
 
     // movement
     float Speed = 6.0f;         // Kecepatan gerak dasar 

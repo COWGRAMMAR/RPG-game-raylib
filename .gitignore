@@ -6,6 +6,9 @@
 *.bak
 /Backups/
 
+logrun1.md
+logrun2.md
+logrun3.md
 
 run_backup.bat
 floorB_tester.json
@@ -18,7 +21,10 @@ floorC_tester.json
 .omo/
 .opencode/
 .sisyphus/
+.agent/
+.cache/
 AGENTS.md
+docs/trader-plan.md
 
 # Runtime save data
 saves/

@@ -17,6 +17,7 @@
 #include "../../include/ui/saveLoadScreen.h"
 #include "../../include/core/loading_screen.h"
 #include "../../include/core/game_state_saver.h"
+#include "../../include/core/savemanager.h"
 #include "../../include/map/worldgenio.h"
 #include "../../include/core/seedmanager.h"
 #include "../../include/rendering/fonts.h"
@@ -287,9 +288,11 @@ int main()
         }
     }
 
-    // Auto-save sebelum exit (jika run masih aktif)
     if (g_SeedManager.IsRunActive())
-        WorldgenIO::SaveRuntimeState(g_SeedManager.GetCurrentStage());
+    {
+        GameSnapshot snap = SaveManager::CaptureSnapshot();
+        SaveManager::SaveManual(snap, g_ActiveSaveSlot);
+    }
 
     // Shutdown audio sebelum close audio device
     AudioManager::Shutdown();

@@ -402,26 +402,4 @@ extern ItemDefinitionManager itemDefs;
  * Per-Map File Persistence (replaces in-memory ItemDataManager::savedMapItems)
  *==============================================================================*/
 
-/**
- * @brief Save all active items for a map to the specified directory.
- *
- * Serializes `itemData.activeItems` to a JSON file at `<baseDir>/<sanitized_path>`.
- * Uses atomic write via .tmp file + rename to prevent corruption.
- * Follows the same pattern as SaveEnemiesForMap() in enemy.cpp.
- *
- * @param mapPath Raw map file path used to derive the save file name (e.g., "assets/maps/tutorial.json")
- * @param baseDir Base directory for save files (default: "saves/items")
- */
-void SaveItemsForMapDir(const std::string &mapPath, const std::string &baseDir = "saves/items");
-
-/**
- * @brief Load items for a map from the specified directory.
- *
- * Reads `<baseDir>/<sanitized_path>`, deserializes each item's fields,
- * reconstructs hitboxes from definitions, and populates `itemData.activeItems`.
- *
- * @param mapPath Raw map file path used to derive the save file name
- * @param baseDir Base directory for save files (default: "saves/items")
- * @return true if items were loaded, false if no save data exists or parse failed
- */
-bool LoadItemsForMapDir(const std::string &mapPath, const std::string &baseDir = "saves/items");
+// (removed — replaced by SaveManager::SaveCheckpoint/LoadCheckpoint)

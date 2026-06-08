@@ -19,14 +19,14 @@
  */
 
 /** @brief Spawn count range constants */
-constexpr int SPAWN_PINPOINT_NORMAL_MIN = 9;  // 9
-constexpr int SPAWN_PINPOINT_NORMAL_MAX = 13; // 13
-constexpr int SPAWN_PINPOINT_ELITE_MIN = 3;   // 3
-constexpr int SPAWN_PINPOINT_ELITE_MAX = 7;   // 7
-constexpr int SPAWN_RECT_NORMAL_MIN = 20;     // 20
-constexpr int SPAWN_RECT_NORMAL_MAX = 25;     // 25
-constexpr int SPAWN_RECT_ELITE_MIN = 10;      // 10
-constexpr int SPAWN_RECT_ELITE_MAX = 15;      // 15
+constexpr int SPAWN_PINPOINT_NORMAL_MIN = 9;
+constexpr int SPAWN_PINPOINT_NORMAL_MAX = 13;
+constexpr int SPAWN_PINPOINT_ELITE_MIN = 3;
+constexpr int SPAWN_PINPOINT_ELITE_MAX = 7;
+constexpr int SPAWN_RECT_NORMAL_MIN = 20;
+constexpr int SPAWN_RECT_NORMAL_MAX = 25;
+constexpr int SPAWN_RECT_ELITE_MIN = 10;
+constexpr int SPAWN_RECT_ELITE_MAX = 15;
 constexpr int SPAWN_RETRY_LIMIT = 200;
 
 /*==============================================================================
@@ -297,10 +297,6 @@ void SpawnBoss(const MapObject *obj);
 /** @brief Load texture dan data enemy */
 void InitEnemy();
 
-/** @brief Simpan status enemy ke file map */
-void SaveEnemiesForMap(const std::string &mapPath, const std::string &baseDir = "saves/enemies");
-/** @brief Load status enemy dari file map */
-bool LoadEnemiesForMap(const std::string &mapPath, const std::string &baseDir = "saves/enemies");
 /** @brief Hapus semua enemy aktif */
 void ClearEnemies();
 

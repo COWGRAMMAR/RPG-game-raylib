@@ -8,6 +8,9 @@
 
 #include "../../include/ui/saveLoadScreen.h"
 #include "../../include/core/game_state_saver.h"
+#include "../../include/core/savemanager.h"
+#include "../../include/core/seedmanager.h"
+#include "../../include/map/worldgenio.h"
 #include "fonts.h"
 #include "../lib/json/include/nlohmann/json.hpp"
 
@@ -136,6 +139,15 @@ void SaveLoadScreen::Update(GameState* state, Vector2 mousePosition, bool mouseC
             m_showOverwritePopup = false;
             SetActiveSlot(m_selectedSlot);
             SaveGameState(state);
+            // Save new-format snapshot
+            {
+                GameSnapshot snap = SaveManager::CaptureSnapshot();
+                TraceLog(LOG_INFO, "MANUAL SAVE: slot=%d enemies=%zu items=%zu dead=%zu bomb=%zu crate=%zu playerPos=(%.0f,%.0f) mapPath='%s'",
+                    m_selectedSlot, snap.enemies.size(), snap.items.size(), snap.deadEntities.size(),
+                    snap.bombConsumed.size(), snap.crateConsumed.size(),
+                    snap.playerPosition.x, snap.playerPosition.y, snap.mapPath.c_str());
+                SaveManager::SaveManual(snap, m_selectedSlot);
+            }
             WriteSaveFile(GetSlotPath(m_selectedSlot, "manual"));
             active = false;
             state->currentScreen = returnScreen;
@@ -153,6 +165,8 @@ void SaveLoadScreen::Update(GameState* state, Vector2 mousePosition, bool mouseC
             SetActiveSlot(m_selectedSlot);
             {
                 std::string path = GetSlotPath(m_selectedSlot, "manual");
+                TraceLog(LOG_INFO, "LOAD: slot=%d mapPath='%s' worldgenSlot=%d",
+                    m_selectedSlot, savedMapState.mapPath.c_str(), savedPlayerState.worldgenSlot);
                 if (ReadSaveFile(path)) {
                     RestoreGameState(state);
                 }
@@ -182,6 +196,11 @@ void SaveLoadScreen::Update(GameState* state, Vector2 mousePosition, bool mouseC
                 } else {
                     SetActiveSlot(clickedSlot);
                     SaveGameState(state);
+                    // Save new-format snapshot
+                    {
+                        GameSnapshot snap = SaveManager::CaptureSnapshot();
+                        SaveManager::SaveManual(snap, clickedSlot);
+                    }
                     WriteSaveFile(GetSlotPath(clickedSlot, "manual"));
                     active = false;
                     state->currentScreen = returnScreen;

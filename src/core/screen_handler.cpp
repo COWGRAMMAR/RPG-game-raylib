@@ -28,6 +28,7 @@
 #include "effects.h"
 #include "game_debug.h"
 #include "pauseMenu.h"
+#include "savemanager.h"
 #include "combat.h"
 #include "interaction.h"
 #include "input.h"
@@ -115,13 +116,10 @@ void InitAll()
     // Capture spawn pos start room buat revive
     TiledHelperFunction.TryGetObjectPositionByName(SPAWN_OBJECT_NAME, gState->startSpawnPos);
 
-    // Cache enemy & item state buat restart
-    const char *mapPath = GetCurrentMapPath();
-    if (mapPath)
+    // Cache initial state buat restart
     {
-        std::string cachePath = std::string(mapPath) + ".cache";
-        SaveEnemiesForMap(cachePath, "saves/cache/enemies");
-        SaveItemsForMapDir(cachePath, "saves/cache/items");
+        GameSnapshot initial = SaveManager::CaptureSnapshot();
+        SaveManager::SaveInitial(initial, g_ActiveSaveSlot);
     }
 }
 
@@ -303,7 +301,8 @@ void UpdateLogicAll()
         const char *mapPath = GetCurrentMapPath();
         if (mapPath)
         {
-            std::string worldgenPrefix = "worldseed/save_" + std::to_string(g_ActiveSaveSlot);
+            int wgSlot = g_SeedManager.IsRunActive() ? g_SeedManager.GetCurrentSlot() : g_ActiveSaveSlot;
+            std::string worldgenPrefix = "worldseed/save_" + std::to_string(wgSlot);
             if (strstr(mapPath, worldgenPrefix.c_str()) != nullptr)
             {
                 if (InputInstance.IsInteract())

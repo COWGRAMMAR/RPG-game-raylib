@@ -26,6 +26,7 @@
 #include "enemy_ai.h"
 #include <memory>
 #include <string>
+#include "savemanager.h"
 
 /*==============================================================================
  * Global Variables
@@ -76,9 +77,9 @@ void LoadMap(const char *mapPath)
     tson::Tileson t;
     parsedMap = t.parse(mapPath);
 
-    if (parsedMap->getStatus() != tson::ParseStatus::OK)
+    if (parsedMap == nullptr || parsedMap->getStatus() != tson::ParseStatus::OK)
     {
-        TraceLog(LOG_ERROR, "Tileson: Failed to parse map: %s", parsedMap->getStatusMessage().c_str());
+        TraceLog(LOG_ERROR, "Tileson: Failed to parse map: %s", parsedMap ? parsedMap->getStatusMessage().c_str() : "file not found or could not be opened");
         return;
     }
 
@@ -325,10 +326,7 @@ void RunWorldgen(uint64_t seed, bool isBossStage)
     pools.UnloadCorridorPool();
     pools.UnloadRoomPool();
 
-    if (!LoadItemsForMapDir(currentMapPath))
-    {
-        SpawnItemWave();
-    }
+    SpawnItemWave();
     BuildMapObjectIndex();
 }
 
@@ -471,8 +469,8 @@ void SwitchMap(const char *newMapPath, const char *targetDoorName)
     // Simpan state map lama sebelum pindah
     if (!currentMapPath.empty())
     {
-        SaveEnemiesForMap(currentMapPath);
-        SaveItemsForMapDir(currentMapPath);
+        GameSnapshot chkSnap = SaveManager::CaptureSnapshot();
+        SaveManager::SaveCheckpoint(chkSnap, currentMapPath, g_ActiveSaveSlot);
         mapHistoryStack.Push(currentMapPath, "");
     }
 
@@ -507,8 +505,10 @@ void GoBack(void)
     }
 
     // Simpan state map sekarang
-    SaveEnemiesForMap(currentMapPath);
-    SaveItemsForMapDir(currentMapPath);
+    {
+        GameSnapshot chkSnap = SaveManager::CaptureSnapshot();
+        SaveManager::SaveCheckpoint(chkSnap, currentMapPath, g_ActiveSaveSlot);
+    }
 
     // Ambil history teratas dan pop dari stack
     MapSystem::MapHistoryEntry prev = mapHistoryStack.Pop();

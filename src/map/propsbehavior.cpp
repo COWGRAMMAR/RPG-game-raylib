@@ -936,6 +936,7 @@ void BarrierManager::SpawnBarriers(const std::vector<MapObject *> &barrierObject
 
     // totalEnemyCount di-capture pas Update pertama, karena enemy belum di-spawn pas SpawnObject
     totalEnemyCount = 0;
+    hasCapturedCount = false;
 
     // JANGAN reset cleared/hasReLocked — state ini bisa di-set oleh LoadRuntimeState sebelumnya
     // Kalo sudah cleared (dari save load), skip spawn barrier sama sekali
@@ -974,7 +975,7 @@ void BarrierManager::Update()
         return;
 
     // Delayed capture totalEnemyCount — enemy belum di-spawn pas SpawnObject
-    if (totalEnemyCount == 0)
+    if (!hasCapturedCount)
     {
         // Di boss map: exclude boss dari hitungan threshold
         totalEnemyCount = 0;
@@ -984,6 +985,7 @@ void BarrierManager::Update()
                 continue;
             totalEnemyCount++;
         }
+        hasCapturedCount = true;
         TraceLog(LOG_INFO, "BarrierManager: total enemy count = %d (boss excluded: %s)",
                  totalEnemyCount, isBossMap ? "yes" : "no");
     }
@@ -1143,6 +1145,7 @@ void BarrierManager::Clear()
     bossStageBounds = {0};
     totalEnemyCount = 0;
     prevDeadCount = 0;
+    hasCapturedCount = false;
 }
 
 /*==============================================================================

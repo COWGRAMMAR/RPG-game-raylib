@@ -105,7 +105,6 @@ namespace Interaction
                 player.pendingSwitchMap = true;
                 player.pendingMapPath = WorldgenIO::GetStagePath(g_SeedManager.GetCurrentStage());
                 player.pendingDoorName = "start";
-                SetWorldgenPending(true);
                 return;
             }
 
@@ -140,8 +139,7 @@ namespace Interaction
                 }
                 if (!bossAlive)
                 {
-                    WorldgenIO::SaveRuntimeState(g_SeedManager.GetCurrentStage());
-                    g_SeedManager.ResetRun();
+                g_SeedManager.ResetRun();
                     gState->currentScreen = MAIN_MENU;
                 }
                 return;

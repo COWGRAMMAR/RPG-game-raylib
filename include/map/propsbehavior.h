@@ -395,6 +395,7 @@ private:
     bool cleared = false;              // True kalo barrier udah pernah di-clear
     int totalEnemyCount = 0;           // Total enemy di EnemyRegistry pas spawn
     int prevDeadCount = 0;             // DeadCount sebelumnya — buat deteksi perubahan
+    bool hasCapturedCount = false;     // Flag biar initial capture hanya sekali
     Rectangle bossStageBounds = {0};   // Bounds object "boss_stage" untuk deteksi area boss
 
     void RemoveAllBarriers(); // Hapus semua barrier dari DynamicObstacles

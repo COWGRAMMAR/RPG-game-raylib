@@ -577,6 +577,153 @@ Semua mengubah `state->currentScreen = SAVE_LOAD`. Main loop di `main.cpp` menan
 
 ---
 
+## Wave 6 — Option C SaveManager + Worldseed Stage Removal (2026-06-08)
+
+| Item | Detail |
+|------|--------|
+| **Fokus** | Unifikasi sistem save ke SaveManager tunggal, hapus WorldgenIO runtime persistence yang jadi sumber cross-slot contamination |
+
+### Root Cause: Cross-Slot State Contamination
+
+Bug kritis di sistem save sebelumnya: state enemy/prop dari save slot yang berbeda tercampur saat load.
+
+**Mekanisme kontaminasi:**
+
+1. Player save di slot 0 (stage 1, semua enemy hidup). `g_ActiveSaveSlot=0`. `SaveRuntimeState(0)` nulis `worldseed_stage_0.json` ke slot 0.
+2. Player lanjut main sampe stage 2, bunuh beberapa enemy di stage 1.
+3. Player save ke slot 1 (stage 2, beberapa enemy mati). `g_ActiveSaveSlot=1`. Tapi `SaveRuntimeState(0)` dipanggil selama gameplay (stage transition/exit) — nulis ke **SLOT 1** padahal intended buat stage 0 data.
+4. Akibat: `worldseed_stage_0.json` di slot 1 berisi deadEntities dari playthrough slot 0 lanjutan.
+5. Pas load slot 0: `LoadManual(0)` baca snapshot → enemy HIDUP. Tapi `LoadRuntimeState(0)` baca `worldseed_stage_0.json` slot 0 yang **terkontaminasi** → set deadEntities → `InitAll()` skip spawn enemy → `ApplyPostSpawn()` cari UUID gak ketemu → enemy HILANG.
+
+**Fix:** Hapus `SaveRuntimeState/LoadRuntimeState` total. Manual snapshot via SaveManager jadi satu-satunya source of truth.
+
+### Perubahan
+
+#### File Baru
+
+| File | Deskripsi |
+|------|-----------|
+| `include/core/savemanager.h` | `SaveManager` class static + `GameSnapshot` struct (403 baris) |
+| `src/core/savemanager.cpp` | Full implementation (1190 baris) |
+
+#### File Diubah
+
+| File | Perubahan |
+|------|-----------|
+| `include/core/savemanager.h` | (new) GameSnapshot: player, enemies, items, map, props. SaveManager: CaptureSnapshot, ApplyPreSpawn, ApplyPostSpawn, ApplyCheckpointData, Serialize/Deserialize, SaveManual/LoadManual, SaveAutosave, SaveCheckpoint/LoadCheckpoint, DeleteSlot |
+| `src/core/savemanager.cpp` | (new) Full impl: atomic write via .tmp+rename, per-slot path isolation, item state as full replacement |
+| `src/map/worldgenio.cpp` | Hapus `SaveRuntimeState()` (180 baris), `LoadRuntimeState()` (40 baris). NextStage/PrevStage: hapus `SaveRuntimeState(oldStage)` |
+| `include/map/worldgenio.h` | Hapus deklarasi `SaveRuntimeState/LoadRuntimeState` |
+| `src/core/game_state_saver.cpp` | Hapus `static bool worldgenPending`, `SetWorldgenPending()`, `IsWorldgenPending()`, hapus dari `ResetMemoryState()` |
+| `include/core/game_state_saver.h` | Hapus deklarasi `SetWorldgenPending/IsWorldgenPending` |
+| `src/core/loading_screen.cpp` | Hapus `LoadRuntimeState()`, `MarkWorldgenPendingForSave()`, guard `IsWorldgenPending()`. ApplyPreSpawn selalu jalan tanpa worldgenPending guard. Hapus 3 callsite LoadRuntimeState. |
+| `src/ui/saveLoadScreen.cpp` | Hapus 2x `SaveRuntimeState()` calls |
+| `src/ui/pauseMenu.cpp` | Hapus `SaveRuntimeState()` dari Exit Game |
+| `src/ui/mainMenu.cpp` | Hapus `SetWorldgenPending(false)` dari New Game |
+| `src/systems/interaction.cpp` | Hapus `SetWorldgenPending(true)` di InitRun, `SaveRuntimeState()` di boss defeat |
+| `src/map/map.cpp` | Pindah checkpoint save/load ke SaveManager |
+| `src/core/screen_handler.cpp` | Pindah InitAll save ke SaveManager (SaveInitial) |
+| `src/core/main.cpp` | Tambah SaveManager capture+save di exit game |
+
+#### Struktur Direktori Baru
+
+```
+saves/
+├── slot_N/
+│   ├── manual/
+│   │   ├── snapshot.json              # Full state via SaveManager
+│   │   └── snapshot_initial.json      # Initial state untuk restart
+│   ├── autosave/
+│   │   └── snapshot_{timestamp}.json  # 5 max, prune terlama
+│   └── checkpoints/
+│       ├── {sanitized_mapPath}.json   # Per-map state cache
+└── settings/
+```
+
+Perubahan dari Wave 5:
+- `manual.json` (old format) → `snapshot.json` via SaveManager
+- `enemies/` dan `items/` subdirs **dihapus** (pakai checkpoint per-map via SaveManager)
+- Tidak ada lagi `worldseed/save_N/runtime.json` — semua data ada di snapshot + checkpoint
+
+#### GameSnapshot — Source of Truth
+
+Struct `GameSnapshot` menyimpan ALL state yang perlu dipersist:
+
+| Field | Tipe | Sumber |
+|-------|------|--------|
+| `player` | `SavedPlayerState` | PlayerInstance (pos, HP, mana, hotbar, bag, animation, dash, attack) |
+| `enemies` | `vector<SavedEnemyState>` | EnemyRegistry (uuid, pos, HP, aiState, mapObjectID, timers) |
+| `items` | `vector<SavedItemState>` | itemData.activeItems (pos, defId, amount, isPickedUp, uuid) |
+| `mapPath` | `string` | currentMapPath |
+| `deadEntities` | `unordered_set<string>` | Entities::GetDeadEntities() |
+| `chestConsumed` | `unordered_set<string>` | chestManager.GetConsumedPositions() |
+| `bombConsumed` | `unordered_set<string>` | bombManager.GetConsumedPositions() |
+| `crateConsumed` | `unordered_set<string>` | crateManager.GetConsumedPositions() |
+| `barrierCleared` | `bool` | barrierManager.IsCleared() |
+| `barrierHasReLocked` | `bool` | barrierManager.HasReLocked() |
+| `mapHistory` | `vector<string>` | mapHistory stack |
+
+#### ApplyPostSpawn — Item State
+
+`ApplyPostSpawn()` sekarang melakukan **full replacement** itemData.activeItems dari snap.items:
+
+```cpp
+itemData.activeItems.clear();
+for (const auto& saved : snap.items) {
+    ItemSpawn item;
+    item.position = saved.position;
+    item.definitionId = saved.definitionId;
+    item.amount = saved.amount;
+    item.isPickedUp = saved.isPickedUp;
+    item.uuid = saved.uuid;
+    // Rebuild hitbox dari definition
+    if (auto* def = itemDefs.Get(saved.definitionId))
+        item.hitbox = { ... };
+    else
+        item.hitbox = { 0, 0, 16, 16 };
+    itemData.activeItems.push_back(item);
+}
+```
+
+Snapshot jadi source of truth — semua item di-replace sesuai state saat disave, tanpa UUID matching atau index fallback.
+
+---
+
+## Wave 7 — Legacy Cleanup (2026-06-08)
+
+| Item | Detail |
+|------|--------|
+| **Fokus** | Hapus kode mati dari sistem save lama, bersihin direktori |
+
+### Perubahan
+
+| File | Perubahan |
+|------|-----------|
+| `include/core/game_state_saver.h` | Hapus `HasSaveFile()`, `DeleteSaveSlot()`, `RestoreDeadEntities()` deklarasi |
+| `src/core/game_state_saver.cpp` | Hapus `HasSaveFile()`, `DeleteSaveSlot()`, `RestoreDeadEntities()` implementasi. Hapus subdir `enemies/` dan `items/` dari `EnsureSlotDirectory()`. Hapus Migration Tasks 15,16,17 dari `RunMigration()` + `NeedsMigration()` + `MarkMigrationComplete()`. Hapus panggilan migration dari `SaveGameState()`. |
+| `docs/save-refactor-plan.md` | Dihapus (plan yang sudah diimplementasi) |
+
+### Yang Dihapus dari Filesystem
+
+- `saves/slot_0/`, `saves/slot_1/` — save lama (settings/ dipertahankan)
+- `assets/maps/World_generation/worldseed/save_1/` — worldseed lama
+- Sentinel `.migration_completed_v3` — sudah tidak relevan
+
+### Testing Values Restored
+
+Nilai konstanta dikembalikan ke production values agar CI/CD test (constants_test.cpp) lolos:
+
+| Konstanta | Sebelum (testing) | Sesudah (production) |
+|-----------|-------------------|---------------------|
+| `SPAWN_PINPOINT_NORMAL_MIN/MAX` | 0 / 0 | 9 / 13 |
+| `SPAWN_PINPOINT_ELITE_MIN/MAX` | 0 / 0 | 3 / 7 |
+| `SPAWN_RECT_NORMAL_MIN/MAX` | 1 / 1 | 20 / 25 |
+| `SPAWN_RECT_ELITE_MIN/MAX` | 0 / 0 | 10 / 15 |
+| `SeedManager::SEED_COUNT` | 3 | 5 |
+| `SAVE_VERSION` | 3 | 2 |
+
+---
+
 ## Ringkasan: Status Concern Sebelumnya
 
 | Concern Sebelumnya | Status Setelah Waves 1-5 |

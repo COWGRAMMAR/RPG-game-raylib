@@ -18,6 +18,7 @@
 #include "../../include/ui/keybindsTab.h"
 #include "../../include/ui/saveLoadScreen.h"
 #include "../../include/core/game_state_saver.h"
+#include "../../include/core/savemanager.h"
 #include "../../include/map/worldgenio.h"
 #include "../../include/core/seedmanager.h"
 #include "entities.h"
@@ -556,7 +557,6 @@ void PauseMenu::HandleButtonClick(int buttonIndex, GameState* state)
             returnConfirmPopup.Show();
             break;
         case 6: // Exit Game
-            WorldgenIO::SaveRuntimeState(g_SeedManager.GetCurrentStage());
             SaveGameState(state);
             CloseWindow();
             break;
@@ -649,20 +649,26 @@ void PauseMenu::Update(GameState* state, Vector2 mousePosition, bool mouseClicke
             barrierManager.Clear();
             mapHistoryStack.Clear();
 
-            // Spawn enemies fresh dari map, lalu restore state dari cache kalo ada
+            // Spawn enemies fresh dari map
             SpawnEnemiesFromMap();
-            const char *mapPath = GetCurrentMapPath();
-            bool cacheLoaded = false;
-            if (mapPath)
-            {
-                std::string cachePath = std::string(mapPath) + ".cache";
-                cacheLoaded = LoadEnemiesForMap(cachePath, "saves/cache/enemies");
-                cacheLoaded = LoadItemsForMapDir(cachePath, "saves/cache/items") || cacheLoaded;
-            }
 
-            // Fallback: kalo cache gak ada, spawn item fresh dari map
-            if (!cacheLoaded)
+            // Load initial snapshot untuk restore state enemies & items
+            {
+                GameSnapshot initialSnap;
+                bool hasInitial = SaveManager::HasInitial(g_ActiveSaveSlot);
+                if (hasInitial)
+                {
+                    initialSnap = SaveManager::LoadInitial(g_ActiveSaveSlot);
+                    SaveManager::ApplyPreSpawn(initialSnap);
+                }
+
+                // Fallback: spawn item fresh
                 SpawnItemWave();
+
+                // Apply initial state on top
+                if (hasInitial)
+                    SaveManager::ApplyCheckpointData(initialSnap);
+            }
 
             // Reset & reposition player
             PlayerInstance.ResetForNewGame();
@@ -683,15 +689,10 @@ void PauseMenu::Update(GameState* state, Vector2 mousePosition, bool mouseClicke
             RebuildObstacleCache();
             globalFlowField.Invalidate();
 
-            // Re-capture cache agar restart berikutnya punya state yang segar
+            // Re-capture initial state untuk restart berikutnya
             {
-                const char *curPath = GetCurrentMapPath();
-                if (curPath)
-                {
-                    std::string cp = std::string(curPath) + ".cache";
-                    SaveEnemiesForMap(cp, "saves/cache/enemies");
-                    SaveItemsForMapDir(cp, "saves/cache/items");
-                }
+                GameSnapshot freshInitial = SaveManager::CaptureSnapshot();
+                SaveManager::SaveInitial(freshInitial, g_ActiveSaveSlot);
             }
 
             state->currentScreen = PLAY;

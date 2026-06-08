@@ -29,20 +29,6 @@ namespace WorldgenIO
      */
     bool InitRun(int saveSlot);
 
-    /**
-     * @brief Simpan state runtime stage saat ini
-     * @param stageIndex Index stage yang akan di-save
-     * @return true jika berhasil
-     */
-    bool SaveRuntimeState(int stageIndex);
-
-    /**
-     * @brief Muat state runtime stage tertentu
-     * @param stageIndex Index stage yang akan di-load
-     * @return true jika berhasil
-     */
-    bool LoadRuntimeState(int stageIndex);
-
     /** @brief Pindah ke stage berikutnya (increment index) */
     void NextStage();
 

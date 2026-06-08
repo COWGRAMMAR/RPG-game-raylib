@@ -208,7 +208,7 @@ public:
     const float AttackManaCost = 10.0f; // Biaya mana per serangan
 
     // movement
-    float Speed = 20.0f;         // Kecepatan gerak dasar (testing)
+    float Speed = 6.0f;         // Kecepatan gerak dasar 
     float DashSpeed = 0.0f;       // Current dash speed tambahan
     float DashMaxSpeed = 4.0f;    // Max dash speed
     float DashDecel = 0.06f;      // Lerp factor deselerasi

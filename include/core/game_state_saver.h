@@ -26,7 +26,7 @@
  * Constants
  *==============================================================================*/
 
-static constexpr int SAVE_VERSION = 3;      /**< Current save file format version */
+static constexpr int SAVE_VERSION = 2;      /**< Current save file format version */
 
 /*==============================================================================
  * Saved State Structures
@@ -183,8 +183,6 @@ std::string GetSlotPath(int slot, const std::string& type);
  * @details Membuat struktur direktori:
  *          - saves/slot_N/manual/
  *          - saves/slot_N/autosave/
- *          - saves/slot_N/enemies/
- *          - saves/slot_N/items/
  *          Tidak melakukan apa-apa jika direktori sudah ada.
  */
 void EnsureSlotDirectory(int slot);
@@ -210,15 +208,6 @@ void SaveGameState(GameState *state);
 void RestoreGameState(GameState *state);
 
 /**
- * @brief Restore DeadEntities set from saved map state
- * @details Must be called BEFORE InitAll() / SpawnEnemiesFromMap() to prevent
- *          dead enemies from respawning. Reads from savedMapState.deadEntities
- *          and populates the static DeadEntities set via Entities::SetDeadEntities().
- *          Safe to call even if no save state exists.
- */
-void RestoreDeadEntities(void);
-
-/**
  * @brief Cek apakah ada state tersimpan
  * @return true jika ada state yang bisa di-restore
  * @note Dipakai untuk menentukan apakah ini new game atau resume
@@ -240,21 +229,6 @@ void ResetMemoryState(void);
  *          worldseed slot tertentu tanpa menyentuh state memory.
  */
 void ResetWorldseed(int slotIndex);
-
-/**
- * @brief Set or clear the worldgen pending flag
- * @details When true, RestoreDeadEntities() will be skipped in the loading
- *          screen because WorldgenIO::LoadRuntimeState handles dead entity
- *          restoration. Set before worldgen map switches, cleared after.
- */
-void SetWorldgenPending(bool pending);
-
-/**
- * @brief Check if a worldgen stage load is pending
- * @return true if the next loading screen should skip RestoreDeadEntities()
- *         (worldgen's LoadRuntimeState will set dead entities instead)
- */
-bool IsWorldgenPending(void);
 
 /*==============================================================================
  * File I/O Functions
@@ -287,12 +261,7 @@ bool WriteAutosave(const std::string& filename);
  */
 bool ReadSaveFile(const std::string& path);
 
-/**
- * @brief Check if a save file exists and has content
- * @param path Path to the save file
- * @return true if file exists and has non-zero size
- */
-bool HasSaveFile(const std::string& path);
+
 
 /**
  * @brief Delete a save file if it exists
@@ -300,34 +269,5 @@ bool HasSaveFile(const std::string& path);
  */
 void DeleteSaveFile(const std::string& path);
 
-/*==============================================================================
- * Migration v2 -> v3
- *==============================================================================*/
 
-/**
- * @brief Periksa apakah migrasi v2->v3 diperlukan.
- * @return true jika file saves/manual/slot0.json ada DAN sentinel
- *         saves/.migration_completed_v3 tidak ada.
- * @details Sentinel mencegah migrasi ulang pada launch berikutnya.
- *          Panggil sekali saat startup sebelum menyimpan.
- */
-bool NeedsMigration(void);
 
-/**
- * @brief Jalankan pipeline migrasi v2->v3.
- * @return true jika semua langkah berhasil, false jika ada yang gagal.
- * @details Urutan:
- *          1. Copy saves/manual/slot0.json -> saves/slot_0/manual/manual.json (v2->v3 upgrade)
- *          2. Pindahkan saves/enemies/ -> saves/slot_0/enemies/
- *          3. Pindahkan saves/items/ -> saves/slot_0/items/
- *          4. Hapus direktori lama + tulis sentinel
- *          Jika langkah manapun gagal, abort tanpa cleanup.
- */
-bool RunMigration(void);
-
-/**
- * @brief Tandai migrasi sebagai selesai dengan menulis sentinel.
- * @details Membuat file kosong saves/.migration_completed_v3.
- *          Sentinel dicek oleh NeedsMigration() untuk skip migrasi.
- */
-void MarkMigrationComplete(void);

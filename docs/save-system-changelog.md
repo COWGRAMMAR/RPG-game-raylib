@@ -731,3 +731,89 @@ Nilai konstanta dikembalikan ke production values agar CI/CD test (constants_tes
 | **C1**: Cancel Load hapus worldseed (mainMenu.cpp cancel popup) | **Resolved**. `ClearSavedState()` dipisah jadi `ResetPlayer()` + `ResetMap()`. Cancel popup hanya reset memory, tidak hapus worldseed. |
 | **C3**: Single save slot (`saves/manual/slot0.json`) | **Resolved**. 5 manual slot + 5 autosave slot, per-slot directory isolation, SaveLoadScreen UI untuk pilih slot. |
 | **C4**: Worldseed cleanup terlalu agresif (hapus semua `save_N`) | **Resolved**. `ResetMap()` dengan slot-specific cleanup, worldgen mapping via `worldgenSlot` field. |
+
+> **Catatan**: Baris `SAVE_VERSION` di tabel Wave 7 (line 723) menunjukkan "Sebelum (testing) = 3, Sesudah (production) = 2". Klaim `SAVE_VERSION=2` ini **sudah tidak berlaku**. Commit `18de54e` (Post-Wave 7, lihat Wave 8 di bawah) mengembalikan `SAVE_VERSION` ke **3** saat update player attributes. Kode saat ini di `game_state_saver.h:29` menetapkan `static constexpr int SAVE_VERSION = 3`.
+
+---
+
+## Wave 8 — SaveManager Alignment + Main Merge (2026-06-08)
+
+| Item | Detail |
+|------|--------|
+| **Fokus** | Finalisasi SaveManager, update player attributes, merge 53 commit origin/main, reorganisasi dokumentasi |
+
+### Commit: Finalisasi SaveManager
+
+Commit `83c23e3` (`feat: Implement SaveManager for unified save/load functionality`) menyelesaikan transisi dari `game_state_saver` ke `SaveManager`:
+
+| File | Perubahan |
+|------|-----------|
+| `include/core/savemanager.h` | Class `SaveManager` + struct `GameSnapshot` dengan `SNAPSHOT_VERSION = 1` |
+| `src/core/savemanager.cpp` | Implementasi `SaveInitial()`, `SaveRuntime()`, `LoadLatest()`, `LoadCheckpoint()`, `ApplyPostSpawn()` |
+| `include/core/game_state_saver.h` | Function `SaveRuntimeState()`, `RestoreGameState()` didelegasi ke SaveManager |
+| `src/ui/saveLoadScreen.cpp` | Panggil `SaveManager::SaveManual()` / `SaveManager::LoadManual()` |
+| `src/ui/pauseMenu.cpp` | Panggil `SaveManager::SaveRuntime()` di Exit Game |
+| `src/systems/interaction.cpp` | Panggil `SaveManager::SaveRuntime()` di boss defeat, `SetWorldgenPending()` di InitRun |
+| `src/map/map.cpp` | Checkpoint save/load via `SaveManager` |
+| `src/core/screen_handler.cpp` | `SaveManager::SaveInitial()` di InitAll |
+| `src/core/main.cpp` | `SaveManager` capture + save di exit game |
+
+Cross-reference: Wave 6 sudah menyebut implementasi SaveManager secara umum. Commit `83c23e3` adalah finalisasi yang memastikan semua wiring sudah benar dan konsisten.
+
+### Commit: Player Attributes Update
+
+Commit `18de54e` (`feat: Update player attributes for buff system and invincibility timers; increment save version to 3`):
+
+- Menambahkan field player attributes untuk buff system (`buffDuration`, `buffType`, dll)
+- Menambahkan `invincibilityTimer` ke player state
+- **Mengembalikan `SAVE_VERSION` dari 2 ke 3** (Wave 7 sebelumnya menurunkan ke 2)
+- Commit `72f9d57` (`feat: Increment save file format version to 3`) memperkuat perubahan ini
+
+Korelasi dengan kode saat ini:
+
+| Konstanta | File | Nilai |
+|-----------|------|-------|
+| `SAVE_VERSION` | `include/core/game_state_saver.h:29` | **3** |
+| `SNAPSHOT_VERSION` | `include/core/savemanager.h:50` | **1** |
+
+### Merge: origin/main ke nisko/feat/save-load
+
+Commit `9307fff` — Fast-forward merge origin/main, 53 commit, **nol konflik**:
+
+```
+9307fff Merge pull request #67 from COWGRAMMAR/ryan-code
+```
+
+Detail merge:
+- 53 commit dari origin/main diintegrasikan via fast-forward
+- Build lulus dengan `cmake --build --preset ninja` (zero error, zero warning)
+- Branch `nisko/feat/save-load` sekarang **0 ahead / 0 behind** origin/main
+
+Commit yang relevan dalam merge (selain yang sudah disebutkan di atas):
+| Commit | Pesan |
+|--------|-------|
+| `44ce787` | Refactor code structure for improved readability and maintainability |
+| `a688f22` | Merge pull request #65 from COWGRAMMAR/akbarazy (slot availability) |
+| `d7bef96` | Merge pull request #66 from COWGRAMMAR/deez (berbagai fitur) |
+
+### Dokumentasi — Reorganisasi (Sesi Ini)
+
+| File | Perubahan |
+|------|-----------|
+| `docs/save-system.md` | Restrukturasi: perbaiki `SNAPSHOT_VERSION` ke 1, koreksi API signatures, hapus percakapan informal AI (lines 278-297), tambah method yang hilang |
+| `.agent/save-system-context.md` | **Baru** — File konteks AI agent berbahasa Inggris, ringkasan arsitektur save system |
+| `docs/save-system-changelog.md` | Update ini — tambahan Wave 8 + catatan koreksi Wave 7 |
+
+### Status Branch
+
+```
+$ git status
+On branch nisko/feat/save-load
+Your branch is up to date with 'origin/nisko/feat/save-load'.
+
+$ git log --oneline --left-right HEAD...origin/main
+(empty — 0 ahead, 0 behind)
+
+$ cmake --build --preset ninja
+[0/0] — build lulus tanpa perubahan
+```

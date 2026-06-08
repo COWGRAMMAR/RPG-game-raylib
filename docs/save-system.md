@@ -2,42 +2,59 @@
 
 ## 1. Ikhtisar
 
-Save system menggunakan **SaveManager** (static class) + **GameSnapshot** (struct) sebagai source of truth tunggal untuk semua data persistensi. Semua state game (player, enemies, items, props, map history, barrier) ditangkap dalam satu snapshot dan disimpan/load lewat API terpusat.
+Save system menggunakan **SaveManager** (static class) + **GameSnapshot** (struct) sebagai single source of truth untuk semua data persistensi game. Semua state runtime (player, enemies, items, props, map history, barrier) ditangkap dalam satu snapshot dan disimpan/load lewat API terpusat.
 
 **File utama:**
-- `include/core/savemanager.h` — deklarasi GameSnapshot + SaveManager
-- `src/core/savemanager.cpp` — implementasi
-- `include/core/game_state_saver.h` — old format backward compat + RestoreGameState
-- `src/core/game_state_saver.cpp` — old format + dual-path RestoreGameState
+- `include/core/savemanager.h` — deklarasi `GameSnapshot` + `SaveManager`
+- `src/core/savemanager.cpp` — implementasi (~1113 baris)
+- `include/core/game_state_saver.h` — old format backward compat + `RestoreGameState()`
+- `src/core/game_state_saver.cpp` — old format + dual-path `RestoreGameState()`
 
 ---
 
 ## 2. GameSnapshot
 
-Struct yang merepresentasikan **seluruh state game** pada satu titik waktu.
+Struct `GameSnapshot` merepresentasikan **seluruh state runtime game** pada satu titik waktu.
 
-### Field utama
+### Field
 
 | Field | Tipe | Deskripsi |
 |-------|------|-----------|
-| version | uint32_t | Versi format snapshot (SNAPSHOT_VERSION=2) |
-| timestamp | int64_t | Unix timestamp saat capture |
-| player | SavedPlayerState | Posisi, stats, inventory, dash, cooldown |
-| enemies | vector<SavedEnemyState> | Posisi, HP, UUID, aggro, MapObjectID, Name |
-| items | vector<SavedItemState> | Posisi, isPickedUp, definitionId, UUID |
-| chestConsumed | vector<SavedPosData> | Posisi chest yang sudah dibuka |
-| bombConsumed | vector<string> | Posisi bomb yang sudah hancur |
-| crateConsumed | vector<string> | Posisi crate yang sudah hancur |
-| deadEntities | vector<string> | Entity ID yang mati (tidak di-spawn ulang) |
-| barrierCleared | bool | BarrierManager cleared state |
-| barrierHasReLocked | bool | BarrierManager re-lock state |
-| camera | SavedCameraState | Posisi & target kamera |
-| mapHistory | vector<SavedMapHistory> | Stack riwayat map (untuk prev stage/door) |
+| `version` | int | Versi format (`SNAPSHOT_VERSION = 1`) |
+| `playerPosition` | Vector2 | Posisi player di world |
+| `playerHealth` | float | HP saat ini |
+| `playerMana` | float | Mana saat ini |
+| `playerMaxHealth` | float | Max HP |
+| `playerMaxMana` | float | Max Mana |
+| `hotbar[4]` | InventoryItem[] | Hotbar inventory |
+| `bag[12]` | InventoryItem[] | Full bag inventory |
+| `animState` | struct | State, direction, isDead, activeSlot |
+| `dashCooldown` | float | Remaining dash cooldown |
+| `manaRegenTimer` | float | Timer delay before mana regen |
+| `swingAttack` | json | Serialized attack state (active, timer, duration, raycastAngle, center, pressHeld) |
+| `enemies` | vector\<SavedEnemyState\> | Posisi, HP, UUID, AI state, timers |
+| `items` | vector\<SavedItemState\> | Posisi, definitionId, amount, UUID |
+| `chestConsumed` | unordered_set\<string\> | Posisi chest yang sudah dibuka |
+| `bombConsumed` | unordered_set\<string\> | Posisi bomb yang sudah hancur |
+| `crateConsumed` | unordered_set\<string\> | Posisi crate yang sudah hancur |
+| `barrierCleared` | bool | BarrierManager cleared state |
+| `barrierHasReLocked` | bool | BarrierManager re-lock state |
+| `deadEntities` | set\<string\> | Entity ID yang mati |
+| `mapPath` | string | Path ke file map saat ini |
+| `cameraTarget` | Vector2 | Posisi target kamera |
+| `cameraZoom` | float | Zoom kamera |
+| `mapHistory` | vector\<MapHistoryEntry\> | Stack riwayat map |
+| `mapDisplayName` | string | Nama map human-readable |
+| `slotIndex` | int | Nomor slot (-1 = unassigned) |
+| `worldgenSlot` | int | Mapping ke worldseed slot (-1 = not worldgen) |
+| `stageIndex` | int | Stage index (-1 = full snapshot, >=0 = worldgen per-stage) |
+| `showFPS` | bool | Status toggle FPS |
+| `timestamp` | string | ISO 8601 timestamp saat capture |
 
 ### Snapshot Versioning
 
-- **SNAPSHOT_VERSION = 2** — format saat ini (per June 2026)
-- Version 1: legacy format (old path — masih didukung backward compat)
+- **`SNAPSHOT_VERSION = 1`** — format saat ini
+- Validasi ketat: file dengan version mismatch langsung return `GameSnapshot()` kosong
 
 ---
 
@@ -46,59 +63,67 @@ Struct yang merepresentasikan **seluruh state game** pada satu titik waktu.
 ### Core Methods
 
 ```cpp
-// Capture
+// Capture seluruh state runtime
 static GameSnapshot CaptureSnapshot();
 
-// Manual save/load (source of truth)
-static bool SaveManual(int slot, const GameSnapshot& snap);
+// Capture initial snapshot (setelah spawn pertama, untuk restart)
+static bool CaptureInitialSnapshot(int slot);
+
+// Manual save/load (source of truth untuk full save/load)
+static bool SaveManual(const GameSnapshot& snap, int slot);
 static GameSnapshot LoadManual(int slot);
 static bool HasManual(int slot);
-static void DeleteSlot(int slot);
+static bool HasAnySave(int slot);
+static bool DeleteSlot(int slotIndex);
 
-// Autosave (rotating 5 files)
-static bool SaveAutosave(int slot, const GameSnapshot& snap);
-static GameSnapshot LoadAutosave(int slot, int index);
+// Autosave (captures internally, rotating max 5 files per slot)
+static bool SaveAutosave(int slot);
 
 // Checkpoint (per-map cache untuk door transition)
-static bool SaveCheckpoint(int slot, const std::string& mapPath, const GameSnapshot& snap);
-static GameSnapshot LoadCheckpoint(int slot, const std::string& mapPath);
-static bool HasCheckpoint(int slot, const std::string& mapPath);
+static bool SaveCheckpoint(const GameSnapshot& snap, const std::string& mapPath, int slot);
+static GameSnapshot LoadCheckpoint(const std::string& mapPath, int slot);
+static bool HasCheckpoint(const std::string& mapPath, int slot);
 
-// Initial snapshot (first frame after InitAll)
-static bool SaveInitial(int slot, const GameSnapshot& snap);
+// Initial snapshot (restart cache replacement)
+static bool SaveInitial(const GameSnapshot& snap, int slot);
 static GameSnapshot LoadInitial(int slot);
+static bool HasInitial(int slot);
+
+// Utility
+static void CleanupTmpFiles();  // Hapus semua file .tmp di saves/
 ```
 
 ### Snapshot Apply Methods
 
 | Method | Use Case | Yang di-restore |
 |--------|----------|-----------------|
-| `ApplyPreSpawn(snap)` | Sebelum InitAll (checkpoint restore) | deadEntities, consumedPositions, barrier state |
-| `ApplyPostSpawn(snap)` | Setelah InitAll (full state restore) | Player, enemies (by UUID), items (full replacement), consumed, barrier, camera, mapHistory |
-| `ApplyCheckpointData(snap)` | Map transition (partial restore) | Enemies (by UUID+MapObjectID), items (by UUID+index), consumed props |
+| `ApplyPreSpawn(snap)` | Sebelum `InitAll` / `SpawnEnemiesFromMap` / `SpawnObject` | deadEntities, chest/bomb/crate consumed positions, barrier state |
+| `ApplyPostSpawn(snap)` | Setelah `InitAll` (full state restore) | Player stats/inventory/position/animation/combat, enemies (by UUID then MapObjectID+Name), items (full replacement), consumed props, barrier, camera, mapHistory |
+| `ApplyCheckpointData(snap)` | Map transition (partial restore) | Enemies (by UUID then MapObjectID+Name), items (by UUID then index), consumed props |
 
 ### Path Structure
 
 ```
 saves/
-├── settings/                      # Global settings
+├── settings/
 │   └── settings.json
 ├── slot_0/
 │   ├── manual/
-│   │   ├── snapshot.json          # Manual save (source of truth)
-│   │   └── snapshot_initial.json  # Snapshot pertama setelah InitAll
+│   │   ├── snapshot.json              # Manual save (source of truth)
+│   │   └── snapshot_initial.json      # Initial snapshot (restart cache)
 │   ├── autosave/
-│   │   ├── snapshot_0.json        # Autosave (rotating, max 5)
-│   │   ├── snapshot_1.json
-│   │   ├── snapshot_2.json
-│   │   ├── snapshot_3.json
-│   │   └── snapshot_4.json
+│   │   ├── snapshot_DD-MM-YYYY-HH-MM-SS.json  # Autosave (rotating, max 5)
+│   │   └── ...
 │   └── checkpoints/
-│       ├── {sanitized_mapPath}.json  # Per-map cache
-│       └── {other maps...}.json
+│       ├── {sanitized_mapPath}.json   # Per-map state cache
+│       └── ...
 ├── slot_1/
 │   └── ...
-└── slot_2/
+├── slot_2/
+│   └── ...
+├── slot_3/
+│   └── ...
+└── slot_4/
     └── ...
 ```
 
@@ -110,17 +135,27 @@ Semua write menggunakan file sementara (`.tmp`) + rename:
 2. Flush + close
 3. Rename `snapshot.json.tmp` → `snapshot.json`
 
-Ini mencegah file korup jika crash di tengah write.
+Ini mencegah file korup jika crash di tengah write. `CleanupTmpFiles()` tersedia untuk membersihkan file `.tmp` orphan.
 
 ---
 
 ## 4. Per-slot Isolation
 
-Setiap save slot punya direktori sendiri (`saves/slot_N/`). Snapshot, autosave, dan checkpoint disimpan per-slot secara terpisah.
+Setiap save slot (0-4) punya direktori sendiri (`saves/slot_N/`):
 
-- `LoadManual(N)` → baca `saves/slot_N/manual/snapshot.json`
-- `LoadCheckpoint(N, mapPath)` → baca `saves/slot_N/checkpoints/{sanitized_path}.json`
-- `GetManualPath(N)`, `GetCheckpointPath(N, mapPath)`, dll — semua menggunakan `slot_N` dalam path.
+- `SaveManual(snap, 0)` → tulis `saves/slot_0/manual/snapshot.json`
+- `LoadCheckpoint("assets/maps/forest.json", 1)` → baca `saves/slot_1/checkpoints/assets_maps_forest_json.json`
+- `DeleteSlot(2)` → hapus `saves/slot_2/` + cleanup worldseed orphan
+- `HasAnySave(3)` → true jika ada manual atau initial snapshot di slot 3
+
+### Active Slot Tracking
+
+`g_ActiveSaveSlot` (global, di `game_state_saver.h`) menandai slot yang sedang aktif:
+
+- Di-set di `SaveLoadScreen` (LOAD flow) dan `main menu` (NEW GAME flow)
+- `SaveAutosave()` menggunakan slot ini untuk routing
+- `CaptureSnapshot()` menyimpan `slotIndex = g_ActiveSaveSlot` ke dalam snapshot
+- `DeleteSlot()` mereset `g_ActiveSaveSlot` ke -1 jika slot yang dihapus adalah slot aktif
 
 ---
 
@@ -129,22 +164,20 @@ Setiap save slot punya direktori sendiri (`saves/slot_N/`). Snapshot, autosave, 
 Setiap enemy dan item punya UUID (string unik) yang di-generate saat spawn:
 
 ```cpp
-enemy.SetUUID(GenerateUUID());
+enemy->SetUUID(GenerateUUID());
 item.uuid = GenerateUUID();
 ```
 
-Di snapshot, UUID disimpan di `SavedEnemyState.uuid` dan `SavedItemState.uuid`.
-Saat restore, ApplyPostSpawn mencocokkan snapshot entities dengan yang baru di-spawn berdasarkan UUID.
+### Enemy Matching Order (di ApplyPostSpawn)
 
-### Enemy Matching Order
-
-1. **UUID match** — cocok snapshot enemy dengan live enemy by UUID
-2. **MapObjectID + Name fallback** — jika UUID tidak cocok, fallback ke kombinasi MapObjectID + Name (nitpick: perlu diperbaiki — Issue #minor)
+1. **UUID match** — cocokkan snapshot enemy dengan live enemy by UUID
+2. **MapObjectID + Name fallback** — jika UUID tidak cocok, fallback ke kombinasi `mapObjectID` + `enemyName`
 
 ### Item Replacement (Snapshot Source of Truth)
 
+Untuk manual load, `ApplyPostSpawn()` melakukan **full replacement**:
+
 ```cpp
-// ApplyPostSpawn — items section
 itemData.activeItems.clear();
 for (const auto& saved : snap.items)
 {
@@ -158,11 +191,13 @@ for (const auto& saved : snap.items)
 }
 ```
 
-Snapshot adalah source of truth untuk items — seluruh `activeItems` diganti dengan data dari snapshot. Ini menghindari masalah non-deterministic spawn yang sebelumnya terjadi karena `ItemSpawnManager::SpawnAll()` menggunakan random seed.
+Snapshot adalah source of truth untuk items — seluruh `activeItems` diganti dengan data dari snapshot. Ini menghindari masalah non-deterministic spawn yang sebelumnya terjadi.
+
+Untuk checkpoint load, `ApplyCheckpointData()` melakukan partial restore: mencocokkan item by UUID dulu, lalu fallback ke index-based.
 
 ### Dead Entity Filtering
 
-`Entities::IsAlreadyDead(entityId)` dicek di `SpawnEnemiesFromMap()` — jika entity ID ada di dead set, enemy tidak di-spawn. Dead entities di-restore via ApplyPreSpawn (checkpoint flow) atau ApplyPostSpawn (manual load).
+`Entities::IsAlreadyDead(entityId)` dicek di `SpawnEnemiesFromMap()` — jika entity ID ada di dead set, enemy tidak di-spawn. Dead entities di-restore via `ApplyPreSpawn()` sebelum spawn.
 
 ---
 
@@ -215,7 +250,7 @@ Menggunakan checkpoint system:
 
 ## 7. Cross-Slot Contamination Bug (Fixed)
 
-### Timeline (Run 1 — saat bug aktif)
+### Timeline (saat bug aktif)
 
 1. **Save slot 0** (stage 1, enemies hidup) — `g_ActiveSaveSlot = 0`
 2. Lanjut main, bunuh 2 enemy di stage 1, masuk stage 2
@@ -225,29 +260,7 @@ Menggunakan checkpoint system:
 
 ### Root Cause
 
-`WorldgenIO::SaveRuntimeState(stageIndex)` menggunakan `g_ActiveSaveSlot` untuk path:
-
-```cpp
-bool SaveRuntimeState(int stageIndex)
-{
-    int uiSlot = g_ActiveSaveSlot >= 0 ? g_ActiveSaveSlot : 0;
-    return SaveManager::SaveWorldgenStage(snap, uiSlot, stageIndex);
-    //                                              ^^^^ SALAH saat g_ActiveSaveSlot berubah
-}
-```
-
-Ketika player save ke slot 1, `g_ActiveSaveSlot` berubah jadi 1. Tapi `SaveRuntimeState` masih dipanggil dengan stage index 0 (karena player kembali ke stage 1 via prev stage/exit). Akibatnya data stage 1 (dengan dead entities dari playthrough lanjutan) tertulis ke slot 1, bukan slot 0.
-
-### Efek pas load slot 0
-
-```
-LoadManual(0) → snapshot.json: enemies HIDUP (benar)
-LoadRuntimeState(0) → worldseed_stage_0.json (Terkontaminasi!):
-  deadEntities berisi enemy dari playthrough lanjutan
-InitAll → SpawnEnemiesFromMap skip enemy yang dianggap mati
-ApplyPostSpawn → cari UUID enemy → GAK ADA (gak di-spawn)
-Enemy HILANG walau snapshot bilang hidup
-```
+`WorldgenIO::SaveRuntimeState(stageIndex)` menggunakan `g_ActiveSaveSlot` untuk path routing — saat player ganti slot, state runtime stage sebelumnya salah routing.
 
 ### Fix: Snapshot Source of Truth
 
@@ -261,9 +274,12 @@ Enemy HILANG walau snapshot bilang hidup
 ## 8. Konvensi & Catatan Penting
 
 ### `g_ActiveSaveSlot`
-- Variabel global yang menandai slot mana yang sedang aktif.
-- Di-set di `saveLoadScreen.cpp` (LOAD flow) dan `mainMenu.cpp` (NEW GAME flow).
-- Semua operasi SaveManager menggunakan ini.
+- Variabel global yang menandai slot mana yang sedang aktif (`-1` = tidak aktif, `0-4` = slot manual)
+- Di-set di:
+  - `saveLoadScreen.cpp` — saat LOAD atau SAVE selesai
+  - `mainMenu.cpp` — saat NEW GAME
+- Semua operasi SaveManager (terutama autosave) menggunakan ini untuk routing.
+- `SetActiveSlot(-1)` dipanggil saat "Return to Menu" untuk menonaktifkan slot.
 
 ### Old Format Backward Compat
 `game_state_saver.cpp` masih menyimpan `RestoreGameState()` dual-path:
@@ -271,27 +287,17 @@ Enemy HILANG walau snapshot bilang hidup
 2. **Old path**: `ReadSaveFile(old manual.json)` + restore dari global state — fallback jika snapshot.json tidak ada
 
 ### Checkpoint vs Snapshot
-- **Checkpoint**: Per-map cache, hanya dipakai di HandleMapSwitch (door/prev stage)
-- **Manual Snapshot**: Source of truth untuk full save/load dari main menu
+- **Checkpoint**: Per-map cache, hanya dipakai di `HandleMapSwitch` (door/prev stage). Partial restore — tidak restore player/camera/mapHistory.
+- **Manual Snapshot**: Source of truth untuk full save/load dari main menu. Full restore semua state.
 
+### Save Format Version
+- **SAVE_VERSION = 3** — untuk old format manual.json (backward compat)
+- **SNAPSHOT_VERSION = 1** — untuk format baru via SaveManager/GameSnapshot
+- Kedua version dicek secara independen di masing-masing code path.
 
-```
-snapshot obrlan gw (ryan) dengan ai buat bug terbaru sebelum kena limit🥀💔💔🥀
-
-Dah nemu arahnya. Ada dua temuan:
-1. Root cause langsung: HandleInitialLoad pake savedMapState.mapPath dari old format (ReadSaveFile), bukan dari snapshot. Old format file (manual.json) punya mapPath: "" → HandleInitialLoad liat empty → InitMap() → tutorial. Snapshot probably bener (mapPath: "assets/maps/...") tapi gak dipake buat milih map.
-2. Kenapa old format file punya mapPath: ""? Ini anomaly. SaveGameState() (line 666-667) punya fallback:
-savedMapState.mapPath = (mapPath == nullptr || mapPath[0] == '\0') 
-    ? "assets/maps/tutorial.json" : std::string(mapPath);
-Harusnya IMPOSSIBLE jadi "". Kecuali compiled binary gak match source code.
-Sebelum fix kode, bisaku cek dulu isi snapshot file biar konfirm? Bisa run:
-Get-Content "saves/slot_2/manual/snapshot.json" | Select-Object -First 1
-Sama verify build ulang: cd build && cmake --build . — compiled binary udah sesuai perubahan terakhir?
-
-▣  Sisyphus - Ultraworker · DeepSeek V4 Flash Free · 4m 49s
-
-boleh. kemungkinan besar ini bug bisa ada karena hasil merge dari main makanya jadi "kotor" lagi kata gw ya kalo bisa kita bandingin sistem save data yang punya main dengan branch ini dan overwrite semua yang ada di main dengan branch ini aja. biar lebih cepet menurut gw
-
-+ Thought: 4.0s
-Mantap. Tapi sebelum gede-gedean, biar konfirm dulu isi snapshot file. Itu bakal nentuin approach fix-nya:
-```
+### Ordering Apply Methods
+Urutan pemanggilan kritis untuk correctness:
+1. `ApplyPreSpawn(snap)` — HARUS sebelum `InitAll()` / `SpawnEnemiesFromMap()` / `SpawnObject()`
+2. `InitAll()` — spawn enemies, items, props
+3. `ApplyPostSpawn(snap)` — HARUS setelah semua spawn selesai
+4. `ApplyCheckpointData(snap)` — untuk map switch, dipanggil setelah `InitAll()` (menggantikan `ApplyPostSpawn`)

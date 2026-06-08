@@ -26,7 +26,7 @@
  * Constants
  *==============================================================================*/
 
-static constexpr int SAVE_VERSION = 2;      /**< Current save file format version */
+static constexpr int SAVE_VERSION = 3;      /**< Current save file format version */
 
 /*==============================================================================
  * Saved State Structures

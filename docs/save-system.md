@@ -273,3 +273,25 @@ Enemy HILANG walau snapshot bilang hidup
 ### Checkpoint vs Snapshot
 - **Checkpoint**: Per-map cache, hanya dipakai di HandleMapSwitch (door/prev stage)
 - **Manual Snapshot**: Source of truth untuk full save/load dari main menu
+
+
+```
+snapshot obrlan gw (ryan) dengan ai buat bug terbaru sebelum kena limit🥀💔💔🥀
+
+Dah nemu arahnya. Ada dua temuan:
+1. Root cause langsung: HandleInitialLoad pake savedMapState.mapPath dari old format (ReadSaveFile), bukan dari snapshot. Old format file (manual.json) punya mapPath: "" → HandleInitialLoad liat empty → InitMap() → tutorial. Snapshot probably bener (mapPath: "assets/maps/...") tapi gak dipake buat milih map.
+2. Kenapa old format file punya mapPath: ""? Ini anomaly. SaveGameState() (line 666-667) punya fallback:
+savedMapState.mapPath = (mapPath == nullptr || mapPath[0] == '\0') 
+    ? "assets/maps/tutorial.json" : std::string(mapPath);
+Harusnya IMPOSSIBLE jadi "". Kecuali compiled binary gak match source code.
+Sebelum fix kode, bisaku cek dulu isi snapshot file biar konfirm? Bisa run:
+Get-Content "saves/slot_2/manual/snapshot.json" | Select-Object -First 1
+Sama verify build ulang: cd build && cmake --build . — compiled binary udah sesuai perubahan terakhir?
+
+▣  Sisyphus - Ultraworker · DeepSeek V4 Flash Free · 4m 49s
+
+boleh. kemungkinan besar ini bug bisa ada karena hasil merge dari main makanya jadi "kotor" lagi kata gw ya kalo bisa kita bandingin sistem save data yang punya main dengan branch ini dan overwrite semua yang ada di main dengan branch ini aja. biar lebih cepet menurut gw
+
++ Thought: 4.0s
+Mantap. Tapi sebelum gede-gedean, biar konfirm dulu isi snapshot file. Itu bakal nentuin approach fix-nya:
+```

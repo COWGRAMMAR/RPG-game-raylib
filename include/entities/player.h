@@ -207,6 +207,13 @@ public:
     const float ManaRegenRate = 5.0f;
     const float AttackManaCost = 10.0f;
 
+    // buff sistem (dari potion)
+    float BuffDamageMultiplier = 1.0f; ///< Multiplier damage dari buff
+    float BuffSpeedMultiplier = 1.0f;  ///< Multiplier speed dari buff
+    float BuffDamageTimer = 0.0f;      ///< Timer durasi buff damage
+    float BuffSpeedTimer = 0.0f;       ///< Timer durasi buff speed
+    float InvincibilityTimer = 0.0f;   ///< Timer durasi invincibility
+
     // movement
     float Speed = 6.0f;         // Kecepatan gerak dasar 
     float DashSpeed = 0.0f;       // Current dash speed tambahan

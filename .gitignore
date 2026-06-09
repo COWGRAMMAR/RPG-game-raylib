@@ -38,6 +38,12 @@ saves/
 raylib/
 lib/raylib/
 
+# Auto-downloaded raylib-media
+lib/raylib-media/
+
+# Auto-downloaded FFmpeg
+lib/ffmpeg/
+
 # Auto-downloaded tileson
 lib/tileson/
 

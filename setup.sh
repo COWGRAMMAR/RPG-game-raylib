@@ -5,6 +5,9 @@ set -euo pipefail
 RAYLIB_VERSION="6.0"
 TILESON_VERSION="v1.4.0"
 JSON_VERSION="v3.12.0"
+RAYLIB_MEDIA_COMMIT="f4bd988"
+RAYLIB_MEDIA_DIR="lib/raylib-media"
+FFMPEG_DIR="lib/ffmpeg"
 
 # Colors
 STEP_COLOR='\033[0;36m'
@@ -309,8 +312,96 @@ install_nlohmann_json() {
   fi
 }
 
+# Install raylib-media
+install_raylib_media() {
+  local media_dir="$RAYLIB_MEDIA_DIR"
+
+  write_step "Checking for raylib-media..."
+  write_debug "Media directory: $media_dir"
+
+  mkdir -p "$media_dir"
+
+  # Check if all 3 files already exist
+  local all_exist=true
+  for f in "raymedia.h" "rmedia.c" "FindFFMPEG.cmake"; do
+    if [[ ! -f "$media_dir/$f" ]]; then
+      all_exist=false
+      break
+    fi
+  done
+
+  if $all_exist; then
+    write_step "raylib-media already installed at $media_dir"
+    return
+  fi
+
+  write_step "raylib-media not found. Downloading..."
+
+  # Try local repo first (developer machines)
+  local local_header="$HOME/Repos/raylib-media/src/raymedia.h"
+  if [[ -f "$local_header" ]]; then
+    write_debug "Found local raylib-media repo at $HOME/Repos/raylib-media"
+    cp "$HOME/Repos/raylib-media/src/raymedia.h" "$media_dir/"
+    cp "$HOME/Repos/raylib-media/src/rmedia.c" "$media_dir/"
+    cp "$HOME/Repos/raylib-media/CMakeModules/FindFFMPEG.cmake" "$media_dir/"
+  else
+    write_debug "No local repo found, downloading from GitHub..."
+    local base_url="https://raw.githubusercontent.com/cloudofoz/raylib-media/$RAYLIB_MEDIA_COMMIT"
+    download_file "$base_url/src/raymedia.h" "$media_dir/raymedia.h"
+    download_file "$base_url/src/rmedia.c" "$media_dir/rmedia.c"
+    download_file "$base_url/CMakeModules/FindFFMPEG.cmake" "$media_dir/FindFFMPEG.cmake"
+  fi
+
+  # Verify installation
+  local all_ok=true
+  for f in "raymedia.h" "rmedia.c" "FindFFMPEG.cmake"; do
+    if [[ ! -f "$media_dir/$f" ]]; then
+      write_err "File not found after install: $media_dir/$f"
+      all_ok=false
+    fi
+  done
+
+  if $all_ok; then
+    write_step "raylib-media installed successfully to $media_dir"
+  else
+    write_err "Installation verification failed!"
+    exit 1
+  fi
+}
+
+# Install FFmpeg development libraries
+install_ffmpeg() {
+  write_step "Checking for FFmpeg development libraries..."
+
+  # Check if already installed via pkg-config
+  if command -v pkg-config &> /dev/null && pkg-config --exists libavcodec 2>/dev/null; then
+    write_step "FFmpeg development libraries already installed"
+    return
+  fi
+
+  if ! command -v sudo &> /dev/null; then
+    write_err "sudo is required but not available for FFmpeg installation"
+    exit 1
+  fi
+
+  write_step "FFmpeg development libraries not found. Installing..."
+  write_debug "Running: sudo apt install -y libavcodec-dev libavformat-dev libavutil-dev libswresample-dev libswscale-dev"
+
+  sudo DEBIAN_FRONTEND=noninteractive apt install -y libavcodec-dev libavformat-dev libavutil-dev libswresample-dev libswscale-dev
+
+  # Verify installation
+  if command -v pkg-config &> /dev/null && pkg-config --exists libavcodec 2>/dev/null; then
+    write_step "FFmpeg development libraries installed successfully"
+  else
+    write_err "FFmpeg installation verification failed!"
+    write_debug "pkg-config --exists libavcodec returned non-zero; libraries may still be installed"
+  fi
+}
+
 # Main execution
 remove_old_raylib
 install_raylib
 install_tileson
 install_nlohmann_json
+install_raylib_media
+install_ffmpeg

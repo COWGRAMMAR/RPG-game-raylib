@@ -92,7 +92,7 @@ struct GameSnapshot {
     std::string mapDisplayName;
 
     /*=== Meta ===*/
-    int version = SNAPSHOT_VERSION;
+    int version = -1;  // -1 = unloaded/invalid; SNAPSHOT_VERSION = successfully loaded
     std::string timestamp;
     int slotIndex = -1;     /**< -1 = unassigned */
     int worldgenSlot = -1;  /**< -1 = not worldgen */

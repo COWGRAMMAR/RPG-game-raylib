@@ -100,12 +100,6 @@ bool SaveManager::EnsureDirs(int slot)
         && EnsureDir(base + "/checkpoints");
 }
 
-bool SaveManager::HasAnySave(int slot)
-{
-    return HasSnapshot(GetManualPath(slot))
-        || HasInitial(slot);
-}
-
 /*==============================================================================
  * Atomic Write Helper
  *==============================================================================*/

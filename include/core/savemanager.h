@@ -344,8 +344,6 @@ public:
      * @param slot Nomor slot
      * @return true jika ada minimal satu file save
      */
-    static bool HasAnySave(int slot);
-
     /**
      * @brief Hapus semua file .tmp di saves/
      */

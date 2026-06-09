@@ -10,7 +10,7 @@
 
 #include <string>
 #include "raylib.h"
-#include "lib/raylib-media/raymedia.h"
+#include "raymedia.h"
 
 namespace video {
 

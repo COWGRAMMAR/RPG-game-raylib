@@ -934,9 +934,11 @@ void RestoreGameState(GameState *state)
                 savedMapState.chestsOpened.end()));
         }
 
-        // Restore bomb/crate consumed positions
-        bombManager.SetConsumedPositions(savedMapState.bombConsumedPositions.get<std::unordered_set<std::string>>());
-        crateManager.SetConsumedPositions(savedMapState.crateConsumedPositions.get<std::unordered_set<std::string>>());
+        // Restore bomb/crate consumed positions (guarded against null/non-array JSON)
+        if (!savedMapState.bombConsumedPositions.is_null() && savedMapState.bombConsumedPositions.is_array())
+            bombManager.SetConsumedPositions(savedMapState.bombConsumedPositions.get<std::unordered_set<std::string>>());
+        if (!savedMapState.crateConsumedPositions.is_null() && savedMapState.crateConsumedPositions.is_array())
+            crateManager.SetConsumedPositions(savedMapState.crateConsumedPositions.get<std::unordered_set<std::string>>());
 
         // Restore map history
         if (!savedMapState.mapHistory.empty())

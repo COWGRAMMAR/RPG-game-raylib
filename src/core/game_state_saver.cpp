@@ -713,7 +713,7 @@ void RestoreGameState(GameState *state)
         g_ActiveSaveSlot, hasSavedState, savedEnemyStates.size(), savedItemStates.size(), savedMapState.mapPath.c_str());
 
     // === NEW PATH: SaveManager (preferred) ===
-    if (g_ActiveSaveSlot >= 0)
+    if (g_ActiveSaveSlot >= 0 && SaveManager::HasManual(g_ActiveSaveSlot))
     {
         GameSnapshot snap = SaveManager::LoadManual(g_ActiveSaveSlot);
         TraceLog(LOG_INFO, "RestoreGameState: snapshot version=%d (expected=%d) enemies=%zu items=%zu playerPos=(%.0f,%.0f) mapPath='%s' worldgenSlot=%d",
@@ -724,8 +724,15 @@ void RestoreGameState(GameState *state)
         if (snap.version == GameSnapshot::SNAPSHOT_VERSION)
         {
             SaveManager::ApplyPostSpawn(snap);
+            TraceLog(LOG_INFO, "RestoreGameState: restored via SaveManager (slot %d)", g_ActiveSaveSlot);
             return;
         }
+        TraceLog(LOG_WARNING, "RestoreGameState: snapshot version mismatch (%d != %d), falling back to old format",
+            snap.version, GameSnapshot::SNAPSHOT_VERSION);
+    }
+    else if (g_ActiveSaveSlot >= 0)
+    {
+        TraceLog(LOG_INFO, "RestoreGameState: no new-format snapshot for slot %d, trying old-format fallback", g_ActiveSaveSlot);
     }
 
     // === OLD PATH FALLBACK: restore dari global state ===

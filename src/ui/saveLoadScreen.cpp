@@ -188,6 +188,7 @@ void SaveLoadScreen::Update(GameState* state, Vector2 mousePosition, bool mouseC
             m_showDeletePopup = false;
             SaveManager::DeleteSlot(m_selectedSlot);
             RefreshSlotMetadata();
+            m_selectedSlot = -1;
         } else if (!m_deletePopup.IsActive()) {
             m_showDeletePopup = false; // Cancelled
         }

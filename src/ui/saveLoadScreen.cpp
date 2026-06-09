@@ -474,13 +474,18 @@ void SaveLoadScreen::RefreshSlotMetadata()
 {
     for (int i = 0; i < MANUAL_SLOT_COUNT + AUTOSAVE_SLOT_COUNT; i++)
     {
-        std::string path = "saves/slot_" + std::to_string(i) + "/manual/manual.json";
+        std::string oldPath = "saves/slot_" + std::to_string(i) + "/manual/manual.json";
+        bool hasOldFormat = std::filesystem::exists(oldPath);
+        bool hasNewFormat = SaveManager::HasManual(i);
 
-        if (std::filesystem::exists(path))
+        if (hasOldFormat || hasNewFormat)
         {
             slotOccupied[i] = true;
+            std::string metaPath = hasNewFormat
+                ? SaveManager::GetManualPath(i)
+                : oldPath;
             try {
-                std::ifstream file(path);
+                std::ifstream file(metaPath);
                 nlohmann::json root;
                 file >> root;
 
@@ -489,7 +494,7 @@ void SaveLoadScreen::RefreshSlotMetadata()
                 if (root.contains("timestamp")) {
                     slotTimestamp[i] = root["timestamp"].get<std::string>();
                 } else {
-                    auto ftime = std::filesystem::last_write_time(path);
+                    auto ftime = std::filesystem::last_write_time(metaPath);
                     auto sctp = std::chrono::time_point_cast<std::chrono::system_clock::duration>(
                         ftime - decltype(ftime)::clock::now() + std::chrono::system_clock::now());
                     std::time_t cftime = std::chrono::system_clock::to_time_t(sctp);

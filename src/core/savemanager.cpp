@@ -914,7 +914,7 @@ void SaveManager::ApplyPostSpawn(const GameSnapshot& snap)
 
     /*--- Map: camera ---*/
     camera.target = snap.cameraTarget;
-    camera.zoom = snap.cameraZoom;
+    camera.zoom = snap.cameraZoom > 0.0f ? snap.cameraZoom : 1.0f;
 
     /*--- Map: history ---*/
     if (!snap.mapHistory.empty())

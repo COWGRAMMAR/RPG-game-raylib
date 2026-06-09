@@ -425,8 +425,11 @@ GameSnapshot SaveManager::Deserialize(const json& root)
     {
         const auto& map = root.at("map");
         snap.mapPath = map.value("mapPath", "");
-        snap.cameraTarget.x = map.at("cameraTarget")[0].get<float>();
-        snap.cameraTarget.y = map.at("cameraTarget")[1].get<float>();
+        if (map.contains("cameraTarget") && map["cameraTarget"].is_array() && map["cameraTarget"].size() >= 2)
+        {
+            snap.cameraTarget.x = map["cameraTarget"][0].get<float>();
+            snap.cameraTarget.y = map["cameraTarget"][1].get<float>();
+        }
         snap.cameraZoom = map.value("cameraZoom", 1.0f);
         snap.mapDisplayName = map.value("mapDisplayName", "");
 

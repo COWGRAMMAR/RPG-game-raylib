@@ -71,6 +71,7 @@ SaveLoadScreen::~SaveLoadScreen()
  */
 void SaveLoadScreen::Show()
 {
+    m_mode = SaveLoadMode::SAVE_MODE; // Defensive reset - callers should SetMode() before Show()
     active = true;
     if (!texturesLoaded) {
         // Texture akan dimuat di task mendatang jika diperlukan
@@ -511,6 +512,8 @@ void SaveLoadScreen::DrawSlotGrid(Vector2 mousePosition)
         bool enabled;
         if (m_mode == SaveLoadMode::DELETE_MODE) {
             enabled = slotOccupied[i];
+        } else if (m_mode == SaveLoadMode::LOAD_MODE) {
+            enabled = slotOccupied[i]; // Only occupied autosaves enabled in load mode
         } else {
             enabled = !(m_mode == SaveLoadMode::SAVE_MODE); // Autosave disabled in save mode
         }
@@ -524,6 +527,8 @@ void SaveLoadScreen::DrawSlotGrid(Vector2 mousePosition)
         bool enabled;
         if (m_mode == SaveLoadMode::DELETE_MODE) {
             enabled = slotOccupied[i];
+        } else if (m_mode == SaveLoadMode::LOAD_MODE) {
+            enabled = slotOccupied[i]; // Only occupied autosaves enabled in load mode
         } else {
             enabled = !(m_mode == SaveLoadMode::SAVE_MODE); // Autosave disabled in save mode
         }

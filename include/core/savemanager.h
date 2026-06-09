@@ -141,9 +141,12 @@ public:
      * @param snap Snapshot sumber
      *
      * HARUS dipanggil SEBELUM InitAll / SpawnEnemiesFromMap / SpawnObject.
-     * - Restore DeadEntities set
      * - Set consumed positions (chest/bomb/crate) — biar SpawnObject() skip yg udah dikonsumsi
      * - Set barrier state
+     *
+     * @note Dead entities tidak direstore di sini. Kematian per-instance enemy
+     *       menggunakan UUID tracking (RegisterDeathByUUID). ApplyPostSpawn menangani
+     *       dead enemies via MapObjectID+Name matching langsung.
      */
     static void ApplyPreSpawn(const GameSnapshot& snap);
 

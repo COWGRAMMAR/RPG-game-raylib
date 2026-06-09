@@ -730,13 +730,7 @@ void SaveManager::ApplyPreSpawn(const GameSnapshot& snap)
     if (snap.version != GameSnapshot::SNAPSHOT_VERSION)
         return;
 
-    // Restore dead entities set — prevents dead enemies from respawning
-    if (!snap.deadEntities.empty())
-    {
-        Entities::SetDeadEntities(snap.deadEntities);
-        TraceLog(LOG_INFO, "[SaveManager] PreSpawn: restored %zu dead entities", snap.deadEntities.size());
-    }
-
+    // Dead enemies handled per-instance by ApplyPostSpawn, not per-spawn-point here
     /*--- Props: chest consumed (biar SpawnObject skip yg udah diambil) ---*/
     if (!snap.chestConsumed.empty())
         chestManager.SetConsumedPositions(snap.chestConsumed);
@@ -819,7 +813,18 @@ void SaveManager::ApplyPostSpawn(const GameSnapshot& snap)
         {
             if (!saved.isAlive)
             {
-                Entities::RegisterDeath(GetCurrentMapPath(), saved.mapObjectID);
+                // Deactivate matched enemy directly; RegisterDeath would poison the shared MapObjectID
+                for (auto& enemy : enemyReg)
+                {
+                    if (!enemy || matchedEnemies.count(enemy)) continue;
+                    if (enemy->MapObjectID == saved.mapObjectID && enemy->Name == saved.enemyName)
+                    {
+                        enemy->IsActive = false;
+                        enemy->Health = 0.0f;
+                        matchedEnemies.insert(enemy);
+                        break;
+                    }
+                }
                 continue;
             }
 
@@ -951,7 +956,18 @@ void SaveManager::ApplyCheckpointData(const GameSnapshot& snap)
         {
             if (!saved.isAlive)
             {
-                Entities::RegisterDeath(GetCurrentMapPath(), saved.mapObjectID);
+                // Deactivate matched enemy directly; RegisterDeath would poison the shared MapObjectID
+                for (auto& enemy : enemyReg)
+                {
+                    if (!enemy || matchedEnemies.count(enemy)) continue;
+                    if (enemy->MapObjectID == saved.mapObjectID && enemy->Name == saved.enemyName)
+                    {
+                        enemy->IsActive = false;
+                        enemy->Health = 0.0f;
+                        matchedEnemies.insert(enemy);
+                        break;
+                    }
+                }
                 continue;
             }
 

@@ -97,7 +97,7 @@ static void CleanupTmpFiles();  // Hapus semua file .tmp di saves/
 
 | Method | Use Case | Yang di-restore |
 |--------|----------|-----------------|
-| `ApplyPreSpawn(snap)` | Sebelum `InitAll` / `SpawnEnemiesFromMap` / `SpawnObject` | deadEntities, chest/bomb/crate consumed positions, barrier state |
+| `ApplyPreSpawn(snap)` | Sebelum `InitAll` / `SpawnEnemiesFromMap` / `SpawnObject` | chest/bomb/crate consumed positions, barrier state (dead entities tidak direstore di sini — lihat per-instance UUID tracking) |
 | `ApplyPostSpawn(snap)` | Setelah `InitAll` (full state restore) | Player stats/inventory/position/animation/combat, enemies (by UUID then MapObjectID+Name), items (full replacement), consumed props, barrier, camera, mapHistory |
 | `ApplyCheckpointData(snap)` | Map transition (partial restore) | Enemies (by UUID then MapObjectID+Name), items (by UUID then index), consumed props |
 
@@ -170,8 +170,14 @@ item.uuid = GenerateUUID();
 
 ### Enemy Matching Order (di ApplyPostSpawn)
 
+#### Alive Enemies
 1. **UUID match** — cocokkan snapshot enemy dengan live enemy by UUID
 2. **MapObjectID + Name fallback** — jika UUID tidak cocok, fallback ke kombinasi `mapObjectID` + `enemyName`
+
+#### Dead Enemies (!isAlive)
+- Tidak menggunakan `RegisterDeath(MapObjectID)` (menghindari spawn point poisoning)
+- Langsung cari spawned enemy dengan `MapObjectID + Name` yang cocok, lalu **deactivate** (IsActive=false, Health=0)
+- Jika tidak ada yang cocok (misal spawn count berbeda), enemy baru tetap hidup — ini lebih baik dari kehilangan seluruh spawn point
 
 ### Item Replacement (Snapshot Source of Truth)
 
@@ -195,9 +201,15 @@ Snapshot adalah source of truth untuk items — seluruh `activeItems` diganti de
 
 Untuk checkpoint load, `ApplyCheckpointData()` melakukan partial restore: mencocokkan item by UUID dulu, lalu fallback ke index-based.
 
-### Dead Entity Filtering
+### Dead Entity Filtering (Per-Instance UUID)
 
-`Entities::IsAlreadyDead(entityId)` dicek di `SpawnEnemiesFromMap()` — jika entity ID ada di dead set, enemy tidak di-spawn. Dead entities di-restore via `ApplyPreSpawn()` sebelum spawn.
+Sebelum bugfix (commit `fc58754`): `Entities::IsAlreadyDead(mapPath, objectId)` dicek di `SpawnEnemiesFromMap()` — jika MapObjectID ada di dead set, **seluruh spawn point** dilewati. Rectangle-spawned enemy (banyak enemy dengan MapObjectID sama) jadi ikut hilang walau hanya satu yang mati.
+
+**Sekarang**: `Enemy::Update()` menggunakan `Entities::RegisterDeathByUUID(mapPath, uuid)` — setiap enemy dicatat secara individual via UUID unik. `SpawnEnemiesFromMap()` selalu spawn dari semua spawn point. Kematian per-instance ditangani oleh `ApplyPostSpawn()` / `ApplyCheckpointData()`:
+1. Untuk `!isAlive` enemy: cocokkan dengan spawned enemy via `MapObjectID + Name`, lalu deactivate langsung
+2. Tidak memanggil `RegisterDeath(MapObjectID)` — ini yang menyebabkan spawn point poisoning
+
+Safety net `PruneDeadEntities()` menggunakan `IsDeadByUUID()` (UUID-based) bukan `IsAlreadyDead()` (MapObjectID-based).
 
 ---
 
@@ -220,7 +232,7 @@ Dipanggil saat loading dari main menu (save file ada, assets cached).
    - InitEnemy()
    - InitItems() → SpawnAll (spawn items dari map)
    - SpawnObject() → spawn chests, bombs, crates
-   - SpawnEnemiesFromMap() → spawn enemies (skip dead)
+   - SpawnEnemiesFromMap() → spawn all enemies (dead handled per-instance by ApplyPostSpawn)
    - SaveInitial()
 5. RestoreGameState():
    - LoadManual(g_ActiveSaveSlot)
@@ -511,9 +523,33 @@ Commit `83c23e3` — Finalisasi wiring SaveManager ke semua module.
 Commit `18de54e` — Update player attributes + SAVE_VERSION kembali ke **3** (Wave 7 sebelumnya menurunkan ke 2).
 Merge `9307fff` — 53 commit origin/main, fast-forward, zero conflict.
 
+### Bugfix — Enemy Persistence (2026-06-09)
+
+Commit `fc58754`
+
+**Problem**: Rectangle-spawned enemy (banyak enemy dari satu rectangle spawn) menggunakan MapObjectID yang sama. Saat satu enemy mati, `RegisterDeath(MapObjectID)` menandai **seluruh spawn point** sebagai dead. `SpawnEnemiesFromMap` melewati spawn point tersebut, sehingga semua enemy dari rectangle itu hilang saat load (termasuk yang masih hidup).
+
+**Fix: Per-Instance UUID Death Tracking**
+- `Entities::RegisterDeathByUUID(mapPath, uuid)` — tracking per-instance via UUID unik
+- `Entities::IsDeadByUUID(mapPath, uuid)` — pengecekan kematian per-instance
+- `Enemy::Update()` menggunakan UUID death, bukan MapObjectID death
+- `SpawnEnemiesFromMap()` selalu spawn dari semua spawn point
+- `ApplyPreSpawn()` tidak lagi restore `deadEntities` (tidak ada spawn point poisoning)
+- `ApplyPostSpawn()` / `ApplyCheckpointData()` — untuk `!isAlive` enemy: match langsung dengan spawned enemy via MapObjectID+Name, lalu deactivate. Tidak panggil `RegisterDeath(MapObjectID)`.
+- `PruneDeadEntities()` menggunakan `IsDeadByUUID()` sebagai safety net
+- `ClearDeadEntities()` juga membersihkan `DeadEntitiesByUUID`
+
+| File | Perubahan |
+|---|---|
+| `include/entities/entities.h` | + `RegisterDeathByUUID()` / `IsDeadByUUID()` |
+| `include/core/savemanager.h` | Update docstring `ApplyPreSpawn` |
+| `src/entities/entities.cpp` | + DeadEntitiesByUUID, implementasi UUID death, update `PruneDeadEntities` dan `ClearDeadEntities` |
+| `src/entities/enemies/enemy.cpp` | `Enemy::Update()` → UUID death; `SpawnEnemiesFromMap()` → no IsAlreadyDead skip |
+| `src/core/savemanager.cpp` | `ApplyPreSpawn` no SetDeadEntities; `ApplyPostSpawn`/`ApplyCheckpointData` deactivate matched enemies directly |
+
 Perubahan terakhir pada dokumentasi:
 | File | Perubahan |
 |---|---|
-| `docs/save-system.md` | Restrukturasi: SNAPSHOT_VERSION=1, koreksi API, hapus percakapan informal |
+| `docs/save-system.md` | Restrukturasi: SNAPSHOT_VERSION=1, koreksi API, hapus percakapan informal; tambah dokumentasi bugfix enemy persistence per-instance UUID |
 | `.agent/save-system-context.md` | Baru — konteks AI agent berbahasa Inggris |
 | `docs/save-system-changelog.md` | Digabung ke sini (Section 9) |

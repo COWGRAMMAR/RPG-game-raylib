@@ -50,14 +50,12 @@ namespace Combat
         {
             player.ManaRegenTimer -= Time::DELTA_TIME;
         }
-        else
+
+        if (player.Mana < player.MaxMana)
         {
-            if (player.Mana < player.MaxMana)
-            {
-                player.Mana += player.ManaRegenRate * Time::DELTA_TIME;
-                if (player.Mana > player.MaxMana)
-                    player.Mana = player.MaxMana;
-            }
+            player.Mana += player.ManaRegenRate * Time::DELTA_TIME;
+            if (player.Mana > player.MaxMana)
+                player.Mana = player.MaxMana;
         }
     }
 
@@ -118,17 +116,58 @@ namespace Combat
                     player.attack.timer = 0;
                     player.attack.damagedEntities.clear();
                     player.attack.center = playerCenter;
+                    player.attack.startCenter = playerCenter;
                     player.attack.raycastAngle = angle;
 
                     Inventory::SetupAttackStats(player, attackFaceDir);
 
+                    if (player.attack.weapon && player.attack.weapon->attackType == ATTACK_THRUST)
+                    {
+                        player.IsDashing = true;
+                        player.DashDuration = player.DashDurationMax;
+                        player.DashSpeed = player.DashMaxSpeed;
+                        AudioManager::PlaySFX("dash");
+                    }
+
                     player.Anim.isAttacking = true;
-                    AudioManager::PlaySfx();
                     TraceLog(LOG_INFO, "PLAYER: Serangan diarahkan ke (%.2f, %.2f)", attackDir.x, attackDir.y);
+
+                    const ItemDefinition &def = itemDefs.GetById(activeItem.definitionId);
+                    if (player.attack.weapon)
+                    {
+                        if (player.attack.weapon->attackType == ATTACK_THRUST || def.spriteKey == "spear")
+                        {
+                            AudioManager::PlaySFX("thrust");
+                        }
+                        else if (def.spriteKey == "sword1")
+                        {
+                            AudioManager::PlaySFX("slash-short");
+                        }
+                        else if (def.spriteKey == "sword2" || def.spriteKey == "axe" || player.attack.weapon->attackType == ATTACK_SLASH)
+                        {
+                            AudioManager::PlaySFX("slash-mid");
+                        }
+                        else if (def.spriteKey == "bow")
+                        {
+                            AudioManager::PlaySFX("arrow");
+                        }
+                        else if (def.spriteKey == "ak47")
+                        {
+                            AudioManager::PlaySFX("rifle");
+                        }
+                        else if (player.attack.weapon->attackType == ATTACK_SLAM || def.spriteKey == "hammer")
+                        {
+                            AudioManager::PlaySFX("slam");
+                        }
+                    }
 
                     if (player.attack.weapon->attackType == ATTACK_PIERCE)
                     {
-                        Arrow* arrow = new Arrow(playerCenter, attackDir, 300.0f, player.attack.weapon->damage, player.attack.weapon->reach, angle, &player);
+                        float arrowSpeed = (player.attack.weapon->duration > 0.0f) ? 
+                            (player.attack.weapon->reach / player.attack.weapon->duration) : 300.0f;
+                        std::string projSprite = (def.spriteKey == "ak47") ? "bullet" : "arrow";
+                        float arrowDamage = player.attack.weapon->damage * player.BuffDamageMultiplier;
+                        Arrow* arrow = new Arrow(playerCenter, attackDir, arrowSpeed, arrowDamage, player.attack.weapon->reach, angle, &player, player.attack.weapon->knockbackForce, projSprite);
                         Entities::AddDynamic(arrow);
                     }
                 }
@@ -168,32 +207,55 @@ namespace Combat
         return 0.0f;
     }
 
-    SwingVisual CalcSwingVisual(const Attack &atk, Direction dir, float progress)
+    SwingVisual CalcSwingVisual(const Attack &atk, Direction dir, Direction lastHorizDir, float progress, const std::string &spriteKey)
     {
-        float startAngle = GetBaseAngle(dir) + atk.weapon->startAngleOffset;
+        bool isRight = (lastHorizDir == RIGHT);
+        float sign = isRight ? 1.0f : -1.0f;
+        float startAngle = GetBaseAngle(dir) + (atk.weapon->startAngleOffset * sign);
 
         switch (atk.weapon->attackType)
         {
         case ATTACK_SLASH:
-            return {Slash(atk.raycastAngle, progress), 0.0f};
+            if (spriteKey == "sword2" || spriteKey == "axe")
+                return {SwingMidMid(atk.raycastAngle, progress, isRight), 0.0f};
+            return {SwingShortMid(atk.raycastAngle, progress, isRight), 0.0f};
 
         case ATTACK_THRUST:
-            return {startAngle, progress * THRUST_DISTANCE};
+        {
+            float thrustProgress = 0.0f;
+            if (progress < 0.25f)
+            {
+                // Menusuk dengan cepat dalam 25% durasi pertama (Ease-out)
+                float t = progress / 0.25f;
+                thrustProgress = t * (2.0f - t);
+            }
+            else
+            {
+                // Menarik kembali tombak secara bertahap dalam 75% durasi sisanya
+                float t = (progress - 0.25f) / 0.75f;
+                thrustProgress = 1.0f - t;
+            }
+            // Jarak tusukan yang lebih dinamis berdasarkan jangkauan (reach) senjata
+            float maxThrust = std::max(24.0f, atk.weapon->reach * 0.4f);
+            return {atk.raycastAngle, thrustProgress * maxThrust};
+        }
 
         case ATTACK_PIERCE:
-            return {startAngle, progress * -8.0f};
+            return {atk.raycastAngle, progress * -8.0f};
 
         case ATTACK_SLAM:
         {
             float slamProgress = progress * progress;
+            if (spriteKey == "hammer")
+                return {SwingShortSlow(atk.raycastAngle, progress, isRight), slamProgress * SLAM_THRUST};
             return {
-                startAngle + (slamProgress * atk.weapon->sweepAngle),
+                startAngle + (slamProgress * atk.weapon->sweepAngle * sign),
                 slamProgress * SLAM_THRUST};
         }
 
         default:
             return {
-                startAngle + (progress * atk.weapon->sweepAngle),
+                startAngle + (progress * atk.weapon->sweepAngle * sign),
                 0.0f};
         }
     }
@@ -253,7 +315,7 @@ namespace Combat
         Vector2 entityCenter = {target->Position.x + FRAME_SIZE / 2, target->Position.y + FRAME_SIZE / 2};
         Vector2 knockDir = Vector2Normalize(Vector2Subtract(entityCenter, playerCenter));
 
-        float damage = player.attack.weapon->damage;
+        float damage = player.attack.weapon->damage * player.BuffDamageMultiplier;
         Vector2 knockback = Vector2Scale(knockDir, player.attack.weapon->knockbackForce);
         target->TakeDamage(damage, knockback);
 
@@ -263,31 +325,62 @@ namespace Combat
         TraceLog(LOG_INFO, "COMBAT: Pemain mengenai musuh! Damage: %.1f", damage);
     }
 
-    void CalcIdleWeaponPose(Direction dir, Direction lastHorizDir, float &outAngle, float &outOffsetRight)
+    void CalcIdleWeaponPose(Direction dir, Direction lastHorizDir, float &outAngle, float &outOffsetRight, const std::string &spriteKey)
     {
         outAngle = 0.0f;
-        outOffsetRight = 0.0f;
+        outOffsetRight = 0.8f;
 
         bool isRight = (lastHorizDir == RIGHT);
+        bool exactHorizontal = (spriteKey == "bow" || spriteKey == "bowDraw" || spriteKey == "ak47");
 
         switch (dir)
         {
         case RIGHT:
-            outAngle = -9.0f;
-            outOffsetRight = 0.8f;
+            outAngle = exactHorizontal ? 0.0f : -9.0f;
             break;
         case LEFT:
-            outAngle = 189.0f;
+            outAngle = exactHorizontal ? 180.0f : 189.0f;
             break;
         case UP:
             outAngle = isRight ? -60.0f : -120.0f;
-            outOffsetRight = isRight ? 0.8f : 0.0f;
             break;
         case DOWN:
             outAngle = isRight ? 60.0f : 120.0f;
-            outOffsetRight = isRight ? 0.8f : 0.0f;
             break;
         }
+    }
+
+    void DrawThrustEffect(const Player &player, const std::string &spriteKey, float rayAngle)
+    {
+        float progress = player.attack.timer / player.attack.weapon->duration;
+        std::string effectSpriteKey;
+
+        if (progress >= 0.2f && progress < 0.5f) effectSpriteKey = "thrust0101";
+        else if (progress >= 0.5f && progress < 0.8f) effectSpriteKey = "thrust0102";
+        else if (progress >= 0.8f) effectSpriteKey = "thrust0103";
+
+        if (effectSpriteKey.empty()) return;
+
+        const Frame &frame = GetFrame(effectSpriteKey);
+        float radRay = rayAngle * (PI / 180.0f);
+
+        Vector2 pos = player.attack.center;
+        float dist = player.attack.weapon->reach * 0.8f;
+        pos.x += cosf(radRay) * dist;
+        pos.y += sinf(radRay) * dist;
+
+        Display display;
+        display.position = pos;
+        display.size = 32;
+        display.offset = {0, 0};
+        display.origin = {
+            (float)frame.width * display.size / 2.0f,
+            (float)frame.height * display.size / 2.0f};
+        display.rotation = rayAngle;
+        display.tint = WHITE;
+        display.flip = false;
+
+        DrawFrame(frame, display);
     }
 
     void DrawSlashTrail(const Player &player, const std::string &spriteKey, float rayAngle)
@@ -295,13 +388,19 @@ namespace Combat
         float progress = player.attack.timer / player.attack.weapon->duration;
         std::string slashSpriteKey;
 
-        if (progress >= 1.0f / 3.0f && progress < 2.0f / 3.0f)
+        bool isShort = (spriteKey == "sword1");
+
+        if (progress >= 2.0f / 5.0f && progress < 3.0f / 5.0f)
         {
-            slashSpriteKey = (spriteKey == "sword1") ? "slashLightGraySmall1" : "slashSilverBlueMedium1";
+            slashSpriteKey = isShort ? "slashShort0101" : "slashMedium0101";
         }
-        else if (progress >= 2.0f / 3.0f)
+        else if (progress >= 3.0f / 5.0f && progress < 4.0f / 5.0f)
         {
-            slashSpriteKey = (spriteKey == "sword1") ? "slashLightGraySmall2" : "slashSilverBlueMedium2";
+            slashSpriteKey = isShort ? "slashShort0102" : "slashMedium0102";
+        }
+        else if (progress >= 4.0f / 5.0f)
+        {
+            slashSpriteKey = isShort ? "slashShort0101" : "slashMedium0101";
         }
 
         if (slashSpriteKey.empty())
@@ -311,15 +410,18 @@ namespace Combat
         float radRay = rayAngle * (PI / 180.0f);
 
         Vector2 slashPos = player.attack.center;
-        float slashDist = player.attack.weapon->reach * 0.65f;
+        float slashDist = player.attack.weapon->reach * 0.5f;
         slashPos.x += cosf(radRay) * slashDist;
         slashPos.y += sinf(radRay) * slashDist;
 
-        if (progress >= 2.0f / 3.0f)
+        bool isRight = (player.LastHorizDir == RIGHT);
+        float sign = isRight ? 1.0f : -1.0f;
+
+        if (progress >= 3.0f / 5.0f && progress < 4.0f / 5.0f)
         {
-            float shiftAngleRad = (rayAngle - 90.0f) * (PI / 180.0f);
-            float H = (spriteKey == "sword1") ? 26.0f : 37.0f;
-            float backDist = (spriteKey == "sword1") ? 16.0f : 19.5f;
+            float shiftAngleRad = (rayAngle + (90.0f * sign)) * (PI / 180.0f);
+            float H = isShort ? 26.0f : 37.0f;
+            float backDist = isShort ? 16.0f : 19.5f;
             slashPos.x += cosf(shiftAngleRad) * H;
             slashPos.y += sinf(shiftAngleRad) * H;
 
@@ -334,8 +436,16 @@ namespace Combat
         slashDisplay.origin = {
             (float)slashFrame.width * slashDisplay.size / 2.0f,
             (float)slashFrame.height * slashDisplay.size / 2.0f};
-        slashDisplay.rotation = rayAngle + 90.0f;
+        
+        float renderAngle = rayAngle;
+        if (progress >= 4.0f / 5.0f)
+        {
+            renderAngle = rayAngle + 90.0f * sign;
+        }
+        
+        slashDisplay.rotation = renderAngle;
         slashDisplay.tint = WHITE;
+        slashDisplay.flip = !isRight;
 
         DrawFrame(slashFrame, slashDisplay);
     }
@@ -345,7 +455,7 @@ namespace Combat
         if (!player.attack.active || !player.attack.weapon)
             return;
 
-        Vector2 playerCenter = player.GetCenter();
+        Vector2 attackCenter = (player.attack.weapon->attackType == ATTACK_SLAM) ? player.attack.startCenter : player.attack.center;
         float reach = player.attack.weapon->reach;
         float breadth = player.attack.weapon->breadth;
         float attackAngle = player.attack.raycastAngle;
@@ -363,13 +473,56 @@ namespace Combat
             if (std::find(dmg.begin(), dmg.end(), entity) != dmg.end())
                 continue;
 
-            if (CheckRadialCollision(playerCenter, attackAngle, reach, breadth, attackerRadius, entity->GetHitbox()))
+            bool hit = false;
+            if (player.attack.weapon->attackType == ATTACK_SLAM)
             {
-                ApplyHitToEntity(player, entity, playerCenter);
+                float radiusTiles = std::floor(reach / 32.0f);
+                float gridSize = 2.0f * radiusTiles + 1.0f;
+                float tX = std::floor(attackCenter.x / 32.0f);
+                float tY = std::floor(attackCenter.y / 32.0f);
+                Rectangle slamAABB = {
+                    (tX - radiusTiles) * 32.0f,
+                    (tY - radiusTiles) * 32.0f,
+                    gridSize * 32.0f,
+                    gridSize * 32.0f
+                };
+                if (CheckCollisionRecs(slamAABB, entity->GetHitbox()))
+                {
+                    hit = true;
+                }
+            }
+            else
+            {
+                if (CheckRadialCollision(attackCenter, attackAngle, reach, breadth, attackerRadius, entity->GetHitbox()))
+                {
+                    hit = true;
+                }
+            }
+
+            if (hit)
+            {
+                ApplyHitToEntity(player, entity, attackCenter);
             }
         }
 
-        Rectangle attackAABB = GetAttackAABB(playerCenter, attackAngle, reach, breadth, attackerRadius);
+        Rectangle attackAABB;
+        if (player.attack.weapon->attackType == ATTACK_SLAM)
+        {
+            float radiusTiles = std::floor(reach / 32.0f);
+            float gridSize = 2.0f * radiusTiles + 1.0f;
+            float tX = std::floor(attackCenter.x / 32.0f);
+            float tY = std::floor(attackCenter.y / 32.0f);
+            attackAABB = {
+                (tX - radiusTiles) * 32.0f,
+                (tY - radiusTiles) * 32.0f,
+                gridSize * 32.0f,
+                gridSize * 32.0f
+            };
+        }
+        else
+        {
+            attackAABB = GetAttackAABB(attackCenter, attackAngle, reach, breadth, attackerRadius);
+        }
         HitPropsByAttack(attackAABB, PlayerInstance.GetHitbox(), &player);
     }
 
@@ -410,10 +563,19 @@ namespace Combat
         float rayAngle;
         float offsetRight = 0.0f;
 
+        std::string spriteKey = def.spriteKey;
+        if (spriteKey == "bow")
+        {
+            if (player.attack.active)
+                spriteKey = "bow";
+            else
+                spriteKey = "bowDraw";
+        }
+
         if (player.attack.active)
         {
             float progress = player.attack.timer / player.attack.weapon->duration;
-            SwingVisual visual = CalcSwingVisual(player.attack, player.Anim.direction, progress);
+            SwingVisual visual = CalcSwingVisual(player.attack, player.Anim.direction, player.LastHorizDir, progress, spriteKey);
 
             visualPos = player.attack.center;
             drawAngle = visual.angle;
@@ -429,7 +591,7 @@ namespace Combat
             else if (player.Anim.direction == LEFT)
                 player.LastHorizDir = LEFT;
 
-            CalcIdleWeaponPose(player.Anim.direction, player.LastHorizDir, rayAngle, offsetRight);
+            CalcIdleWeaponPose(player.Anim.direction, player.LastHorizDir, rayAngle, offsetRight, spriteKey);
             drawAngle = rayAngle;
             thrust = 0.0f;
         }
@@ -438,53 +600,108 @@ namespace Combat
         visualPos.x += cosf(rad) * thrust;
         visualPos.y += sinf(rad) * thrust;
 
-        std::string spriteKey = def.spriteKey;
-        if (spriteKey == "bow")
-        {
-            if (player.attack.active)
-                spriteKey = "bow";
-            else
-                spriteKey = "bowDraw";
-        }
-
         const Frame &frame = GetFrame(spriteKey);
+
+        bool isRight = (player.LastHorizDir == RIGHT);
 
         Display display;
         display.position = visualPos;
         display.size = 32;
         display.offset = {0, 1 + offsetRight};
-        display.origin = {17.0f, (float)(frame.height * display.size)};
-        display.rotation = drawAngle + 90.0f;
         display.tint = WHITE;
+        display.flip = !isRight;
+
+        float renderAngle = drawAngle;
+        Vector2 origin = {0.0f, 17.0f};
+
+        if (!isRight)
+        {
+            renderAngle = drawAngle - 180.0f;
+            origin = {(float)(frame.width * display.size), 17.0f};
+        }
+
+        display.origin = origin;
+        display.rotation = renderAngle;
 
         DrawFrame(frame, display);
 
-        if (player.attack.active && player.attack.weapon &&
-            player.attack.weapon->attackType == ATTACK_SLASH &&
-            (def.spriteKey == "sword1" || def.spriteKey == "sword2"))
+        if (player.attack.active && player.attack.weapon)
         {
-            DrawSlashTrail(player, def.spriteKey, player.attack.raycastAngle);
+            // if (player.attack.weapon->attackType == ATTACK_SLASH &&
+            //     (def.spriteKey == "sword1" || def.spriteKey == "sword2" || def.spriteKey == "axe"))
+            // {
+            //     DrawSlashTrail(player, def.spriteKey, player.attack.raycastAngle);
+            // }
+            // else if (player.attack.weapon->attackType == ATTACK_THRUST)
+            // {
+            //     DrawThrustEffect(player, def.spriteKey, player.attack.raycastAngle);
+            // }
+            
+            // if (player.attack.weapon->attackType == ATTACK_SLAM)
+            // {
+            //     float progress = player.attack.timer / player.attack.weapon->duration;
+            //     float tX = std::floor(player.attack.startCenter.x / 32.0f);
+            //     float tY = std::floor(player.attack.startCenter.y / 32.0f);
+
+            //     for (int x = -2; x <= 2; ++x)
+            //     {
+            //         for (int y = -2; y <= 2; ++y)
+            //         {
+            //             Vector2 tilePos = {
+            //                 (tX + x) * 32.0f,
+            //                 (tY + y) * 32.0f
+            //             };
+            //             TileCollisionEffect(tilePos, progress);
+            //         }
+            //     }
+            // }
+        }
+    }
+
+    void DrawSwingGroundEffect(Player &player)
+    {
+        if (player.attack.active && player.attack.weapon)
+        {
+            if (player.attack.weapon->attackType == ATTACK_SLAM)
+            {
+                float progress = player.attack.timer / player.attack.weapon->duration;
+                float tX = std::floor(player.attack.startCenter.x / 32.0f);
+                float tY = std::floor(player.attack.startCenter.y / 32.0f);
+                float reach = player.attack.weapon->reach;
+                int radiusTiles = (int)std::floor(reach / 32.0f);
+
+                for (int x = -radiusTiles; x <= radiusTiles; ++x)
+                {
+                    for (int y = -radiusTiles; y <= radiusTiles; ++y)
+                    {
+                        Vector2 tilePos = {
+                            (tX + x) * 32.0f,
+                            (tY + y) * 32.0f
+                        };
+                        TileCollisionEffect(tilePos, progress);
+                    }
+                }
+            }
         }
     }
 }
 
-// Arrow Implementation
-Arrow::Arrow(Vector2 pos, Vector2 dir, float speed, float damage, float reach, float rotation, Entity* owner, std::string spriteKey)
+Arrow::Arrow(Vector2 pos, Vector2 dir, float speed, float damage, float reach, float rotation, Entity* owner, float knockbackForce, std::string spriteKey)
 {
     StartPos = pos;
     Reach = reach;
     Position = pos;
     Velocity = Vector2Scale(Vector2Normalize(dir), speed);
     Damage = damage;
+    KnockbackForce = knockbackForce;
     Rotation = rotation;
     Owner = owner;
     SpriteKey = spriteKey;
-    
     LifeTime = 0.0f;
-    MaxLifeTime = 2.0f; // Arrows disappear after 2 seconds
+    MaxLifeTime = 2.0f;
     HasHit = false;
     IsActive = true;
-    Health = 1.0f; // Arrow health
+    Health = 1.0f;
 }
 
 void Arrow::Update()
@@ -507,7 +724,6 @@ void Arrow::Update()
         return;
     }
 
-    // Check collision with map (walls)
     Rectangle hitbox = GetHitbox();
     if (CheckCollisionAgainstRects(hitbox, PlayerInstance.CollisionRects) || 
         CheckCollisionAgainstPolygons(hitbox, PlayerInstance.CollisionPolygons))
@@ -516,7 +732,6 @@ void Arrow::Update()
         return;
     }
     
-    // Check collision with props
     if (CheckCollisionAgainstRects(hitbox, DynamicObstacles))
     {
         HitPropsByAttack(hitbox, PlayerInstance.GetHitbox(), &PlayerInstance);
@@ -524,7 +739,6 @@ void Arrow::Update()
         return;
     }
 
-    // Check collision with entities
     for (auto* entity : Entities::GetRegistry())
     {
         if (entity == this || entity == Owner || !entity->IsActive || entity->Health <= 0)
@@ -532,10 +746,9 @@ void Arrow::Update()
 
         if (CheckCollisionRecs(hitbox, entity->GetHitbox()))
         {
-            Vector2 knockback = Vector2Scale(Vector2Normalize(Velocity), 1.5f);
+            Vector2 knockback = Vector2Scale(Vector2Normalize(Velocity), KnockbackForce);
             entity->TakeDamage(Damage, knockback);
             
-            // Show damage number at entity center
             Vector2 center = entity->GetCenter();
             Effects::AddDamage(center, Damage);
             
@@ -554,7 +767,7 @@ void Arrow::Render()
     display.size = 32;
     display.offset = {0, 0};
     display.origin = {16.0f, 16.0f};
-    display.rotation = Rotation + 90.0f;
+    display.rotation = Rotation;
     display.tint = WHITE;
 
     DrawFrame(SpriteKey, display);
@@ -562,6 +775,5 @@ void Arrow::Render()
 
 Rectangle Arrow::GetHitbox() const
 {
-    // A smaller hitbox for the arrow, centered
     return { Position.x - 4, Position.y - 4, 8, 8 };
 }

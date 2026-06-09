@@ -26,7 +26,7 @@
  * Constants
  *==============================================================================*/
 
-static constexpr int SAVE_VERSION = 2;      /**< Current save file format version */
+static constexpr int SAVE_VERSION = 3;      /**< Current save file format version */
 
 /*==============================================================================
  * Saved State Structures
@@ -57,6 +57,12 @@ struct SavedPlayerState {
     float dashCooldown;                  /**< Remaining dash cooldown timer */
     float manaRegenTimer;                /**< Timer delay before mana regen begins */
     nlohmann::json swingAttack;          /**< Serialized attack state: active, timer, duration, raycastAngle, center, pressHeld */
+
+    int slotIndex = -1;                  /**< Save slot index (0-4 manual, -1 unassigned) */
+    std::string saveType = "manual";     /**< "manual" or "autosave" */
+    float playTime = 0.0f;               /**< Placeholder play time (tracking deferred) */
+    std::string mapDisplayName;          /**< Human-readable map name for UI preview */
+    int worldgenSlot = -1;               /**< Worldgen slot mapping (-1 = unassigned) */
 };
 
 /**
@@ -128,6 +134,60 @@ extern SavedMapState savedMapState;
 extern bool hasSavedState;
 
 /*==============================================================================
+ * Active Slot Tracking
+ *==============================================================================*/
+
+/** @brief Slot save yang sedang aktif (-1 = tidak ada) */
+extern int g_ActiveSaveSlot;
+
+/** @brief Flag apakah ada slot yang sedang aktif */
+extern bool g_SaveSlotActive;
+
+/**
+ * @brief Set slot save yang aktif.
+ * @param slot Nomor slot (0-4 valid, -1 = inactive)
+ * @note Dipanggil saat: manual save, manual load, autosave, new game.
+ *       Reset ke -1 saat kembali ke main menu.
+ */
+void SetActiveSlot(int slot);
+
+/**
+ * @brief Dapatkan slot save yang aktif.
+ * @return Nomor slot aktif, -1 jika tidak ada
+ */
+int GetActiveSlot(void);
+
+/**
+ * @brief Cek apakah ada slot yang sedang aktif.
+ * @return true jika ada slot aktif
+ */
+bool IsSlotActive(void);
+
+/**
+ * @brief Dapatkan path file save untuk slot dan tipe tertentu.
+ * @param slot Nomor slot (0-4)
+ * @param type Tipe save ("manual" atau "autosave")
+ * @return Path lengkap file save (contoh: "saves/slot_2/manual/manual.json")
+ * @note Untuk tipe "manual", return path ke file manual.json.
+ *       Untuk tipe "autosave", return path ke direktori autosave (tanpa nama file).
+ */
+std::string GetSlotPath(int slot, const std::string& type);
+
+/*==============================================================================
+ * Slot Directory Utilities
+ *==============================================================================*/
+
+/**
+ * @brief Pastikan direktori slot save tersedia.
+ * @param slot Nomor slot (0-4)
+ * @details Membuat struktur direktori:
+ *          - saves/slot_N/manual/
+ *          - saves/slot_N/autosave/
+ *          Tidak melakukan apa-apa jika direktori sudah ada.
+ */
+void EnsureSlotDirectory(int slot);
+
+/*==============================================================================
  * State Save/Restore Functions
  *==============================================================================*/
 
@@ -148,15 +208,6 @@ void SaveGameState(GameState *state);
 void RestoreGameState(GameState *state);
 
 /**
- * @brief Restore DeadEntities set from saved map state
- * @details Must be called BEFORE InitAll() / SpawnEnemiesFromMap() to prevent
- *          dead enemies from respawning. Reads from savedMapState.deadEntities
- *          and populates the static DeadEntities set via Entities::SetDeadEntities().
- *          Safe to call even if no save state exists.
- */
-void RestoreDeadEntities(void);
-
-/**
  * @brief Cek apakah ada state tersimpan
  * @return true jika ada state yang bisa di-restore
  * @note Dipakai untuk menentukan apakah ini new game atau resume
@@ -164,25 +215,20 @@ void RestoreDeadEntities(void);
 bool HasSavedState(void);
 
 /**
- * @brief Bersihkan state tersimpan
- * @details Untuk new game dari awal (fresh start)
+ * @brief Reset memory state only, does NOT clear worldseed directories
+ * @details Reset semua state yang tersimpan di memory untuk fresh start.
+ *          Tidak menghapus folder worldseed/save_* — gunakan ResetWorldseed() untuk itu.
  */
-void ClearSavedState(void);
+void ResetMemoryState(void);
 
 /**
- * @brief Set or clear the worldgen pending flag
- * @details When true, RestoreDeadEntities() will be skipped in the loading
- *          screen because WorldgenIO::LoadRuntimeState handles dead entity
- *          restoration. Set before worldgen map switches, cleared after.
+ * @brief Hapus worldseed save_N untuk slot tertentu
+ * @param slotIndex Nomor slot yang akan dibersihkan worldseednya
+ * @details Menghapus folder assets/maps/World_generation/worldseed/save_{slotIndex}
+ *          jika ada. Cocok dipanggil saat New Game confirm untuk membersihkan
+ *          worldseed slot tertentu tanpa menyentuh state memory.
  */
-void SetWorldgenPending(bool pending);
-
-/**
- * @brief Check if a worldgen stage load is pending
- * @return true if the next loading screen should skip RestoreDeadEntities()
- *         (worldgen's LoadRuntimeState will set dead entities instead)
- */
-bool IsWorldgenPending(void);
+void ResetWorldseed(int slotIndex);
 
 /*==============================================================================
  * File I/O Functions
@@ -197,32 +243,31 @@ bool IsWorldgenPending(void);
 bool WriteSaveFile(const std::string& path);
 
 /**
- * @brief Write a timestamped autosave to saves/autosave/ directory
- * @details Calls SaveGameState() then writes to saves/autosave/autosave_DD-MM-YYYY-HH-MM-SS.json.
+ * @brief Write a timestamped autosave to per-slot autosave directory
+ * @details Calls SaveGameState() then writes to saves/slot_N/autosave/autosave_DD-MM-YYYY-HH-MM-SS.json.
  *          Each call generates a unique filename so autosaves never overwrite each other.
- *          Creates the autosave directory if it doesn't exist.
- * @return true if successful, false if write failed
+ *          Creates the slot directory if it doesn't exist.
+ *          After write, prunes to keep only the 5 newest autosave files per slot.
+ * @return true if successful, false if write failed or no active slot
  */
 bool WriteAutosave(const std::string& filename);
 
 /**
  * @brief Read saved state from JSON file
  * @details Reads and deserializes a JSON save file into the global saved state structs.
- *          Validates version == SAVE_VERSION (currently 2).
+ *          Validates version == SAVE_VERSION (currently 3).
  * @param path Path to the save file
  * @return true if successful, false if file not found, parse error, or version mismatch
  */
 bool ReadSaveFile(const std::string& path);
 
-/**
- * @brief Check if a save file exists and has content
- * @param path Path to the save file
- * @return true if file exists and has non-zero size
- */
-bool HasSaveFile(const std::string& path);
+
 
 /**
  * @brief Delete a save file if it exists
  * @param path Path to the save file to delete
  */
 void DeleteSaveFile(const std::string& path);
+
+
+

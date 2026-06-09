@@ -200,6 +200,8 @@ void SetCurrentMapPath(const char *newPath);
 /** @brief Kembali ke map sebelumnya */
 void GoBack(void);
 
+std::string GetMapDisplayName(const std::string& mapFilePath);
+
 /**
  * @brief Generate world di map yang sudah di-load
  * @param seed Seed deterministic

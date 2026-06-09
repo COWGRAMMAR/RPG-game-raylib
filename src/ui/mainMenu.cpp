@@ -10,12 +10,13 @@
 #include "../../include/core/screen.h"
 #include "../../include/core/seedmanager.h"
 #include "../../include/map/worldgenio.h"
-#include "../../lib/raylib/include/raylib.h"
+#include "raylib.h"
 #include <array>
 #include <filesystem>
 #include "../../include/ui/popup.h"
 #include "../../include/core/game_state_saver.h"
 #include "../../include/entities/entities.h"
+#include "../../include/ui/saveLoadScreen.h"
 
 /*==============================================================================
  * Static Variables
@@ -28,12 +29,11 @@ static std::array<buttonImage, 4> buttons;
 static Texture2D logoTexture;
 
 /** Save/Load popups */
-static Popup startNewPopup("Start new game? Current save will be lost.", "Start New", "Cancel", 0.7f);
 static Popup loadPopup("Load saved game?", "Load Save", "Cancel", 0.7f);
 static Popup mainNoSavePopup("No save file found.", "OK", 0.7f);
 static Popup mainCorruptPopup("Save file corrupted or unreadable.", "OK", 0.7f);
-static bool waitingStartConfirm = false;
 static bool waitingLoadConfirm = false;
+extern SaveLoadScreen saveLoadScreen;
 
 /*==============================================================================
  * Public Functions
@@ -49,7 +49,6 @@ void InitMainMenu(GameState *state)
     (void)state; // unused parameter, buat future use
 
     // set texture background load-notif untuk semua popup main menu
-    startNewPopup.SetBackgroundTexture("assets/textures/pauseButt/load-notif.png");
     loadPopup.SetBackgroundTexture("assets/textures/pauseButt/load-notif.png");
     mainNoSavePopup.SetBackgroundTexture("assets/textures/pauseButt/load-notif.png");
     mainCorruptPopup.SetBackgroundTexture("assets/textures/pauseButt/load-notif.png");
@@ -95,39 +94,20 @@ void UpdateMainMenu(GameState *state)
     for (int i = 0; i < 4; i++) {
         if (buttons[i].isClicked(mousePosition, mouseClicked)) {
             switch (i) {
-                case 0:  // Start Game
-                    if (HasSaveFile("saves/manual/slot0.json"))
-                    {
-                        waitingStartConfirm = true;
-                        startNewPopup.Show();
-                    }
-                    else
-                    {
-                        // Bersihkan per-map state dari sesi sebelumnya
-                        std::filesystem::remove_all("saves/enemies");
-                        std::filesystem::remove_all("saves/items");
-                        state->enteredLoading = false;
-                        state->currentScreen = LOADING;
-                    }
+                case 0:  // Start Game - langsung mulai baru tanpa popup
+                    SetActiveSlot(0);
+                    ResetMemoryState();
+                    ResetWorldseed(0);
+                    Entities::SetDeadEntities({});
+                    std::filesystem::remove_all("saves/slot_0/enemies");
+                    std::filesystem::remove_all("saves/slot_0/items");
+                    state->enteredLoading = false;
+                    state->currentScreen = LOADING;
                     break;
-                case 1:  // Load Game
-                    if (HasSaveFile("saves/manual/slot0.json"))
-                    {
-                        if (ReadSaveFile("saves/manual/slot0.json"))
-                        {
-                            waitingLoadConfirm = true;
-                            loadPopup.Show();
-                        }
-                        else
-                        {
-                            DeleteSaveFile("saves/manual/slot0.json");
-                            mainCorruptPopup.Show();
-                        }
-                    }
-                    else
-                    {
-                        mainNoSavePopup.Show();
-                    }
+                case 1:  // Load Game — buka SaveLoadScreen dalam mode load
+                    state->previousScreen = MAIN_MENU;
+                    saveLoadScreen.SetMode(SaveLoadMode::LOAD_MODE);
+                    state->currentScreen = SAVE_LOAD;
                     break;
                 case 2:  // Options
                     state->previousScreen = MAIN_MENU;
@@ -142,44 +122,21 @@ void UpdateMainMenu(GameState *state)
         }
     }
 
-    // Handle Start Game confirmation
-    if (waitingStartConfirm && startNewPopup.IsActive())
-    {
-        startNewPopup.Update(mousePosition, mouseClicked);
-        if (startNewPopup.IsConfirmClicked())
-        {
-            DeleteSaveFile("saves/manual/slot0.json");
-            ClearSavedState();
-            // Reset worldgen flag for fresh start
-            SetWorldgenPending(false);
-            // Clean up per-map persistence from previous session so enemies/items
-            // spawn fresh instead of being loaded as dead from old save files
-            Entities::SetDeadEntities({});
-            std::filesystem::remove_all("saves/enemies");
-            std::filesystem::remove_all("saves/items");
-            state->enteredLoading = false;
-            state->currentScreen = LOADING;
-            waitingStartConfirm = false;
-        }
-        else if (!startNewPopup.IsActive())
-        {
-            waitingStartConfirm = false;
-        }
-    }
-
     // Handle Load Game confirmation
     if (waitingLoadConfirm && loadPopup.IsActive())
     {
         loadPopup.Update(mousePosition, mouseClicked);
         if (loadPopup.IsConfirmClicked())
         {
+            SetActiveSlot(0);
             state->enteredLoading = false;
             state->currentScreen = LOADING;
             waitingLoadConfirm = false;
         }
         else if (!loadPopup.IsActive())
         {
-            ClearSavedState();
+            SetActiveSlot(-1);
+            ResetMemoryState();
             waitingLoadConfirm = false;
         }
     }
@@ -202,7 +159,6 @@ void UpdateMainMenu(GameState *state)
     // tetap aktif dan muncul kembali saat player kembali ke main menu.
     if (state->currentScreen != MAIN_MENU)
     {
-        if (startNewPopup.IsActive()) startNewPopup.Hide();
         if (loadPopup.IsActive()) loadPopup.Hide();
         if (mainNoSavePopup.IsActive()) mainNoSavePopup.Hide();
         if (mainCorruptPopup.IsActive()) mainCorruptPopup.Hide();
@@ -233,9 +189,6 @@ void RenderMainMenuToVirtualScreen(GameState *state)
     }
 
     // Render popups
-    if (startNewPopup.IsActive()) {
-        startNewPopup.Draw(virtualMouse);
-    }
     if (loadPopup.IsActive()) {
         loadPopup.Draw(virtualMouse);
     }

@@ -97,18 +97,56 @@ namespace Inventory
 
         const PotionData &potion = std::get<PotionData>(def.data);
 
-        // Jangan konsumsi jika stat sudah penuh
-        if (potion.isMana && player.Mana >= player.MaxMana)
+        bool isBuff = potion.damageMultiplier > 1.0f || potion.speedMultiplier > 1.0f || potion.invincibilityDuration > 0.0f;
+
+        // Jika hanya heal dan stat sudah penuh, blokir
+        if (!isBuff && potion.healValue > 0)
         {
-            Effects::AddLog("Mana sudah penuh!");
-            return;
-        }
-        if (!potion.isMana && player.Health >= player.MaxHealth)
-        {
-            Effects::AddLog("Health sudah penuh!");
-            return;
+            if (potion.isMana && player.Mana >= player.MaxMana)
+            {
+                Effects::AddLog("Mana sudah penuh!");
+                return;
+            }
+            if (!potion.isMana && player.Health >= player.MaxHealth)
+            {
+                Effects::AddLog("Health sudah penuh!");
+                return;
+            }
         }
 
+        if (potion.healValue > 0)
+        {
+            if (potion.isMana)
+            {
+                if (player.Mana < player.MaxMana) Effects::AddLog("Mana Pulih!");
+                player.Mana = std::min(player.Mana + (float)potion.healValue, player.MaxMana);
+            }
+            else
+            {
+                if (player.Health < player.MaxHealth) Effects::AddLog("Health Pulih!");
+                player.Health = std::min(player.Health + (float)potion.healValue, player.MaxHealth);
+            }
+        }
+
+        if (potion.damageMultiplier > 1.0f)
+        {
+            player.BuffDamageMultiplier = potion.damageMultiplier;
+            player.BuffDamageTimer = potion.duration;
+            Effects::AddLog("Damage Meningkat!");
+        }
+
+        if (potion.speedMultiplier > 1.0f)
+        {
+            player.BuffSpeedMultiplier = potion.speedMultiplier;
+            player.BuffSpeedTimer = potion.duration;
+            Effects::AddLog("Speed Meningkat!");
+        }
+
+        if (potion.invincibilityDuration > 0.0f)
+        {
+            player.InvincibilityTimer = potion.invincibilityDuration;
+            Effects::AddLog("Kebal Aktif!");
+        }
         if (player.PotionCooldown > 0.0f)
         {
             Effects::AddLog("Potion sedang cooldown!");
@@ -127,6 +165,7 @@ namespace Inventory
             slot = {-1, 0};
         }
 
+        player.PotionCooldownMax = potion.cooldown;
         player.PotionCooldown = player.PotionCooldownMax;
     }
 

@@ -16,11 +16,12 @@ public:
     float LifeTime;
     float MaxLifeTime;
     float Damage;
+    float KnockbackForce;
     Entity* Owner;
     bool HasHit;
     std::string SpriteKey;
 
-    Arrow(Vector2 pos, Vector2 dir, float speed, float damage, float reach, float rotation, Entity* owner, std::string spriteKey = "arrow");
+    Arrow(Vector2 pos, Vector2 dir, float speed, float damage, float reach, float rotation, Entity* owner, float knockbackForce = 1.0f, std::string spriteKey = "arrow");
     
     void Update() override;
     void Render() override;
@@ -40,6 +41,7 @@ namespace Combat
         float duration = 0.0f;
         float raycastAngle = 0.0f;
         Vector2 center = {0, 0};
+        Vector2 startCenter = {0, 0};
         std::vector<Entity *> damagedEntities;
         bool pressHeld = false;
         const WeaponData* weapon = nullptr;
@@ -51,6 +53,8 @@ namespace Combat
     void HandleAttack(Player &player);
     /** @brief Update animasi swing attack */
     void UpdateSwingAttack(Player &player, float dt);
+    /** @brief Render efek serangan di tanah (di bawah player) */
+    void DrawSwingGroundEffect(Player &player);
     /** @brief Render visual swing attack */
     void DrawSwingAttack(Player &player);
 

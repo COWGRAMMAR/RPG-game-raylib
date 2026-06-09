@@ -199,16 +199,23 @@ public:
     int GetMaxInventory() const { return MaxInventory; }
 
     // combat stat
-    Combat::Attack attack = {};         // Data status serangan saat ini
-    float Mana = 100.0f;                // Poin mana saat ini
-    float MaxMana = 100.0f;             // Poin mana maksimum
-    float ManaRegenTimer = 0.0f;        // Timer untuk jeda pemulihan mana
-    const float ManaRegenDelay = 2.0f;  // Delay sebelum regen mana dimulai
-    const float ManaRegenRate = 10.0f;  // Kecepatan regen mana per detik
-    const float AttackManaCost = 10.0f; // Biaya mana per serangan
+    Combat::Attack attack = {};  ///< Data status serangan saat ini
+    float Mana = 100.0f;         ///< Poin mana saat ini
+    float MaxMana = 100.0f;      ///< Poin mana maksimum
+    float ManaRegenTimer = 0.0f; ///< Timer untuk jeda pemulihan mana
+    const float ManaRegenDelay = 0.0f;
+    const float ManaRegenRate = 5.0f;
+    const float AttackManaCost = 10.0f;
+
+    // buff sistem (dari potion)
+    float BuffDamageMultiplier = 1.0f; ///< Multiplier damage dari buff
+    float BuffSpeedMultiplier = 1.0f;  ///< Multiplier speed dari buff
+    float BuffDamageTimer = 0.0f;      ///< Timer durasi buff damage
+    float BuffSpeedTimer = 0.0f;       ///< Timer durasi buff speed
+    float InvincibilityTimer = 0.0f;   ///< Timer durasi invincibility
 
     // movement
-    float Speed = 6.0f;          // Kecepatan gerak dasar
+    float Speed = 6.0f;         // Kecepatan gerak dasar 
     float DashSpeed = 0.0f;       // Current dash speed tambahan
     float DashMaxSpeed = 4.0f;    // Max dash speed
     float DashDecel = 0.06f;      // Lerp factor deselerasi

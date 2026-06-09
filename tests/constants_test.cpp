@@ -403,7 +403,7 @@ TEST_CASE("SeedManager::SEED_COUNT == 5")
     CHECK(SeedManager::SEED_COUNT == 5);
 }
 
-TEST_CASE("SAVE_VERSION == 2")
+TEST_CASE("SAVE_VERSION == 3")
 {
-    CHECK(SAVE_VERSION == 2);
+    CHECK(SAVE_VERSION == 3);
 }

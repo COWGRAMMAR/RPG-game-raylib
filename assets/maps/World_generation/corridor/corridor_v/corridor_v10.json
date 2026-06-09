@@ -4,7 +4,7 @@
  "layers":[
         {
          "compression":"",
-         "data":"DwEAACABAAAPAQAAIAEAAA8BAAAgAQAAIAEAAA==",
+         "data":"vgEAAL4BAAC+AQAAvgEAALwBAAC+AQAAvgEAAA==",
          "encoding":"base64",
          "height":1,
          "id":1,
@@ -18,14 +18,14 @@
         }, 
         {
          "compression":"",
-         "data":"OwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAOwAAAA==",
+         "data":"IwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIwAAAA==",
          "encoding":"base64",
          "height":1,
          "id":2,
          "name":"deco",
          "opacity":1,
          "type":"tilelayer",
-         "visible":false,
+         "visible":true,
          "width":7,
          "x":0,
          "y":0
@@ -73,22 +73,8 @@
  "tileheight":32,
  "tilesets":[
         {
-         "columns":14,
-         "firstgid":1,
-         "image":"..\/..\/..\/..\/textures\/test.png",
-         "imageheight":428,
-         "imagewidth":500,
-         "margin":0,
-         "name":"test",
-         "spacing":4,
-         "tilecount":168,
-         "tileheight":32,
-         "tilewidth":32,
-         "transparentcolor":"#29da15"
-        }, 
-        {
          "columns":17,
-         "firstgid":169,
+         "firstgid":1,
          "image":"..\/..\/..\/..\/textures\/tiles.png",
          "imageheight":832,
          "imagewidth":544,
@@ -99,6 +85,19 @@
          "tileheight":32,
          "tilewidth":32,
          "transparentcolor":"#29da15"
+        }, 
+        {
+         "columns":4,
+         "firstgid":443,
+         "image":"..\/..\/..\/..\/textures\/grass-terrain.png",
+         "imageheight":248,
+         "imagewidth":140,
+         "margin":0,
+         "name":"grass-terrain",
+         "spacing":4,
+         "tilecount":28,
+         "tileheight":32,
+         "tilewidth":32
         }],
  "tilewidth":32,
  "type":"map",

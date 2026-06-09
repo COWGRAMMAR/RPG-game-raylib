@@ -1,5 +1,6 @@
 #include "hud.h"
 #include "../../include/systems/audioManager.h"
+#include "keybindManager.h"
 // include fonts.h untuk fontLoadingTitle
 #include "fonts.h"
 #include "player.h"
@@ -569,6 +570,43 @@ void DrawInventory()
             hintY += lineGap;
         }
     }
+
+    // nama item yang sedang di-hover
+    {
+        int hoveredId = -1;
+        for (int i = 0; i < PlayerInstance.GetMaxBag(); i++)
+        {
+            Rectangle slotRect = {gridX + (i % bagCols) * (slotSize + gap), gridY + (i / bagCols) * (slotSize + gap), slotSize, slotSize};
+            if (CheckCollisionPointRec(mousePos, slotRect) && PlayerInstance.GetBagItem(i).definitionId != -1)
+            {
+                hoveredId = PlayerInstance.GetBagItem(i).definitionId;
+                break;
+            }
+        }
+        if (hoveredId == -1)
+        {
+            for (int i = 0; i < PlayerInstance.GetMaxHotbar(); i++)
+            {
+                Rectangle slotRect = {gridX + i * (slotSize + gap), gridY + 373.0f, slotSize, slotSize};
+                if (CheckCollisionPointRec(mousePos, slotRect) && PlayerInstance.GetHotbarItem(i).definitionId != -1)
+                {
+                    hoveredId = PlayerInstance.GetHotbarItem(i).definitionId;
+                    break;
+                }
+            }
+        }
+        if (hoveredId != -1)
+        {
+            const char* itemName = itemDefs.GetById(hoveredId).name.c_str();
+            Vector2 nameSz = MeasureTextEx(fontLoadingTitle, itemName, 22, 0);
+            float nameX = mousePos.x - nameSz.x / 2.0f;
+            float nameY = mousePos.y - 40.0f;
+            DrawRectangleRounded(
+                (Rectangle){nameX - 6, nameY - 4, nameSz.x + 12, nameSz.y + 8},
+                0.3f, 8, ColorAlpha(BLACK, 0.85f));
+            DrawTextEx(fontLoadingTitle, itemName, Vector2{nameX, nameY}, 22, 0, WHITE);
+        }
+    }
 }
 
 /**
@@ -766,6 +804,43 @@ void DrawPlayerHUD()
     DrawInventory();
     if (InputInstance.IsInventoryOpen())
         DrawDragGhost(GetVirtualMousePosition(gState));
+
+    if (!InputInstance.IsInventoryOpen()) {
+        struct Hint { Action action; const char* keyName; const char* label; bool isCustom; };
+        Hint hints[] = {
+            {INTERACT,         nullptr, "Interact",      false},
+            {TOGGLE_INVENTORY, nullptr, "Inventory",     false},
+            {DROP_ITEM,        nullptr, "Drop Item",     false},
+            {DROP_ALL,         nullptr, "Drop All",      false},
+            {PAUSE_MENU,       nullptr, "Pause",         false},
+            {ACTION_COUNT,     "Scroll", "Switch Item",  true},
+        };
+        int hintFontSize = 22;
+        float rightX = (float)GameScreenWidth - 20.0f;
+        float hintY = 20.0f;
+        float lineGap = 28.0f;
+
+        for (const auto& h : hints) {
+            std::string text;
+            if (h.isCustom) {
+                text = std::string("[") + h.keyName + "] " + h.label;
+            } else if (h.action == DROP_ALL) {
+                const char* mod = keybindManager.GetKeyDisplayName(DROP_ALL);
+                const char* key = keybindManager.GetKeyDisplayName(DROP_ITEM);
+                text = std::string("[") + mod + "+" + key + "] " + h.label;
+            } else {
+                const char* keyName = keybindManager.GetKeyDisplayName(h.action);
+                text = std::string("[") + keyName + "] " + h.label;
+            }
+            Vector2 sz = MeasureTextEx(fontLoadingTitle, text.c_str(), hintFontSize, 0);
+            float hintX = rightX - sz.x;
+            DrawRectangleRounded(
+                (Rectangle){hintX - 4, hintY - 4, sz.x + 8, sz.y + 8},
+                0.3f, 8, ColorAlpha(BLACK, 0.8f));
+            DrawTextEx(fontLoadingTitle, text.c_str(), Vector2{hintX, hintY}, hintFontSize, 0, WHITE);
+            hintY += lineGap;
+        }
+    }
 
     if (initialDragSlot == -1 && dragSlot != -1)
     {

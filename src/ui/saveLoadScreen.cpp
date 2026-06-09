@@ -71,7 +71,6 @@ SaveLoadScreen::~SaveLoadScreen()
  */
 void SaveLoadScreen::Show()
 {
-    m_mode = SaveLoadMode::SAVE_MODE; // Defensive reset - callers should SetMode() before Show()
     active = true;
     if (!texturesLoaded) {
         // Texture akan dimuat di task mendatang jika diperlukan

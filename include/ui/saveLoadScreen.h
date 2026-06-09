@@ -21,8 +21,9 @@
 
 /// Mode operasi SaveLoadScreen
 enum class SaveLoadMode {
-    SAVE_MODE,  ///< Mode menyimpan game (pilih slot)
-    LOAD_MODE   ///< Mode memuat game (pilih slot)
+    SAVE_MODE,    ///< Mode menyimpan game (pilih slot)
+    LOAD_MODE,    ///< Mode memuat game (pilih slot)
+    DELETE_MODE   ///< Mode menghapus slot (pilih slot untuk dihapus)
 };
 
 /*==============================================================================
@@ -179,7 +180,12 @@ private:
     SaveLoadMode m_mode;
     Popup m_overwritePopup;   ///< Popup konfirmasi timpa save
     Popup m_loadPopup;        ///< Popup konfirmasi load game
+    Popup m_deletePopup;      ///< Popup konfirmasi hapus slot
     bool m_showOverwritePopup; ///< Flag tampilkan overwrite popup
     bool m_showLoadPopup;      ///< Flag tampilkan load popup
+    bool m_showDeletePopup;    ///< Flag tampilkan delete popup
     int m_selectedSlot;        ///< Slot yang dipilih untuk save/load
+
+    /// Tombol DELETE untuk masuk mode hapus slot
+    buttonTxt deleteButton;
 };

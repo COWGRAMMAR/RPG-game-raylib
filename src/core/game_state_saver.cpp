@@ -758,7 +758,19 @@ void RestoreGameState(GameState *state)
         {
             if (!saved.isAlive)
             {
-                Entities::RegisterDeath(GetCurrentMapPath(), saved.mapObjectID);
+                // Deactivate matched enemy directly (same pattern as ApplyPostSpawn);
+                // RegisterDeath no longer prevents SpawnEnemiesFromMap from spawning
+                for (auto &enemy : enemyReg)
+                {
+                    if (enemy == nullptr || matchedEnemies.count(enemy)) continue;
+                    if (enemy->MapObjectID == saved.mapObjectID && enemy->Name == saved.enemyName)
+                    {
+                        enemy->IsActive = false;
+                        enemy->Health = 0.0f;
+                        matchedEnemies.insert(enemy);
+                        break;
+                    }
+                }
                 continue;
             }
             // First pass: match by UUID

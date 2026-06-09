@@ -214,12 +214,13 @@ namespace Entities
         for (auto &enemy : EnemyRegistry)
         {
             if (enemy == nullptr) continue;
-            if (IsDeadByUUID(currentMap, enemy->GetUUID()))
+            if (IsDeadByUUID(currentMap, enemy->GetUUID()) ||
+                IsAlreadyDead(currentMap, enemy->MapObjectID))
             {
                 enemy->IsActive = false;
                 enemy->Health = 0.0f;
-                TraceLog(LOG_WARNING, "PRUNE: Deactivated dead enemy '%s' (UUID=%s) that survived spawn",
-                         enemy->Name.c_str(), enemy->GetUUID().c_str());
+                TraceLog(LOG_WARNING, "PRUNE: Deactivated dead enemy '%s' (mapObj=%d uuid=%s) that survived spawn",
+                         enemy->Name.c_str(), enemy->MapObjectID, enemy->GetUUID().c_str());
                 pruned++;
             }
         }

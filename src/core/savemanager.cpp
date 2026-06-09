@@ -618,6 +618,7 @@ bool SaveManager::HasInitial(int slot)
 GameSnapshot SaveManager::CaptureSnapshot()
 {
     GameSnapshot snap;
+    snap.version = GameSnapshot::SNAPSHOT_VERSION;
     snap.slotIndex = g_ActiveSaveSlot;
 
     // Worldgen slot

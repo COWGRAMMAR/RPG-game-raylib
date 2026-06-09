@@ -255,14 +255,14 @@ void Popup::Draw(Vector2 mousePosition)
     int textX = static_cast<int>(position.x + ((width - textSize.x) / 2.0F));
     int textY = static_cast<int>(position.y + (hasCancelButton ? 20 : 30) + 20 + textYOffset);
 
-    DrawTextEx(fontLoadingTitle, message, Vector2{static_cast<float>(textX), static_cast<float>(textY)}, fontSize, 0, BLACK);
+    DrawTextEx(fontLoadingTitle, message, Vector2{static_cast<float>(textX), static_cast<float>(textY)}, fontSize, 0, WHITE);
 
-    // subMessage pakai fontLoadingTitle, RED, posisi Y original
+    // subMessage pakai fontLoadingTitle, WHITE, posisi Y original
     if (subMessage != nullptr) {
         Vector2 subSize = MeasureTextEx(fontLoadingTitle, subMessage, fontSize, 0);
         int subX = static_cast<int>(position.x + ((width - subSize.x) / 2.0F));
         int subY = textY + fontSize + 10;
-        DrawTextEx(fontLoadingTitle, subMessage, Vector2{static_cast<float>(subX), static_cast<float>(subY)}, fontSize, 0, RED);
+        DrawTextEx(fontLoadingTitle, subMessage, Vector2{static_cast<float>(subX), static_cast<float>(subY)}, fontSize, 0, WHITE);
     }
 
     // highlight background saat hover — ukur teks pake fontLoadingTitle biar pas

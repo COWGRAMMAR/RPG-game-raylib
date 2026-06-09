@@ -10,7 +10,6 @@
 #include "../../include/systems/audioManager.h"
 #include "../../lib/raylib/include/raylib.h"
 #include <cstring>
-#include <unordered_map>
 
 /*==============================================================================
  * Internal State (file-scope statics)
@@ -19,7 +18,8 @@
 /** @brief Array music tracks yang sudah di-load */
 static Music _tracks[5] = {};
 
-
+/** @brief Sound SFX yang sudah di-load */
+static Sound _sfx = {};
 
 static float _masterVolume = 1.0f;
 static float _musicVolume  = 0.8f;
@@ -115,7 +115,17 @@ void AudioManager::LoadAudioAssets()
         }
     }
 
-
+    // Load SFX
+    const char* sfxPath = "assets/audio/sfx/SwordSlash.mp3";
+    _sfx = LoadSound(sfxPath);
+    if (_sfx.stream.buffer == nullptr)
+    {
+        TraceLog(LOG_WARNING, "AUDIO: Gagal muat SFX: %s", sfxPath);
+    }
+    else
+    {
+        TraceLog(LOG_INFO, "AUDIO: SFX dimuat: %s", sfxPath);
+    }
 }
 
 void AudioManager::Shutdown()
@@ -138,7 +148,9 @@ void AudioManager::Shutdown()
         }
     }
 
-
+    // Unload SFX
+    UnloadSound(_sfx);
+    _sfx = {};
 
     _activeTrackIndex = -1;
     _initialized = false;
@@ -318,101 +330,18 @@ void AudioManager::StopMusic()
     }
 }
 
-void AudioManager::ResetToScreenTrack()
-{
-    if (!_initialized) return;
-    _lastMusicScreen = MAIN_MENU;
-    TraceLog(LOG_INFO, "AUDIO: Reset track untuk auto-switch");
-}
-
 /*==============================================================================
  * SFX Control
  *==============================================================================*/
 
-
-
-struct SoundPool {
-    Sound sounds[4];
-    int currentIndex;
-};
-
-static std::unordered_map<std::string, SoundPool> loadedSFX;
-
-static void LoadSFXToPool(const std::string& name, const char* path) {
-    if (!IsAudioDeviceReady()) return;
-
-    Sound original = LoadSound(path);
-    if (original.frameCount == 0) {
-        TraceLog(LOG_WARNING, "SFX: Failed to load %s, alias creation skipped.", path);
-        return;
-    }
-    
-    SoundPool pool;
-    pool.sounds[0] = original;
-    for (int i = 1; i < 4; i++) {
-        pool.sounds[i] = LoadSoundAlias(original);
-    }
-    pool.currentIndex = 0;
-    loadedSFX[name] = pool;
-}
-
-void AudioManager::InitSFX()
+void AudioManager::PlaySfx()
 {
-    LoadSFXToPool("thrust", "assets/audio/sfx/thrust.mp3");
-    LoadSFXToPool("arrow", "assets/audio/sfx/arrow.mp3");
-    LoadSFXToPool("attack", "assets/audio/sfx/attack.mp3");
-    LoadSFXToPool("chest", "assets/audio/sfx/chest.mp3");
-    LoadSFXToPool("crate", "assets/audio/sfx/crate.mp3");
-    LoadSFXToPool("dash", "assets/audio/sfx/dash.mp3");
-    LoadSFXToPool("explosion", "assets/audio/sfx/explosion.mp3");
-    LoadSFXToPool("hurt", "assets/audio/sfx/hurt.mp3");
-    LoadSFXToPool("inventori", "assets/audio/sfx/inventori.mp3");
-    LoadSFXToPool("pickup-item", "assets/audio/sfx/pickup-item.mp3");
-    LoadSFXToPool("rifle", "assets/audio/sfx/rifle.mp3");
-    LoadSFXToPool("slam", "assets/audio/sfx/slam.mp3");
-    LoadSFXToPool("slash-mid", "assets/audio/sfx/slash-mid.mp3");
-    LoadSFXToPool("slash-short", "assets/audio/sfx/slash-short.mp3");
-    LoadSFXToPool("walk", "assets/audio/sfx/walk.mp3");
+    if (!_initialized) return;
+    if (_sfx.stream.buffer == nullptr) return;
 
-    // Pre-warm audio to prevent first-play lag on Windows
-    for (auto &pair : loadedSFX)
-    {
-        SetSoundVolume(pair.second.sounds[0], 0.0f);
-        PlaySound(pair.second.sounds[0]);
-    }
+    float effectiveVolume = _sfxVolume * _masterVolume;
+    SetSoundVolume(_sfx, effectiveVolume);
+    PlaySound(_sfx);
 
-    TraceLog(LOG_INFO, "SFX: Successfully loaded and pre-warmed all sound effects");
-}
-
-void AudioManager::CloseSFX()
-{
-    if (!IsAudioDeviceReady()) return;
-
-    for (auto &pair : loadedSFX)
-    {
-        for (int i = 1; i < 4; i++) {
-            UnloadSoundAlias(pair.second.sounds[i]);
-        }
-        UnloadSound(pair.second.sounds[0]);
-    }
-    loadedSFX.clear();
-    TraceLog(LOG_INFO, "SFX: Successfully unloaded all sound effects");
-}
-
-void AudioManager::PlaySFX(const std::string &name)
-{
-    if (!IsAudioDeviceReady()) return;
-
-    auto it = loadedSFX.find(name);
-    if (it != loadedSFX.end())
-    {
-        float effectiveVolume = _sfxVolume * _masterVolume;
-        SetSoundVolume(it->second.sounds[it->second.currentIndex], effectiveVolume);
-        PlaySound(it->second.sounds[it->second.currentIndex]);
-        it->second.currentIndex = (it->second.currentIndex + 1) % 4;
-    }
-    else
-    {
-        TraceLog(LOG_WARNING, "SFX: Sound not found: %s", name.c_str());
-    }
+    TraceLog(LOG_INFO, "AUDIO: SFX serangan diputar (volume=%.2f)", effectiveVolume);
 }

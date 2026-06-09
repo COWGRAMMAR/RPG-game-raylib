@@ -16,7 +16,6 @@
 #include "../../include/ui/gameOverScreen.h"
 #include "../../include/core/loading_screen.h"
 #include "../../include/core/game_state_saver.h"
-#include "../../include/core/savemanager.h"
 #include "../../include/map/worldgenio.h"
 #include "../../include/core/seedmanager.h"
 #include "../../include/rendering/fonts.h"
@@ -25,7 +24,6 @@
 #include "../../include/ui/videoTab.h"
 #include "../../include/ui/audioTab.h"
 #include "../../include/systems/audioManager.h"
-#include "../../include/ui/saveLoadScreen.h"
 #include "../../include/map/propsbehavior.h"
 #include "../../lib/raylib/include/raylib.h"
 #include "../../lib/raylib/include/raymath.h"
@@ -37,7 +35,6 @@
  */
 PauseMenu pauseMenu;
 OptionsScreen optionsScreen;
-SaveLoadScreen saveLoadScreen;
 
 /**
  * @brief Custom TraceLog callback to prepend HH:mm:ss.fff timestamps
@@ -92,7 +89,6 @@ int main()
     state.loadingComplete = false;
     state.loadingStage = 0;
     state.assetsLoaded = false;
-    state.enteredLoading = false;
 
     // Step 5: init options screen (hidden initially)
     optionsScreen.Show();
@@ -270,11 +266,9 @@ int main()
         }
     }
 
+    // Auto-save sebelum exit (jika run masih aktif)
     if (g_SeedManager.IsRunActive())
-    {
-        GameSnapshot snap = SaveManager::CaptureSnapshot();
-        SaveManager::SaveManual(snap, g_ActiveSaveSlot);
-    }
+        WorldgenIO::SaveRuntimeState(g_SeedManager.GetCurrentStage());
 
     // Shutdown audio sebelum close audio device
     AudioManager::Shutdown();

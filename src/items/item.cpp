@@ -24,9 +24,8 @@
 #include "mapLogic.h"
 #include "datadriven.h"
 #include "../lib/json/include/nlohmann/json.hpp"
-#include "raymath.h"
+#include "../lib/raylib/include/raymath.h"
 #include "core/utils.h"
-#include "core/game_state_saver.h"
 #include <iostream>
 #include <vector>
 #include <fstream>
@@ -205,11 +204,6 @@ void ItemDefinitionManager::Load(const std::string &path)
             PotionData pd;
             pd.healValue = SafeGet<int>(p, "healValue", 0); // nilai fallback 0
             pd.isMana = SafeGet<bool>(p, "isMana", false);  // nilai fallback false
-            pd.damageMultiplier = SafeGet<float>(p, "damageMultiplier", 1.0f);
-            pd.speedMultiplier = SafeGet<float>(p, "speedMultiplier", 1.0f);
-            pd.invincibilityDuration = SafeGet<float>(p, "invincibilityDuration", 0.0f);
-            pd.duration = SafeGet<float>(p, "duration", 0.0f);
-            pd.cooldown = SafeGet<float>(p, "cooldown", 1.0f); // Default cooldown is 1.0f
             def.data = pd;
         }
 
@@ -346,16 +340,6 @@ void ItemDataManager::SpawnItemAtLocation(Vector2 pos, std::mt19937 *rng, ItemCa
     activeItems.push_back(CreateItem(pos, defId));
 }
 
-void ItemDataManager::SpawnItemAtLocation(Vector2 pos, const std::map<ItemRarity, int> &weights, std::mt19937 *rng)
-{
-    std::mt19937 localRng(static_cast<unsigned int>(time(nullptr)));
-    std::mt19937 &useRng = rng ? *rng : localRng;
-    int defId = spawnManager.PickRandomDefinitionId(useRng, weights);
-    if (defId == -1)
-        return;
-    activeItems.push_back(CreateItem(pos, defId));
-}
-
 /**
  * @brief Simpan state activeItems untuk map tertentu
  * @param mapPath Path map sebagai key penyimpanan
@@ -395,7 +379,137 @@ void ItemDataManager::ClearItems()
  * Per-Map File Persistence
  *==============================================================================*/
 
+/**
+ * @brief Save all active items for a map to the saves/items/ filesystem directory.
+ *
+ * Serializes each item's fields (definitionId, position, isPickedUp, amount, uuid)
+ * to a JSON array under the "items" key. Uses atomic write (.tmp + rename).
+ *
+ * @param mapPath Raw map path used to derive save file name
+ */
+void SaveItemsForMapDir(const std::string &mapPath)
+{
+    // Sanitize map path: replace path separators with underscores
+    std::string safeName = mapPath;
+    for (auto &c : safeName)
+    {
+        if (c == '/' || c == '\\') c = '_';
+    }
 
+    std::string dir = "saves/items";
+    std::string filePath = dir + "/" + safeName;
+
+    std::filesystem::create_directories(dir);
+
+    json root;
+    json itemsJson = json::array();
+
+    for (const auto &item : itemData.activeItems)
+    {
+        json i;
+        i["definitionId"] = item.definitionId;
+        i["positionX"] = item.position.x;
+        i["positionY"] = item.position.y;
+        i["isPickedUp"] = item.isPickedUp;
+        i["amount"] = item.amount;
+        i["uuid"] = item.uuid;
+        itemsJson.push_back(i);
+    }
+
+    root["items"] = itemsJson;
+
+    // Atomic write via .tmp + rename to prevent file corruption
+    std::string tmpPath = filePath + ".tmp";
+    std::ofstream file(tmpPath);
+    file << root.dump(4);
+    file.close();
+    std::filesystem::rename(tmpPath, filePath);
+
+    TraceLog(LOG_INFO, "SAVE: Saved %d items for map: %s", (int)itemData.activeItems.size(), mapPath.c_str());
+}
+
+/**
+ * @brief Load items for a map from the saves/items/ filesystem directory.
+ *
+ * Reads the JSON file, deserializes each item, reconstructs hitboxes from
+ * ItemDefinition data, and populates itemData.activeItems.
+ *
+ * @param mapPath Raw map path used to derive save file name
+ * @return true if items were loaded, false if no save file or parse failed
+ */
+bool LoadItemsForMapDir(const std::string &mapPath)
+{
+    // Sanitize map path: replace path separators with underscores
+    std::string safeName = mapPath;
+    for (auto &c : safeName)
+    {
+        if (c == '/' || c == '\\') c = '_';
+    }
+
+    std::string filePath = "saves/items/" + safeName;
+
+    if (!std::filesystem::exists(filePath))
+        return false;
+
+    try
+    {
+        std::ifstream file(filePath);
+        json root = json::parse(file);
+
+        if (!root.contains("items"))
+            return false;
+
+        itemData.activeItems.clear();
+
+        for (const auto &i : root.at("items"))
+        {
+            ItemSpawn item;
+            item.definitionId = i.value("definitionId", -1);
+            item.position = {
+                i.value("positionX", 0.0f),
+                i.value("positionY", 0.0f)
+            };
+            item.isPickedUp = i.value("isPickedUp", false);
+            item.amount = i.value("amount", 1);
+            item.uuid = i.value("uuid", "");
+
+            // Reconstruct hitbox from definition data
+            try
+            {
+                const ItemDefinition &def = itemDefs.GetById(item.definitionId);
+                item.hitbox = {
+                    item.position.x - def.hitboxSize.x / 2,
+                    item.position.y - def.hitboxSize.y / 2,
+                    def.hitboxSize.x,
+                    def.hitboxSize.y
+                };
+            }
+            catch (...)
+            {
+                // Fallback hitbox if definition is not found
+                item.hitbox = {
+                    item.position.x - 8.0f,
+                    item.position.y - 8.0f,
+                    16.0f,
+                    16.0f
+                };
+            }
+
+            item.isAdded = false;
+            item.spawnTime = (float)GetTime();
+
+            itemData.activeItems.push_back(item);
+        }
+
+        TraceLog(LOG_INFO, "LOAD: Restored %d items for map: %s", (int)itemData.activeItems.size(), mapPath.c_str());
+        return !itemData.activeItems.empty();
+    }
+    catch (...)
+    {
+        TraceLog(LOG_WARNING, "LOAD: Failed to load items for map: %s", mapPath.c_str());
+        return false;
+    }
+}
 
 /*==============================================================================
  * ItemRenderManager
@@ -489,18 +603,6 @@ void ItemRenderManager::Render(ItemSpawn &item)
     Display display;
     display.position = renderPos;
     display.size = (int)(FRAME_SIZE * scale);
-
-    if (def.category == ITEM_WEAPON)
-    {
-        const WeaponData* wd = std::get_if<WeaponData>(&def.data);
-        if (wd && wd->attackType != ATTACK_PIERCE)
-        {
-            display.rotation = -45.0f;
-            display.origin = { (float)display.size / 2.0f, (float)display.size / 2.0f };
-            display.offset = display.origin;
-        }
-    }
-
     DrawFrame(def.spriteKey, display);
 
     // stack amount item di-drop: fontLoadingTitle 14px, bg rounded hitam, di bawah sprite
@@ -740,53 +842,6 @@ int ItemSpawnManager::PickRandomDefinitionId(std::mt19937 &rng, ItemCategory fil
         return -1; // gak ada item yang cocok
 
     // Pilih random dari item dengan rarity itu
-    std::uniform_int_distribution<int> idxDist(0, (int)byRarity[pickedRarity].size() - 1);
-    return byRarity[pickedRarity][idxDist(rng)];
-}
-
-// Pilih definitionId random dengan weight map kustom (untuk enemy drops)
-int ItemSpawnManager::PickRandomDefinitionId(std::mt19937 &rng, const std::map<ItemRarity, int> &weights, ItemCategory filterCategory)
-{
-    // Kumpulkan semua item per rarity
-    std::map<ItemRarity, std::vector<int>> byRarity;
-    for (const auto &[name, def] : itemDefs.GetAll())
-    {
-        if (filterCategory != ITEM_ANY && def.category != filterCategory)
-            continue;
-        byRarity[def.rarity].push_back(def.id);
-    }
-
-    // Hitung total weight dari rarity yang ada itemnya
-    int total = 0;
-    for (const auto &[rarity, weight] : weights)
-    {
-        if (!byRarity[rarity].empty())
-            total += weight;
-    }
-
-    if (total == 0)
-        return -1;
-
-    std::uniform_int_distribution<int> rollDist(1, total);
-    int roll = rollDist(rng);
-
-    int cumulative = 0;
-    ItemRarity pickedRarity = weights.begin()->first;
-    for (const auto &[rarity, weight] : weights)
-    {
-        if (byRarity[rarity].empty())
-            continue;
-        cumulative += weight;
-        if (roll <= cumulative)
-        {
-            pickedRarity = rarity;
-            break;
-        }
-    }
-
-    if (byRarity[pickedRarity].empty())
-        return -1;
-
     std::uniform_int_distribution<int> idxDist(0, (int)byRarity[pickedRarity].size() - 1);
     return byRarity[pickedRarity][idxDist(rng)];
 }

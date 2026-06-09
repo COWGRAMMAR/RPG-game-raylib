@@ -12,7 +12,7 @@
  * - Save/load state item per map
  */
 
-#include "raylib.h"
+#include "../lib/raylib/include/raylib.h"
 #include <vector>
 #include <string>
 
@@ -99,11 +99,6 @@ struct PotionData
 {
     int healValue; // Jumlah HP atau mana yang dipulihkan
     bool isMana;   // True jika potion memulihkan mana, bukan HP
-    float damageMultiplier;      // (optional) misal 1.0 = normal, 1.2 = +20%
-    float speedMultiplier;       // (optional) misal 1.0 = normal, 1.3 = +30%
-    float invincibilityDuration; // waktu kebal dalam detik
-    float duration;              // durasi efek potion
-    float cooldown;              // waktu tunggu sebelum potion berikutnya bisa digunakan
 };
 
 /**
@@ -250,7 +245,6 @@ public:
      * @param pos Posisi spawn item
      */
     void SpawnItemAtLocation(Vector2 pos, std::mt19937 *rng = nullptr, ItemCategory category = ITEM_ANY);
-    void SpawnItemAtLocation(Vector2 pos, const std::map<ItemRarity, int> &weights, std::mt19937 *rng = nullptr);
 
     /**
      * @brief Simpan state item aktif untuk map tertentu
@@ -341,7 +335,6 @@ public:
      * @return ID definisi item yang terpilih
      */
     int PickRandomDefinitionId(std::mt19937 &rng, ItemCategory filterCategory = ITEM_ANY);
-    int PickRandomDefinitionId(std::mt19937 &rng, const std::map<ItemRarity, int> &weights, ItemCategory filterCategory = ITEM_ANY);
 
 private:
     // Daftar area spawn item yang dibaca dari Tiled
@@ -402,4 +395,24 @@ extern ItemDefinitionManager itemDefs;
  * Per-Map File Persistence (replaces in-memory ItemDataManager::savedMapItems)
  *==============================================================================*/
 
-// (removed — replaced by SaveManager::SaveCheckpoint/LoadCheckpoint)
+/**
+ * @brief Save all active items for a map to the saves/items/ filesystem directory.
+ *
+ * Serializes `itemData.activeItems` to a JSON file at `saves/items/<sanitized_path>`.
+ * Uses atomic write via .tmp file + rename to prevent corruption.
+ * Follows the same pattern as SaveEnemiesForMap() in enemy.cpp.
+ *
+ * @param mapPath Raw map file path used to derive the save file name (e.g., "assets/maps/tutorial.json")
+ */
+void SaveItemsForMapDir(const std::string &mapPath);
+
+/**
+ * @brief Load items for a map from the saves/items/ filesystem directory.
+ *
+ * Reads `saves/items/<sanitized_path>`, deserializes each item's fields,
+ * reconstructs hitboxes from definitions, and populates `itemData.activeItems`.
+ *
+ * @param mapPath Raw map file path used to derive the save file name
+ * @return true if items were loaded, false if no save data exists or parse failed
+ */
+bool LoadItemsForMapDir(const std::string &mapPath);

@@ -16,8 +16,7 @@
  * @brief Fungsi I/O untuk sistem save/load world generation
  *
  * Semua state run game disimpan dalam folder worldseed/save_N/.
- * Tiap stage punya data runtime sendiri di
- * runtime_{g_ActiveSaveSlot}.json (per-UI-save-slot isolasi),
+ * Tiap stage punya data runtime sendiri di runtime.json,
  * dan metadata global ada di meta.json.
  */
 namespace WorldgenIO
@@ -28,6 +27,20 @@ namespace WorldgenIO
      * @return true jika berhasil
      */
     bool InitRun(int saveSlot);
+
+    /**
+     * @brief Simpan state runtime stage saat ini
+     * @param stageIndex Index stage yang akan di-save
+     * @return true jika berhasil
+     */
+    bool SaveRuntimeState(int stageIndex);
+
+    /**
+     * @brief Muat state runtime stage tertentu
+     * @param stageIndex Index stage yang akan di-load
+     * @return true jika berhasil
+     */
+    bool LoadRuntimeState(int stageIndex);
 
     /** @brief Pindah ke stage berikutnya (increment index) */
     void NextStage();
@@ -57,12 +70,4 @@ namespace WorldgenIO
 
     /** @brief Hapus semua file cache (.cache) di folder saves/ */
     void ClearCache();
-
-    /**
-     * @brief Hapus folder worldseed/save_N/ yang gak dipake save manapun
-     *
-     * Scan semua manual dan autosave file, baca worldgenSlot dari tiap file.
-     * Hapus worldseed/save_N/ kalo N gak ada di referensi save manapun.
-     */
-    void CleanupOrphanedSlots();
 }

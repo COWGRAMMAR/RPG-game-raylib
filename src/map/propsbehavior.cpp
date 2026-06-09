@@ -13,14 +13,12 @@
  */
 
 #include "propsbehavior.h"
-#include "../../include/systems/audioManager.h"
 #include "item.h"
 #include "enemy.h"
 #include "enemy_ai.h"
 #include "entities.h"
 #include "core/utils.h"
 #include "game_debug.h"
-#include "animation.h"
 #include <sstream>
 
 /*==============================================================================
@@ -107,8 +105,6 @@ void SpawnObject()
     signManager.SpawnSigns(signObjs);
 }
 
-static bool g_PendingObstacleRebuild = false;
-
 /**
  * @brief Trigger hit attack player ke semua props yang bisa bereaksi terhadap serangan.
  * @param attackHitbox Hitbox serangan player
@@ -117,17 +113,9 @@ static bool g_PendingObstacleRebuild = false;
  */
 void HitPropsByAttack(Rectangle attackHitbox, Rectangle playerBounds, Player *player)
 {
-    g_PendingObstacleRebuild = false;
-
     bombManager.HitByAttack(attackHitbox, playerBounds, player);
 
     crateManager.HitByAttack(attackHitbox);
-
-    if (g_PendingObstacleRebuild)
-    {
-        RebuildObstacleCache();
-        g_PendingObstacleRebuild = false;
-    }
 }
 
 /*==============================================================================
@@ -250,7 +238,6 @@ void ChestManager::Interact(Vector2 hitPos)
     if (!chest || chest->state == ObjectState::Open)
         return;
     chest->state = ObjectState::Open;
-    AudioManager::PlaySFX("chest");
     consumedPositions.insert(EncodePos(chest->position));
     TriggerLoot(*chest);
 }
@@ -612,8 +599,6 @@ void BombManager::Explode(BombData &bomb, Rectangle playerBounds, Player *player
     bomb.isExploding = true;
     bomb.isTriggered = true;
     bomb.explosionTimer = BOMB_EXPLOSION_DURATION;
-    
-    AudioManager::PlaySFX("explosion");
 
     consumedPositions.insert(EncodePos(bomb.tile.position));
 
@@ -623,7 +608,7 @@ void BombManager::Explode(BombData &bomb, Rectangle playerBounds, Player *player
                        { return r.x == bomb.tile.bounds.x && r.y == bomb.tile.bounds.y; }),
         DynamicObstacles.end());
     MarkSpawnFlowFieldsDirty(bomb.tile.position);
-    g_PendingObstacleRebuild = true;
+    RebuildObstacleCache();
 
     Vector2 bombCenter = {
         bomb.tile.position.x + FRAME_SIZE / 2.0f,
@@ -855,14 +840,12 @@ void CrateManager::Destroy(CrateData &crate)
     crate.isAlive = false;
     consumedPositions.insert(EncodePos(crate.tile.position));
 
-    AudioManager::PlaySFX("crate");
-
     DynamicObstacles.erase(
         std::remove_if(DynamicObstacles.begin(), DynamicObstacles.end(), [&](const Rectangle &r)
                        { return r.x == crate.tile.bounds.x && r.y == crate.tile.bounds.y; }),
         DynamicObstacles.end());
     MarkSpawnFlowFieldsDirty(crate.tile.position);
-    g_PendingObstacleRebuild = true;
+    RebuildObstacleCache();
 
     TriggerLoot(crate.tile);
 }
@@ -953,7 +936,6 @@ void BarrierManager::SpawnBarriers(const std::vector<MapObject *> &barrierObject
 
     // totalEnemyCount di-capture pas Update pertama, karena enemy belum di-spawn pas SpawnObject
     totalEnemyCount = 0;
-    hasCapturedCount = false;
 
     // JANGAN reset cleared/hasReLocked — state ini bisa di-set oleh LoadRuntimeState sebelumnya
     // Kalo sudah cleared (dari save load), skip spawn barrier sama sekali
@@ -992,7 +974,7 @@ void BarrierManager::Update()
         return;
 
     // Delayed capture totalEnemyCount — enemy belum di-spawn pas SpawnObject
-    if (!hasCapturedCount)
+    if (totalEnemyCount == 0)
     {
         // Di boss map: exclude boss dari hitungan threshold
         totalEnemyCount = 0;
@@ -1002,7 +984,6 @@ void BarrierManager::Update()
                 continue;
             totalEnemyCount++;
         }
-        hasCapturedCount = true;
         TraceLog(LOG_INFO, "BarrierManager: total enemy count = %d (boss excluded: %s)",
                  totalEnemyCount, isBossMap ? "yes" : "no");
     }
@@ -1095,47 +1076,17 @@ void BarrierManager::Update()
 int BarrierManager::Render(Rectangle viewRect)
 {
     int rendered = 0;
-    
-    // Pass 1: Render barrierDown and barrierUp1 (the base layer)
-    for (auto &b : barriers)
-    {
-        if (!CheckCollisionRecs(b.tile.bounds, viewRect))
-            continue;
-
-        Display display;
-        display.position = b.tile.position;
-
-        if (b.isActive)
-        {
-            DrawFrame("barrierUp1", display);
-        }
-        else
-        {
-            DrawFrame("barrierDown", display);
-        }
-        rendered++;
-    }
-
-    // Pass 2: Render barrierUp2 (top layer) so it is not obstructed by adjacent barrierUp1s
     for (auto &b : barriers)
     {
         if (!b.isActive)
             continue;
-            
-        // We expand the viewRect slightly upwards to ensure barrierUp2 is drawn even if the base is slightly off-screen
-        Rectangle expandedView = viewRect;
-        expandedView.y -= FRAME_SIZE;
-        expandedView.height += FRAME_SIZE;
-        
-        if (!CheckCollisionRecs(b.tile.bounds, expandedView))
+        if (!CheckCollisionRecs(b.tile.bounds, viewRect))
             continue;
 
-        Display display;
-        display.position = b.tile.position;
-        display.position.y -= FRAME_SIZE;
-        DrawFrame("barrierUp2", display);
+        DrawRectangleRec(b.tile.bounds, ColorAlpha(YELLOW, 0.3f));
+        DrawRectangleLinesEx(b.tile.bounds, 2.0f, YELLOW);
+        rendered++;
     }
-    
     return rendered;
 }
 
@@ -1192,7 +1143,6 @@ void BarrierManager::Clear()
     bossStageBounds = {0};
     totalEnemyCount = 0;
     prevDeadCount = 0;
-    hasCapturedCount = false;
 }
 
 /*==============================================================================
@@ -1354,9 +1304,7 @@ int SignManager::Render(Rectangle viewRect)
         if (!CheckCollisionRecs(s.tile.bounds, viewRect))
             continue;
 
-        Display display;
-        display.position = s.tile.position;
-        DrawFrame("sign", display);
+        DrawRectangleRec(s.tile.bounds, DARKGREEN);
         rendered++;
     }
     return rendered;

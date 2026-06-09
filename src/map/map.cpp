@@ -26,7 +26,6 @@
 #include "enemy_ai.h"
 #include <memory>
 #include <string>
-#include "savemanager.h"
 
 /*==============================================================================
  * Global Variables
@@ -77,9 +76,9 @@ void LoadMap(const char *mapPath)
     tson::Tileson t;
     parsedMap = t.parse(mapPath);
 
-    if (parsedMap == nullptr || parsedMap->getStatus() != tson::ParseStatus::OK)
+    if (parsedMap->getStatus() != tson::ParseStatus::OK)
     {
-        TraceLog(LOG_ERROR, "Tileson: Failed to parse map: %s", parsedMap ? parsedMap->getStatusMessage().c_str() : "file not found or could not be opened");
+        TraceLog(LOG_ERROR, "Tileson: Failed to parse map: %s", parsedMap->getStatusMessage().c_str());
         return;
     }
 
@@ -326,7 +325,10 @@ void RunWorldgen(uint64_t seed, bool isBossStage)
     pools.UnloadCorridorPool();
     pools.UnloadRoomPool();
 
-    SpawnItemWave();
+    if (!LoadItemsForMapDir(currentMapPath))
+    {
+        SpawnItemWave();
+    }
     BuildMapObjectIndex();
 }
 
@@ -469,8 +471,8 @@ void SwitchMap(const char *newMapPath, const char *targetDoorName)
     // Simpan state map lama sebelum pindah
     if (!currentMapPath.empty())
     {
-        GameSnapshot chkSnap = SaveManager::CaptureSnapshot();
-        SaveManager::SaveCheckpoint(chkSnap, currentMapPath, g_ActiveSaveSlot);
+        SaveEnemiesForMap(currentMapPath);
+        SaveItemsForMapDir(currentMapPath);
         mapHistoryStack.Push(currentMapPath, "");
     }
 
@@ -505,10 +507,8 @@ void GoBack(void)
     }
 
     // Simpan state map sekarang
-    {
-        GameSnapshot chkSnap = SaveManager::CaptureSnapshot();
-        SaveManager::SaveCheckpoint(chkSnap, currentMapPath, g_ActiveSaveSlot);
-    }
+    SaveEnemiesForMap(currentMapPath);
+    SaveItemsForMapDir(currentMapPath);
 
     // Ambil history teratas dan pop dari stack
     MapSystem::MapHistoryEntry prev = mapHistoryStack.Pop();
@@ -572,36 +572,4 @@ const char *GetCurrentMapPath(void)
 void SetCurrentMapPath(const char *newPath)
 {
     currentMapPath = (newPath != nullptr && newPath[0] != '\0') ? newPath : "";
-}
-
-std::string GetMapDisplayName(const std::string& mapFilePath)
-{
-    if (mapFilePath.empty())
-        return "Unknown";
-
-    std::string filename = mapFilePath;
-    size_t lastSlash = filename.find_last_of("/\\");
-    if (lastSlash != std::string::npos)
-        filename = filename.substr(lastSlash + 1);
-
-    size_t dot = filename.find_last_of('.');
-    if (dot != std::string::npos)
-        filename = filename.substr(0, dot);
-
-    if (filename.rfind("stage_", 0) == 0)
-    {
-        std::string number = filename.substr(6);
-        return "Stage " + number;
-    }
-
-    if (!filename.empty())
-        filename[0] = std::toupper(static_cast<unsigned char>(filename[0]));
-
-    for (size_t i = 0; i < filename.size(); i++)
-    {
-        if (filename[i] == '_')
-            filename[i] = ' ';
-    }
-
-    return filename;
 }

@@ -16,9 +16,7 @@
 #include "../../include/ui/videoTab.h"
 #include "../../include/ui/audioTab.h"
 #include "../../include/ui/keybindsTab.h"
-#include "../../include/ui/saveLoadScreen.h"
 #include "../../include/core/game_state_saver.h"
-#include "../../include/core/savemanager.h"
 #include "../../include/map/worldgenio.h"
 #include "../../include/core/seedmanager.h"
 #include "entities.h"
@@ -28,12 +26,6 @@
 #include "enemy_ai.h"
 #include "map.h"
 #include "mapLogic.h"
-
-/*==============================================================================
- * External References
- *==============================================================================*/
-
-extern SaveLoadScreen saveLoadScreen;
 
 /*==============================================================================
  * Static Variables (Popup Notifications)
@@ -102,6 +94,15 @@ void OptionsScreen::Hide()
 bool OptionsScreen::IsActive() const
 {
     return active;
+}
+
+/**
+ * @brief Mengatur layar kembali saat BACK diklik
+ * @param screen Layar tujuan
+ */
+void OptionsScreen::SetReturnScreen(ScreenState screen)
+{
+    returnScreen = screen;
 }
 
 /**
@@ -439,8 +440,8 @@ void PauseMenu::LoadTextures()
     float btnHeight = 56.0F;
     float pairGap = 105.0F;
     float totalBtnHeight = 5.0F * btnHeight + 4.0F * gap;
-    // startY ditambah 40px agar tombol pause lebih ke bawah (25 → 65)
-    float startY = position.y + (height - totalBtnHeight) / 2.0F + 65.0F;
+    // startY ditambah 35px agar tombol pause agak ke bawah
+    float startY = position.y + (height - totalBtnHeight) / 2.0F + 35.0F;
 
     // Row 0: Resume (wide, centered)
     {
@@ -520,19 +521,19 @@ void PauseMenu::HandleButtonClick(int buttonIndex, GameState* state)
         case 0: // Resume
             Hide();
             break;
-        case 1:
-            // Save Game — buka SaveLoadScreen dalam mode save
-            state->previousScreen = PLAY;
-            saveLoadScreen.SetMode(SaveLoadMode::SAVE_MODE);
-            state->currentScreen = SAVE_LOAD;
-            Hide();
+        case 1: // Save
+            WorldgenIO::SaveRuntimeState(g_SeedManager.GetCurrentStage());
+            SaveGameState(state);
+            if (WriteSaveFile("saves/manual/slot0.json"))
+                savePopup.Show();
+            else
+                saveErrorPopup.Show();
             break;
-        case 2:
-            // Load Game — buka SaveLoadScreen dalam mode load
-            state->previousScreen = PLAY;
-            saveLoadScreen.SetMode(SaveLoadMode::LOAD_MODE);
-            state->currentScreen = SAVE_LOAD;
-            Hide();
+        case 2: // Load
+            if (HasSaveFile("saves/manual/slot0.json"))
+                loadConfirmPopup.Show();
+            else
+                noSavePopup.Show();
             break;
         case 3: // Settings
             state->currentScreen = OPTIONS;
@@ -548,6 +549,7 @@ void PauseMenu::HandleButtonClick(int buttonIndex, GameState* state)
             returnConfirmPopup.Show();
             break;
         case 6: // Exit Game
+            WorldgenIO::SaveRuntimeState(g_SeedManager.GetCurrentStage());
             SaveGameState(state);
             CloseWindow();
             break;
@@ -581,7 +583,7 @@ void PauseMenu::Update(GameState* state, Vector2 mousePosition, bool mouseClicke
     if (loadConfirmPopup.IsActive()) {
         loadConfirmPopup.Update(mousePosition, mouseClicked);
         if (loadConfirmPopup.IsConfirmClicked()) {
-            if (ReadSaveFile(GetSlotPath(g_ActiveSaveSlot, "manual")))
+            if (ReadSaveFile("saves/manual/slot0.json"))
             {
                 loadConfirmPopup.Hide();
                 state->enteredLoading = false;
@@ -594,7 +596,7 @@ void PauseMenu::Update(GameState* state, Vector2 mousePosition, bool mouseClicke
             else
             {
                 loadConfirmPopup.Hide();
-                DeleteSaveFile(GetSlotPath(g_ActiveSaveSlot, "manual"));
+                DeleteSaveFile("saves/manual/slot0.json");
                 pauseCorruptPopup.Show();
             }
         }
@@ -638,28 +640,21 @@ void PauseMenu::Update(GameState* state, Vector2 mousePosition, bool mouseClicke
             bombManager.ResetConsumed();
             crateManager.ResetConsumed();
             barrierManager.Clear();
-            mapHistoryStack.Clear();
 
-            // Spawn enemies fresh dari map
+            // Spawn enemies fresh dari map, lalu restore state dari cache kalo ada
             SpawnEnemiesFromMap();
-
-            // Load initial snapshot untuk restore state enemies & items
+            const char *mapPath = GetCurrentMapPath();
+            bool cacheLoaded = false;
+            if (mapPath)
             {
-                GameSnapshot initialSnap;
-                bool hasInitial = SaveManager::HasInitial(g_ActiveSaveSlot);
-                if (hasInitial)
-                {
-                    initialSnap = SaveManager::LoadInitial(g_ActiveSaveSlot);
-                    SaveManager::ApplyPreSpawn(initialSnap);
-                }
-
-                // Fallback: spawn item fresh
-                SpawnItemWave();
-
-                // Apply initial state on top
-                if (hasInitial)
-                    SaveManager::ApplyCheckpointData(initialSnap);
+                std::string cachePath = std::string(mapPath) + ".cache";
+                cacheLoaded = LoadEnemiesForMap(cachePath);
+                cacheLoaded = LoadItemsForMapDir(cachePath) || cacheLoaded;
             }
+
+            // Fallback: kalo cache gak ada, spawn item fresh dari map
+            if (!cacheLoaded)
+                SpawnItemWave();
 
             // Reset & reposition player
             PlayerInstance.ResetForNewGame();
@@ -680,10 +675,15 @@ void PauseMenu::Update(GameState* state, Vector2 mousePosition, bool mouseClicke
             RebuildObstacleCache();
             globalFlowField.Invalidate();
 
-            // Re-capture initial state untuk restart berikutnya
+            // Re-capture cache agar restart berikutnya punya state yang segar
             {
-                GameSnapshot freshInitial = SaveManager::CaptureSnapshot();
-                SaveManager::SaveInitial(freshInitial, g_ActiveSaveSlot);
+                const char *curPath = GetCurrentMapPath();
+                if (curPath)
+                {
+                    std::string cp = std::string(curPath) + ".cache";
+                    SaveEnemiesForMap(cp);
+                    SaveItemsForMapDir(cp);
+                }
             }
 
             state->currentScreen = PLAY;

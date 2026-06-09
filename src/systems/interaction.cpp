@@ -100,14 +100,12 @@ namespace Interaction
             {
                 // InitRun cuma sekali per run — kalau sudah aktif, lanjut ke stage terakhir
                 if (!g_SeedManager.IsRunActive())
-                {
-                    int slot = (g_ActiveSaveSlot >= 0) ? g_ActiveSaveSlot : WorldgenIO::GetNextAvailableSlot();
-                    WorldgenIO::InitRun(slot);
-                }
+                    WorldgenIO::InitRun(WorldgenIO::GetNextAvailableSlot());
 
                 player.pendingSwitchMap = true;
                 player.pendingMapPath = WorldgenIO::GetStagePath(g_SeedManager.GetCurrentStage());
                 player.pendingDoorName = "start";
+                SetWorldgenPending(true);
                 return;
             }
 
@@ -142,7 +140,8 @@ namespace Interaction
                 }
                 if (!bossAlive)
                 {
-                g_SeedManager.ResetRun();
+                    WorldgenIO::SaveRuntimeState(g_SeedManager.GetCurrentStage());
+                    g_SeedManager.ResetRun();
                     gState->currentScreen = MAIN_MENU;
                 }
                 return;

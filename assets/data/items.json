@@ -10,7 +10,7 @@
       "isStackable": false,
       "maxStack": 1,
       "weapon": {
-        "damage": 25.0,
+        "damage": 15.0,
         "reach": 36.0,
         "breadth": 54.0,
         "duration": 0.3,
@@ -32,7 +32,7 @@
       "isStackable": false,
       "maxStack": 1,
       "weapon": {
-        "damage": 35.0,
+        "damage": 25.0,
         "reach": 48.0,
         "breadth": 70.0,
         "duration": 0.4,
@@ -55,8 +55,7 @@
       "maxStack": 8,
       "potion": {
         "healValue": 20,
-        "isMana": false,
-        "cooldown": 1.0
+        "isMana": false
       }
     },
     "staminaPotionSmall": {
@@ -70,8 +69,7 @@
       "maxStack": 8,
       "potion": {
         "healValue": 15,
-        "isMana": true,
-        "cooldown": 1.0
+        "isMana": true
       }
     },
     "bow": {
@@ -80,14 +78,14 @@
       "spriteKey": "bow",
       "name": "Wooden Bow",
       "hitboxSize": { "x": 20, "y": 20 },
-      "rarity": "uncommon",
+      "rarity": "common",
       "isStackable": false,
       "maxStack": 1,
       "weapon": {
-        "damage": 20.0,
-        "reach": 225.0,
+        "damage": 1000.0,
+        "reach": 200.0,
         "breadth": 8.0,
-        "duration": 0.4,
+        "duration": 0.3,
         "knockbackForce": 0.5,
         "startAngleOffset": 0.0,
         "sweepAngle": 0.0,
@@ -107,8 +105,7 @@
       "maxStack": 8,
       "potion": {
         "healValue": 50,
-        "isMana": false,
-        "cooldown": 5.0
+        "isMana": false
       }
     },
     "staminaPotionMedium": {
@@ -122,8 +119,7 @@
       "maxStack": 8,
       "potion": {
         "healValue": 40,
-        "isMana": true,
-        "cooldown": 5.0
+        "isMana": true
       }
     },
     "healthPotionLarge": {
@@ -132,13 +128,12 @@
       "spriteKey": "healthPotionLarge",
       "name": "Large Health Potion",
       "hitboxSize": { "x": 20, "y": 20 },
-      "rarity": "epic",
+      "rarity": "rare",
       "isStackable": true,
       "maxStack": 8,
       "potion": {
         "healValue": 100,
-        "isMana": false,
-        "cooldown": 10.0
+        "isMana": false
       }
     },
     "staminaPotionLarge": {
@@ -147,203 +142,12 @@
       "spriteKey": "staminaPotionLarge",
       "name": "Large Stamina Potion",
       "hitboxSize": { "x": 20, "y": 20 },
-      "rarity": "epic",
+      "rarity": "rare",
       "isStackable": true,
       "maxStack": 8,
       "potion": {
         "healValue": 80,
-        "isMana": true,
-        "cooldown": 10.0
-      }
-    },
-    "damagePotionSmall": {
-      "id": 9,
-      "category": "potion",
-      "spriteKey": "damagePotionSmall",
-      "name": "Small Damage Potion",
-      "hitboxSize": { "x": 20, "y": 20 },
-      "rarity": "rare",
-      "isStackable": true,
-      "maxStack": 8,
-      "potion": {
-        "healValue": 0,
-        "isMana": false,
-        "damageMultiplier": 1.25,
-        "duration": 30.0,
-        "cooldown": 5.0
-      }
-    },
-    "damagePotionMedium": {
-      "id": 10,
-      "category": "potion",
-      "spriteKey": "damagePotionMedium",
-      "name": "Medium Damage Potion",
-      "hitboxSize": { "x": 20, "y": 20 },
-      "rarity": "epic",
-      "isStackable": true,
-      "maxStack": 8,
-      "potion": {
-        "healValue": 0,
-        "isMana": false,
-        "damageMultiplier": 1.5,
-        "duration": 45.0,
-        "cooldown": 10.0
-      }
-    },
-    "speedPotionSmall": {
-      "id": 11,
-      "category": "potion",
-      "spriteKey": "speedPotionSmall",
-      "name": "Small Speed Potion",
-      "hitboxSize": { "x": 20, "y": 20 },
-      "rarity": "rare",
-      "isStackable": true,
-      "maxStack": 8,
-      "potion": {
-        "healValue": 0,
-        "isMana": false,
-        "speedMultiplier": 1.125,
-        "duration": 20.0,
-        "cooldown": 5.0
-      }
-    },
-    "speedPotionMedium": {
-      "id": 12,
-      "category": "potion",
-      "spriteKey": "speedPotionMedium",
-      "name": "Medium Speed Potion",
-      "hitboxSize": { "x": 20, "y": 20 },
-      "rarity": "epic",
-      "isStackable": true,
-      "maxStack": 8,
-      "potion": {
-        "healValue": 0,
-        "isMana": false,
-        "speedMultiplier": 1.25,
-        "duration": 35.0,
-        "cooldown": 10.0
-      }
-    },
-    "invincibilityPotionSmall": {
-      "id": 13,
-      "category": "potion",
-      "spriteKey": "invincibilityPotionSmall",
-      "name": "Small Invincibility Potion",
-      "hitboxSize": { "x": 20, "y": 20 },
-      "rarity": "rare",
-      "isStackable": true,
-      "maxStack": 3,
-      "potion": {
-        "healValue": 0,
-        "isMana": false,
-        "invincibilityDuration": 5.0,
-        "duration": 5.0,
-        "cooldown": 5.0
-      }
-    },
-    "invincibilityPotionMedium": {
-      "id": 14,
-      "category": "potion",
-      "spriteKey": "invincibilityPotionMedium",
-      "name": "Medium Invincibility Potion",
-      "hitboxSize": { "x": 20, "y": 20 },
-      "rarity": "epic",
-      "isStackable": true,
-      "maxStack": 3,
-      "potion": {
-        "healValue": 0,
-        "isMana": false,
-        "invincibilityDuration": 10.0,
-        "duration": 10.0,
-        "cooldown": 10.0
-      }
-    },
-    "ak47": {
-      "id": 15,
-      "category": "weapon",
-      "spriteKey": "ak47",
-      "name": "AK-47",
-      "hitboxSize": { "x": 20, "y": 20 },
-      "rarity": "epic",
-      "isStackable": false,
-      "maxStack": 1,
-      "weapon": {
-        "damage": 20.0,
-        "reach": 300.0,
-        "breadth": 10.0,
-        "duration": 0.2,
-        "knockbackForce": 0.25,
-        "startAngleOffset": 0.0,
-        "sweepAngle": 0.0,
-        "centerOffset": { "x": 10.0, "y": 5.0 },
-        "manaCost": 2.0,
-        "attackType": "pierce"
-      }
-    },
-    "spear": {
-      "id": 16,
-      "category": "weapon",
-      "spriteKey": "spear",
-      "name": "Iron Spear",
-      "hitboxSize": { "x": 20, "y": 40 },
-      "rarity": "uncommon",
-      "isStackable": false,
-      "maxStack": 1,
-      "weapon": {
-        "damage": 35.0,
-        "reach": 80.0,
-        "breadth": 20.0,
-        "duration": 0.35,
-        "knockbackForce": 1.8,
-        "startAngleOffset": 0.0,
-        "sweepAngle": 0.0,
-        "centerOffset": { "x": 10.0, "y": 20.0 },
-        "manaCost": 10.0,
-        "attackType": "thrust"
-      }
-    },
-    "axe": {
-      "id": 17,
-      "category": "weapon",
-      "spriteKey": "axe",
-      "name": "Battle Axe",
-      "hitboxSize": { "x": 20, "y": 40 },
-      "rarity": "uncommon",
-      "isStackable": false,
-      "maxStack": 1,
-      "weapon": {
-        "damage": 40.0,
-        "reach": 48.0,
-        "breadth": 70.0,
-        "duration": 0.4,
-        "knockbackForce": 1.7,
-        "startAngleOffset": 45.0,
-        "sweepAngle": -90.0,
-        "centerOffset": { "x": 10.0, "y": 20.0 },
-        "manaCost": 15.0,
-        "attackType": "slash"
-      }
-    },
-    "hammer": {
-      "id": 18,
-      "category": "weapon",
-      "spriteKey": "hammer",
-      "name": "War Hammer",
-      "hitboxSize": { "x": 20, "y": 20 },
-      "rarity": "rare",
-      "isStackable": false,
-      "maxStack": 1,
-      "weapon": {
-        "damage": 60.0,
-        "reach": 64.0,
-        "breadth": 64.0,
-        "duration": 0.5,
-        "knockbackForce": 3.0,
-        "startAngleOffset": 0.0,
-        "sweepAngle": 0.0,
-        "centerOffset": { "x": 10.0, "y": 10.0 },
-        "manaCost": 20.0,
-        "attackType": "slam"
+        "isMana": true
       }
     }
   }

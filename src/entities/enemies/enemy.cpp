@@ -11,23 +11,16 @@
  */
 
 #include "enemy.h"
-#include "../../../include/systems/audioManager.h"
 #include "screen.h"
 #include "enemy_ai.h"
-#include "combatTurn.h"
 #include "player.h"
 #include "map.h"
 #include "datadriven.h"
-#include "raymath.h"
+#include "../lib/raylib/include/raymath.h"
 #include "../lib/json/include/nlohmann/json.hpp"
 #include "game_debug.h"
 #include "entities.h"
-#include "animation.h"
-#include "item.h"
 #include "core/utils.h"
-#include "audioManager.h"
-#include <map>
-#include "core/game_state_saver.h"
 #include <cmath>
 #include <fstream>
 #include <filesystem>
@@ -116,7 +109,6 @@ void EnemyDataManager::Load(const std::string &path)
         def.hitbox.size = ParseVector2(h.at("size"));
         def.hitbox.offset = ParseVector2(h.at("offset"));
 
-        def.Scale = SafeGet<float>(data, "scale", 1.0f);
         def.animSet = ResolveAnimSet(name);
 
         definitions_[name] = std::move(def);
@@ -225,16 +217,6 @@ void Enemy::Update()
             AIState = ENEMY_IDLE;
             DetectionRange = Def->stats.baseDetectionRange;
             Entities::RegisterDeath(GetCurrentMapPath(), MapObjectID);
-
-            if (!Def->stats.canTriggerTurnBased) {
-                if (rank == ENEMY_ELITE) {
-                    static const std::map<ItemRarity, int> eliteWeights = {{RARITY_UNCOMMON, 70}, {RARITY_RARE, 30}};
-                    itemData.SpawnItemAtLocation(Position, eliteWeights);
-                } else {
-                    static const std::map<ItemRarity, int> normalWeights = {{RARITY_COMMON, 80}, {RARITY_UNCOMMON, 20}};
-                    itemData.SpawnItemAtLocation(Position, normalWeights);
-                }
-            }
         }
 
         DeathTimer += Time::DELTA_TIME;
@@ -250,14 +232,6 @@ void Enemy::Update()
         HitFlashTimer -= Time::DELTA_TIME;
     if (AttackCooldownTimer > 0)
         AttackCooldownTimer -= Time::DELTA_TIME;
-
-    // Freeze enemy selama turn-based combat — AI & movement dijeda
-    if (TurnCombat::IsActive())
-    {
-        Anim.position = Position;
-        UpdateAnimation(Anim, Time::DELTA_TIME);
-        return;
-    }
 
     float fpsNorm = 60.0f;
     float knockbackFriction = 0.85f;
@@ -280,7 +254,7 @@ void Enemy::Update()
     }
 
     // buat ngatur sejauh apa ai enemy bisa ke update
-    float aiUpdateRangeMul = 200.0f;
+    float aiUpdateRangeMul = 20.0f;
     const float AI_UPDATE_RANGE = FRAME_SIZE * aiUpdateRangeMul;
 
     if (Vector2Distance(Position, PlayerInstance.GetPosition()) <= AI_UPDATE_RANGE)
@@ -295,19 +269,6 @@ void Enemy::Update()
  */
 void Enemy::UpdateAI()
 {
-    // Turn-based trigger: boss dengan HP ≤ 50% memicu combat turn-based
-    if (Def->stats.canTriggerTurnBased) {
-        bool belowHalf = (Health <= MaxHealth * 0.5f);
-        if (belowHalf && !bossMusicPlaying) {
-            AudioManager::PlayTrack("Boss");
-            bossMusicPlaying = true;
-        } else if (!belowHalf && bossMusicPlaying) {
-            AudioManager::StopMusic();
-            bossMusicPlaying = false;
-        }
-        isTurnBasedMode = belowHalf;
-    }
-
     // Jika player mati, paksa idle agar enemy tidak terus mengejar posisi terakhir
     if (!PlayerInstance.IsAlive())
     {
@@ -636,9 +597,10 @@ void Enemy::PerformAttack()
 void Enemy::TakeDamage(float amount, Vector2 knockback)
 {
     Entity::TakeDamage(amount, knockback);
-    AudioManager::PlaySFX("attack");
-    HitFlashTimer = 0.15f;
-    KnockbackVelocity = Vector2Scale(knockback, 5.0f);
+    float hitFlashDuration = 0.15f;
+    float knockbackStrength = 6.0f;
+    HitFlashTimer = hitFlashDuration;
+    KnockbackVelocity = Vector2Scale(knockback, knockbackStrength);
     HealthRegenTimer = Def->stats.healthRegenDelay;
 }
 
@@ -669,9 +631,8 @@ void Enemy::Render()
 
     if (shouldDraw)
     {
-        Color tint = WHITE;
-        if (HitFlashTimer > 0) tint = RED;
-        DrawAnimation(Anim, tint, Def->Scale);
+        Color tint = (HitFlashTimer > 0) ? RED : WHITE;
+        DrawAnimation(Anim, tint);
     }
 
     // Health bar hanya tampil saat agresif
@@ -710,9 +671,148 @@ void InitEnemy()
     enemyData.Load("assets/data/enemies.json");
 }
 
+/**
+ * @brief Save all active enemy states for a map to the saves/enemies/ filesystem directory.
+ * @details Serializes each live enemy's position, name, HP, AI state, patrol data, spawn point,
+ *          health regen timer, attack cooldown timer, and UUID to a JSON file. Uses atomic
+ *          write via .tmp + rename to prevent corruption. Skips inactive enemies.
+ *          Save file path derived by sanitizing mapPath (replacing / and \\ with _).
+ * @param mapPath Raw map file path used to derive save file name (e.g., "assets/maps/tutorial.json")
+ */
+void SaveEnemiesForMap(const std::string &mapPath)
+{
+    // Build per-map save file path
+    std::string safeName = mapPath;
+    for (auto &c : safeName)
+    {
+        if (c == '/' || c == '\\') c = '_';
+    }
+    std::string dir = "saves/enemies";
+    std::string filePath = dir + "/" + safeName;
 
+    std::filesystem::create_directories(dir);
 
+    json root;
+    json enemiesJson = json::array();
 
+    auto &enemyReg = Entities::GetEnemyRegistry();
+    for (const auto &enemy : enemyReg)
+
+    {
+        if (!enemy->IsActive) continue;
+        json e;
+        e["position"] = {enemy->Position.x, enemy->Position.y};
+        e["enemyName"] = enemy->Name;
+        e["currentHP"] = (int)enemy->Health;
+        e["isAlive"] = enemy->IsAlive();
+        e["maxHealth"] = enemy->MaxHealth;
+        e["aiState"] = (int)enemy->AIState;
+        e["patrolTargetX"] = enemy->PatrolTarget.x;
+        e["patrolTargetY"] = enemy->PatrolTarget.y;
+        e["patrolTimer"] = enemy->PatrolTimer;
+        e["mapObjectID"] = enemy->MapObjectID;
+        e["spawnPoint"] = {{"x", enemy->SpawnPoint.x}, {"y", enemy->SpawnPoint.y}};
+        e["healthRegenTimer"] = enemy->HealthRegenTimer;
+        e["attackCooldownTimer"] = enemy->GetAttackCooldownTimer();
+        e["uuid"] = enemy->GetUUID();
+        enemiesJson.push_back(e);
+    }
+
+    root["enemies"] = enemiesJson;
+
+    // Atomic write
+    std::string tmpPath = filePath + ".tmp";
+    std::ofstream file(tmpPath);
+    file << root.dump(4);
+    file.close();
+    std::filesystem::rename(tmpPath, filePath);
+}
+
+/**
+ * @brief Load enemy states for a map from the saves/enemies/ filesystem directory.
+ * @details Reads the per-map save file, deserializes each enemy's state, and restores
+ *          position, HP, AI state, patrol data, spawn point, timers, and UUID to the
+ *          matching Enemy instance (matched by MapObjectID + Name). Dead enemies are
+ *          registered via Entities::RegisterDeath to prevent respawn.
+ * @param mapPath Raw map file path used to derive save file name
+ * @return true if at least one enemy was restored, false if no save file or parse failed
+ */
+bool LoadEnemiesForMap(const std::string &mapPath)
+{
+    // Build per-map save file path
+    std::string safeName = mapPath;
+    for (auto &c : safeName)
+    {
+        if (c == '/' || c == '\\') c = '_';
+    }
+    std::string filePath = "saves/enemies/" + safeName;
+
+    if (!std::filesystem::exists(filePath))
+        return false;
+
+    try
+    {
+        std::ifstream file(filePath);
+        json root = json::parse(file);
+
+        if (!root.contains("enemies"))
+            return false;
+
+        auto &enemyReg = Entities::GetEnemyRegistry();
+        std::unordered_set<Enemy*> matchedEnemies;
+        bool anyRestored = false;
+
+        for (const auto &e : root.at("enemies"))
+        {
+            int savedMapObjectID = e.value("mapObjectID", -1);
+            bool isAlive = e.value("isAlive", true);
+
+            if (!isAlive)
+            {
+                if (savedMapObjectID >= 0)
+                    Entities::RegisterDeath(mapPath, savedMapObjectID);
+                continue;
+            }
+
+            // Find matching enemy by MapObjectID and restore state
+            for (auto &enemy : enemyReg)
+            {
+                if (enemy == nullptr || matchedEnemies.count(enemy)) continue;
+                if (enemy->MapObjectID == savedMapObjectID && enemy->Name == e.value("enemyName", ""))
+                {
+                    enemy->Position.x = e.at("position")[0].get<float>();
+                    enemy->Position.y = e.at("position")[1].get<float>();
+                    enemy->Health = e.value("currentHP", 100);
+                    enemy->MaxHealth = e.value("maxHealth", 100.0f);
+                    enemy->AIState = (EnemyAIState)e.value("aiState", 0);
+                    enemy->PatrolTarget.x = e.value("patrolTargetX", 0.0f);
+                    enemy->PatrolTarget.y = e.value("patrolTargetY", 0.0f);
+                    enemy->PatrolTimer = e.value("patrolTimer", 0.0f);
+                    if (e.contains("spawnPoint"))
+                    {
+                        enemy->SpawnPoint.x = e["spawnPoint"]["x"].get<float>();
+                        enemy->SpawnPoint.y = e["spawnPoint"]["y"].get<float>();
+                    }
+                    enemy->HealthRegenTimer = e.value("healthRegenTimer", 0.0f);
+                    enemy->SetAttackCooldownTimer(e.value("attackCooldownTimer", 0.0f));
+                    std::string uuid = e.value("uuid", "");
+                    if (!uuid.empty())
+                        enemy->SetUUID(uuid);
+                    enemy->IsActive = true;
+                    matchedEnemies.insert(enemy);
+                    anyRestored = true;
+                    break;
+                }
+            }
+        }
+
+        return anyRestored;
+    }
+    catch (...)
+    {
+        return false;
+    }
+}
 
 /**
  * @brief Hapus semua enemy aktif dari entity manager.
@@ -720,17 +820,6 @@ void InitEnemy()
 
 void ClearEnemies()
 {
-    // Stop boss music jika ada boss dengan music aktif sebelum entity dihapus
-    for (Entity *entity : Entities::GetRegistry())
-    {
-        Enemy *enemy = dynamic_cast<Enemy *>(entity);
-        if (enemy && enemy->bossMusicPlaying)
-        {
-            AudioManager::StopMusic();
-            AudioManager::ResetToScreenTrack();
-            break;
-        }
-    }
     Entities::Clear();
 }
 
@@ -773,63 +862,16 @@ const AnimationSet *ResolveAnimSet(const std::string &name)
 
     auto it = loadedAnimationSets.find(lowerName);
     if (it != loadedAnimationSets.end())
-        return &it->second;
-
-    // Coba tanpa suffix _boss, _elite (e.g. "wolf_boss" → "wolf")
-    for (const auto &suffix : {"_boss", "_elite"})
     {
-        if (lowerName.size() > strlen(suffix) &&
-            lowerName.substr(lowerName.size() - strlen(suffix)) == suffix)
-        {
-            std::string base = lowerName.substr(0, lowerName.size() - strlen(suffix));
-            auto it2 = loadedAnimationSets.find(base);
-            if (it2 != loadedAnimationSets.end())
-                return &it2->second;
-        }
+        return &it->second;
     }
 
     it = loadedAnimationSets.find("slime");
     if (it != loadedAnimationSets.end())
-        return &it->second;
-    return nullptr;
-}
-
-/**
- * @brief Push enemy keluar dari collision dinding setelah spawn.
- * Coba offset bertahap dalam pola cross sampai dapat posisi aman.
- */
-static void PushOutOfWalls(Enemy *enemy)
-{
-    if (!enemy) return;
-    Vector2 pos = enemy->Position;
-    if (IsPositionSafe(pos, enemy->HitboxWidth, enemy->HitboxHeight, enemy->HitboxOffsetX, enemy->HitboxOffsetY))
-        return;
-
-    float offsets[] = {4, 8, 12, 16, 20, 24, 28, 32, 40, 48};
-    for (float o : offsets)
     {
-        Vector2 tries[] = {
-            {pos.x + o, pos.y},
-            {pos.x - o, pos.y},
-            {pos.x, pos.y + o},
-            {pos.x, pos.y - o},
-            {pos.x + o, pos.y + o},
-            {pos.x - o, pos.y - o},
-            {pos.x + o, pos.y - o},
-            {pos.x - o, pos.y + o},
-        };
-        for (Vector2 t : tries)
-        {
-            if (IsPositionSafe(t, enemy->HitboxWidth, enemy->HitboxHeight, enemy->HitboxOffsetX, enemy->HitboxOffsetY))
-            {
-                enemy->Position = t;
-                enemy->Anim.position = t;
-                enemy->SpawnPoint = {t.x + enemy->HitboxWidth / 2.0f + enemy->HitboxOffsetX,
-                                     t.y + enemy->HitboxHeight / 2.0f + enemy->HitboxOffsetY};
-                return;
-            }
-        }
+        return &it->second;
     }
+    return nullptr;
 }
 
 /*==============================================================================
@@ -875,7 +917,6 @@ void SpawnAtPoint(const MapObject *obj, EnemyRank rank)
         Enemy *enemy = new Enemy();
         enemy->Init(spawnPos, picked.c_str(), obj->id, def);
         enemy->SetUUID(GenerateUUID());
-        PushOutOfWalls(enemy);
         enemy->SetReturnFlowField(&spawnFlowFields[obj->id].field);
         Entities::AddDynamic(enemy);
     }
@@ -969,7 +1010,6 @@ void SpawnBoss(const MapObject *obj)
     Enemy *enemy = new Enemy();
     enemy->Init(spawnPos, picked.c_str(), obj->id, def);
     enemy->SetUUID(GenerateUUID());
-    PushOutOfWalls(enemy);
     enemy->SetReturnFlowField(&spawnFlowFields[obj->id].field);
     Entities::AddDynamic(enemy);
 }

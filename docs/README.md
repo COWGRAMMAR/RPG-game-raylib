@@ -10,9 +10,10 @@ Isi folder ini dapat berubah-ubah sepanjang waktu. Apabila menambahkan atau meng
 
 1. `./assets-structure.md` : Berisi panduan untuk meletakkan aset dan resource yang diperlukan untuk permainan.
 2. `./build.md` : Panduan untuk membangun projek agar bisa dijalankan dan dimainkan.
-3. `./save-system.md` : Dokumentasi arsitektur save/load system (SaveManager + GameSnapshot, per-slot isolation, UUID entity identity, loading flow)
-4. `./sign-system-ui.md` : Dokumentasi sign/UI system (belum diisi)
-5. `./source-structure.md` : Struktur direktori source code dan header
-6. `./worldgeneration.md` : Dokumentasi world generation system
+3. `./save-system.md` :
+4. `./sign-system-ui.md` :
+5. `./source-structure.md` :
+6. `./worldgeneration.md` :
 7. `./debug-keybinds.md` : Berisi dokumentasi keybind debug dan akses pengembang
 8. `./save-system-changelog.md` : Changelog sesi restart system, cache, bug fix save system (human readable)
+9. `./save-system-changelog-ai.md` : Versi AI/machine-parseable dari changelog sistem save

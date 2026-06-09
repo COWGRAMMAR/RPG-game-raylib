@@ -20,13 +20,11 @@
 #include "../../include/entities/enemy_ai.h"
 #include "../../include/core/seedmanager.h"
 #include "../../include/map/worldgenio.h"
-#include "../../include/core/savemanager.h"
 #include "../../include/rendering/fonts.h"
-#include "../../include/systems/audioManager.h"
 #include <algorithm>
 #include <cstring>
 #include <cctype>
-#include "raylib.h"
+#include "../../lib/raylib/include/raylib.h"
 
 /*==============================================================================
  * Konstanta Loading
@@ -69,291 +67,256 @@ void InitLoadingScreen(GameState *state)
     }
 }
 
-// Ekstrak index stage (0-based) dari map path worldgen, misal: stage_2.json -> 1
-// Dipakai kalo ada 2 save di 1 worldgen slot: meta.json punya stage lebih tinggi,
-// tapi save yang di-load butuh seed stage yang bener.
-/*=== Extract Stage dari Map Path ===*/
-
-static int ExtractStageFromPath(const std::string& mapPath)
+/**
+ * @brief UpdateLoadingScreen()
+ * Update logic loading screen dan sequence loading asset.
+ * @param state Pointer ke GameState
+ * @details Load asset per stage, skip jika assetsLoaded sudah true.
+ *          Juga menangani map switch dengan stages terpisah.
+ */
+void UpdateLoadingScreen(GameState *state)
 {
-    auto pos = mapPath.find("stage_");
-    if (pos == std::string::npos) return 0;
-    pos += 6;
-    int num = 0;
-    while (pos < mapPath.size() && isdigit((unsigned char)mapPath[pos]))
+    UpdateGame(state);
+
+    if (state->loadingComplete)
     {
-        num = num * 10 + (mapPath[pos] - '0');
-        pos++;
+        return;
     }
-    return (num > 0) ? num - 1 : 0;
-}
 
-/*=== Shared Worldgen Helpers ===*/
-
-// LoadMeta + extract stage dari mapPath + RunWorldgen
-// Dipanggil pas initial load / fast path (bukan map-switch — SeedManager udah bener)
-static bool LoadWorldgenForSave(const std::string& mapPath, int worldgenSlot)
-{
-    TraceLog(LOG_INFO, "LoadWorldgenForSave: worldgenSlot=%d mapPath='%s'", worldgenSlot, mapPath.c_str());
-    if (worldgenSlot < 0) { TraceLog(LOG_WARNING, "LoadWorldgenForSave: worldgenSlot < 0 — skipping"); return false; }
-    std::string metaPath = WorldgenIO::GetMetaPath(worldgenSlot);
-    TraceLog(LOG_INFO, "LoadWorldgenForSave: metaPath='%s'", metaPath.c_str());
-    if (!g_SeedManager.LoadMeta(metaPath)) { TraceLog(LOG_WARNING, "LoadWorldgenForSave: LoadMeta failed for '%s'", metaPath.c_str()); return false; }
-    // Stage dari mapPath (per-save), bukan meta.json (bisa outdated kalo 2 save
-    // di worldgen slot sama punya stage berbeda)
-    int stageIdx = ExtractStageFromPath(mapPath);
-    TraceLog(LOG_INFO, "LoadWorldgenForSave: stageIdx=%d (from mapPath)", stageIdx);
-    g_SeedManager.SetCurrentStage(stageIdx);
-    uint64_t seed = g_SeedManager.GetSeed(stageIdx);
-
-    // InitItems belum tentu dipanggil sebelum LoadWorldgenForSave
-    // (misal di HandleInitialLoad — InitItems baru jalan di InitAll setelahnya).
-    // Padahal RunWorldgen → SpawnItemWave butuh itemDefs terisi.
-    // Pastikan item definitions di-load biar SpawnAll gak crash di GetById(-1).
-    itemDefs.Load("assets/data/items.json");
-
-    RunWorldgen(seed, stageIdx == SeedManager::SEED_COUNT - 1);
-
-    TraceLog(LOG_INFO, "LoadWorldgenForSave: complete — stage=%d pos=(%.0f,%.0f)", stageIdx, PlayerInstance.GetPosition().x, PlayerInstance.GetPosition().y);
-    return true;
-}
-
-/*=== Map-switch Mode ===*/
-
-static void HandleMapSwitch(GameState* state)
-{
-    bool isBack = state->isGoingBack;
-
-    switch (state->loadingStage)
+    /*==============================================================================
+     * Map Switch Loading - handle transisi map dengan loading screen
+     *==============================================================================*/
+    if (state->isSwitchingMap || state->isGoingBack)
     {
-    case 0:
-        TraceLog(LOG_INFO, "LOADING: [stage 1/4] %s", isBack ? "Returning to previous map" : "Unloading current map");
-        state->loadingText = isBack ? "Returning to previous map..." : "Unloading current map...";
-        UnloadMap();
-        spawnFlowFields.clear();
-        state->loadingStage++;
-        state->loadingProgress = (float)state->loadingStage / MAP_SWITCH_STAGES * 100.0F;
-        break;
+        bool isBack = state->isGoingBack;
 
-    case 1:
-        TraceLog(LOG_INFO, "LOADING: [stage 2/4] Loading map: %s", state->pendingMapPath.c_str());
-        state->loadingText = isBack ? "Reloading previous map..." : "Loading new map...";
-        LoadMap(state->pendingMapPath.c_str());
-
-        // Update map path segera agar IsAlreadyDead() pakai path yang benar
-        SetCurrentMapPath(state->pendingMapPath.c_str());
-
-        // Worldgen map-switch: SeedManager currentStage udah bener dari NextStage/PrevStage
-        if (!isBack && state->pendingMapPath.find("worldseed/save_") != std::string::npos)
+        switch (state->loadingStage)
         {
-            int stageIdx = g_SeedManager.GetCurrentStage();
-            uint64_t seed = g_SeedManager.GetSeed(stageIdx);
-            RunWorldgen(seed, stageIdx == SeedManager::SEED_COUNT - 1);
+        case 0:
+            TraceLog(LOG_INFO, "LOADING: [stage 1/4] %s", isBack ? "Returning to previous map" : "Unloading current map");
+            state->loadingText = isBack ? "Returning to previous map..." : "Unloading current map...";
+            UnloadMap();
+            spawnFlowFields.clear();
+            state->loadingStage++;
+            state->loadingProgress = (float)state->loadingStage / MAP_SWITCH_STAGES * 100.0F;
+            break;
 
-        }
-        else
-        {
-            BuildMapObjectIndex();
+        case 1:
+            TraceLog(LOG_INFO, "LOADING: [stage 2/4] Loading map: %s", state->pendingMapPath.c_str());
+            state->loadingText = isBack ? "Reloading previous map..." : "Loading new map...";
+            LoadMap(state->pendingMapPath.c_str());
 
-            // BUGFIX: Apply pre-spawn state (dead entities + consumed positions)
-            // SEBELUM SpawnObject agar chest/bomb/crate yang sudah dikonsumsi
-            // tidak spawn ulang, dan enemy mati tidak di-respawn
-            GameSnapshot chkSnap;
-            if (SaveManager::HasCheckpoint(state->pendingMapPath, g_ActiveSaveSlot))
+            // Update map path segera agar IsAlreadyDead() pakai path yang benar
+            SetCurrentMapPath(state->pendingMapPath.c_str());
+
+            /**
+             * @brief Worldgen map-switch: run worldgen stage and load runtime state
+             * Block ini jalan saat map-switch (bukan Load Game) ketika masuk ke
+             * worldgen stage. Panggil RunWorldgenStage() untuk generate stage map,
+             * lalu LoadRuntimeState() untuk restore runtime state per-stage.
+             * LoadRuntimeState() overwrite DeadEntities dengan subset stage ini —
+             * intentional. Clear worldgen pending flag setelah load agar
+             * RestoreDeadEntities selanjutnya jalan normal.
+             */
+            if (!isBack && state->pendingMapPath.find("worldseed/save_") != std::string::npos)
             {
-                chkSnap = SaveManager::LoadCheckpoint(state->pendingMapPath, g_ActiveSaveSlot);
-                SaveManager::ApplyPreSpawn(chkSnap);
+                int stageIdx = g_SeedManager.GetCurrentStage();
+                uint64_t seed = g_SeedManager.GetSeed(stageIdx);
+                RunWorldgen(seed, stageIdx == SeedManager::SEED_COUNT - 1);
+                WorldgenIO::LoadRuntimeState(g_SeedManager.GetCurrentStage());
+                // Worldgen runtime state is now active — clear the pending flag so
+                // future calls to RestoreDeadEntities (e.g. after returning to overworld)
+                // restore from the main save file as normal.
+                SetWorldgenPending(false);
             }
-        }
-        SpawnObject();
-        RebuildObstacleCache();
-        globalFlowField.Invalidate();
-        state->loadingStage++;
-        state->loadingProgress = (float)state->loadingStage / MAP_SWITCH_STAGES * 100.0F;
-        break;
-
-    case 2:
-        TraceLog(LOG_INFO, "LOADING: [stage 3/4] Initializing player and entities");
-        state->loadingText = "Initializing player and entities...";
-        PlayerInstance.Init(gState, state->pendingDoorName.c_str());
-        TiledHelperFunction.TryGetObjectPositionByName(SPAWN_OBJECT_NAME, gState->startSpawnPos);
-        Entities::Clear();
-        Entities::Add(&PlayerInstance);
-
-        // Coba load checkpoint & apply pre-spawn (dead entities)
-        {
-            GameSnapshot chkSnap;
-            bool hasCheckpoint = SaveManager::HasCheckpoint(state->pendingMapPath, g_ActiveSaveSlot);
-            if (hasCheckpoint)
+            else
             {
-                chkSnap = SaveManager::LoadCheckpoint(state->pendingMapPath, g_ActiveSaveSlot);
-                SaveManager::ApplyPreSpawn(chkSnap);
+                BuildMapObjectIndex();
+            }
+            SpawnObject();
+            RebuildObstacleCache();
+            globalFlowField.Invalidate();
+            state->loadingStage++;
+            state->loadingProgress = (float)state->loadingStage / MAP_SWITCH_STAGES * 100.0F;
+            break;
+
+        case 2:
+            TraceLog(LOG_INFO, "LOADING: [stage 3/4] Initializing player and entities");
+            state->loadingText = "Initializing player and entities...";
+            // Re-init player berdasarkan target door di map baru
+            PlayerInstance.Init(gState, state->pendingDoorName.c_str());
+
+            // Capture start room spawn position untuk revive
+            TiledHelperFunction.TryGetObjectPositionByName(SPAWN_OBJECT_NAME, gState->startSpawnPos);
+
+            // Bersihkan entitas map sebelumnya dan add player
+            Entities::Clear();
+            Entities::Add(&PlayerInstance);
+
+            // Load musuh dari save per-map, atau spawn baru jika tak ada
+            if (!LoadEnemiesForMap(state->pendingMapPath))
+            {
+                SpawnEnemiesFromMap();
             }
 
-            SpawnEnemiesFromMap();
-            SpawnItemWave();
+            // Load items from filesystem persistence
+            if (!LoadItemsForMapDir(state->pendingMapPath))
+            {
+                SpawnItemWave();
+            }
 
-            // Apply checkpoint state on top of fresh spawn
-            if (hasCheckpoint)
-                SaveManager::ApplyCheckpointData(chkSnap);
-        }
+            // Capture cache untuk restart
+            {
+                const char *currentPath = GetCurrentMapPath();
+                if (currentPath)
+                {
+                    std::string cachePath = std::string(currentPath) + ".cache";
+                    SaveEnemiesForMap(cachePath);
+                    SaveItemsForMapDir(cachePath);
+                }
+            }
 
-        // Save initial state untuk restart
-        {
-            GameSnapshot initial = SaveManager::CaptureSnapshot();
-            SaveManager::SaveInitial(initial, g_ActiveSaveSlot);
-        }
+            state->loadingStage++;
+            state->loadingProgress = (float)state->loadingStage / MAP_SWITCH_STAGES * 100.0F;
+            break;
 
-        state->loadingStage++;
-        state->loadingProgress = (float)state->loadingStage / MAP_SWITCH_STAGES * 100.0F;
-        break;
-
-    case 3:
-        TraceLog(LOG_INFO, "LOADING: [stage 4/4] Finalizing map switch");
-        state->loadingText = "Finalizing map switch...";
-        {
+        case 3:
+            TraceLog(LOG_INFO, "LOADING: [stage 4/4] Finalizing map switch");
+            state->loadingText = "Finalizing map switch...";
+            // Set camera ke spawn player
             Vector2 spawnPos = PlayerInstance.GetPosition();
             camera.target = {spawnPos.x + (FRAME_SIZE / 2.0F), spawnPos.y + (FRAME_SIZE / 2.0F)};
             camera.offset = {(float)(GameScreenWidth / 2), (float)(GameScreenHeight / 2)};
             camera.rotation = 0;
             camera.zoom = 1.0F;
             Movement::UpdateCamera(PlayerInstance);
+
+            // Clear map switch state
+            state->isSwitchingMap = false;
+            state->isGoingBack = false;
+            state->pendingMapPath.clear();
+            state->pendingDoorName.clear();
+
+            TraceLog(LOG_INFO, "LOADING: Map switch complete, player at (%.2f, %.2f)", PlayerInstance.GetPosition().x, PlayerInstance.GetPosition().y);
+            WriteAutosave("quick.json");
+            state->loadingComplete = true;
+            state->loadingProgress = 100.0F;
+            state->loadingText = "Map loaded!";
+            state->currentScreen = PLAY;
+            break;
         }
-
-        state->isSwitchingMap = false;
-        state->isGoingBack = false;
-        state->pendingMapPath.clear();
-        state->pendingDoorName.clear();
-
-        TraceLog(LOG_INFO, "LOADING: Map switch complete, player at (%.2f, %.2f)", PlayerInstance.GetPosition().x, PlayerInstance.GetPosition().y);
-        WriteAutosave("quick.json");
-        state->loadingComplete = true;
-        state->loadingProgress = 100.0F;
-        state->loadingText = "Map loaded!";
-        state->currentScreen = PLAY;
-        break;
+        return;
     }
-}
 
-/*=== Fast Path Mode (assets already loaded) ===*/
-
-static void HandleFastPath(GameState* state)
-{
-    TraceLog(LOG_INFO, "=== HandleFastPath: slot=%d mapPath='%s' worldgenSlot=%d hasSaved=%d ===",
-        g_ActiveSaveSlot, savedMapState.mapPath.c_str(), savedPlayerState.worldgenSlot, HasSavedState());
-
-    state->loadingStage = TOTAL_LOADING_STAGES;
-    state->loadingProgress = 100.0F;
-    state->loadingComplete = true;
-    state->currentScreen = PLAY;
-
-    UnloadMap();
-
-    if (HasSavedState())
+    /*==============================================================================
+     * Jika asset sudah dimuat, skip loading stages
+     *==============================================================================*/
+    if (state->assetsLoaded)
     {
-        if (!savedMapState.mapPath.empty())
-        {
-            LoadMap(savedMapState.mapPath.c_str());
-            SetCurrentMapPath(savedMapState.mapPath.c_str());
-            BuildMapObjectIndex();
+        TraceLog(LOG_INFO, "LOADING: Fast path (assets already loaded)");
 
-            if (savedMapState.mapPath.find("worldseed/save_") != std::string::npos)
+        state->loadingStage = TOTAL_LOADING_STAGES;
+        state->loadingProgress = 100.0F;
+        state->loadingComplete = true;
+        state->currentScreen = PLAY;
+
+        // Free previous map allocation before loading the correct one
+        UnloadMap();
+
+        if (HasSavedState())
+        {
+            if (!savedMapState.mapPath.empty())
             {
-                TraceLog(LOG_INFO, "HandleFastPath: calling LoadWorldgenForSave(worldgenSlot=%d)", savedPlayerState.worldgenSlot);
-                LoadWorldgenForSave(savedMapState.mapPath, savedPlayerState.worldgenSlot);
+                LoadMap(savedMapState.mapPath.c_str());
+                SetCurrentMapPath(savedMapState.mapPath.c_str());
+                BuildMapObjectIndex();
+
+                // Worldgen: regenerate layout + runtime state like normal switch path
+                if (savedMapState.mapPath.find("worldseed/save_") != std::string::npos)
+                {
+                    int stageIdx = g_SeedManager.GetCurrentStage();
+                    uint64_t seed = g_SeedManager.GetSeed(stageIdx);
+                    RunWorldgen(seed, stageIdx == SeedManager::SEED_COUNT - 1);
+                    WorldgenIO::LoadRuntimeState(stageIdx);
+                }
+            }
+            else
+            {
+                InitMap();
             }
         }
         else
         {
+            PlayerInstance.ResetForNewGame();
             InitMap();
         }
-    }
-    else
-    {
-        PlayerInstance.ResetForNewGame();
-        InitMap();
-    }
 
-    // BUGFIX: Apply pre-spawn state (dead entities + consumed positions)
-    // SEBELUM InitAll agar chest/bomb/crate yang sudah dikonsumsi
-    // tidak spawn ulang (SpawnObject dipanggil via InitAll)
-    {
-        GameSnapshot snap;
-        bool willApply = HasSavedState() && SaveManager::HasManual(g_ActiveSaveSlot);
-        TraceLog(LOG_INFO, "HandleFastPath: ApplyPreSpawn decision hasSaved=%d hasManual=%d -> %s",
-            HasSavedState(), SaveManager::HasManual(g_ActiveSaveSlot),
-            willApply ? "YES" : "SKIP");
-        if (willApply)
+        /**
+         * @brief Worldgen save detection (fast path)
+         * Jika savedMapState.mapPath mengandung "worldseed/save_", save dibuat
+         * saat mid-worldgen. Set pending flag agar RestoreDeadEntities() di bawah
+         * di-skip — WorldgenIO's LoadRuntimeState akan handle dead entities
+         * dari per-stage runtime data saat worldgen switch nanti.
+         */
+        if (HasSavedState() && savedMapState.mapPath.find("worldseed/save_") != std::string::npos)
+            SetWorldgenPending(true);
+
+        // Restore dead entities BEFORE InitAll to prevent dead enemies respawning.
+        // Skip if save points to a worldgen map -- WorldgenIO's LoadRuntimeState
+        // will set dead entities from per-stage runtime data during the next switch.
+        if (HasSavedState() && !IsWorldgenPending())
+            RestoreDeadEntities();
+        // Init first, then restore saved state - order matters!
+        // InitAll() sets position to spawn, then RestoreGameState overwrites it
+        InitAll();
+        InitFonts();
+        if (HasSavedState())
         {
-            snap = SaveManager::LoadManual(g_ActiveSaveSlot);
-            SaveManager::ApplyPreSpawn(snap);
+            RestoreGameState(state);
+            TraceLog(LOG_INFO, "LOADING: after RestoreGameState, player pos = (%.2f, %.2f)", PlayerInstance.GetPosition().x, PlayerInstance.GetPosition().y);
         }
+        else
+        {
+            WriteAutosave("spawn.json");
+        }
+        // Safety net: deactivate any dead entities that survived spawn
+        Entities::PruneDeadEntities();
+
+        // Capture fresh cache so restart has correct initial state
+        {
+            const char *currentPath = GetCurrentMapPath();
+            if (currentPath)
+            {
+                std::string cachePath = std::string(currentPath) + ".cache";
+                SaveEnemiesForMap(cachePath);
+                SaveItemsForMapDir(cachePath);
+            }
+        }
+
+        InitMainMenu(state);
+        return;
     }
 
-    InitAll();
-    InitFonts();
-    if (HasSavedState())
-    {
-        RestoreGameState(state);
-        TraceLog(LOG_INFO, "LOADING: after RestoreGameState, player pos = (%.2f, %.2f)", PlayerInstance.GetPosition().x, PlayerInstance.GetPosition().y);
-    }
-    else
-    {
-        WriteAutosave("spawn.json");
-    }
-
-    Entities::PruneDeadEntities();
-
-    // Save initial state untuk restart
-    {
-        GameSnapshot initial = SaveManager::CaptureSnapshot();
-        SaveManager::SaveInitial(initial, g_ActiveSaveSlot);
-    }
-
-    InitMainMenu(state);
-}
-
-/*=== Initial Load Mode ===*/
-
-static void HandleInitialLoad(GameState* state)
-{
+    /*==============================================================================
+     * Loading sequence untuk pertama kali
+     *==============================================================================*/
     switch (state->loadingStage)
     {
     case 0:
-        TraceLog(LOG_INFO, "=== HandleInitialLoad stage 0: slot=%d assetsLoaded=%d hasSaved=%d mapPath='%s' worldgenSlot=%d ===",
-            g_ActiveSaveSlot, state->assetsLoaded, HasSavedState(), savedMapState.mapPath.c_str(), savedPlayerState.worldgenSlot);
         state->loadingText = "Loading game textures...";
         InitTextures();
-        AudioManager::InitSFX();
         state->loadingStage++;
         state->loadingProgress = (float)state->loadingStage / TOTAL_LOADING_STAGES * 100.0F;
         break;
 
     case 1:
         state->loadingText = "Loading map data...";
-        TraceLog(LOG_INFO, "HandleInitialLoad stage 1: hasSaved=%d mapPath='%s'", HasSavedState(), savedMapState.mapPath.c_str());
+        // Load saved map if resuming, otherwise default
         if (HasSavedState() && !savedMapState.mapPath.empty())
         {
             LoadMap(savedMapState.mapPath.c_str());
-
-            if (tilesonMap != nullptr)
-            {
-                SetCurrentMapPath(savedMapState.mapPath.c_str());
-                BuildMapObjectIndex();
-
-                if (savedMapState.mapPath.find("worldseed/save_") != std::string::npos)
-                {
-                    TraceLog(LOG_INFO, "HandleInitialLoad: calling LoadWorldgenForSave(worldgenSlot=%d)", savedPlayerState.worldgenSlot);
-                    if (LoadWorldgenForSave(savedMapState.mapPath, savedPlayerState.worldgenSlot))
-                        BuildMapObjectIndex(); // Rebuild setelah worldgen ganti konten map
-                    else
-                        TraceLog(LOG_WARNING, "Worldgen meta not found for slot %d — save corrupted", savedPlayerState.worldgenSlot);
-                }
-            }
-            else
-            {
-                TraceLog(LOG_WARNING, "LoadMap failed for '%s' — worldseed data may have been deleted", savedMapState.mapPath.c_str());
-            }
+            SetCurrentMapPath(savedMapState.mapPath.c_str());
+            BuildMapObjectIndex();
         }
         else
         {
@@ -370,85 +333,41 @@ static void HandleInitialLoad(GameState* state)
         break;
 
     default:
-        // Crash guard: kalo LoadMap gagal (worldseed dir kehapus), tilesonMap null
-        if (tilesonMap == nullptr)
-        {
-            state->loadingText = "Load failed — corrupted save, returning to menu...";
-            state->loadingComplete = true;
-            state->assetsLoaded = true;
-            state->currentScreen = MAIN_MENU;
-            InitMainMenu(state);
-            break;
-        }
-
         state->loadingComplete = true;
         state->assetsLoaded = true;
         state->loadingText = "Loading complete!";
         state->currentScreen = PLAY;
 
-        // BUGFIX: Apply pre-spawn state SEBELUM InitAll
-        {
-            GameSnapshot snap;
-            bool willApply = HasSavedState() && SaveManager::HasManual(g_ActiveSaveSlot);
-            TraceLog(LOG_INFO, "HandleInitialLoad: ApplyPreSpawn hasSaved=%d hasManual=%d -> %s",
-                HasSavedState(), SaveManager::HasManual(g_ActiveSaveSlot),
-                willApply ? "YES" : "SKIP");
-            if (willApply)
-            {
-                snap = SaveManager::LoadManual(g_ActiveSaveSlot);
-                SaveManager::ApplyPreSpawn(snap);
-            }
-        }
+        /**
+         * @brief Worldgen save detection (initial load)
+         * Jika savedMapState.mapPath mengandung "worldseed/save_", save dibuat
+         * saat mid-worldgen. Set pending flag agar RestoreDeadEntities di bawah
+         * di-skip — WorldgenIO's LoadRuntimeState akan handle dead entities
+         * dari per-stage runtime data saat worldgen switch nanti.
+         */
+        if (HasSavedState() && savedMapState.mapPath.find("worldseed/save_") != std::string::npos)
+            SetWorldgenPending(true);
 
+        // Restore dead entities BEFORE InitAll to prevent dead enemies respawning.
+        // Skip if save points to a worldgen map -- WorldgenIO's LoadRuntimeState
+        // will set dead entities from per-stage runtime data during the next switch.
+        if (HasSavedState() && !IsWorldgenPending())
+            RestoreDeadEntities();
+        // Initialize everything first, then restore saved state
         InitAll();
         if (HasSavedState())
-            RestoreGameState(state);
-        else
-            WriteAutosave("spawn.json");
-
-        Entities::PruneDeadEntities();
-
-        // Save initial state untuk restart
         {
-            GameSnapshot initial = SaveManager::CaptureSnapshot();
-            SaveManager::SaveInitial(initial, g_ActiveSaveSlot);
+            RestoreGameState(state);
         }
-
+        else
+        {
+            WriteAutosave("spawn.json");
+        }
+        // Safety net: deactivate any dead entities that survived spawn
+        Entities::PruneDeadEntities();
         InitMainMenu(state);
         break;
     }
-}
-
-/*=== Main Dispatcher ===*/
-
-/**
- * @brief UpdateLoadingScreen()
- * Update logic loading screen dan sequence loading asset.
- * @param state Pointer ke GameState
- * @details Load asset per stage, skip jika assetsLoaded sudah true.
- *          Juga menangani map switch dengan stages terpisah.
- *          Tiga mode: map-switch, fast-path (assets already loaded), initial load.
- */
-void UpdateLoadingScreen(GameState *state)
-{
-    UpdateGame(state);
-
-    if (state->loadingComplete)
-        return;
-
-    if (state->isSwitchingMap || state->isGoingBack)
-    {
-        HandleMapSwitch(state);
-        return;
-    }
-
-    if (state->assetsLoaded)
-    {
-        HandleFastPath(state);
-        return;
-    }
-
-    HandleInitialLoad(state);
 }
 
 /**

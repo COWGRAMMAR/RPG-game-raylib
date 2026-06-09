@@ -11,7 +11,6 @@
  */
 
 #include "player.h"
-#include "../../include/systems/audioManager.h"
 #include "screen.h"
 #include "movement.h"
 #include "combat.h"
@@ -20,9 +19,8 @@
 #include "inventory.h"
 #include "mapLogic.h"
 #include "game_debug.h"
-#include "raymath.h"
+#include "../lib/raylib/include/raymath.h"
 #include "propsbehavior.h"
-#include "combatTurn.h"
 #include <cmath>
 
 constexpr int EMPTY_ITEM_ID = -1;
@@ -137,17 +135,6 @@ void Player::ResetForNewGame()
  */
 void Player::Update()
 {
-    // Timer tetap jalan meskipun turn-based freeze
-    if (HitFlashTimer > 0)
-        HitFlashTimer -= Time::DELTA_TIME;
-
-    if (TurnCombat::IsActive())
-    {
-        Anim.position = Position;
-        UpdateAnimation(Anim, Time::DELTA_TIME);
-        return;
-    }
-
     // 1. Memproses Input
     InputInstance.PollInput();
     InputInstance.UpdateState();
@@ -159,38 +146,6 @@ void Player::Update()
     // 3. Timer & Efek Status
     if (HitFlashTimer > 0)
         HitFlashTimer -= Time::DELTA_TIME;
-
-    if (BuffDamageTimer > 0)
-    {
-        BuffDamageTimer -= Time::DELTA_TIME;
-        if (BuffDamageTimer <= 0)
-        {
-            BuffDamageTimer = 0;
-            BuffDamageMultiplier = 1.0f;
-            Effects::AddLog("Efek Damage Berakhir");
-        }
-    }
-
-    if (BuffSpeedTimer > 0)
-    {
-        BuffSpeedTimer -= Time::DELTA_TIME;
-        if (BuffSpeedTimer <= 0)
-        {
-            BuffSpeedTimer = 0;
-            BuffSpeedMultiplier = 1.0f;
-            Effects::AddLog("Efek Speed Berakhir");
-        }
-    }
-
-    if (InvincibilityTimer > 0)
-    {
-        InvincibilityTimer -= Time::DELTA_TIME;
-        if (InvincibilityTimer <= 0)
-        {
-            InvincibilityTimer = 0;
-            Effects::AddLog("Efek Kebal Berakhir");
-        }
-    }
 
     // 4. Fisika & Pergerakan (termasuk Knockback)
     float fpsNorm = 60.0f;
@@ -270,7 +225,6 @@ void Player::Render(void)
         tint = RED;
     }
 
-    Combat::DrawSwingGroundEffect(*this);
     DrawAnimation(Anim, tint);
     Combat::DrawSwingAttack(*this);
 }
@@ -278,11 +232,7 @@ void Player::Render(void)
 /** @brief Apply damage ke player */
 void Player::TakeDamage(float amount, Vector2 knockback)
 {
-    if (InvincibilityTimer > 0.0f)
-        return;
-
     Entity::TakeDamage(amount, knockback);
-    AudioManager::PlaySFX("hurt");
 
     float hitFlashDuration = 0.15f;
     float knockbackStrength = 6.0f;

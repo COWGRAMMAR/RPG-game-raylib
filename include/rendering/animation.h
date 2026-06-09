@@ -1,5 +1,5 @@
 #pragma once
-#include <raylib.h>
+#include "../lib/raylib/include/raylib.h"
 #include <string>
 #include <vector>
 #include <unordered_map>
@@ -40,13 +40,12 @@ struct Frame
 /** @brief Informasi rendering untuk satu frame */
 struct Display
 {
-    Vector2 position;
-    int size = FRAME_SIZE;
-    Vector2 offset = {0, 0};
-    Vector2 origin = {0, 0};
-    float rotation = 0.0f;
-    Color tint = WHITE;
-    bool flip = false;
+    Vector2 position;    // Posisi world space
+    int size = FRAME_SIZE; // Ukuran render (pixel)
+    Vector2 offset = {0, 0}; // Offset posisi
+    Vector2 origin = {0, 0}; // Origin rotasi
+    float rotation = 0.0f;   // Rotasi (derajat)
+    Color tint = WHITE;      // Warna tint
 };
 
 /** @brief Load texture dari file ke slot tertentu */
@@ -117,11 +116,9 @@ void PlayAnimation(Animation &anim, State state, Direction direction);
 /** @brief Update timer dan sprite index animasi */
 void UpdateAnimation(Animation &anim, float dt);
 /** @brief Draw animasi di posisi entity */
-void DrawAnimation(const Animation &anim, Color tint = WHITE, float scale = 1.0f);
+void DrawAnimation(const Animation &anim, Color tint = WHITE);
 /** @brief Draw efek ledakan sementara */
 void Explosion(Vector2 centerPosition, float radius, float progress);
-/** @brief Draw efek collision per tile */
-void TileCollisionEffect(Vector2 tilePosition, float progress);
 
 /** @brief Cache global animation set per entity type */
 extern std::unordered_map<std::string, AnimationSet> loadedAnimationSets;
@@ -138,7 +135,5 @@ void DamageFloat(Vector2& pos, Vector2& vel, float gravity, float friction, floa
 Vector2 LerpTowards(Vector2 current, Vector2 target, float speed, float dt);
 /** @brief Blink effect berdasarkan timer dan frekuensi */
 bool Blink(float timer, float frequency);
-float SwingShortSlow(float raycastAngle, float progress, bool isRight);
-float SwingShortMid(float raycastAngle, float progress, bool isRight);
-float SwingMidMid(float raycastAngle, float progress, bool isRight);
-
+/** @brief Hitung panjang garis slash berdasarkan progress */
+float Slash(float raycastAngle, float progress);

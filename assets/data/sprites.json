@@ -272,87 +272,31 @@
         "width": 3,
         "height": 3
     },
-    "slashShort0101": {
+    "slashSilverBlueMedium1": {
         "texture": "SPRITESHEET_EFFECTS",
-        "column": 18,
-        "row": 0,
-        "width": 1,
-        "height": 1
-    },
-    "slashShort0102": {
-        "texture": "SPRITESHEET_EFFECTS",
-        "column": 18,
-        "row": 1,
-        "width": 1,
+        "column": 13,
+        "row": 3,
+        "width": 3,
         "height": 2
     },
-    "slashMedium0101": {
+    "slashSilverBlueMedium2": {
         "texture": "SPRITESHEET_EFFECTS",
         "column": 12,
         "row": 3,
         "width": 1,
         "height": 1
     },
-    "slashMedium0102": {
+    "slashLightGraySmall1": {
         "texture": "SPRITESHEET_EFFECTS",
-        "column": 12,
-        "row": 4,
-        "width": 1,
-        "height": 2
-    },
-    "thrust0101": {
-        "texture": "SPRITESHEET_EFFECTS",
-        "column": 13,
-        "row": 4,
+        "column": 17,
+        "row": 3,
         "width": 2,
         "height": 1
     },
-    "thrust0102": {
+    "slashLightGraySmall2": {
         "texture": "SPRITESHEET_EFFECTS",
-        "column": 14,
+        "column": 16,
         "row": 3,
-        "width": 1,
-        "height": 1
-    },
-    "thrust0103": {
-        "texture": "SPRITESHEET_EFFECTS",
-        "column": 13,
-        "row": 3,
-        "width": 1,
-        "height": 1
-    },
-    "collision1": {
-        "texture": "SPRITESHEET_EFFECTS",
-        "column": 19,
-        "row": 0,
-        "width": 1,
-        "height": 1
-    },
-    "collision2": {
-        "texture": "SPRITESHEET_EFFECTS",
-        "column": 19,
-        "row": 1,
-        "width": 1,
-        "height": 1
-    },
-    "collision3": {
-        "texture": "SPRITESHEET_EFFECTS",
-        "column": 19,
-        "row": 2,
-        "width": 1,
-        "height": 1
-    },
-    "collision4": {
-        "texture": "SPRITESHEET_EFFECTS",
-        "column": 19,
-        "row": 3,
-        "width": 1,
-        "height": 1
-    },
-    "collision5": {
-        "texture": "SPRITESHEET_EFFECTS",
-        "column": 19,
-        "row": 4,
         "width": 1,
         "height": 1
     }

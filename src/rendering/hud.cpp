@@ -60,13 +60,10 @@ static void DrawItemIcon(const InventoryItem &item, Rectangle dest)
         (float)(frame.height * FRAME_SIZE)
     };
 
-    if (def.spriteKey == "sword2" || def.spriteKey == "axe")
+    if (def.spriteKey == "sword2")
     {
-        src.width = 39.0f;
-    }
-    else if (def.spriteKey == "spear")
-    {
-        src.width = 50.0f;
+        src.y += 25.0f;
+        src.height -= 25.0f;
     }
 
     int maxDim = (src.width > src.height) ? src.width : src.height;
@@ -75,26 +72,19 @@ static void DrawItemIcon(const InventoryItem &item, Rectangle dest)
     float renderWidth = src.width * size;
     float renderHeight = src.height * size;
 
-    bool isMelee = false;
-    if (def.category == ITEM_WEAPON)
-    {
-        const WeaponData* wd = std::get_if<WeaponData>(&def.data);
-        if (wd && wd->attackType != ATTACK_PIERCE)
-        {
-            isMelee = true;
-        }
-    }
-
-    Vector2 origin = isMelee ? Vector2{ renderWidth / 2.0f, renderHeight / 2.0f } : Vector2{ 0.0f, 0.0f };
+    Vector2 position = {
+        dest.x + (dest.width - renderWidth) / 2.0f,
+        dest.y + (dest.height - renderHeight) / 2.0f
+    };
 
     Rectangle drawDest = {
-        dest.x + (dest.width - renderWidth) / 2.0f + origin.x,
-        dest.y + (dest.height - renderHeight) / 2.0f + origin.y,
+        position.x,
+        position.y,
         renderWidth,
         renderHeight
     };
 
-    DrawTexturePro(textures[frame.texture], src, drawDest, origin, isMelee ? -45.0f : 0.0f, WHITE);
+    DrawTexturePro(textures[frame.texture], src, drawDest, {0, 0}, 0.0f, WHITE);
 }
 
 /**
@@ -475,19 +465,6 @@ void DrawInventory()
                 DrawRectangleRounded((Rectangle){bx - 4, by - 4, sz.x + 8, 18 + 8}, 0.3f, 8, ColorAlpha(BLACK, 0.8f));
                 DrawTextEx(fontLoadingTitle, buf, Vector2{bx, by}, 18, 0, WHITE);
             }
-
-            const ItemDefinition &def2 = itemDefs.GetById(item.definitionId);
-            if (def2.category == ITEM_POTION && PlayerInstance.PotionCooldown > 0.0f && PlayerInstance.PotionCooldownMax > 0.0f)
-            {
-                float ratio = PlayerInstance.PotionCooldown / PlayerInstance.PotionCooldownMax;
-                float startAngle = 270.0f;
-                float endAngle = 270.0f + (360.0f * ratio);
-                Vector2 center = {
-                    slotRect.x + slotRect.width / 2.0f,
-                    slotRect.y + slotRect.height / 2.0f
-                };
-                DrawCircleSector(center, iconSize / 2.0f + 4.0f, startAngle, endAngle, 36, ColorAlpha(BLACK, 0.65f));
-            }
         }
 
         if (isHovered && mousePressed && dragSlot == -1 && !isDragSplit && item.definitionId != -1)
@@ -693,19 +670,6 @@ void DrawHotbar()
                 int fontSize = 16;
                 Vector2 textSz = MeasureTextEx(fontLoadingTitle, amtBuf, fontSize, 0);
                 DrawTextHUD(amtBuf, (int)(slotRect.x + slotRect.width - textSz.x - 4), (int)(slotRect.y + slotRect.height - textSz.y - 2), fontSize, WHITE);
-            }
-
-            const ItemDefinition &def2 = itemDefs.GetById(item.definitionId);
-            if (def2.category == ITEM_POTION && PlayerInstance.PotionCooldown > 0.0f && PlayerInstance.PotionCooldownMax > 0.0f)
-            {
-                float ratio = PlayerInstance.PotionCooldown / PlayerInstance.PotionCooldownMax;
-                float startAngle = 270.0f;
-                float endAngle = 270.0f + (360.0f * ratio);
-                Vector2 center = {
-                    slotRect.x + slotRect.width / 2.0f,
-                    slotRect.y + slotRect.height / 2.0f
-                };
-                DrawCircleSector(center, iconDrawSize / 2.0f + 4.0f, startAngle, endAngle, 36, ColorAlpha(BLACK, 0.65f));
             }
         }
 

@@ -450,6 +450,7 @@ void Player::HandleAction(void)
             playerCenter.y + dropDir.y * INTERACT_RANGE};
 
         ItemSpawn dropped = itemData.CreateItem(dropPos, slot.definitionId);
+        dropped.dropImmunity = 5.0f; // Minecraft-style: 5 detik immunity setelah drop
         if (dropAll)
         {
             dropped.amount = slot.amount;

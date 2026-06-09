@@ -900,6 +900,18 @@ void SaveManager::ApplyPostSpawn(const GameSnapshot& snap)
         item.definitionId = saved.definitionId;
         item.amount = saved.amount;
         item.uuid = saved.uuid;
+        // Rekonstruksi hitbox dari definisi item agar magnet/pickup berfungsi normal
+        {
+            const ItemDefinition &def = itemDefs.GetById(item.definitionId);
+            float halfW = def.hitboxSize.x / 2.0f;
+            float halfH = def.hitboxSize.y / 2.0f;
+            item.hitbox = {item.position.x - halfW,
+                           item.position.y - halfH,
+                           def.hitboxSize.x,
+                           def.hitboxSize.y};
+        }
+        item.spawnTime = (float)GetTime();  // Immunity mulai dari sekarang
+        item.isAdded = false;
         itemData.activeItems.push_back(item);
     }
 

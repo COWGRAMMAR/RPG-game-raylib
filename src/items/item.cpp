@@ -424,6 +424,12 @@ void ItemRenderManager::Update(std::vector<ItemSpawn> &items, Vector2 playerCent
     {
         if (item.isPickedUp)
             continue;
+        // dropImmunity > 0: masih dalam masa immunity setelah di-drop (Minecraft style)
+        if (item.dropImmunity > 0)
+        {
+            item.dropImmunity -= Time::DELTA_TIME;
+            continue;
+        }
         if (currentTime - item.spawnTime < spawnImmunityDuration)
             continue;
         Vector2 itemCenter = {

@@ -298,57 +298,6 @@ bool WriteSaveFile(const std::string& path)
 }
 
 /**
- * WriteAutosave - Simpan state game ke direktori autosave per-slot.
- * Membuat nama file dengan timestamp (autosave_DD-MM-YYYY-HH-MM-SS.json)
- * agar autosave tidak saling menimpa. Maksimal 5 file autosave per slot --
- * jika lebih, file terlama akan dihapus.
- * Path tujuan: saves/slot_N/autosave/autosave_DD-MM-YYYY-HH-MM-SS.json
- */
-bool WriteAutosave(const std::string&)
-{
-    if (g_ActiveSaveSlot < 0) return false;
-
-    EnsureSlotDirectory(g_ActiveSaveSlot);
-
-    std::time_t t = std::time(nullptr);
-    char buf[64];
-    std::strftime(buf, sizeof(buf), "autosave_%d-%m-%Y-%H-%M-%S.json", std::localtime(&t));
-    std::string autosaveName(buf);
-    std::string dir = GetSlotPath(g_ActiveSaveSlot, "autosave");
-    TraceLog(LOG_INFO, "Autosaving to %s/%s", dir.c_str(), autosaveName.c_str());
-    SaveGameState(gState);
-
-    bool result = WriteSaveFile(dir + "/" + autosaveName);
-
-    // Batasi maksimal 5 file autosave per slot — hapus file terlama jika melebihi
-    constexpr int MAX_AUTOSAVE_SLOTS = 5;
-    std::vector<std::filesystem::path> autosaveFiles;
-    if (std::filesystem::exists(dir))
-    {
-        for (const auto& entry : std::filesystem::directory_iterator(dir))
-        {
-            if (entry.path().filename().string().find("autosave_") == 0 && entry.path().extension() == ".json")
-                autosaveFiles.push_back(entry.path());
-        }
-    }
-    if (autosaveFiles.size() > MAX_AUTOSAVE_SLOTS)
-    {
-        std::sort(autosaveFiles.begin(), autosaveFiles.end(),
-            [](const auto& a, const auto& b) {
-                return std::filesystem::last_write_time(a) < std::filesystem::last_write_time(b);
-            });
-        // Hapus file terlama hingga hanya MAX_AUTOSAVE_SLOTS tersisa
-        for (size_t i = 0; i < autosaveFiles.size() - MAX_AUTOSAVE_SLOTS; i++)
-        {
-            std::filesystem::remove(autosaveFiles[i]);
-            TraceLog(LOG_INFO, "Pruned old autosave: %s", autosaveFiles[i].filename().string().c_str());
-        }
-    }
-
-    return result;
-}
-
-/**
  * ReadSaveFile - Read JSON save file and deserialize into global saved state.
  */
 bool ReadSaveFile(const std::string& path)

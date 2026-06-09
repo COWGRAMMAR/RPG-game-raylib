@@ -710,6 +710,7 @@ GameSnapshot SaveManager::CaptureSnapshot()
     snap.cameraTarget = camera.target;
     snap.cameraZoom = camera.zoom;
     snap.mapHistory = mapHistoryStack.GetAllEntries();
+    snap.version = GameSnapshot::SNAPSHOT_VERSION;
 
     return snap;
 }

@@ -250,8 +250,6 @@ bool WriteSaveFile(const std::string& path);
  *          After write, prunes to keep only the 5 newest autosave files per slot.
  * @return true if successful, false if write failed or no active slot
  */
-bool WriteAutosave(const std::string& filename);
-
 /**
  * @brief Read saved state from JSON file
  * @details Reads and deserializes a JSON save file into the global saved state structs.

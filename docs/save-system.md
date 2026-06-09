@@ -73,7 +73,7 @@ static bool CaptureInitialSnapshot(int slot);
 static bool SaveManual(const GameSnapshot& snap, int slot);
 static GameSnapshot LoadManual(int slot);
 static bool HasManual(int slot);
-static bool HasAnySave(int slot);
+// static bool HasAnySave(int slot); — REMOVED (dead code, never called)
 static bool DeleteSlot(int slotIndex);
 
 // Autosave (captures internally, rotating max 5 files per slot)
@@ -146,7 +146,7 @@ Setiap save slot (0-4) punya direktori sendiri (`saves/slot_N/`):
 - `SaveManual(snap, 0)` → tulis `saves/slot_0/manual/snapshot.json`
 - `LoadCheckpoint("assets/maps/forest.json", 1)` → baca `saves/slot_1/checkpoints/assets_maps_forest_json.json`
 - `DeleteSlot(2)` → hapus `saves/slot_2/` + cleanup worldseed orphan
-- `HasAnySave(3)` → true jika ada manual atau initial snapshot di slot 3
+- // `HasAnySave(3)` — REMOVED (dead code)
 
 ### Active Slot Tracking
 

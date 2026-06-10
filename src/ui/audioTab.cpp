@@ -22,7 +22,7 @@ using json = nlohmann::json;
  *==============================================================================*/
 
 /** @brief Global slider state untuk tab Audio */
-SliderState g_sliders = {100, 80, 100, false, -1};
+SliderState g_sliders = {100, 80, 100, 100, false, -1};
 
 /*==============================================================================
  * Constants
@@ -56,13 +56,14 @@ static const int VALUE_X = 660;
 static const int FONT_SIZE = 30;
 
 /** @brief Row offset per slider */
-static const int ROW_OFFSETS[3] = {15, 75, 135};
+static const int ROW_OFFSETS[4] = {15, 75, 135, 195};
 
 /** @brief Label teks untuk tiap slider */
-static const char* SLIDER_LABELS[3] = {
+static const char* SLIDER_LABELS[4] = {
     "Master Volume",
     "Music Volume",
-    "SFX Volume"
+    "SFX Volume",
+    "Video Volume"
 };
 
 /*==============================================================================
@@ -133,12 +134,13 @@ void DrawAudioTab(
     int contentStartY = startY + 100;
     int barX = startX + SLIDER_BAR_X;
 
-    for (int i = 0; i < 3; i++)
+    for (int i = 0; i < 4; i++)
     {
         int barY = contentStartY + ROW_OFFSETS[i];
         int value = (i == 0) ? g_sliders.masterVolume :
                     (i == 1) ? g_sliders.musicVolume :
-                               g_sliders.sfxVolume;
+                    (i == 2) ? g_sliders.sfxVolume :
+                               g_sliders.videoVolume;
 
         DrawSliderBar(SLIDER_LABELS[i], value, barX, barY, mousePosition);
     }
@@ -171,7 +173,7 @@ bool UpdateAudioTab(
 
     auto getSliderUnderMouse = [&]() -> int
     {
-        for (int i = 0; i < 3; i++)
+        for (int i = 0; i < 4; i++)
         {
             int barY = contentStartY + ROW_OFFSETS[i];
             Rectangle rect = {
@@ -201,12 +203,14 @@ bool UpdateAudioTab(
                 case 0: sliders.masterVolume = newVol; break;
                 case 1: sliders.musicVolume = newVol; break;
                 case 2: sliders.sfxVolume = newVol; break;
+                case 3: sliders.videoVolume = newVol; break;
             }
 
             AudioManager::SetVolumesFromPct(
                 sliders.masterVolume,
                 sliders.musicVolume,
-                sliders.sfxVolume
+                sliders.sfxVolume,
+                sliders.videoVolume
             );
 
             TraceLog(LOG_INFO, "AUDIO: Slider %d digeser ke %d%%", idx, newVol);
@@ -225,12 +229,14 @@ bool UpdateAudioTab(
                 case 0: sliders.masterVolume = newVol; break;
                 case 1: sliders.musicVolume = newVol; break;
                 case 2: sliders.sfxVolume = newVol; break;
+                case 3: sliders.videoVolume = newVol; break;
             }
 
             AudioManager::SetVolumesFromPct(
                 sliders.masterVolume,
                 sliders.musicVolume,
-                sliders.sfxVolume
+                sliders.sfxVolume,
+                sliders.videoVolume
             );
         }
     }
@@ -244,13 +250,15 @@ bool UpdateAudioTab(
         SaveAudioSettings(
             sliders.masterVolume,
             sliders.musicVolume,
-            sliders.sfxVolume
+            sliders.sfxVolume,
+            sliders.videoVolume
         );
 
-        TraceLog(LOG_INFO, "AUDIO: Settings disimpan (M=%d, Mu=%d, S=%d)",
+        TraceLog(LOG_INFO, "AUDIO: Settings disimpan (M=%d, Mu=%d, S=%d, V=%d)",
             sliders.masterVolume,
             sliders.musicVolume,
-            sliders.sfxVolume
+            sliders.sfxVolume,
+            sliders.videoVolume
         );
 
         return true;
@@ -276,15 +284,23 @@ bool LoadAudioSettings()
         std::ifstream file(AUDIO_SETTINGS_PATH);
         json root = json::parse(file);
 
-        if (!root.contains("version") || root.at("version").get<int>() != 1)
+        if (!root.contains("version"))
         {
-            TraceLog(LOG_WARNING, "AUDIO: Version mismatch, pakai default");
+            TraceLog(LOG_WARNING, "AUDIO: Version missing, pakai default");
+            return false;
+        }
+
+        int ver = root.at("version").get<int>();
+        if (ver != 1 && ver != 2)
+        {
+            TraceLog(LOG_WARNING, "AUDIO: Version mismatch (%d), pakai default", ver);
             return false;
         }
 
         int master = root.value("masterVolume", 100);
         int music  = root.value("musicVolume", 80);
         int sfx    = root.value("sfxVolume", 100);
+        int video  = (ver == 2) ? root.value("videoVolume", 100) : 100;
 
         // Clamp ke 0-100
         if (master < 0) master = 0;
@@ -293,17 +309,20 @@ bool LoadAudioSettings()
         if (music > 100) music = 100;
         if (sfx < 0) sfx = 0;
         if (sfx > 100) sfx = 100;
+        if (video < 0) video = 0;
+        if (video > 100) video = 100;
 
         // Apply ke AudioManager
-        AudioManager::SetVolumesFromPct(master, music, sfx);
+        AudioManager::SetVolumesFromPct(master, music, sfx, video);
 
         // Sync slider state
         g_sliders.masterVolume = master;
         g_sliders.musicVolume = music;
         g_sliders.sfxVolume = sfx;
+        g_sliders.videoVolume = video;
 
-        TraceLog(LOG_INFO, "AUDIO: Settings dimuat dari %s (M=%d, Mu=%d, S=%d)",
-            AUDIO_SETTINGS_PATH, master, music, sfx);
+        TraceLog(LOG_INFO, "AUDIO: Settings dimuat dari %s (M=%d, Mu=%d, S=%d, V=%d)",
+            AUDIO_SETTINGS_PATH, master, music, sfx, video);
 
         return true;
     }
@@ -314,15 +333,16 @@ bool LoadAudioSettings()
     }
 }
 
-bool SaveAudioSettings(int masterVolume, int musicVolume, int sfxVolume)
+bool SaveAudioSettings(int masterVolume, int musicVolume, int sfxVolume, int videoVolume)
 {
     try
     {
         json root;
-        root["version"]      = 1;
+        root["version"]      = 2;
         root["masterVolume"] = masterVolume;
         root["musicVolume"]  = musicVolume;
         root["sfxVolume"]    = sfxVolume;
+        root["videoVolume"]  = videoVolume;
 
         std::filesystem::path fsPath(AUDIO_SETTINGS_PATH);
         std::filesystem::create_directories(fsPath.parent_path());
@@ -346,3 +366,4 @@ bool SaveAudioSettings(int masterVolume, int musicVolume, int sfxVolume)
         return false;
     }
 }
+ 

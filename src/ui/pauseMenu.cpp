@@ -260,9 +260,9 @@ void OptionsScreen::Update(GameState* state, Vector2 mousePosition, bool mouseCl
             state->showFPS = false;
             showFPS = false;
         } else if (selectedTab == 1) {
-            g_sliders = {100, 80, 100, false, -1};
-            AudioManager::SetVolumesFromPct(100, 80, 100);
-            SaveAudioSettings(g_sliders.masterVolume, g_sliders.musicVolume, g_sliders.sfxVolume);
+            g_sliders = {100, 80, 100, 100, false, -1};
+            AudioManager::SetVolumesFromPct(100, 80, 100, 100);
+            SaveAudioSettings(g_sliders.masterVolume, g_sliders.musicVolume, g_sliders.sfxVolume, g_sliders.videoVolume);
         } else if (selectedTab == 2) {
             keybindManager.ResetDefaults();
             keybindManager.SaveToFile(paths[2]);
@@ -286,9 +286,9 @@ void OptionsScreen::Update(GameState* state, Vector2 mousePosition, bool mouseCl
             ToggleFullscreenMode();
         state->showFPS = false;
         showFPS = false;
-        g_sliders = {100, 80, 100, false, -1};
-        AudioManager::SetVolumesFromPct(100, 80, 100);
-        SaveAudioSettings(g_sliders.masterVolume, g_sliders.musicVolume, g_sliders.sfxVolume);
+        g_sliders = {100, 80, 100, 100, false, -1};
+        AudioManager::SetVolumesFromPct(100, 80, 100, 100);
+        SaveAudioSettings(g_sliders.masterVolume, g_sliders.musicVolume, g_sliders.sfxVolume, g_sliders.videoVolume);
         keybindManager.ResetDefaults();
         keybindManager.SaveToFile("saves/settings/keybindsTab.json");
         CalculateDimensions();

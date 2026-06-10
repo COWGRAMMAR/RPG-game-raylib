@@ -1,12 +1,10 @@
-#pragma once
-
 /**
  * @file videoPlayer.cpp
- * @brief Translation unit for video::VideoPlayer (all methods are inline in the header).
+ * @brief Translation unit untuk video::VideoPlayer (semua method inline di header).
  *
- * This file exists to ensure the header compiles standalone and to provide a
- * translation unit for the unity build system. All method implementations are
- * defined inline in include/media/videoPlayer.h.
+ * File ini memastikan header bisa dikompilasi secara standalone dan menyediakan
+ * translation unit untuk unity build system. Implementasi method ada di
+ * include/media/videoPlayer.h sebagai inline definitions.
  */
 
-#include "videoPlayer.h"
+#include "media/videoPlayer.h"

@@ -38,6 +38,7 @@ extern const int GameScreenHeight;
  */
 enum ScreenState : std::uint8_t
 {
+    VIDEO,      // State intro video saat startup
     MAIN_MENU,  // State menu utama
     LOADING,    // State loading aset
     PLAY,       // State gameplay aktif

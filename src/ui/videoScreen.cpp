@@ -42,7 +42,8 @@ bool VideoScreen::LoadAndPlay()
     }
     else
     {
-        TraceLog(LOG_WARNING, "VIDEO: Failed to load '%s'", m_videoPath.c_str());
+        TraceLog(LOG_WARNING, "VIDEO: Failed to load '%s' -- skipping to main menu", m_videoPath.c_str());
+        m_skipRequested = true;
     }
 
     return m_player.IsValid();

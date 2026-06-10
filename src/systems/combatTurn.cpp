@@ -662,6 +662,7 @@ bool TurnCombat::IsActive() {
 }
 
 void TurnCombat::Shutdown() {
+    TurnPhase currentPhase = state.phase;
     state.active = false;
     state.phase = TurnPhase::INACTIVE;
     if (state.boss)
@@ -671,7 +672,12 @@ void TurnCombat::Shutdown() {
         state.boss->Position = state.origBossPos;
     }
     if (state.player)
-        state.player->Position = state.origPlayerPos;
+    {
+        if (currentPhase == TurnPhase::DEFEAT)
+            state.player->Position = gState->startSpawnPos;
+        else
+            state.player->Position = state.origPlayerPos;
+    }
     state.boss = nullptr;
     state.player = nullptr;
     state.message.clear();

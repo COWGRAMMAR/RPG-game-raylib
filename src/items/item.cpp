@@ -88,17 +88,35 @@ std::vector<ItemSpawn> &GetActiveItems() { return itemData.activeItems; }
 void DropAllItems(Player &player)
 {
     constexpr int SPREAD = 40;
+    constexpr int RETRY = 15;
     constexpr int EMPTY_ID = -1;
+
+    Vector2 center = player.GetCenter();
 
     auto DropSlot = [&](InventoryItem &slot)
     {
         if (slot.definitionId == EMPTY_ID || slot.amount <= 0)
             return;
-        Vector2 center = player.GetCenter();
-        Vector2 dropPos = {
-            center.x + (float)GetRandomValue(-SPREAD, SPREAD),
-            center.y + (float)GetRandomValue(-SPREAD, SPREAD)};
-        ItemSpawn item = itemData.CreateItem(dropPos, slot.definitionId);
+
+        const ItemDefinition &def = itemDefs.GetById(slot.definitionId);
+        float halfW = def.hitboxSize.x / 2.0f;
+        float halfH = def.hitboxSize.y / 2.0f;
+
+        Vector2 safePos = center;
+        for (int retry = 0; retry < RETRY; retry++)
+        {
+            Vector2 candidate = {
+                center.x + (float)GetRandomValue(-SPREAD, SPREAD),
+                center.y + (float)GetRandomValue(-SPREAD, SPREAD)};
+            Vector2 topLeft = {candidate.x - halfW, candidate.y - halfH};
+            if (IsPositionSafe(topLeft, def.hitboxSize.x, def.hitboxSize.y, 0, 0))
+            {
+                safePos = candidate;
+                break;
+            }
+        }
+
+        ItemSpawn item = itemData.CreateItem(safePos, slot.definitionId);
         item.amount = slot.amount;
         itemData.activeItems.push_back(item);
         slot = {EMPTY_ID, 0};

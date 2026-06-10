@@ -911,7 +911,7 @@ void SaveManager::ApplyPostSpawn(const GameSnapshot& snap)
                            def.hitboxSize.y};
         }
         item.spawnTime = (float)GetTime();  // Immunity mulai dari sekarang
-        item.isAdded = false;
+        item.isAdded = item.isPickedUp;
         itemData.activeItems.push_back(item);
     }
 
@@ -1053,6 +1053,7 @@ void SaveManager::ApplyCheckpointData(const GameSnapshot& snap)
                 if (item.uuid == saved.uuid && !saved.uuid.empty())
                 {
                     item.isPickedUp = saved.isPickedUp;
+                    item.isAdded = saved.isPickedUp;
                     item.position = saved.position;
                     item.definitionId = saved.definitionId;
                     item.amount = saved.amount;
@@ -1070,6 +1071,7 @@ void SaveManager::ApplyCheckpointData(const GameSnapshot& snap)
                     || item.uuid != snap.items[itemIndex].uuid)
                 {
                     item.isPickedUp = snap.items[itemIndex].isPickedUp;
+                    item.isAdded = snap.items[itemIndex].isPickedUp;
                     item.position = snap.items[itemIndex].position;
                     item.definitionId = snap.items[itemIndex].definitionId;
                     item.amount = snap.items[itemIndex].amount;

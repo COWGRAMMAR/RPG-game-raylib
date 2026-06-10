@@ -847,6 +847,7 @@ void RestoreGameState(GameState *state)
                 if (item.uuid == saved.uuid && !saved.uuid.empty())
                 {
                     item.isPickedUp = saved.isPickedUp;
+                    item.isAdded = saved.isPickedUp;
                     item.position = saved.position;
                     item.definitionId = saved.definitionId;
                     item.amount = saved.amount;
@@ -863,6 +864,7 @@ void RestoreGameState(GameState *state)
                 if (item.uuid.empty() || savedItemStates[itemIndex].uuid.empty() || item.uuid != savedItemStates[itemIndex].uuid)
                 {
                     item.isPickedUp = savedItemStates[itemIndex].isPickedUp;
+                    item.isAdded = savedItemStates[itemIndex].isPickedUp;
                     item.position = savedItemStates[itemIndex].position;
                     item.definitionId = savedItemStates[itemIndex].definitionId;
                     item.amount = savedItemStates[itemIndex].amount;

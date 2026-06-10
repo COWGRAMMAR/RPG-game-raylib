@@ -50,7 +50,7 @@ void Player::Init(GameState *state, const char *spawnObjectName)
 
         // Inisialisasi perlengkapan hotbar default
         Hotbar[0] = {1, 1}; // Iron Sword
-        Hotbar[1] = {4, 1}; // bow 
+        Hotbar[1] = {16, 1}; // bow 
         Hotbar[2] = {2, 8}; // Health Potion
         Hotbar[3] = {3, 8}; // Mana Bread
 

@@ -67,6 +67,89 @@
         }, 
         {
          "draworder":"topdown",
+         "id":10,
+         "name":"trap",
+         "objects":[
+                {
+                 "height":32,
+                 "id":44,
+                 "name":"bomb",
+                 "opacity":1,
+                 "rotation":0,
+                 "type":"bomb",
+                 "visible":true,
+                 "width":32,
+                 "x":448,
+                 "y":512
+                }, 
+                {
+                 "height":32,
+                 "id":43,
+                 "name":"spike1",
+                 "opacity":1,
+                 "rotation":0,
+                 "type":"spike",
+                 "visible":true,
+                 "width":32,
+                 "x":320,
+                 "y":512
+                }, 
+                {
+                 "height":32,
+                 "id":45,
+                 "name":"bomb",
+                 "opacity":1,
+                 "rotation":0,
+                 "type":"bomb",
+                 "visible":true,
+                 "width":32,
+                 "x":448,
+                 "y":544
+                }, 
+                {
+                 "height":32,
+                 "id":46,
+                 "name":"spike1",
+                 "opacity":1,
+                 "rotation":0,
+                 "type":"spike",
+                 "visible":true,
+                 "width":32,
+                 "x":320,
+                 "y":544
+                }, 
+                {
+                 "height":32,
+                 "id":47,
+                 "name":"spike1",
+                 "opacity":1,
+                 "rotation":0,
+                 "type":"spike",
+                 "visible":true,
+                 "width":32,
+                 "x":352,
+                 "y":512
+                }, 
+                {
+                 "height":32,
+                 "id":48,
+                 "name":"spike1",
+                 "opacity":1,
+                 "rotation":0,
+                 "type":"spike",
+                 "visible":true,
+                 "width":32,
+                 "x":352,
+                 "y":544
+                }],
+         "opacity":1,
+         "type":"objectgroup",
+         "visible":true,
+         "x":0,
+         "y":0
+        }, 
+        {
+         "draworder":"topdown",
          "id":6,
          "name":"obstacle",
          "objects":[
@@ -367,8 +450,8 @@
          "x":0,
          "y":0
         }],
- "nextlayerid":10,
- "nextobjectid":43,
+ "nextlayerid":11,
+ "nextobjectid":49,
  "orientation":"orthogonal",
  "renderorder":"right-down",
  "tiledversion":"1.12.1",

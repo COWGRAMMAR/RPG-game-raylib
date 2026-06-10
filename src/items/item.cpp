@@ -94,9 +94,10 @@ void DropAllItems(Player &player)
     {
         if (slot.definitionId == EMPTY_ID || slot.amount <= 0)
             return;
+        Vector2 center = player.GetCenter();
         Vector2 dropPos = {
-            player.Position.x + (float)GetRandomValue(-SPREAD, SPREAD),
-            player.Position.y + (float)GetRandomValue(-SPREAD, SPREAD)};
+            center.x + (float)GetRandomValue(-SPREAD, SPREAD),
+            center.y + (float)GetRandomValue(-SPREAD, SPREAD)};
         ItemSpawn item = itemData.CreateItem(dropPos, slot.definitionId);
         item.amount = slot.amount;
         itemData.activeItems.push_back(item);

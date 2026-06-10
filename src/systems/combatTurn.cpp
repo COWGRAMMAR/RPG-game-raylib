@@ -460,10 +460,11 @@ void TurnCombat::Update() {
         if (!state.keyProcessed) {
             PlayAnimation(state.player->Anim, DEAD, RIGHT);
             state.player->Anim.isDead = true;
+            DropAllItems(*state.player);
+            state.player->hasDroppedItems = true;
             state.keyProcessed = true;
         }
         if (state.combatTimer >= 2.0f || IsKeyPressed(KEY_ENTER) || IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
-            state.player->Health = 0;
             state.defeatCooldown = 6.0f;
             Shutdown();
         }

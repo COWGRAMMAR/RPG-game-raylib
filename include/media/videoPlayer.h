@@ -94,7 +94,7 @@ private:
 };
 
 // =============================================================================
-// Inline Implementations
+// Implementasi Inline
 // =============================================================================
 
 inline VideoPlayer::~VideoPlayer()
@@ -104,7 +104,7 @@ inline VideoPlayer::~VideoPlayer()
 
 inline bool VideoPlayer::Load(const std::string& filePath)
 {
-    // Clean up any previously loaded media
+    // Bersihkan media yang sudah dimuat sebelumnya
     Unload();
 
     m_stream = LoadMediaEx(filePath.c_str(), MEDIA_FLAG_NO_AUTOPLAY);
@@ -163,7 +163,7 @@ inline void VideoPlayer::Update(float deltaTime)
 
     UpdateMediaEx(&m_stream, static_cast<double>(deltaTime));
 
-    // Detect natural end of playback when not looping
+    // Deteksi akhir pemutaran saat tidak looping
     if (m_playing)
     {
         const int state = GetMediaState(m_stream);

@@ -20,8 +20,9 @@ struct SliderState {
     int masterVolume;   ///< Volume master 0-100
     int musicVolume;    ///< Volume musik 0-100
     int sfxVolume;      ///< Volume SFX 0-100
+    int videoVolume;    ///< Volume video 0-100
     bool isDragging;    ///< true saat user sedang drag slider
-    int dragIndex;      ///< Index slider yang di-drag (0=master, 1=music, 2=sfx)
+    int dragIndex;      ///< Index slider yang di-drag (0=master, 1=music, 2=sfx, 3=video)
 };
 
 /** @brief Global slider state (defined in audioTab.cpp) */
@@ -67,6 +68,7 @@ bool LoadAudioSettings();
  * @param masterVolume Volume master (0-100)
  * @param musicVolume Volume musik (0-100)
  * @param sfxVolume Volume SFX (0-100)
+ * @param videoVolume Volume video (0-100)
  * @return true jika berhasil disimpan
  */
-bool SaveAudioSettings(int masterVolume, int musicVolume, int sfxVolume);
+bool SaveAudioSettings(int masterVolume, int musicVolume, int sfxVolume, int videoVolume);

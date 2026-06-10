@@ -24,6 +24,7 @@ static Music _tracks[7] = {};
 static float _masterVolume = 1.0f;
 static float _musicVolume  = 0.8f;
 static float _sfxVolume    = 1.0f;
+static float _videoVolume  = 1.0f;
 
 /** @brief Screen terakhir yang memicu music switch */
 static ScreenState _lastMusicScreen = MAIN_MENU;
@@ -86,6 +87,7 @@ void AudioManager::Init()
     _masterVolume = 1.0f;
     _musicVolume  = 0.8f;
     _sfxVolume    = 1.0f;
+    _videoVolume  = 1.0f;
 
     ::SetMasterVolume(_masterVolume);
 
@@ -217,6 +219,11 @@ float AudioManager::GetSfxVolume()
     return _sfxVolume;
 }
 
+float AudioManager::GetVideoVolume()
+{
+    return _videoVolume;
+}
+
 /*==============================================================================
  * Volume Setters (float, otomatis clamp)
  *==============================================================================*/
@@ -235,6 +242,11 @@ void AudioManager::SetMusicVolume(float vol)
 void AudioManager::SetSfxVolume(float vol)
 {
     _sfxVolume = (vol < 0.0f) ? 0.0f : (vol > 1.0f) ? 1.0f : vol;
+}
+
+void AudioManager::SetVideoVolume(float vol)
+{
+    _videoVolume = (vol < 0.0f) ? 0.0f : (vol > 1.0f) ? 1.0f : vol;
 }
 
 /*==============================================================================
@@ -256,7 +268,12 @@ int AudioManager::GetSfxVolumePct()
     return static_cast<int>(_sfxVolume * 100.0f + 0.5f);
 }
 
-void AudioManager::SetVolumesFromPct(int masterPct, int musicPct, int sfxPct)
+int AudioManager::GetVideoVolumePct()
+{
+    return static_cast<int>(_videoVolume * 100.0f + 0.5f);
+}
+
+void AudioManager::SetVolumesFromPct(int masterPct, int musicPct, int sfxPct, int videoPct)
 {
     // Clamp ke 0-100
     if (masterPct < 0) masterPct = 0;
@@ -265,10 +282,13 @@ void AudioManager::SetVolumesFromPct(int masterPct, int musicPct, int sfxPct)
     if (musicPct > 100) musicPct = 100;
     if (sfxPct < 0) sfxPct = 0;
     if (sfxPct > 100) sfxPct = 100;
+    if (videoPct < 0) videoPct = 0;
+    if (videoPct > 100) videoPct = 100;
 
     SetMasterVolume(static_cast<float>(masterPct) / 100.0f);
     SetMusicVolume(static_cast<float>(musicPct) / 100.0f);
     SetSfxVolume(static_cast<float>(sfxPct) / 100.0f);
+    SetVideoVolume(static_cast<float>(videoPct) / 100.0f);
 }
 
 /*==============================================================================
@@ -420,3 +440,4 @@ void AudioManager::PlaySFX(const std::string &name)
         TraceLog(LOG_WARNING, "SFX: Sound not found: %s", name.c_str());
     }
 }
+ 

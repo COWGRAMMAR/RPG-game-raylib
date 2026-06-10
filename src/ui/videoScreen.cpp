@@ -5,7 +5,7 @@
 // -----------------------------------------------------------------------------
 
 VideoScreen::VideoScreen()
-    : m_videoPath("assets/video/dolby-countdown.mp4")
+    : m_videoPath("assets/video/dolby-countdown-opt.mp4")
     , m_skipRequested(false)
     , m_loaded(false)
 {
@@ -28,12 +28,21 @@ bool VideoScreen::LoadAndPlay()
         Unload();
     }
 
+    TraceLog(LOG_INFO, "VIDEO: Loading '%s'...", m_videoPath.c_str());
+
     m_player.Load(m_videoPath);
     m_loaded = m_player.IsValid();
 
     if (m_loaded)
     {
+        TraceLog(LOG_INFO, "VIDEO: Loaded successfully (%dx%d, %.1fs)",
+            m_player.GetWidth(), m_player.GetHeight(), m_player.GetDuration());
         m_player.Play();
+        TraceLog(LOG_INFO, "VIDEO: Playback started");
+    }
+    else
+    {
+        TraceLog(LOG_WARNING, "VIDEO: Failed to load '%s'", m_videoPath.c_str());
     }
 
     return m_player.IsValid();
@@ -41,6 +50,10 @@ bool VideoScreen::LoadAndPlay()
 
 void VideoScreen::Unload()
 {
+    if (m_loaded)
+    {
+        TraceLog(LOG_INFO, "VIDEO: Unloading '%s'", m_videoPath.c_str());
+    }
     m_player.Unload();
     m_loaded = false;
 }
@@ -81,8 +94,15 @@ bool VideoScreen::Update(float deltaTime)
     m_player.Update(deltaTime);
 
     // Transisi jika video selesai atau di-skip
-    if (m_player.IsFinished() || m_skipRequested)
+    if (m_player.IsFinished())
     {
+        TraceLog(LOG_INFO, "VIDEO: Playback finished (%.1fs)", m_player.GetPosition());
+        return true;
+    }
+
+    if (m_skipRequested)
+    {
+        TraceLog(LOG_INFO, "VIDEO: Skipped by user at %.1fs", m_player.GetPosition());
         return true;
     }
 

@@ -141,8 +141,14 @@ set_target_properties(raylib_media PROPERTIES UNITY_BUILD OFF)
 target_include_directories(raylib_media PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/lib/raylib-media"
     ${FFMPEG_INCLUDE_DIRS}
-    "${CMAKE_CURRENT_SOURCE_DIR}/lib/raylib-windows/include"
 )
+if(WIN32)
+    target_include_directories(raylib_media PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/lib/raylib-windows/include")
+elseif(APPLE)
+    target_include_directories(raylib_media PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/lib/raylib-macos/include")
+else()
+    target_include_directories(raylib_media PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/lib/raylib-linux/include")
+endif()
 
 # Link raylib_media and FFmpeg into main
 target_link_libraries(main PRIVATE raylib_media ${FFMPEG_LIBRARIES})

@@ -435,14 +435,39 @@ function Install-FFmpeg() {
         return
     }
 
-    Write-Step "FFmpeg not found. Downloading FFmpeg Windows builds from GitHub..."
+    Write-Step "FFmpeg not found. Resolving latest FFmpeg 8.1 download URL..."
+
+    try {
+        $releaseData = Invoke-RestMethod -Uri "https://api.github.com/repos/BtbN/FFmpeg-Builds/releases/latest" -UserAgent "PowerShell"
+        $asset = $releaseData.assets | Where-Object { $_.name -like "*win64-lgpl-shared*8.1*" } | Select-Object -First 1
+        if ($asset) {
+            $zipUrl = $asset.browser_download_url
+        } else {
+            Write-Warning "No 8.1 LGPL shared asset found, trying any win64-lgpl-shared..."
+            $asset = $releaseData.assets | Where-Object { $_.name -like "*win64-lgpl-shared*" } | Select-Object -First 1
+            if ($asset) {
+                $zipUrl = $asset.browser_download_url
+            }
+        }
+    } catch {
+        Write-Warning "Could not resolve latest FFmpeg URL, using default: $_"
+    }
+
     Write-Debug "URL: $zipUrl"
 
     try {
-        Invoke-WebRequest -Uri $zipUrl -OutFile $zipFile -UserAgent "PowerShell"
+        Invoke-WebRequest -Uri $zipUrl -OutFile $zipFile -UserAgent "PowerShell" -MaximumRedirection 10
     } catch {
         Write-Err "Download failed: $_"
-        exit 1
+        # Retry once after 3 seconds
+        Start-Sleep -Seconds 3
+        try {
+            Write-Step "Retrying FFmpeg download..."
+            Invoke-WebRequest -Uri $zipUrl -OutFile $zipFile -UserAgent "PowerShell" -MaximumRedirection 10
+        } catch {
+            Write-Err "Download failed on retry: $_"
+            exit 1
+        }
     }
 
     if (-not (Test-Path $zipFile)) {

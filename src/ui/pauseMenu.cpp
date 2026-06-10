@@ -73,7 +73,7 @@ OptionsScreen::~OptionsScreen()
 /**
  * @brief Menampilkan layar options
  */
-void OptionsScreen::Show()
+void OptionsScreen::Show(GameState* state)
 {
     active = true;
     if (!texturesLoaded) {
@@ -85,6 +85,7 @@ void OptionsScreen::Show()
         texturesLoaded = true;
     }
     CalculateDimensions();
+    showFPS = state->showFPS;
 }
 
 /**
@@ -260,8 +261,8 @@ void OptionsScreen::Update(GameState* state, Vector2 mousePosition, bool mouseCl
             state->showFPS = false;
             showFPS = false;
         } else if (selectedTab == 1) {
-            g_sliders = {100, 80, 100, false, -1};
-            AudioManager::SetVolumesFromPct(100, 80, 100);
+            g_sliders = {100, 100, 100, false, -1};
+            AudioManager::SetVolumesFromPct(100, 100, 100);
             SaveAudioSettings(g_sliders.masterVolume, g_sliders.musicVolume, g_sliders.sfxVolume);
         } else if (selectedTab == 2) {
             keybindManager.ResetDefaults();
@@ -286,8 +287,8 @@ void OptionsScreen::Update(GameState* state, Vector2 mousePosition, bool mouseCl
             ToggleFullscreenMode();
         state->showFPS = false;
         showFPS = false;
-        g_sliders = {100, 80, 100, false, -1};
-        AudioManager::SetVolumesFromPct(100, 80, 100);
+        g_sliders = {100, 100, 100, false, -1};
+        AudioManager::SetVolumesFromPct(100, 100, 100);
         SaveAudioSettings(g_sliders.masterVolume, g_sliders.musicVolume, g_sliders.sfxVolume);
         keybindManager.ResetDefaults();
         keybindManager.SaveToFile("saves/settings/keybindsTab.json");

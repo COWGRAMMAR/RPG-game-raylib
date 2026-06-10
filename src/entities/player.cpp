@@ -49,13 +49,18 @@ void Player::Init(GameState *state, const char *spawnObjectName)
         ManaRegenTimer = 0.0f;
 
         // Inisialisasi perlengkapan hotbar default
-        Hotbar[0] = {1, 1}; // Iron Sword
-        Hotbar[1] = {16, 1}; // bow 
-        Hotbar[2] = {2, 8}; // Health Potion
-        Hotbar[3] = {3, 8}; // Mana Bread
+        Hotbar[0] = {1, 1};  // Iron Sword
+        Hotbar[1] = {16, 1}; // bow
+        Hotbar[2] = {2, 8};  // Health Potion
+        Hotbar[3] = {3, 8};  // Mana Bread
 
         for (int i = 0; i < PlayerInstance.MaxBag; i++)
+        {
             Bag[i] = {EMPTY_ITEM_ID, 0};
+        }
+
+        Bag[0] = {15, 1};
+        Bag[1] = {4, 1};
 
         isInitialized = true;
         TraceLog(LOG_INFO, "Player: Resource global dan statistik telah diinisialisasi");

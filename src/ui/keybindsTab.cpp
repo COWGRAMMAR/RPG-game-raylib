@@ -1,6 +1,7 @@
 #include "keybindsTab.h"
 #include "fonts.h"
 #include "keybindManager.h"
+#include "screen.h"
 #include "raylib.h"
 #include <algorithm>
 
@@ -51,6 +52,13 @@ void DrawKeybindsTab(Vector2 mousePosition, int startX, int startY)
     static int scrollY = 0;
     static int listeningAction = -1;
     static bool enteredThisFrame = false;
+    static char toastLine1[128] = "";
+    static char toastLine2[128] = "";
+    static float toastTimer = 0.0f;
+    static constexpr float TOAST_DURATION = 3.5f;
+
+    if (toastTimer > 0)
+        toastTimer -= GetFrameTime();
 
     // Calculate total content height
     int totalH = 0;
@@ -93,20 +101,77 @@ void DrawKeybindsTab(Vector2 mousePosition, int startX, int startY)
                 listeningAction = -1;
             else
             {
-                keybindManager.SetKeybind(static_cast<Action>(listeningAction), key, false);
+                Action conflictAction = keybindManager.FindActionByKeycode(key, false);
+                Action curAction = static_cast<Action>(listeningAction);
+                if (conflictAction != ACTION_COUNT && conflictAction != curAction)
+                {
+                    Keybind oldKey = keybindManager.GetKeybind(curAction);
+                    keybindManager.SetKeybind(conflictAction, oldKey.keyCode, oldKey.isMouse);
+                    keybindManager.SetKeybind(curAction, key, false);
+
+                    const char* keyName = KeybindManager::GetInputDisplayName(key, false);
+                    const char* cName = keybindManager.GetActionName(conflictAction);
+                    const char* lName = keybindManager.GetActionName(curAction);
+                    snprintf(toastLine1, sizeof(toastLine1), "%s: %s → %s", keyName, cName, lName);
+                    const char* oldKeyName = KeybindManager::GetInputDisplayName(oldKey.keyCode, oldKey.isMouse);
+                    snprintf(toastLine2, sizeof(toastLine2), "%s: → %s", oldKeyName, cName);
+                    toastTimer = TOAST_DURATION;
+                }
+                else
+                {
+                    keybindManager.SetKeybind(curAction, key, false);
+                }
                 keybindManager.SaveToFile(SAVE_PATH);
                 listeningAction = -1;
             }
         }
         else if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
         {
-            keybindManager.SetKeybind(static_cast<Action>(listeningAction), MOUSE_BUTTON_LEFT, true);
+            Action conflictAction = keybindManager.FindActionByKeycode(MOUSE_BUTTON_LEFT, true);
+            Action curAction = static_cast<Action>(listeningAction);
+            if (conflictAction != ACTION_COUNT && conflictAction != curAction)
+            {
+                Keybind oldKey = keybindManager.GetKeybind(curAction);
+                keybindManager.SetKeybind(conflictAction, oldKey.keyCode, oldKey.isMouse);
+                keybindManager.SetKeybind(curAction, MOUSE_BUTTON_LEFT, true);
+
+                const char* keyName = "Mouse Left";
+                const char* cName = keybindManager.GetActionName(conflictAction);
+                const char* lName = keybindManager.GetActionName(curAction);
+                snprintf(toastLine1, sizeof(toastLine1), "%s: %s → %s", keyName, cName, lName);
+                const char* oldKeyName = KeybindManager::GetInputDisplayName(oldKey.keyCode, oldKey.isMouse);
+                snprintf(toastLine2, sizeof(toastLine2), "%s: → %s", oldKeyName, cName);
+                toastTimer = TOAST_DURATION;
+            }
+            else
+            {
+                keybindManager.SetKeybind(curAction, MOUSE_BUTTON_LEFT, true);
+            }
             keybindManager.SaveToFile(SAVE_PATH);
             listeningAction = -1;
         }
         else if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT))
         {
-            keybindManager.SetKeybind(static_cast<Action>(listeningAction), MOUSE_BUTTON_RIGHT, true);
+            Action conflictAction = keybindManager.FindActionByKeycode(MOUSE_BUTTON_RIGHT, true);
+            Action curAction = static_cast<Action>(listeningAction);
+            if (conflictAction != ACTION_COUNT && conflictAction != curAction)
+            {
+                Keybind oldKey = keybindManager.GetKeybind(curAction);
+                keybindManager.SetKeybind(conflictAction, oldKey.keyCode, oldKey.isMouse);
+                keybindManager.SetKeybind(curAction, MOUSE_BUTTON_RIGHT, true);
+
+                const char* keyName = "Mouse Right";
+                const char* cName = keybindManager.GetActionName(conflictAction);
+                const char* lName = keybindManager.GetActionName(curAction);
+                snprintf(toastLine1, sizeof(toastLine1), "%s: %s → %s", keyName, cName, lName);
+                const char* oldKeyName = KeybindManager::GetInputDisplayName(oldKey.keyCode, oldKey.isMouse);
+                snprintf(toastLine2, sizeof(toastLine2), "%s: → %s", oldKeyName, cName);
+                toastTimer = TOAST_DURATION;
+            }
+            else
+            {
+                keybindManager.SetKeybind(curAction, MOUSE_BUTTON_RIGHT, true);
+            }
             keybindManager.SaveToFile(SAVE_PATH);
             listeningAction = -1;
         }
@@ -178,6 +243,31 @@ void DrawKeybindsTab(Vector2 mousePosition, int startX, int startY)
     }
 
     EndScissorMode();
+
+    // Toast notifikasi swap (di luar scissor, pojok kanan atas layar)
+    if (toastTimer > 0 && toastLine1[0])
+    {
+        Vector2 sz1 = MeasureTextEx(fontLoadingTitle, toastLine1, 30, 0);
+        Vector2 sz2 = MeasureTextEx(fontLoadingTitle, toastLine2, 30, 0);
+        int toastW = std::max((int)sz1.x, (int)sz2.x) + 40;
+        int toastH = (sz1.y > 0 ? (int)sz1.y + 10 : 0)
+                   + (sz2.y > 0 ? (int)sz2.y : 0) + 30;
+        int toastX = GameScreenWidth - toastW - 20;
+        int toastY = 15;
+
+        float alpha = std::min(toastTimer, 1.0f) * 0.85f + 0.15f;
+        unsigned char a = static_cast<unsigned char>(alpha * 255.0f);
+        DrawRectangle(toastX, toastY, toastW, toastH, Color{20, 20, 30, a});
+        DrawRectangleLinesEx(Rectangle{(float)toastX, (float)toastY, (float)toastW, (float)toastH}, 2,
+            Color{255, 165, 0, a});
+
+        float textY = toastY + 15.0f;
+        DrawTextEx(fontLoadingTitle, toastLine1,
+            Vector2{(float)(toastX + 20), textY}, 30, 0, Color{255, 255, 255, a});
+        textY += sz1.y + 10.0f;
+        DrawTextEx(fontLoadingTitle, toastLine2,
+            Vector2{(float)(toastX + 20), textY}, 30, 0, Color{255, 255, 255, a});
+    }
 
     // Scroll indicators
     if (maxScroll > 0)

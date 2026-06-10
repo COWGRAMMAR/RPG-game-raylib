@@ -248,6 +248,8 @@ void Enemy::Update()
 
     if (HitFlashTimer > 0)
         HitFlashTimer -= Time::DELTA_TIME;
+    if (HealthBarTimer > 0)
+        HealthBarTimer -= Time::DELTA_TIME;
     if (AttackCooldownTimer > 0)
         AttackCooldownTimer -= Time::DELTA_TIME;
 
@@ -638,6 +640,7 @@ void Enemy::TakeDamage(float amount, Vector2 knockback)
     Entity::TakeDamage(amount, knockback);
     AudioManager::PlaySFX("attack");
     HitFlashTimer = 0.15f;
+    HealthBarTimer = HealthBarDuration;
     KnockbackVelocity = Vector2Scale(knockback, 5.0f);
     HealthRegenTimer = Def->stats.healthRegenDelay;
 }
@@ -674,8 +677,8 @@ void Enemy::Render()
         DrawAnimation(Anim, tint, Def->Scale);
     }
 
-    // Health bar hanya tampil saat agresif
-    if (AIState == ENEMY_CHASE || AIState == ENEMY_ATTACK)
+    // Health bar tampil saat agresif atau setelah kena damage
+    if (HealthBarTimer > 0 || AIState == ENEMY_CHASE || AIState == ENEMY_ATTACK)
     {
         int hpBarX = 4, hpBarY = 38, hpBarW = 24, hpBarH = 4;
         DrawRectangle((int)Position.x + hpBarX, (int)Position.y + hpBarY, hpBarW, hpBarH, BLACK);

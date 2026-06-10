@@ -229,7 +229,12 @@ Atau bisa juga di `DrawVideoTab` — pastiin local variable selalu nyala dari `s
 ### File yang Diubah
 | File | Perubahan |
 |------|-----------|
-| `src/ui/pauseMenu.cpp:76-88` | Tambah `showFPS = state->showFPS;` di `OptionsScreen::Show()` |
+| `src/ui/pauseMenu.cpp` | `Show()`: tambah param `GameState* state` + sync `showFPS = state->showFPS` |
+| `include/ui/pauseMenu.h` | `Show()` signature: tambah `GameState* state` |
+| `src/core/main.cpp` | Caller `Show()`: pass `&state` |
+
+### Status:  Fixed di commit `fix ui #17`
+- Local `showFPS` di-sync dari `state->showFPS` setiap kali options dibuka
 
 ---
 

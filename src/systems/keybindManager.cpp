@@ -239,6 +239,33 @@ const char* KeybindManager::GetKeyDisplayName(Action action) const
     return KeyNameFromCode(it->second.keyCode);
 }
 
+Action KeybindManager::FindActionByKeycode(int keyCode, bool isMouse) const
+{
+    for (int i = 0; i < ACTION_COUNT; i++)
+    {
+        Action a = static_cast<Action>(i);
+        auto it = bindings.find(a);
+        if (it != bindings.end() && it->second.keyCode == keyCode && it->second.isMouse == isMouse)
+            return a;
+    }
+    return ACTION_COUNT;
+}
+
+const char* KeybindManager::GetInputDisplayName(int keyCode, bool isMouse)
+{
+    if (isMouse)
+    {
+        if (keyCode == MOUSE_BUTTON_LEFT)
+            return "Mouse Left";
+        if (keyCode == MOUSE_BUTTON_RIGHT)
+            return "Mouse Right";
+        if (keyCode == MOUSE_BUTTON_MIDDLE)
+            return "Mouse Middle";
+        return "Mouse";
+    }
+    return KeyNameFromCode(keyCode);
+}
+
 const char* KeybindManager::GetActionName(Action action) const
 {
     if (action >= 0 && action < ACTION_COUNT)

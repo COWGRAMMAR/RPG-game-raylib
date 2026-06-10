@@ -94,8 +94,11 @@ int main()
     state.assetsLoaded = false;
     state.enteredLoading = false;
 
-    // Step 5: init options screen (hidden initially)
-    optionsScreen.Show();
+    // Muat pengaturan video SEBELUM init options screen
+    LoadVideoSettings(&state);
+
+    // Step 5: init options screen (hidden initially) — sync dari state yang udah di-load
+    optionsScreen.Show(&state);
     optionsScreen.Hide();
 
     // Step 6: init main menu (needed for menu buttons to render)
@@ -123,9 +126,6 @@ int main()
     // Load keybinds (or save defaults on first run)
     if (!keybindManager.LoadFromFile("saves/settings/keybindsTab.json"))
         keybindManager.SaveToFile("saves/settings/keybindsTab.json");
-
-    // Muat pengaturan video
-    LoadVideoSettings(&state);
 
     // Inisialisasi AudioManager dan muat aset audio
     AudioManager::Init();
@@ -172,7 +172,7 @@ int main()
             if (!optionsScreen.IsActive())
             {
                 optionsScreen.SetReturnScreen(state.previousScreen);
-                optionsScreen.Show();
+                optionsScreen.Show(&state);
             }
             UpdateGame(&state);
             bool mouseClicked = IsMouseButtonPressed(MOUSE_LEFT_BUTTON);

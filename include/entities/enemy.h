@@ -248,6 +248,8 @@ public:
 
     // --- Feedback Visual & Kematian (runtime, accessible externally) ---
     float HitFlashTimer = 0.0f;       // Timer tint merah saat terkena damage (runtime)
+    float HealthBarTimer = 0.0f;      // Timer health bar muncul setelah kena damage (runtime)
+    const float HealthBarDuration = 1.5f; // Durasi health bar muncul
     Vector2 KnockbackVelocity;        // Vektor knockback aktif (runtime)
     float DeathTimer = 0.0f;          // Timer animasi kematian (runtime)
     const float DeathDuration = 1.2f; // Durasi animasi kematian sebelum di-deactivate

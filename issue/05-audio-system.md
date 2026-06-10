@@ -28,6 +28,11 @@ LoadAudioSettings();               // apply saved settings (overwrite default ka
 
 ### File yang diubah
 - `src/core/main.cpp` — tukar urutan baris 131 dan 134
+- `src/systems/audioManager.cpp` — `_musicVolume = 0.8f` → `1.0f`
+- `src/ui/audioTab.cpp` — `g_sliders = {100, 80, 100, ...}` → `{100, 100, 100, ...}`
+
+### Status:  Fixed di commit `fix audio #10 #11`
+- `LoadAudioSettings()` dipanggil setelah `AudioManager::Init()` + `LoadAudioAssets()`
 
 ---
 

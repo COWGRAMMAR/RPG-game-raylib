@@ -127,12 +127,12 @@ int main()
     // Muat pengaturan video
     LoadVideoSettings(&state);
 
-    // Muat pengaturan audio
-    LoadAudioSettings();
-
     // Inisialisasi AudioManager dan muat aset audio
     AudioManager::Init();
     AudioManager::LoadAudioAssets();
+
+    // Muat pengaturan audio
+    LoadAudioSettings();
 
     float accumulator = 0.0f;
 

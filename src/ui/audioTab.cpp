@@ -22,7 +22,7 @@ using json = nlohmann::json;
  *==============================================================================*/
 
 /** @brief Global slider state untuk tab Audio */
-SliderState g_sliders = {100, 80, 100, false, -1};
+SliderState g_sliders = {100, 100, 100, false, -1};
 
 /*==============================================================================
  * Constants

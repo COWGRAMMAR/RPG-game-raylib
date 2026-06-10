@@ -84,7 +84,7 @@ static int ScreenToTrackIndex(ScreenState screen)
 void AudioManager::Init()
 {
     _masterVolume = 1.0f;
-    _musicVolume  = 0.8f;
+    _musicVolume  = 1.0f;
     _sfxVolume    = 1.0f;
 
     ::SetMasterVolume(_masterVolume);

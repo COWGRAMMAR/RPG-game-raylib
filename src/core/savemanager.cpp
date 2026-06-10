@@ -307,7 +307,7 @@ GameSnapshot SaveManager::Deserialize(const json& root)
         if (player.contains("hotbar"))
         {
             const auto& hotbar = player.at("hotbar");
-            for (int i = 0; i < 4 && i < (int)hotbar.size(); i++)
+            for (int i = 0; i < HOTBAR_SLOTS && i < (int)hotbar.size(); i++)
             {
                 snap.hotbar[i].definitionId = hotbar[i].value("definitionId", -1);
                 snap.hotbar[i].amount = hotbar[i].value("amount", 0);
@@ -317,7 +317,7 @@ GameSnapshot SaveManager::Deserialize(const json& root)
         if (player.contains("bag"))
         {
             const auto& bag = player.at("bag");
-            for (int i = 0; i < 12 && i < (int)bag.size(); i++)
+            for (int i = 0; i < BAG_SLOTS && i < (int)bag.size(); i++)
             {
                 snap.bag[i].definitionId = bag[i].value("definitionId", -1);
                 snap.bag[i].amount = bag[i].value("amount", 0);

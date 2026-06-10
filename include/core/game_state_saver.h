@@ -12,6 +12,7 @@
  */
 
 #include "screen.h"
+#include "config/game_constants.h"
 #include "player.h"
 #include "enemy.h"
 #include "item.h"
@@ -41,8 +42,8 @@ struct SavedPlayerState {
     float mana;                 /**< Mana player saat ini */
     float maxHealth;            /**< Max HP player */
     float maxMana;              /**< Max Mana player */
-    InventoryItem hotbar[4];    /**< Hotbar inventory player */
-    InventoryItem bag[12];      /**< Full bag inventory (12 slots) */
+    InventoryItem hotbar[HOTBAR_SLOTS];    /**< Hotbar inventory player */
+    InventoryItem bag[BAG_SLOTS];           /**< Full bag inventory (12 slots) */
 
     /**
      * @brief Snapshot animasi dan input state

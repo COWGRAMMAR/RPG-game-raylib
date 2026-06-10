@@ -347,7 +347,7 @@ bool ReadSaveFile(const std::string& path)
         if (player.contains("hotbar"))
         {
             const auto& hotbar = player.at("hotbar");
-            for (int i = 0; i < 4 && i < (int)hotbar.size(); i++)
+            for (int i = 0; i < HOTBAR_SLOTS && i < (int)hotbar.size(); i++)
             {
                 savedPlayerState.hotbar[i].definitionId = hotbar[i].value("definitionId", -1);
                 savedPlayerState.hotbar[i].amount = hotbar[i].value("amount", 0);
@@ -357,7 +357,7 @@ bool ReadSaveFile(const std::string& path)
         if (player.contains("bag"))
         {
             const auto& bag = player.at("bag");
-            for (int i = 0; i < 12 && i < (int)bag.size(); i++)
+            for (int i = 0; i < BAG_SLOTS && i < (int)bag.size(); i++)
             {
                 savedPlayerState.bag[i].definitionId = bag[i].value("definitionId", -1);
                 savedPlayerState.bag[i].amount = bag[i].value("amount", 0);
@@ -699,8 +699,8 @@ void RestoreGameState(GameState *state)
         }
         else
         {
-            PlayerInstance.MaxHealth = 100.0f;
-            PlayerInstance.MaxMana = 100.0f;
+            PlayerInstance.MaxHealth = DEFAULT_MAX_HEALTH;
+            PlayerInstance.MaxMana = DEFAULT_MAX_MANA;
         }
 
         PlayerInstance.SetHealth(savedPlayerState.health);
@@ -708,13 +708,13 @@ void RestoreGameState(GameState *state)
         PlayerInstance.SetPosition(savedPlayerState.position);
         TraceLog(LOG_INFO, "RESTORE: SetPosition = (%.2f, %.2f)", savedPlayerState.position.x, savedPlayerState.position.y);
 
-        for (int i = 0; i < 4; i++)
+        for (int i = 0; i < HOTBAR_SLOTS; i++)
         {
             PlayerInstance.SetHotbarItem(i, savedPlayerState.hotbar[i]);
         }
 
         // Restore bag inventory
-        for (int i = 0; i < 12; i++)
+        for (int i = 0; i < BAG_SLOTS; i++)
         {
             PlayerInstance.GetBagItem(i) = savedPlayerState.bag[i];
         }

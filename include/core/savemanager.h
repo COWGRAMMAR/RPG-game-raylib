@@ -15,6 +15,7 @@
  */
 
 #include "screen.h"
+#include "config/game_constants.h"
 #include "player.h"
 #include "enemy.h"
 #include "item.h"
@@ -51,12 +52,12 @@ struct GameSnapshot {
 
     /*=== Player ===*/
     Vector2 playerPosition = {0, 0};
-    float playerHealth = 100.0f;
-    float playerMana = 100.0f;
-    float playerMaxHealth = 100.0f;
-    float playerMaxMana = 100.0f;
-    InventoryItem hotbar[4] = {};
-    InventoryItem bag[12] = {};
+    float playerHealth = DEFAULT_MAX_HEALTH;
+    float playerMana = DEFAULT_MAX_MANA;
+    float playerMaxHealth = DEFAULT_MAX_HEALTH;
+    float playerMaxMana = DEFAULT_MAX_MANA;
+    InventoryItem hotbar[HOTBAR_SLOTS] = {};
+    InventoryItem bag[BAG_SLOTS] = {};
 
     /** @brief Snapshot animasi dan input state */
     struct {

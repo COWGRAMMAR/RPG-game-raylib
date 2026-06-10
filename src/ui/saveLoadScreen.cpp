@@ -169,9 +169,8 @@ void SaveLoadScreen::Update(GameState* state, Vector2 mousePosition, bool mouseC
                 std::string path = GetSlotPath(m_selectedSlot, "manual");
                 TraceLog(LOG_INFO, "LOAD: slot=%d mapPath='%s' worldgenSlot=%d",
                     m_selectedSlot, savedMapState.mapPath.c_str(), savedPlayerState.worldgenSlot);
-                if (ReadSaveFile(path)) {
-                    RestoreGameState(state);
-                }
+                ReadSaveFile(path);
+                // RestoreGameState di-loading_screen.cpp (HandleFastPath) setelah InitAll
             }
             active = false;
             state->currentScreen = LOADING;

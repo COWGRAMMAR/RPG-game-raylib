@@ -23,6 +23,7 @@
 #include "../../include/rendering/fonts.h"
 #include "../../include/systems/input.h"
 #include "../../include/systems/keybindManager.h"
+#include "../../include/ui/videoScreen.h"
 #include "../../include/ui/videoTab.h"
 #include "../../include/ui/audioTab.h"
 #include "../../include/systems/audioManager.h"
@@ -38,6 +39,7 @@
 PauseMenu pauseMenu;
 OptionsScreen optionsScreen;
 SaveLoadScreen saveLoadScreen;
+VideoScreen videoScreen;
 
 /**
  * @brief Custom TraceLog callback to prepend HH:mm:ss.fff timestamps
@@ -82,6 +84,9 @@ int main()
     GameState state = InitScreen();
     state.previousScreen = MAIN_MENU; // Default return to main menu
     gState = &state;
+
+    // Override: mulai dari VIDEO (intro) sebelum MAIN_MENU
+    state.currentScreen = VIDEO;
 
     // Register custom TraceLog callback for timestamps
     SetTraceLogCallback(TimestampLog);
@@ -142,8 +147,40 @@ int main()
         // Update audio system setiap frame (UpdateMusicStream + auto-switch track)
         AudioManager::Update(state.currentScreen);
 
+        // ===== State: VIDEO (intro saat startup) =====
+        if (state.currentScreen == VIDEO)
+        {
+            // Muat dan putar video hanya sekali saat pertama masuk
+            static bool videoStarted = false;
+            if (!videoStarted)
+            {
+                videoScreen.LoadAndPlay();
+                videoStarted = true;
+            }
+
+            // Delta time, cap maks 1/20 detik biar ga loncat jauh
+            float deltaTime = GetFrameTime();
+            if (deltaTime > 0.05f)
+                deltaTime = 0.05f;
+
+            // Update video; jika selesai/skip -> pindah ke MAIN_MENU
+            if (videoScreen.Update(deltaTime))
+            {
+                videoScreen.Unload();
+                state.currentScreen = MAIN_MENU;
+                videoStarted = false;
+            }
+
+            if (WindowShouldClose()) break;
+
+            // Render video fullscreen (tanpa virtual screen biar ga distretch)
+            BeginDrawing();
+            ClearBackground(BLACK);
+            videoScreen.Draw();
+            EndDrawing();
+        }
         // ===== State: MAIN_MENU =====
-        if (state.currentScreen == MAIN_MENU)
+        else if (state.currentScreen == MAIN_MENU)
         {
             UpdateGame(&state);
             UpdateMainMenu(&state);
@@ -301,3 +338,4 @@ int main()
     GameShutDown(&state);
     return 0;
 }
+ 

@@ -141,6 +141,30 @@
                  "width":32,
                  "x":352,
                  "y":544
+                }, 
+                {
+                 "height":32,
+                 "id":49,
+                 "name":"bomb",
+                 "opacity":1,
+                 "rotation":0,
+                 "type":"bomb",
+                 "visible":true,
+                 "width":32,
+                 "x":416,
+                 "y":512
+                }, 
+                {
+                 "height":32,
+                 "id":50,
+                 "name":"bomb",
+                 "opacity":1,
+                 "rotation":0,
+                 "type":"bomb",
+                 "visible":true,
+                 "width":32,
+                 "x":384,
+                 "y":512
                 }],
          "opacity":1,
          "type":"objectgroup",
@@ -451,7 +475,7 @@
          "y":0
         }],
  "nextlayerid":11,
- "nextobjectid":49,
+ "nextobjectid":51,
  "orientation":"orthogonal",
  "renderorder":"right-down",
  "tiledversion":"1.12.1",

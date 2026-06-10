@@ -138,7 +138,7 @@ void InitFonts(void)
 
         snprintf(buf, sizeof(buf), "%sNewDawn.ttf", dir);
         if (!FileExists(buf)) { TraceLog(LOG_WARNING, "FONTS: %s NOT FOUND", buf); continue; }
-        fontKeybindHeader = LoadFontEx(buf, 32, 0, 0);
+        fontKeybindHeader = LoadFontEx(buf, 256, 0, 0);
         break;
     }
 
@@ -149,7 +149,7 @@ void InitFonts(void)
 
         snprintf(buf, sizeof(buf), "%sPoppins-Regular.ttf", dir);
         if (!FileExists(buf)) { TraceLog(LOG_WARNING, "FONTS: %s NOT FOUND", buf); continue; }
-        fontKeybindEntry = LoadFontEx(buf, 30, 0, 0);
+        fontKeybindEntry = LoadFontEx(buf, 256, 0, 0);
         break;
     }
 
@@ -160,7 +160,7 @@ void InitFonts(void)
 
         snprintf(buf, sizeof(buf), "%sPoppins-Bold.ttf", dir);
         if (!FileExists(buf)) { TraceLog(LOG_WARNING, "FONTS: %s NOT FOUND", buf); continue; }
-        fontLoadingTitle = LoadFontEx(buf, 32, 0, 0);
+        fontLoadingTitle = LoadFontEx(buf, 256, 0, 0);
         break;
     }
 
@@ -180,9 +180,9 @@ void InitFonts(void)
         fontLoadingTitle = GetFontDefault();
     }
 
-    SetTextureFilter(fontKeybindHeader.texture, TEXTURE_FILTER_POINT);
-    SetTextureFilter(fontKeybindEntry.texture, TEXTURE_FILTER_POINT);
-    SetTextureFilter(fontLoadingTitle.texture, TEXTURE_FILTER_POINT);
+    SetTextureFilter(fontKeybindHeader.texture, TEXTURE_FILTER_BILINEAR);
+    SetTextureFilter(fontKeybindEntry.texture, TEXTURE_FILTER_BILINEAR);
+    SetTextureFilter(fontLoadingTitle.texture, TEXTURE_FILTER_BILINEAR);
 
     TraceLog(LOG_INFO, "FONTS: NewDawn (header) glyphs=%d, Poppins (entry) glyphs=%d, Poppins-Bold (loading) glyphs=%d",
         fontKeybindHeader.glyphCount, fontKeybindEntry.glyphCount, fontLoadingTitle.glyphCount);

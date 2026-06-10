@@ -218,7 +218,7 @@ void UpdateLogicAll()
     if (TurnCombat::IsActive())
     {
         TurnCombat::Update();
-        Effects::Update(GetFrameTime());
+        Effects::Update(Time::DELTA_TIME);
     }
     else
     {

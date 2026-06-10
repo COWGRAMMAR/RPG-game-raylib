@@ -248,11 +248,11 @@ static void ExecuteBossTurn() {
 void TurnCombat::Update() {
     if (!state.active) return;
 
-    state.combatTimer += GetFrameTime();
+    state.combatTimer += Time::DELTA_TIME;
 
     // Smooth zoom transition at start
     if (state.zoomTimer > 0.0f) {
-        state.zoomTimer -= GetFrameTime();
+        state.zoomTimer -= Time::DELTA_TIME;
         float t = 1.0f - state.zoomTimer / 0.5f;
         camera.zoom = Lerp(state.origCameraZoom, state.targetZoom, t);
         camera.target.x = Lerp(state.origCameraTarget.x, state.targetCameraTarget.x, t);
@@ -336,8 +336,8 @@ void TurnCombat::Update() {
                 }
             }
         }
-        state.timer -= GetFrameTime();
-        state.player->attack.timer += GetFrameTime();
+        state.timer -= Time::DELTA_TIME;
+        state.player->attack.timer += Time::DELTA_TIME;
         if (state.timer <= 0.0f) {
             // Reset player attack state before transitioning
             state.player->attack.active = false;
@@ -354,7 +354,7 @@ void TurnCombat::Update() {
     case TurnPhase::PLAYER_ITEM: {
         if (state.keyProcessed) {
             // After successful potion use: countdown, then transition
-            state.timer -= GetFrameTime();
+            state.timer -= Time::DELTA_TIME;
             if (state.timer <= 0.0f) {
                 if (state.boss->Health <= 0)
                     TransitionTo(TurnPhase::VICTORY);
@@ -364,7 +364,7 @@ void TurnCombat::Update() {
         }
         else if (state.timer > 0.0f) {
             // 1s delay after "no potion" message
-            state.timer -= GetFrameTime();
+            state.timer -= Time::DELTA_TIME;
             state.message = "Tidak ada potion! Kembali ke menu...";
             if (state.timer <= 0.0f) {
                 state.selectedPotionId = -1;
@@ -414,7 +414,7 @@ void TurnCombat::Update() {
             state.keyProcessed = true;
             state.timer = 1.0f;
         }
-        state.timer -= GetFrameTime();
+        state.timer -= Time::DELTA_TIME;
         if (state.timer <= 0.0f) {
             TransitionTo(TurnPhase::SHOW_RESULT);
         }
@@ -427,7 +427,7 @@ void TurnCombat::Update() {
             state.keyProcessed = true;
             state.timer = 1.0f;
         }
-        state.timer -= GetFrameTime();
+        state.timer -= Time::DELTA_TIME;
         if (state.timer <= 0.0f) {
             if (state.player->Health <= 0)
                 TransitionTo(TurnPhase::DEFEAT);
@@ -722,5 +722,5 @@ float TurnCombat::GetDefeatCooldown() {
 
 void TurnCombat::UpdateCooldown() {
     if (state.defeatCooldown > 0.0f)
-        state.defeatCooldown -= GetFrameTime();
+        state.defeatCooldown -= Time::DELTA_TIME;
 }

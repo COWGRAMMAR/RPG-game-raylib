@@ -508,7 +508,7 @@ void RenderLoadingScreen(GameState *state)
 
     // Smooth progress bar animation
     static float currentDisplayProgress = 0.0f;
-    float dt = fminf(GetFrameTime(), 0.1f);
+    float dt = fminf(Time::DELTA_TIME , 0.1f);
     float targetProgress = state->loadingProgress / 100.0f;
 
     if (state->loadingComplete) {

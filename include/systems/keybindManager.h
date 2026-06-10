@@ -26,8 +26,8 @@ enum Action {
     TOGGLE_MAP,
     DROP_ITEM,
     DROP_ALL,
-    PRIMARY_ATTACK,
-    DASH_DRINK,
+    ATTACK_DRINK,
+    DASH,
     // Hotbar selection
     HOTBAR_SLOT_1,
     HOTBAR_SLOT_2,

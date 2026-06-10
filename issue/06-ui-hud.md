@@ -124,16 +124,45 @@ Semua text keybind terikat ke sistem keybind (#12):
 
 ---
 
-## #14 — Daftar Keybind
+## #14 — Daftar Keybind — Redesign Layout & Grouping
 
 ### Masalah
-Belum ada UI yang nampilin daftar keybind lengkap ke player.
+Belum ada UI yang nampilin daftar keybind lengkap ke player dengan grouping yang jelas.
 
 ### Expected
-Screen/tab yang nampilin semua action → key yang terdaftar, biar player tau kontrolnya.
+Screen/tab yang nampilin semua action → key yang terdaftar, biar player tau kontrolnya, dikelompokin per kategori.
 
-### Investigasi
-Belum — perlu cek sistem keybind di `input/` atau `ui/`.
+### Group Mapping Final
+
+| Group | Items | Count |
+|-------|-------|-------|
+| **Movement** | Move Up, Move Down, Move Left, Move Right | 4 |
+| **Action** | Attack, Drink, Interact, Drop, Drop All, Dash, Map | 7 |
+| **Inventory** | Inventory Toggle, Slot 1, Slot 2, Slot 3, Slot 4, Merge, Split | 8 |
+
+#### Detail & Keputusan
+
+| Item | Status | Catatan |
+|------|--------|---------|
+| GO_BACK | **Hidden** | Internal only, gak ditampilin |
+| EQUIP_UNEQUIP | **Dropped** | Gak dipake (cuma log) |
+| Debug group | **Hidden** | Gak muncul di UI manapun |
+| Merge & Split | **Tetep di list** | Informational — mouse-driven (Ctrl+Click, Right-Click Drag) |
+| Drop All | **Combo display** | Tampil sebagai `[Shift] + [Q]` (modifier + main key) |
+| Hardcoded Raylib input | **Leave as-is** | Gak perlu dipindah ke custom keybind system |
+| ResolveAction (Attack/Drink via slot+click) | **Leave as-is** | Gak perlu ditampilin sebagai keybind |
+
+### Layout & Font
+
+- **Group headers**: `fontKeybindHeader` (NewDawn)
+- **Entry items**: `fontKeybindEntry` (Poppins-Regular)
+- Tiap group dipisah pjarak vertikal
+- Entry format: `Action Name — [Key]`
+
+### File yang Diubah
+| File | Perubahan |
+|------|-----------|
+| `src/ui/keybindsTab.cpp` | Implementasi layout grouping + font baru |
 
 ---
 

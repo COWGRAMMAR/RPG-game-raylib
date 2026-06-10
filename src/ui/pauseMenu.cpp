@@ -344,7 +344,7 @@ void OptionsScreen::Draw(Vector2 mousePosition)
     switch (selectedTab) {
         case 0: DrawVideoTab(fullscreenButton, fpsButton, mousePosition, startX + contentOX, startY + contentOY); break;
         case 1: DrawAudioTab(mousePosition, startX + contentOX, startY + contentOY); break;
-        case 2: DrawKeybindsTab(mousePosition, startX + contentOX, startY + contentOY); break;
+        case 2: DrawKeybindsTab(mousePosition, startX + contentOX, startY + contentOY, (int)contentRect.width); break;
     }
 
     // background hitam di belakang tombol Reset Tab / Reset All agar terbaca

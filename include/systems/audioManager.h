@@ -79,6 +79,9 @@ float GetMusicVolume();
 /** @brief Mendapatkan volume SFX (0.0f-1.0f) */
 float GetSfxVolume();
 
+/** @brief Mendapatkan volume video (0.0f-1.0f) */
+float GetVideoVolume();
+
 /*------------------------------------------------------------------------------
  * Volume Setters (float, otomatis clamp ke [0.0f, 1.0f])
  *------------------------------------------------------------------------------*/
@@ -91,6 +94,9 @@ void SetMusicVolume(float vol);
 
 /** @brief Mengatur volume SFX */
 void SetSfxVolume(float vol);
+
+/** @brief Mengatur volume video */
+void SetVideoVolume(float vol);
 
 /*------------------------------------------------------------------------------
  * Percentage Convenience (0-100)
@@ -105,13 +111,17 @@ int GetMusicVolumePct();
 /** @brief Mendapatkan volume SFX dalam persen (0-100) */
 int GetSfxVolumePct();
 
+/** @brief Mendapatkan volume video dalam persen (0-100) */
+int GetVideoVolumePct();
+
 /**
  * @brief Mengatur semua volume dari nilai persen
  * @param masterPct Volume master 0-100
  * @param musicPct  Volume musik 0-100
  * @param sfxPct    Volume SFX 0-100
+ * @param videoPct  Volume video 0-100
  */
-void SetVolumesFromPct(int masterPct, int musicPct, int sfxPct);
+void SetVolumesFromPct(int masterPct, int musicPct, int sfxPct, int videoPct);
 
 /*------------------------------------------------------------------------------
  * Music Control

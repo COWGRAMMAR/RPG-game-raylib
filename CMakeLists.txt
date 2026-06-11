@@ -11,7 +11,7 @@ else()
     message(STATUS "Using default compiler")
 endif()
 
-project(RPGGame VERSION 1.0.0 LANGUAGES CXX)
+project(RPGGame VERSION 1.0.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -64,7 +64,10 @@ target_include_directories(main PUBLIC
 
 # Force-include missing standard headers for tileson.hpp compatibility
 # tileson v1.4.0 assumes transitive includes which newer compilers (Clang 18+, GCC 15+) don't provide
-target_compile_options(main PRIVATE "SHELL:-include cstdint" "SHELL:-include algorithm")
+target_compile_options(main PRIVATE
+    "$<$<COMPILE_LANGUAGE:CXX>:SHELL:-include cstdint>"
+    "$<$<COMPILE_LANGUAGE:CXX>:SHELL:-include algorithm>"
+)
 
 # Raylib library
 if(WIN32)
@@ -105,6 +108,61 @@ elseif(UNIX)
     target_link_libraries(main PRIVATE "${RAYLIB_PATH}")
     target_link_libraries(main PRIVATE GL m pthread dl rt)
     target_link_libraries(main PRIVATE X11 Xrandr Xinerama Xcursor Xi)
+endif()
+
+# =============================================================================
+# FFmpeg / raylib-media (video playback)
+# =============================================================================
+
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/lib/raylib-media")
+
+# Pre-seed FFmpeg cache variables for Windows (local FFmpeg in lib/ffmpeg/)
+if(WIN32)
+    set(FFMPEG_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/lib/ffmpeg")
+    set(FFMPEG_INCLUDE_DIR "${FFMPEG_ROOT}/include" CACHE PATH "FFmpeg include directory")
+    set(FFMPEG_LIBAVCODEC "${FFMPEG_ROOT}/lib/avcodec.lib" CACHE FILEPATH "")
+    set(FFMPEG_LIBAVFORMAT "${FFMPEG_ROOT}/lib/avformat.lib" CACHE FILEPATH "")
+    set(FFMPEG_LIBAVUTIL "${FFMPEG_ROOT}/lib/avutil.lib" CACHE FILEPATH "")
+    set(FFMPEG_SWSCALE "${FFMPEG_ROOT}/lib/swscale.lib" CACHE FILEPATH "")
+    set(FFMPEG_SWRESAMPLE "${FFMPEG_ROOT}/lib/swresample.lib" CACHE FILEPATH "")
+endif()
+
+find_package(FFMPEG REQUIRED COMPONENTS avcodec avformat avutil swresample swscale)
+
+# raylib-media include directory (for raymedia.h)
+target_include_directories(main PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/lib/raylib-media")
+
+# FFmpeg include directory
+target_include_directories(main PRIVATE ${FFMPEG_INCLUDE_DIRS})
+
+# Static library for rmedia.c (separate target avoids unity build for C code)
+add_library(raylib_media STATIC lib/raylib-media/rmedia.c)
+set_target_properties(raylib_media PROPERTIES UNITY_BUILD OFF)
+target_include_directories(raylib_media PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/lib/raylib-media"
+    ${FFMPEG_INCLUDE_DIRS}
+)
+if(WIN32)
+    target_include_directories(raylib_media PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/lib/raylib-windows/include")
+elseif(APPLE)
+    target_include_directories(raylib_media PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/lib/raylib-macos/include")
+else()
+    target_include_directories(raylib_media PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/lib/raylib-linux/include")
+endif()
+
+# Link raylib_media and FFmpeg into main
+target_link_libraries(main PRIVATE raylib_media ${FFMPEG_LIBRARIES})
+
+# Copy FFmpeg DLLs to output directory (Windows only)
+if(WIN32)
+    foreach(FFMPEG_DLL avcodec-62 avformat-62 avutil-60 swresample-6 swscale-9)
+        add_custom_command(TARGET main POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "${CMAKE_CURRENT_SOURCE_DIR}/lib/ffmpeg/bin/${FFMPEG_DLL}.dll"
+                $<TARGET_FILE_DIR:main>
+            COMMENT "Copying ${FFMPEG_DLL}.dll to output directory"
+        )
+    endforeach()
 endif()
 
 # Test target — compile-time constants test (Phase 1)

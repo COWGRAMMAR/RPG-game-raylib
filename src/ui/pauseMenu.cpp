@@ -641,10 +641,9 @@ void PauseMenu::Update(GameState* state, Vector2 mousePosition, bool mouseClicke
             barrierManager.Clear();
             mapHistoryStack.Clear();
 
-            // Spawn enemies fresh dari map
-            SpawnEnemiesFromMap();
-
             // Load initial snapshot untuk restore state enemies & items
+            // ApplyPreSpawn HARUS sebelum SpawnEnemiesFromMap agar dead entities
+            // sudah terdaftar sebelum enemy spawn logic berjalan
             {
                 GameSnapshot initialSnap;
                 bool hasInitial = SaveManager::HasInitial(g_ActiveSaveSlot);
@@ -653,6 +652,9 @@ void PauseMenu::Update(GameState* state, Vector2 mousePosition, bool mouseClicke
                     initialSnap = SaveManager::LoadInitial(g_ActiveSaveSlot);
                     SaveManager::ApplyPreSpawn(initialSnap);
                 }
+
+                // Spawn enemies — dead entities sudah diset oleh ApplyPreSpawn
+                SpawnEnemiesFromMap();
 
                 // Fallback: spawn item fresh
                 SpawnItemWave();

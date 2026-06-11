@@ -37,10 +37,13 @@ SaveLoadScreen::SaveLoadScreen()
     , slotMapName{}
     , slotTimestamp{}
     , m_mode(SaveLoadMode::SAVE_MODE)
+    , m_previousMode(SaveLoadMode::SAVE_MODE)
     , m_overwritePopup("Overwrite existing save?", "Overwrite", "Cancel", 0.7f)
     , m_loadPopup("Load this save?", "Load", "Cancel", 0.7f)
+    , m_deletePopup("Delete this save?", "Delete", "Cancel", 0.7f)
     , m_showOverwritePopup(false)
     , m_showLoadPopup(false)
+    , m_showDeletePopup(false)
     , m_selectedSlot(-1)
 {
 }
@@ -167,14 +170,27 @@ void SaveLoadScreen::Update(GameState* state, Vector2 mousePosition, bool mouseC
                 std::string path = GetSlotPath(m_selectedSlot, "manual");
                 TraceLog(LOG_INFO, "LOAD: slot=%d mapPath='%s' worldgenSlot=%d",
                     m_selectedSlot, savedMapState.mapPath.c_str(), savedPlayerState.worldgenSlot);
-                if (ReadSaveFile(path)) {
-                    RestoreGameState(state);
-                }
+                ReadSaveFile(path);
+                // RestoreGameState di-loading_screen.cpp (HandleFastPath) setelah InitAll
             }
             active = false;
             state->currentScreen = LOADING;
         } else if (!m_loadPopup.IsActive()) {
             m_showLoadPopup = false; // Cancelled
+        }
+        return;
+    }
+
+    // Handle delete popup
+    if (m_showDeletePopup) {
+        m_deletePopup.Update(mousePosition, mouseClicked);
+        if (m_deletePopup.IsConfirmClicked()) {
+            m_showDeletePopup = false;
+            SaveManager::DeleteSlot(m_selectedSlot);
+            RefreshSlotMetadata();
+            m_selectedSlot = -1;
+        } else if (!m_deletePopup.IsActive()) {
+            m_showDeletePopup = false; // Cancelled
         }
         return;
     }
@@ -214,13 +230,33 @@ void SaveLoadScreen::Update(GameState* state, Vector2 mousePosition, bool mouseC
                 m_selectedSlot = clickedSlot;
                 m_loadPopup.Show();
                 m_showLoadPopup = true;
+            } else if (m_mode == SaveLoadMode::DELETE_MODE) {
+                // Empty slots disabled in delete mode
+                if (!slotOccupied[clickedSlot]) {
+                    return;
+                }
+
+                m_selectedSlot = clickedSlot;
+                m_deletePopup.Show();
+                m_showDeletePopup = true;
             }
             return; // Slot clicked, don't process backButton
         }
     }
 
-    // Back button
+    // DELETE button - switch to delete mode
+    if (deleteButton.isClicked(mousePosition, mouseClicked)) {
+        m_previousMode = m_mode;
+        m_mode = SaveLoadMode::DELETE_MODE;
+        return;
+    }
+
+    // Back button (one level up in DELETE_MODE, otherwise exit)
     if (backButton.isClicked(mousePosition, mouseClicked)) {
+        if (m_mode == SaveLoadMode::DELETE_MODE) {
+            m_mode = m_previousMode;
+            return;
+        }
         active = false;
         state->currentScreen = returnScreen;
     }
@@ -251,7 +287,12 @@ void SaveLoadScreen::Draw(Vector2 mousePosition)
     }
 
     // Draw header based on mode
-    const char* headerText = (m_mode == SaveLoadMode::SAVE_MODE) ? "SAVE GAME" : "LOAD GAME";
+    const char* headerText = "SAVE GAME";
+    if (m_mode == SaveLoadMode::LOAD_MODE) {
+        headerText = "LOAD GAME";
+    } else if (m_mode == SaveLoadMode::DELETE_MODE) {
+        headerText = "DELETE SAVE";
+    }
     int headerFontSize = 28;
     Vector2 headerTextSize = MeasureTextEx(fontLoadingTitle, headerText, headerFontSize, 1);
     int headerX = startX + (int)(width - headerTextSize.x) / 2;
@@ -260,6 +301,7 @@ void SaveLoadScreen::Draw(Vector2 mousePosition)
     // Draw slot grid
     DrawSlotGrid(mousePosition);
 
+    deleteButton.Draw(mousePosition);
     backButton.Draw(mousePosition);
 
     // Draw popups on top
@@ -268,6 +310,9 @@ void SaveLoadScreen::Draw(Vector2 mousePosition)
     }
     if (m_showLoadPopup) {
         m_loadPopup.Draw(mousePosition);
+    }
+    if (m_showDeletePopup) {
+        m_deletePopup.Draw(mousePosition);
     }
 }
 
@@ -298,6 +343,14 @@ void SaveLoadScreen::CalculateDimensions()
     backButton = buttonTxt(
         "BACK",
         startX + width - 100,
+        startY + height - 50,
+        24,
+        WHITE,
+        0.7F);
+
+    deleteButton = buttonTxt(
+        "DELETE",
+        startX + 10,
         startY + height - 50,
         24,
         WHITE,
@@ -431,7 +484,12 @@ void SaveLoadScreen::DrawSlotGrid(Vector2 mousePosition)
 
     for (int i = 0; i < 3; i++) {
         int slotX = row1X + i * (SLOT_WIDTH + SLOT_GAP);
-        bool enabled = !(m_mode == SaveLoadMode::LOAD_MODE && !slotOccupied[i]);
+        bool enabled;
+        if (m_mode == SaveLoadMode::DELETE_MODE) {
+            enabled = slotOccupied[i];
+        } else {
+            enabled = !(m_mode == SaveLoadMode::LOAD_MODE && !slotOccupied[i]);
+        }
         DrawSlotBox(i, slotX, manualRow1Y, slotOccupied[i], slotMapName[i], slotTimestamp[i], mousePosition, enabled);
     }
 
@@ -439,7 +497,12 @@ void SaveLoadScreen::DrawSlotGrid(Vector2 mousePosition)
 
     for (int i = 3; i < 6; i++) {
         int slotX = row1X + (i - 3) * (SLOT_WIDTH + SLOT_GAP);
-        bool enabled = !(m_mode == SaveLoadMode::LOAD_MODE && !slotOccupied[i]);
+        bool enabled;
+        if (m_mode == SaveLoadMode::DELETE_MODE) {
+            enabled = slotOccupied[i];
+        } else {
+            enabled = !(m_mode == SaveLoadMode::LOAD_MODE && !slotOccupied[i]);
+        }
         DrawSlotBox(i, slotX, manualRow2Y, slotOccupied[i], slotMapName[i], slotTimestamp[i], mousePosition, enabled);
     }
 
@@ -450,7 +513,14 @@ void SaveLoadScreen::DrawSlotGrid(Vector2 mousePosition)
 
     for (int i = 6; i < 9; i++) {
         int slotX = row1X + (i - 6) * (SLOT_WIDTH + SLOT_GAP);
-        bool enabled = !(m_mode == SaveLoadMode::SAVE_MODE); // Autosave disabled in save mode
+        bool enabled;
+        if (m_mode == SaveLoadMode::DELETE_MODE) {
+            enabled = slotOccupied[i];
+        } else if (m_mode == SaveLoadMode::LOAD_MODE) {
+            enabled = slotOccupied[i]; // Only occupied autosaves enabled in load mode
+        } else {
+            enabled = !(m_mode == SaveLoadMode::SAVE_MODE); // Autosave disabled in save mode
+        }
         DrawSlotBox(i, slotX, autoRow1Y, slotOccupied[i], slotMapName[i], slotTimestamp[i], mousePosition, enabled);
     }
 
@@ -458,7 +528,14 @@ void SaveLoadScreen::DrawSlotGrid(Vector2 mousePosition)
 
     for (int i = 9; i < 12; i++) {
         int slotX = row1X + (i - 9) * (SLOT_WIDTH + SLOT_GAP);
-        bool enabled = !(m_mode == SaveLoadMode::SAVE_MODE); // Autosave disabled in save mode
+        bool enabled;
+        if (m_mode == SaveLoadMode::DELETE_MODE) {
+            enabled = slotOccupied[i];
+        } else if (m_mode == SaveLoadMode::LOAD_MODE) {
+            enabled = slotOccupied[i]; // Only occupied autosaves enabled in load mode
+        } else {
+            enabled = !(m_mode == SaveLoadMode::SAVE_MODE); // Autosave disabled in save mode
+        }
         DrawSlotBox(i, slotX, autoRow2Y, slotOccupied[i], slotMapName[i], slotTimestamp[i], mousePosition, enabled);
     }
 }
@@ -474,13 +551,18 @@ void SaveLoadScreen::RefreshSlotMetadata()
 {
     for (int i = 0; i < MANUAL_SLOT_COUNT + AUTOSAVE_SLOT_COUNT; i++)
     {
-        std::string path = "saves/slot_" + std::to_string(i) + "/manual/manual.json";
+        std::string oldPath = "saves/slot_" + std::to_string(i) + "/manual/manual.json";
+        bool hasOldFormat = std::filesystem::exists(oldPath);
+        bool hasNewFormat = SaveManager::HasManual(i);
 
-        if (std::filesystem::exists(path))
+        if (hasOldFormat || hasNewFormat)
         {
             slotOccupied[i] = true;
+            std::string metaPath = hasNewFormat
+                ? SaveManager::GetManualPath(i)
+                : oldPath;
             try {
-                std::ifstream file(path);
+                std::ifstream file(metaPath);
                 nlohmann::json root;
                 file >> root;
 
@@ -489,7 +571,7 @@ void SaveLoadScreen::RefreshSlotMetadata()
                 if (root.contains("timestamp")) {
                     slotTimestamp[i] = root["timestamp"].get<std::string>();
                 } else {
-                    auto ftime = std::filesystem::last_write_time(path);
+                    auto ftime = std::filesystem::last_write_time(metaPath);
                     auto sctp = std::chrono::time_point_cast<std::chrono::system_clock::duration>(
                         ftime - decltype(ftime)::clock::now() + std::chrono::system_clock::now());
                     std::time_t cftime = std::chrono::system_clock::to_time_t(sctp);

@@ -224,7 +224,7 @@ void Enemy::Update()
             PlayAnimation(Anim, DEAD, Anim.direction);
             AIState = ENEMY_IDLE;
             DetectionRange = Def->stats.baseDetectionRange;
-            Entities::RegisterDeath(GetCurrentMapPath(), MapObjectID);
+            Entities::RegisterDeathByUUID(GetCurrentMapPath(), GetUUID());
 
             if (!Def->stats.canTriggerTurnBased) {
                 if (rank == ENEMY_ELITE) {
@@ -979,7 +979,8 @@ void SpawnBoss(const MapObject *obj)
 
 /**
  * @brief Spawn semua enemy dari object spawn di map aktif.
- * @note Object yang sudah tercatat mati untuk map saat ini akan dilewati.
+ * @note Semua spawn point selalu di-spawn. Kematian per-instance enemy
+ *       ditangani oleh ApplyPostSpawn/ApplyCheckpointData.
  */
 void SpawnEnemiesFromMap()
 {
@@ -992,10 +993,8 @@ void SpawnEnemiesFromMap()
 
     for (const auto *obj : spawnObjects)
     {
+        // Per-enemy UUID tracking (not per-spawn-point), so all spawn points always spawn
         std::mt19937 rng;
-        if (Entities::IsAlreadyDead(GetCurrentMapPath(), obj->id))
-            continue;
-
         rng.seed(obj->id);
         std::uniform_real_distribution<float> ratioDist(0.0f, 1.0f);
 

@@ -226,7 +226,7 @@ static void HandleMapSwitch(GameState* state)
         state->pendingDoorName.clear();
 
         TraceLog(LOG_INFO, "LOADING: Map switch complete, player at (%.2f, %.2f)", PlayerInstance.GetPosition().x, PlayerInstance.GetPosition().y);
-        WriteAutosave("quick.json");
+        SaveManager::SaveAutosave(g_ActiveSaveSlot);
         state->loadingComplete = true;
         state->loadingProgress = 100.0F;
         state->loadingText = "Map loaded!";
@@ -299,7 +299,7 @@ static void HandleFastPath(GameState* state)
     }
     else
     {
-        WriteAutosave("spawn.json");
+        SaveManager::SaveAutosave(g_ActiveSaveSlot);
     }
 
     Entities::PruneDeadEntities();
@@ -404,7 +404,7 @@ static void HandleInitialLoad(GameState* state)
         if (HasSavedState())
             RestoreGameState(state);
         else
-            WriteAutosave("spawn.json");
+            SaveManager::SaveAutosave(g_ActiveSaveSlot);
 
         Entities::PruneDeadEntities();
 

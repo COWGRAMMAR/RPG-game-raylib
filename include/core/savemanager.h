@@ -15,6 +15,7 @@
  */
 
 #include "screen.h"
+#include "config/game_constants.h"
 #include "player.h"
 #include "enemy.h"
 #include "item.h"
@@ -51,12 +52,12 @@ struct GameSnapshot {
 
     /*=== Player ===*/
     Vector2 playerPosition = {0, 0};
-    float playerHealth = 100.0f;
-    float playerMana = 100.0f;
-    float playerMaxHealth = 100.0f;
-    float playerMaxMana = 100.0f;
-    InventoryItem hotbar[4] = {};
-    InventoryItem bag[12] = {};
+    float playerHealth = DEFAULT_MAX_HEALTH;
+    float playerMana = DEFAULT_MAX_MANA;
+    float playerMaxHealth = DEFAULT_MAX_HEALTH;
+    float playerMaxMana = DEFAULT_MAX_MANA;
+    InventoryItem hotbar[HOTBAR_SLOTS] = {};
+    InventoryItem bag[BAG_SLOTS] = {};
 
     /** @brief Snapshot animasi dan input state */
     struct {
@@ -92,7 +93,7 @@ struct GameSnapshot {
     std::string mapDisplayName;
 
     /*=== Meta ===*/
-    int version = 0;
+    int version = -1;  // -1 = unloaded/invalid; SNAPSHOT_VERSION = successfully loaded
     std::string timestamp;
     int slotIndex = -1;     /**< -1 = unassigned */
     int worldgenSlot = -1;  /**< -1 = not worldgen */
@@ -141,9 +142,12 @@ public:
      * @param snap Snapshot sumber
      *
      * HARUS dipanggil SEBELUM InitAll / SpawnEnemiesFromMap / SpawnObject.
-     * - Restore DeadEntities set
      * - Set consumed positions (chest/bomb/crate) — biar SpawnObject() skip yg udah dikonsumsi
      * - Set barrier state
+     *
+     * @note Dead entities tidak direstore di sini. Kematian per-instance enemy
+     *       menggunakan UUID tracking (RegisterDeathByUUID). ApplyPostSpawn menangani
+     *       dead enemies via MapObjectID+Name matching langsung.
      */
     static void ApplyPreSpawn(const GameSnapshot& snap);
 
@@ -344,8 +348,6 @@ public:
      * @param slot Nomor slot
      * @return true jika ada minimal satu file save
      */
-    static bool HasAnySave(int slot);
-
     /**
      * @brief Hapus semua file .tmp di saves/
      */

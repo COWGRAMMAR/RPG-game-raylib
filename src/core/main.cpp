@@ -150,25 +150,45 @@ int main()
         // ===== State: VIDEO (intro saat startup) =====
         if (state.currentScreen == VIDEO)
         {
-            // Muat dan putar video hanya sekali saat pertama masuk
+            enum class VPhase : uint8_t { COUNTDOWN, INTRODUCTION, DONE };
+            static VPhase videoPhase = VPhase::COUNTDOWN;
             static bool videoStarted = false;
+
             if (!videoStarted)
             {
+                if (videoPhase == VPhase::COUNTDOWN)
+                    videoScreen.SetVideoPath("assets/video/dolby-countdown.mkv");
+                else if (videoPhase == VPhase::INTRODUCTION)
+                {
+                    videoScreen.SetVideoPath("assets/video/Intro-Introductions.mkv");
+                    AudioManager::PlayTrack("MainMenu");
+                }
+                videoScreen.SetVolume(AudioManager::GetVideoVolume());
                 videoScreen.LoadAndPlay();
                 videoStarted = true;
             }
 
-            // Delta time, cap maks 1/20 detik biar ga loncat jauh
             float deltaTime = GetFrameTime();
             if (deltaTime > 0.05f)
                 deltaTime = 0.05f;
 
-            // Update video; jika selesai/skip -> pindah ke MAIN_MENU
+            videoScreen.SetVolume(AudioManager::GetVideoVolume());
+
             if (videoScreen.Update(deltaTime))
             {
                 videoScreen.Unload();
-                state.currentScreen = MAIN_MENU;
-                videoStarted = false;
+
+                if (videoPhase == VPhase::COUNTDOWN)
+                {
+                    videoPhase = VPhase::INTRODUCTION;
+                    videoStarted = false;
+                }
+                else
+                {
+                    videoPhase = VPhase::DONE;
+                    state.currentScreen = MAIN_MENU;
+                    videoStarted = false;
+                }
             }
 
             if (WindowShouldClose()) break;

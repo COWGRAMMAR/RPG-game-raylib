@@ -469,7 +469,6 @@ function Install-FFmpeg() {
             exit 1
         }
     }
-    }
 
     if (-not (Test-Path $zipFile)) {
         Write-Err "Download failed - zip file not created"

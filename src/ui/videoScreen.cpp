@@ -22,11 +22,10 @@ VideoScreen::~VideoScreen()
 
 bool VideoScreen::LoadAndPlay()
 {
-    // Bersihkan video yang sudah dimuat sebelumnya
+    m_skipRequested = false;
+
     if (m_loaded)
-    {
         Unload();
-    }
 
     TraceLog(LOG_INFO, "VIDEO: Loading '%s'...", m_videoPath.c_str());
 

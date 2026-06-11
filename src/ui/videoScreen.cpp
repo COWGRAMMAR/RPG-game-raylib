@@ -73,6 +73,11 @@ const std::string& VideoScreen::GetVideoPath() const
     return m_videoPath;
 }
 
+void VideoScreen::SetVolume(float vol)
+{
+    m_player.SetVolume(vol);
+}
+
 // -----------------------------------------------------------------------------
 // Update & Render
 // -----------------------------------------------------------------------------

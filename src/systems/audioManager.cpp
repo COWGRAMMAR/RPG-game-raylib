@@ -42,23 +42,26 @@ static bool _initialized = false;
 /**
  * @brief Nama file music berdasarkan index
  *
- * Index 0: MainMenu.mp3 — MAIN_MENU
+ * Index 0: MainMenu-Startup.mp3 — MAIN_MENU (startup piece, non-looping, auto-transitions to 3)
  * Index 1: DungeonMusic.mp3 — PLAY
  * Index 2: GameOver.mp3 — GAME_OVER
- * Index 3: Dungeon.mp3 — unused spare
+ * Index 3: MainMenu-Loop.mp3 — MAIN_MENU (looping, plays after startup finishes)
  * Index 4: Subwoofer Lullaby.mp3 — unused spare
  * Index 5: BossMusic.mp3 — turn-based boss fight
  * Index 6: WinTheme.mp3 — turn-based victory
  */
 static const char* TRACK_FILES[] = {
-    "assets/audio/music/MainMenu.mp3",
+    "assets/audio/music/MainMenu-Startup.mp3",
     "assets/audio/music/DungeonMusic.mp3",
     "assets/audio/music/GameOver.mp3",
-    "assets/audio/music/Dungeon.mp3",
+    "assets/audio/music/MainMenu-Loop.mp3",
     "assets/audio/music/Minecraft Volume Alpha - 3 - Subwoofer Lullaby.mp3",
     "assets/audio/music/BossMusic.mp3",
     "assets/audio/music/WinTheme.mp3"
 };
+
+/** @brief Index main menu loop track (auto-transition target from track 0) */
+static const int MAINMENU_LOOP_INDEX = 3;
 
 static const int TRACK_COUNT = sizeof(TRACK_FILES) / sizeof(TRACK_FILES[0]);
 
@@ -122,6 +125,8 @@ void AudioManager::LoadAudioAssets()
     }
 
 
+    if (_tracks[0].ctxData != nullptr)
+        _tracks[0].looping = false;
 }
 
 void AudioManager::Shutdown()
@@ -197,6 +202,24 @@ void AudioManager::Update(ScreenState currentScreen)
         }
 
         _lastMusicScreen = currentScreen;
+    }
+
+    if (_activeTrackIndex == 0 && _tracks[0].ctxData != nullptr)
+    {
+        float played = GetMusicTimePlayed(_tracks[0]);
+        float length = GetMusicTimeLength(_tracks[0]);
+        if (length > 0.0f && played >= length - 0.1f)
+        {
+            StopMusicStream(_tracks[0]);
+
+            if (_tracks[MAINMENU_LOOP_INDEX].ctxData != nullptr)
+            {
+                SeekMusicStream(_tracks[MAINMENU_LOOP_INDEX], 0.0f);
+                PlayMusicStream(_tracks[MAINMENU_LOOP_INDEX]);
+                _activeTrackIndex = MAINMENU_LOOP_INDEX;
+                TraceLog(LOG_INFO, "AUDIO: MainMenu startup selesai, beralih ke loop track");
+            }
+        }
     }
 }
 

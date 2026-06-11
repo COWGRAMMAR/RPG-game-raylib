@@ -5,7 +5,7 @@
 // -----------------------------------------------------------------------------
 
 VideoScreen::VideoScreen()
-    : m_videoPath("assets/video/dolby-countdown-opt.mp4")
+    : m_videoPath("assets/video/dolby-countdown.mkv")
     , m_skipRequested(false)
     , m_loaded(false)
 {

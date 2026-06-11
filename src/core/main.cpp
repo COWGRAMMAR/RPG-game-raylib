@@ -265,7 +265,7 @@ int main()
                 autosaveTimer += frameTime;
                 if (autosaveTimer >= 60.0f)
                 {
-                    WriteAutosave("periodic.json");
+                    SaveManager::SaveAutosave(g_ActiveSaveSlot);
                     autosaveTimer = 0.0f;
                 }
             }

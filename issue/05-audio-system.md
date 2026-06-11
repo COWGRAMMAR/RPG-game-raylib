@@ -88,3 +88,6 @@ Tampilan audio tab masih polos — slider tanpa visual knob, font standar, warna
 
 ### File yang mungkin diubah
 - `src/ui/audioTab.cpp` — render slider, font, warna
+
+### Status: #10 #11 Fixed di commit sebelumnya. #13 pending (nunggu asset knob + redesign).
+

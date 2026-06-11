@@ -60,6 +60,12 @@ void UpdateGameOverScreen(GameState *state)
         PlayerInstance.KnockbackVelocity = {0, 0};
         PlayerInstance.Position = state->startSpawnPos;
         PlayerInstance.hasDroppedItems = false;
+        PlayerInstance.BuffDamageTimer = 0.0f;
+        PlayerInstance.BuffDamageTimerMax = 0.0f;
+        PlayerInstance.BuffSpeedTimer = 0.0f;
+        PlayerInstance.BuffSpeedTimerMax = 0.0f;
+        PlayerInstance.InvincibilityTimer = 0.0f;
+        PlayerInstance.InvincibilityTimerMax = 0.0f;
         state->currentScreen = PLAY;
         return;
     }

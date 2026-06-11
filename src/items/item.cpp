@@ -229,6 +229,18 @@ void ItemDefinitionManager::Load(const std::string &path)
             pd.invincibilityDuration = SafeGet<float>(p, "invincibilityDuration", 0.0f);
             pd.duration = SafeGet<float>(p, "duration", 0.0f);
             pd.cooldown = SafeGet<float>(p, "cooldown", 1.0f); // Default cooldown is 1.0f
+            pd.potionCategory = POTION_HEALTH;                 // default
+            {
+                std::string potCat = SafeGet<std::string>(p, "potionCategory", "health");
+                if (potCat == "stamina")
+                    pd.potionCategory = POTION_STAMINA;
+                else if (potCat == "damage")
+                    pd.potionCategory = POTION_DAMAGE;
+                else if (potCat == "speed")
+                    pd.potionCategory = POTION_SPEED;
+                else if (potCat == "invincibility")
+                    pd.potionCategory = POTION_INVINCIBILITY;
+            }
             def.data = pd;
         }
 
@@ -414,8 +426,6 @@ void ItemDataManager::ClearItems()
  * Per-Map File Persistence
  *==============================================================================*/
 
-
-
 /*==============================================================================
  * ItemRenderManager
  *==============================================================================*/
@@ -511,11 +521,11 @@ void ItemRenderManager::Render(ItemSpawn &item)
 
     if (def.category == ITEM_WEAPON)
     {
-        const WeaponData* wd = std::get_if<WeaponData>(&def.data);
+        const WeaponData *wd = std::get_if<WeaponData>(&def.data);
         if (wd && wd->attackType != ATTACK_PIERCE)
         {
             display.rotation = -45.0f;
-            display.origin = { (float)display.size / 2.0f, (float)display.size / 2.0f };
+            display.origin = {(float)display.size / 2.0f, (float)display.size / 2.0f};
             display.offset = display.origin;
         }
     }

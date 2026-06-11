@@ -93,6 +93,18 @@ struct WeaponData
 };
 
 /**
+ * @brief Kategori potion untuk cooldown per-kategori.
+ */
+enum PotionCategory {
+    POTION_HEALTH = 0,
+    POTION_STAMINA,
+    POTION_DAMAGE,
+    POTION_SPEED,
+    POTION_INVINCIBILITY,
+    POTION_CATEGORY_COUNT
+};
+
+/**
  * @brief Data spesifik untuk item bertipe potion.
  */
 struct PotionData
@@ -104,6 +116,7 @@ struct PotionData
     float invincibilityDuration; // waktu kebal dalam detik
     float duration;              // durasi efek potion
     float cooldown;              // waktu tunggu sebelum potion berikutnya bisa digunakan
+    PotionCategory potionCategory; // Kategori potion (default POTION_HEALTH)
 };
 
 /**

@@ -61,5 +61,9 @@ Pas SpawnObject / DestroyObject di propsbehavior.cpp, catat/tandai object mana y
 - Kalo ada false match nanti baru upgrade ke Opsi 2
 
 ## File yang terlibat
-- `src/ai/enemy_ai.cpp` — `BuildObstacleList()` (filter logic)
+- `src/entities/enemies/enemy_ai.cpp` — `BuildObstacleList()` (filter logic via CheckCollisionRecs intersect DynamicObstacles)
 - `include/map/mapLogic.h` — `DynamicObstacles` (extern reference)
+
+### Status: Fixed di commit ini
+- Filter CHEST/BOMB/CRATE/BARRIER/SIGN di `appendType` lambda — skip kalo rect gak intersect DynamicObstacles
+- Destroyed props (yang udah dihapus dari DynamicObstacles) otomatis di-skip dari raycast enemy

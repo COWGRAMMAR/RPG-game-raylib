@@ -24,3 +24,6 @@ Codebase belum punya sistem modal dialog. Bikin Yes/No popup cuma buat 1 use cas
 ## File yang terlibat
 - `src/ui/keybindsTab.cpp` — logika rebind
 - `include/input/keybindManager.h` / `src/input/keybindManager.cpp` — method `FindActionByKeycode()` (baru), swap logic
+
+### Status: Fixed di commit sebelumnya
+- Swap logic + toast notification otomatis tiap rebind

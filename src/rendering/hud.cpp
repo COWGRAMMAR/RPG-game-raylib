@@ -483,16 +483,34 @@ void DrawInventory()
             }
 
             const ItemDefinition &def = itemDefs.GetById(item.definitionId);
-            if (def.category == ITEM_POTION && PlayerInstance.PotionCooldown > 0.0f && PlayerInstance.PotionCooldownMax > 0.0f)
+            if (def.category == ITEM_POTION || def.category == ITEM_POISON)
             {
-                float ratio = PlayerInstance.PotionCooldown / PlayerInstance.PotionCooldownMax;
-                float startAngle = 270.0f;
-                float endAngle = 270.0f + (360.0f * ratio);
-                Vector2 center = {
-                    slotRect.x + slotRect.width / 2.0f,
-                    slotRect.y + slotRect.height / 2.0f
-                };
-                DrawCircleSector(center, iconSize / 2.0f + 4.0f, startAngle, endAngle, 36, ColorAlpha(BLACK, 0.65f));
+                const PotionData &potion = std::get<PotionData>(def.data);
+                PotionCategory cat = potion.potionCategory;
+                if (PlayerInstance.PotionCategoryCooldowns[cat] > 0.0f && PlayerInstance.PotionCategoryCooldownMax[cat] > 0.0f)
+                {
+                    float ratio = PlayerInstance.PotionCategoryCooldowns[cat] / PlayerInstance.PotionCategoryCooldownMax[cat];
+                    float startAngle = 270.0f;
+                    float endAngle = 270.0f + (360.0f * ratio);
+                    Vector2 center = {
+                        slotRect.x + slotRect.width / 2.0f,
+                        slotRect.y + slotRect.height / 2.0f
+                    };
+                    DrawCircleSector(center, iconSize / 2.0f + 4.0f, startAngle, endAngle, 36, ColorAlpha(BLACK, 0.65f));
+
+                    char cdBuf[16];
+                    float cd = PlayerInstance.PotionCategoryCooldowns[cat];
+                    if (cd >= 1.0f)
+                        snprintf(cdBuf, sizeof(cdBuf), "%d", (int)cd);
+                    else
+                        snprintf(cdBuf, sizeof(cdBuf), "%.1f", cd);
+                    int cdFontSize = 26;
+                    Vector2 cdSz = MeasureTextEx(fontLoadingTitle, cdBuf, cdFontSize, 0);
+                    DrawTextEx(fontLoadingTitle, cdBuf, Vector2{
+                        slotRect.x + (slotRect.width - cdSz.x) / 2.0f,
+                        slotRect.y + (slotRect.height - cdSz.y) / 2.0f
+                    }, cdFontSize, 0, WHITE);
+                }
             }
         }
 
@@ -632,11 +650,12 @@ static void DrawStatBar(Vector2 pos, float width, float height, float ratio, Col
     DrawRectangleRoundedLines((Rectangle){pos.x, pos.y, width, height}, 0.4f, 8, ColorAlpha(WHITE, 0.2f));
 
     char buffer[32];
-    sprintf(buffer, "%d", current);
-    int fontSize = 18;
-    int textX = (int)(pos.x + width + 15);
-    int textY = (int)(pos.y + (height - fontSize) / 2.0f);
-    DrawTextHUD(buffer, textX, textY, fontSize, WHITE);
+    int percent = (int)(ratio * 100.0f);
+    sprintf(buffer, "%d%%", percent);
+    int fontSize = 22;
+    float textX = pos.x + width + 15.0f;
+    float textY = pos.y + (height - (float)fontSize) / 2.0f;
+    DrawTextEx(fontLoadingTitle, buffer, Vector2{textX, textY}, fontSize, 0, WHITE);
 }
 
 /**
@@ -700,16 +719,35 @@ void DrawHotbar()
             }
 
             const ItemDefinition &def = itemDefs.GetById(item.definitionId);
-            if (def.category == ITEM_POTION && PlayerInstance.PotionCooldown > 0.0f && PlayerInstance.PotionCooldownMax > 0.0f)
+            if (def.category == ITEM_POTION || def.category == ITEM_POISON)
             {
-                float ratio = PlayerInstance.PotionCooldown / PlayerInstance.PotionCooldownMax;
-                float startAngle = 270.0f;
-                float endAngle = 270.0f + (360.0f * ratio);
-                Vector2 center = {
-                    slotRect.x + slotRect.width / 2.0f,
-                    slotRect.y + slotRect.height / 2.0f
-                };
-                DrawCircleSector(center, iconDrawSize / 2.0f + 4.0f, startAngle, endAngle, 36, ColorAlpha(BLACK, 0.65f));
+                const PotionData &potion = std::get<PotionData>(def.data);
+                PotionCategory cat = potion.potionCategory;
+                if (PlayerInstance.PotionCategoryCooldowns[cat] > 0.0f && PlayerInstance.PotionCategoryCooldownMax[cat] > 0.0f)
+                {
+                    float ratio = PlayerInstance.PotionCategoryCooldowns[cat] / PlayerInstance.PotionCategoryCooldownMax[cat];
+                    float startAngle = 270.0f;
+                    float endAngle = 270.0f + (360.0f * ratio);
+                    Vector2 center = {
+                        slotRect.x + slotRect.width / 2.0f,
+                        slotRect.y + slotRect.height / 2.0f
+                    };
+                    DrawCircleSector(center, iconDrawSize / 2.0f + 4.0f, startAngle, endAngle, 36, ColorAlpha(BLACK, 0.65f));
+
+                    // Teks sisa cooldown
+                    char cdBuf[16];
+                    float cd = PlayerInstance.PotionCategoryCooldowns[cat];
+                    if (cd >= 1.0f)
+                        snprintf(cdBuf, sizeof(cdBuf), "%d", (int)cd);
+                    else
+                        snprintf(cdBuf, sizeof(cdBuf), "%.1f", cd);
+                    int cdFontSize = 22;
+                    Vector2 cdSz = MeasureTextEx(fontLoadingTitle, cdBuf, cdFontSize, 0);
+                    DrawTextEx(fontLoadingTitle, cdBuf, Vector2{
+                        slotRect.x + (slotRect.width - cdSz.x) / 2.0f,
+                        slotRect.y + (slotRect.height - cdSz.y) / 2.0f
+                    }, cdFontSize, 0, WHITE);
+                }
             }
         }
 
@@ -734,6 +772,100 @@ void DrawHotbar()
 
             HandleSplitDragSlot(globalIdx, slotRect, mousePos);
         }
+    }
+}
+
+/*==============================================================================
+ * DrawBuffIndicators — Menampilkan indikator buff aktif (progress bar + sprite)
+ *==============================================================================*/
+
+// Stacked progress bars di atas health bar
+// Format per entry: [sprite 18px] ▓▓▓▓▓▓▓▓▓▓░░░  5s
+static void DrawBuffIndicators()
+{
+    const float barsX = 30.0f;
+    const float barHeight = 22.0f;
+    const float padding = 30.0f;
+    const float gap = 8.0f;
+    const float dashBarHeight = 6.0f;
+
+    float dashPosY = (float)GameScreenHeight - padding - dashBarHeight;
+    float manaPosY = dashPosY - gap - barHeight;
+    float healthPosY = manaPosY - gap - barHeight;
+
+    struct { const char *spriteKey; float *timer; float *maxTimer; Color barColor; } buffs[] = {
+        {"damagePotionMedium",     &PlayerInstance.BuffDamageTimer,     &PlayerInstance.BuffDamageTimerMax,     Color{255,106,0,255}},
+        {"speedPotionMedium",      &PlayerInstance.BuffSpeedTimer,      &PlayerInstance.BuffSpeedTimerMax,      Color{0,255,233,255}},
+        {"invincibilityPotionMedium", &PlayerInstance.InvincibilityTimer, &PlayerInstance.InvincibilityTimerMax, Color{142,167,178,255}},
+    };
+
+    // Hitung jumlah buff aktif
+    int activeCount = 0;
+    for (int i = 0; i < 3; i++)
+    {
+        if (*buffs[i].timer > 0.0f)
+            activeCount++;
+    }
+    if (activeCount == 0) return;
+
+    // Ukuran entry
+    const float buffBarWidth = 150.0f;
+    const float buffBarHeight = 18.0f;
+    const float buffGap = 4.0f;
+    const float spriteSize = 30.0f;
+    const float entryHeight = buffBarHeight + buffGap;
+    const float totalHeight = activeCount * entryHeight - buffGap;
+
+    float y = healthPosY - gap - totalHeight;
+
+    for (int i = 0; i < 3; i++)
+    {
+        if (*buffs[i].timer <= 0.0f) continue;
+
+        float x = barsX;
+
+        // Sprite
+        const Frame &frame = GetFrame(buffs[i].spriteKey);
+        Rectangle src = {
+            (float)(frame.positionX * (FRAME_SIZE + FRAME_GAP)),
+            (float)(frame.positionY * (FRAME_SIZE + FRAME_GAP)),
+            (float)(frame.width * FRAME_SIZE),
+            (float)(frame.height * FRAME_SIZE)
+        };
+        int maxDim = (src.width > src.height) ? (int)src.width : (int)src.height;
+        float scale = spriteSize / maxDim;
+        float rw = src.width * scale;
+        float rh = src.height * scale;
+        Rectangle dest = {
+            x + (spriteSize - rw) / 2.0f,
+            y + (buffBarHeight - rh) / 2.0f, rw, rh
+        };
+        DrawTexturePro(textures[frame.texture], src, dest, {0,0}, 0, WHITE);
+
+        float barX = x + spriteSize + 6.0f;
+
+        // Bar background
+        DrawRectangleRounded((Rectangle){barX, y, buffBarWidth, buffBarHeight}, 0.5f, 8, DARKGRAY);
+
+        // Bar fill
+        float ratio = (*buffs[i].maxTimer > 0.0f) ? *buffs[i].timer / *buffs[i].maxTimer : 0.0f;
+        if (ratio > 0.0f)
+        {
+            DrawRectangleRounded((Rectangle){barX, y, buffBarWidth * ratio, buffBarHeight}, 0.5f, 8, buffs[i].barColor);
+            DrawRectangleRounded((Rectangle){barX, y, buffBarWidth * ratio, buffBarHeight * 0.4f}, 0.5f, 8, ColorAlpha(WHITE, 0.15f));
+        }
+
+        // Timer text di samping bar
+        char cdBuf[16];
+        if (*buffs[i].timer >= 1.0f)
+            snprintf(cdBuf, sizeof(cdBuf), "%ds", (int)*buffs[i].timer);
+        else
+            snprintf(cdBuf, sizeof(cdBuf), "%.1fs", *buffs[i].timer);
+        int fontSize = 22;
+        Vector2 cdSz = MeasureTextEx(fontLoadingTitle, cdBuf, fontSize, 0);
+        DrawTextEx(fontLoadingTitle, cdBuf, Vector2{barX + buffBarWidth + 8.0f, y + (buffBarHeight - cdSz.y) / 2.0f}, fontSize, 0, WHITE);
+
+        y += entryHeight;
     }
 }
 
@@ -796,10 +928,11 @@ void DrawPlayerHUD()
         dashCooldownRatio = 1.0f - (currentCd / PlayerInstance.DashCooldownMax);
     }
     
-    DrawRectangleRounded((Rectangle){dashPos.x, dashPos.y, barWidth, dashBarHeight}, 0.5f, 8, DARKGRAY);
+        DrawRectangleRounded((Rectangle){dashPos.x, dashPos.y, barWidth, dashBarHeight}, 0.5f, 8, DARKGRAY);
     if (dashCooldownRatio > 0.0f)
         DrawRectangleRounded((Rectangle){dashPos.x, dashPos.y, barWidth * dashCooldownRatio, dashBarHeight}, 0.5f, 8, SKYBLUE);
 
+    DrawBuffIndicators();
     DrawHotbar();
     DrawInventory();
     if (InputInstance.IsInventoryOpen())

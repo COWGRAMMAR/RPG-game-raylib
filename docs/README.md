@@ -16,3 +16,4 @@ Isi folder ini dapat berubah-ubah sepanjang waktu. Apabila menambahkan atau meng
 6. `./worldgeneration.md` : Dokumentasi world generation system
 7. `./debug-keybinds.md` : Berisi dokumentasi keybind debug dan akses pengembang
 8. `./save-system-changelog.md` : Changelog sesi restart system, cache, bug fix save system (human readable)
+9. `./buff-indicator-system.md` : Dokumentasi indikator buff aktif (Damage/Speed/Invul) — pipeline, integrasi, design decisions untuk turn-based combat

@@ -318,3 +318,16 @@ Ganti jadi visual scrollbar — vertical slider tipis di pojok kanan yang nunjuk
 | 17 | Bug | FPS counter gak mati | `optionsScreen.cpp`, `hudRenderer.cpp` |
 | - | Revisi | Reset buttons look | `keybindsTab.cpp` |
 | - | Revisi | Scroll indicator visual | `keybindsTab.cpp` |
+
+## Status
+
+| #   | Status  |
+| --- | ------- |
+| 1   | Fixed di commit sebelumnya — HealthBarTimer 2s, muncul pas kena damage |
+| 9   | Pending — nunggu asset icon |
+| 14  | Fixed di commit sebelumnya — sections, font, hover, refactor 6 sub-functions |
+| 15  | Pending — butuh implementasi |
+| 17  | Fixed di commit sebelumnya — sync showFPS dari state di Show() |
+| Boss HP bar | Pending — nunggu implementasi |
+| Reset buttons | Pending — styling font/warna |
+| Scroll indicator | Pending — ganti teks ke visual scrollbar |

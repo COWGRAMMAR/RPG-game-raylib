@@ -1,5 +1,9 @@
 # Player / Combat — #3 Item Spawn Mati + #6 Gameover Double
 
+### Status: Both fixed di commit sebelumnya
+- #6: Hapus `Health=0` dari DEFEAT phase — `isDead` jadi satu-satunya trigger
+- #3: `DropAllItems()` pake `player.GetCenter()`, single spread 40, collision check via `IsPositionSafe`
+
 ---
 
 ## #6 — Player mati 2× saat lawan boss

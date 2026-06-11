@@ -1,6 +1,6 @@
 # Item System — #2 Loot Chance + #4 Potion Cooldown
 
-## #2 — Enemy Loot Drop Chance
+## #2 — Enemy Loot Drop Chance (SKIP — nunggu implementasi loot system ulang)
 
 ### Masalah
 Sekarang enemy tiap mati ***guarantee*** drop item. Seharusnya ada chance tertentu, gak selalu drop.
@@ -170,7 +170,13 @@ UsePotion(slot):
 | File                          | Perubahan                                                             |
 | ----------------------------- | --------------------------------------------------------------------- |
 | `assets/data/items.json`      | Tambah field `potionCategory` ke tiap entry potion                    |
-| `include/items/inventory.h`   | Tambah `PotionCategory` enum + `PotionCooldownState` + array tracker  |
-| `src/items/inventory.cpp`     | Ganti `player.PotionCooldown` → `cooldownTracker[index]`              |
-| `include/entities/player.h`   | Hapus `PotionCooldown` / `PotionCooldownMax` (pindah ke inventory)    |
-| `src/ui/hud.cpp` (kira-kira)  | Baca cooldown per-kategori buat render animasi                        |
+| `include/items/item.h`        | Tambah `PotionCategory` enum + `PotionData::potionCategory`           |
+| `src/items/item.cpp`          | Parse `potionCategory` dari JSON                                      |
+| `include/entities/player.h`   | Ganti `PotionCooldown` → `PotionCategoryCooldowns[5]` array           |
+| `src/items/inventory.cpp`     | UsePotion() cooldown per-kategori + fix order (check SEBELUM apply)   |
+| `src/rendering/hud.cpp`       | Hotbar/inventory cooldown overlay pake kategori                       |
+
+### Status: Fixed di commit ini
+- Per-kategori cooldown (Health/Stamina/Damage/Speed/Invincibility)
+- Cooldown check SEBELUM apply efek (fix logic order bug)
+- HUD overlay + timer text per kategori

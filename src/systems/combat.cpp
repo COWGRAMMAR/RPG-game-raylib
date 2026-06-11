@@ -104,7 +104,7 @@ namespace Combat
                     InventoryItem activeItem = Inventory::GetActiveHotbarItem(player);
                     if (activeItem.definitionId == -1 || itemDefs.GetById(activeItem.definitionId).category != ITEM_WEAPON)
                     {
-                        Effects::AddLog("Tidak ada senjata!");
+                        Effects::AddLog("Tidak Ada Senjata!");
                         player.attack.pressHeld = false;
                         return;
                     }

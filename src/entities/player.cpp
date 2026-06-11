@@ -49,18 +49,45 @@ void Player::Init(GameState *state, const char *spawnObjectName)
         ManaRegenTimer = 0.0f;
 
         // Inisialisasi perlengkapan hotbar default
-        Hotbar[0] = {1, 1};  // Iron Sword
-        Hotbar[1] = {16, 1}; // bow
-        Hotbar[2] = {2, 8};  // Health Potion
-        Hotbar[3] = {3, 8};  // Mana Bread
+        Hotbar[0] = {2, 8};  // Small Health Potion
+        Hotbar[1] = {3, 8};  // Small Stamina Potion
+        Hotbar[2] = {9, 8};  // Small Damage Potion
+        Hotbar[3] = {11, 8}; // Small Speed Potion
 
         for (int i = 0; i < PlayerInstance.MaxBag; i++)
         {
             Bag[i] = {EMPTY_ITEM_ID, 0};
         }
 
-        Bag[0] = {15, 1};
-        Bag[1] = {4, 1};
+        Bag[0]  = {15, 1}; // AK-47
+        Bag[1]  = {4, 1};  // Bow
+        Bag[2]  = {5, 8};  // Medium Health Potion
+        Bag[3]  = {7, 8};  // Large Health Potion
+        Bag[4]  = {6, 8};  // Medium Stamina Potion
+        Bag[5]  = {8, 8};  // Large Stamina Potion
+        Bag[6]  = {10, 8}; // Medium Damage Potion
+        Bag[7]  = {12, 8}; // Medium Speed Potion
+        Bag[8]  = {13, 3}; // Small Invincibility Potion
+        Bag[9]  = {14, 3}; // Medium Invincibility Potion
+        Bag[10] = {0, 1};  // Iron Sword
+        Bag[11] = {1, 1};  // Steel Sword
+
+        // Reset buff timers & multipliers
+        BuffDamageTimer = 0.0f;
+        BuffDamageTimerMax = 0.0f;
+        BuffSpeedTimer = 0.0f;
+        BuffSpeedTimerMax = 0.0f;
+        InvincibilityTimer = 0.0f;
+        InvincibilityTimerMax = 0.0f;
+        BuffDamageMultiplier = 1.0f;
+        BuffSpeedMultiplier = 1.0f;
+
+        // Reset potion cooldowns
+        for (int i = 0; i < POTION_CATEGORY_COUNT; i++)
+        {
+            PotionCategoryCooldowns[i] = 0.0f;
+            PotionCategoryCooldownMax[i] = 1.0f;
+        }
 
         isInitialized = true;
         TraceLog(LOG_INFO, "Player: Resource global dan statistik telah diinisialisasi");
@@ -110,20 +137,49 @@ void Player::Init(GameState *state, const char *spawnObjectName)
  */
 void Player::ResetForNewGame()
 {
-    isInitialized = false;
     Health = MaxHealth = 100.0f;
     Mana = MaxMana = 100.0f;
     ManaRegenTimer = 0.0f;
-    Hotbar[0] = {0, 1};
-    Hotbar[1] = {1, 1};
-    Hotbar[2] = {2, 8};
-    Hotbar[3] = {3, 8};
+    Hotbar[0] = {2, 8};  // Small Health Potion
+    Hotbar[1] = {3, 8};  // Small Stamina Potion
+    Hotbar[2] = {9, 8};  // Small Damage Potion
+    Hotbar[3] = {11, 8}; // Small Speed Potion
     for (int i = 0; i < MaxBag; i++)
         Bag[i] = {-1, 0};
+    Bag[0]  = {15, 1}; // AK-47
+    Bag[1]  = {4, 1};  // Bow
+    Bag[2]  = {5, 8};  // Medium Health Potion
+    Bag[3]  = {7, 8};  // Large Health Potion
+    Bag[4]  = {6, 8};  // Medium Stamina Potion
+    Bag[5]  = {8, 8};  // Large Stamina Potion
+    Bag[6]  = {10, 8}; // Medium Damage Potion
+    Bag[7]  = {12, 8}; // Medium Speed Potion
+    Bag[8]  = {13, 3}; // Small Invincibility Potion
+    Bag[9]  = {14, 3}; // Medium Invincibility Potion
+    Bag[10] = {0, 1};  // Iron Sword
+    Bag[11] = {1, 1};  // Steel Sword
     Anim.isDead = false;
     Anim.isAttacking = false;
     HitFlashTimer = 0.0f;
     KnockbackVelocity = {0, 0};
+
+    // Reset buff timers
+    BuffDamageTimer = 0.0f;
+    BuffDamageTimerMax = 0.0f;
+    BuffSpeedTimer = 0.0f;
+    BuffSpeedTimerMax = 0.0f;
+    InvincibilityTimer = 0.0f;
+    InvincibilityTimerMax = 0.0f;
+    BuffDamageMultiplier = 1.0f;
+    BuffSpeedMultiplier = 1.0f;
+
+    // Reset potion cooldowns
+    for (int i = 0; i < POTION_CATEGORY_COUNT; i++)
+    {
+        PotionCategoryCooldowns[i] = 0.0f;
+        PotionCategoryCooldownMax[i] = 1.0f;
+    }
+
     TraceLog(LOG_INFO, "PLAYER: Reset for new game");
 }
 

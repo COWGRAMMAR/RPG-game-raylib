@@ -357,7 +357,7 @@ void UpdateLogicAll()
             }
             else
             {
-                TraceLog(LOG_INFO, "PICKUP: inventory full");
+                TraceLog(LOG_INFO, "PICKUP: Inventory full");
                 item.isPickedUp = false; // balik ke world
 
                 static float lastInventoryFullTime = 0.0f;

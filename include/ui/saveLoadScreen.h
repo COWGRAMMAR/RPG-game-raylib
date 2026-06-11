@@ -178,6 +178,9 @@ private:
 
     /// Mode operasi saat ini (save/load)
     SaveLoadMode m_mode;
+
+    /// Mode sebelumnya — digunakan untuk kembali dari DELETE_MODE ke mode asal
+    SaveLoadMode m_previousMode;
     Popup m_overwritePopup;   ///< Popup konfirmasi timpa save
     Popup m_loadPopup;        ///< Popup konfirmasi load game
     Popup m_deletePopup;      ///< Popup konfirmasi hapus slot

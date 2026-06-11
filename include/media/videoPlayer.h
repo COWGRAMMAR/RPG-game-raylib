@@ -107,13 +107,6 @@ inline bool VideoPlayer::Load(const std::string& filePath)
     // Bersihkan media yang sudah dimuat sebelumnya
     Unload();
 
-    // Tingkatkan buffer audio untuk mencegah crackling pada video 1080p.
-    // Nilai default raylib-media terlalu kecil (16KB decoded, 4KB update,
-    // 1KB stream) sehingga audio underrun saat decode frame berat.
-    SetMediaFlag(MEDIA_AUDIO_DECODED_BUFFER, 256 * 1024); // 256KB decoded buffer
-    SetMediaFlag(MEDIA_AUDIO_STREAM_BUFFER,  64 * 1024); // 64KB raylib stream buffer
-    SetMediaFlag(MEDIA_AUDIO_UPDATE,         32 * 1024); // 32KB per frame upload
-    SetMediaFlag(MEDIA_AUDIO_QUEUE,          200);        // 200 packet queue (was 50)
     m_stream = LoadMediaEx(filePath.c_str(), MEDIA_FLAG_NO_AUTOPLAY);
     m_valid  = IsMediaValid(m_stream);
 

@@ -183,9 +183,9 @@ void Popup::CalculateDimensions()
         // posisi Y tombol pakai default -5 + buttonYOffset
         int buttonY = static_cast<int>(position.y + height - paddingY - fontSize) - 5 + buttonYOffset;
 
-        // tombol pakai BLACK dan fontLoadingTitle
-        okButton = buttonTxt(buttonText, startX, buttonY, fontSize, BLACK, hoverAmount, fontLoadingTitle);
-        cancelButton = buttonTxt(cancelText, startX + buttonWidth + 20, buttonY, fontSize, BLACK, hoverAmount, fontLoadingTitle);
+        // tombol pakai WHITE dan fontLoadingTitle
+        okButton = buttonTxt(buttonText, startX, buttonY, fontSize, WHITE, hoverAmount, fontLoadingTitle);
+        cancelButton = buttonTxt(cancelText, startX + buttonWidth + 20, buttonY, fontSize, WHITE, hoverAmount, fontLoadingTitle);
     } else {
         int contentWidth = std::max({textWidth, subWidth, buttonWidth});
         width = contentWidth + (paddingX * 2);
@@ -206,8 +206,8 @@ void Popup::CalculateDimensions()
         TraceLog(LOG_DEBUG, "Popup Debug: position=(%.1f, %.1f)", position.x, position.y);
         TraceLog(LOG_DEBUG, "Popup Debug: buttonX=%d, buttonY=%d, buttonWidth=%d", buttonX, buttonY, buttonWidth);
 
-        // tombol pakai BLACK dan fontLoadingTitle
-        okButton = buttonTxt(buttonText, buttonX, buttonY, fontSize, BLACK, hoverAmount, fontLoadingTitle);
+        // tombol pakai WHITE dan fontLoadingTitle
+        okButton = buttonTxt(buttonText, buttonX, buttonY, fontSize, WHITE, hoverAmount, fontLoadingTitle);
     }
 }
 
@@ -250,19 +250,19 @@ void Popup::Draw(Vector2 mousePosition)
     }
 
     int fontSize = 30;
-    // teks pesan pakai fontLoadingTitle, BLACK, dengan offset Y +20 + textYOffset
+    // teks pesan pakai fontLoadingTitle, WHITE, dengan offset Y +20 + textYOffset
     Vector2 textSize = MeasureTextEx(fontLoadingTitle, message, fontSize, 0);
     int textX = static_cast<int>(position.x + ((width - textSize.x) / 2.0F));
     int textY = static_cast<int>(position.y + (hasCancelButton ? 20 : 30) + 20 + textYOffset);
 
-    DrawTextEx(fontLoadingTitle, message, Vector2{static_cast<float>(textX), static_cast<float>(textY)}, fontSize, 0, BLACK);
+    DrawTextEx(fontLoadingTitle, message, Vector2{static_cast<float>(textX), static_cast<float>(textY)}, fontSize, 0, WHITE);
 
-    // subMessage pakai fontLoadingTitle, RED, posisi Y original
+    // subMessage pakai fontLoadingTitle, WHITE, posisi Y original
     if (subMessage != nullptr) {
         Vector2 subSize = MeasureTextEx(fontLoadingTitle, subMessage, fontSize, 0);
         int subX = static_cast<int>(position.x + ((width - subSize.x) / 2.0F));
         int subY = textY + fontSize + 10;
-        DrawTextEx(fontLoadingTitle, subMessage, Vector2{static_cast<float>(subX), static_cast<float>(subY)}, fontSize, 0, RED);
+        DrawTextEx(fontLoadingTitle, subMessage, Vector2{static_cast<float>(subX), static_cast<float>(subY)}, fontSize, 0, WHITE);
     }
 
     // highlight background saat hover — ukur teks pake fontLoadingTitle biar pas
@@ -276,7 +276,7 @@ void Popup::Draw(Vector2 mousePosition)
         Vector2 ts = MeasureTextEx(fontLoadingTitle, cancelText, fontSize, 0);
         DrawRectangleRounded((Rectangle){b.x, b.y, ts.x, ts.y}, 0.3f, 8, ColorAlpha(WHITE, 0.25f));
     }
-    // tombol pakai BLACK via buttonTxt (di-set di CalculateDimensions)
+    // tombol pakai WHITE via buttonTxt (di-set di CalculateDimensions)
     okButton.Draw(mousePosition);
     if (hasCancelButton) {
         cancelButton.Draw(mousePosition);

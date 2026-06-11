@@ -100,12 +100,6 @@ bool SaveManager::EnsureDirs(int slot)
         && EnsureDir(base + "/checkpoints");
 }
 
-bool SaveManager::HasAnySave(int slot)
-{
-    return HasSnapshot(GetManualPath(slot))
-        || HasInitial(slot);
-}
-
 /*==============================================================================
  * Atomic Write Helper
  *==============================================================================*/
@@ -313,7 +307,7 @@ GameSnapshot SaveManager::Deserialize(const json& root)
         if (player.contains("hotbar"))
         {
             const auto& hotbar = player.at("hotbar");
-            for (int i = 0; i < 4 && i < (int)hotbar.size(); i++)
+            for (int i = 0; i < HOTBAR_SLOTS && i < (int)hotbar.size(); i++)
             {
                 snap.hotbar[i].definitionId = hotbar[i].value("definitionId", -1);
                 snap.hotbar[i].amount = hotbar[i].value("amount", 0);
@@ -323,7 +317,7 @@ GameSnapshot SaveManager::Deserialize(const json& root)
         if (player.contains("bag"))
         {
             const auto& bag = player.at("bag");
-            for (int i = 0; i < 12 && i < (int)bag.size(); i++)
+            for (int i = 0; i < BAG_SLOTS && i < (int)bag.size(); i++)
             {
                 snap.bag[i].definitionId = bag[i].value("definitionId", -1);
                 snap.bag[i].amount = bag[i].value("amount", 0);
@@ -425,8 +419,11 @@ GameSnapshot SaveManager::Deserialize(const json& root)
     {
         const auto& map = root.at("map");
         snap.mapPath = map.value("mapPath", "");
-        snap.cameraTarget.x = map.at("cameraTarget")[0].get<float>();
-        snap.cameraTarget.y = map.at("cameraTarget")[1].get<float>();
+        if (map.contains("cameraTarget") && map["cameraTarget"].is_array() && map["cameraTarget"].size() >= 2)
+        {
+            snap.cameraTarget.x = map["cameraTarget"][0].get<float>();
+            snap.cameraTarget.y = map["cameraTarget"][1].get<float>();
+        }
         snap.cameraZoom = map.value("cameraZoom", 1.0f);
         snap.mapDisplayName = map.value("mapDisplayName", "");
 
@@ -714,6 +711,7 @@ GameSnapshot SaveManager::CaptureSnapshot()
     snap.cameraTarget = camera.target;
     snap.cameraZoom = camera.zoom;
     snap.mapHistory = mapHistoryStack.GetAllEntries();
+    snap.version = GameSnapshot::SNAPSHOT_VERSION;
 
     return snap;
 }
@@ -733,13 +731,7 @@ void SaveManager::ApplyPreSpawn(const GameSnapshot& snap)
     if (snap.version != GameSnapshot::SNAPSHOT_VERSION)
         return;
 
-    // Restore dead entities set — prevents dead enemies from respawning
-    if (!snap.deadEntities.empty())
-    {
-        Entities::SetDeadEntities(snap.deadEntities);
-        TraceLog(LOG_INFO, "[SaveManager] PreSpawn: restored %zu dead entities", snap.deadEntities.size());
-    }
-
+    // Dead enemies handled per-instance by ApplyPostSpawn, not per-spawn-point here
     /*--- Props: chest consumed (biar SpawnObject skip yg udah diambil) ---*/
     if (!snap.chestConsumed.empty())
         chestManager.SetConsumedPositions(snap.chestConsumed);
@@ -822,7 +814,18 @@ void SaveManager::ApplyPostSpawn(const GameSnapshot& snap)
         {
             if (!saved.isAlive)
             {
-                Entities::RegisterDeath(GetCurrentMapPath(), saved.mapObjectID);
+                // Deactivate matched enemy directly; RegisterDeath would poison the shared MapObjectID
+                for (auto& enemy : enemyReg)
+                {
+                    if (!enemy || matchedEnemies.count(enemy)) continue;
+                    if (enemy->MapObjectID == saved.mapObjectID && enemy->Name == saved.enemyName)
+                    {
+                        enemy->IsActive = false;
+                        enemy->Health = 0.0f;
+                        matchedEnemies.insert(enemy);
+                        break;
+                    }
+                }
                 continue;
             }
 
@@ -897,6 +900,18 @@ void SaveManager::ApplyPostSpawn(const GameSnapshot& snap)
         item.definitionId = saved.definitionId;
         item.amount = saved.amount;
         item.uuid = saved.uuid;
+        // Rekonstruksi hitbox dari definisi item agar magnet/pickup berfungsi normal
+        {
+            const ItemDefinition &def = itemDefs.GetById(item.definitionId);
+            float halfW = def.hitboxSize.x / 2.0f;
+            float halfH = def.hitboxSize.y / 2.0f;
+            item.hitbox = {item.position.x - halfW,
+                           item.position.y - halfH,
+                           def.hitboxSize.x,
+                           def.hitboxSize.y};
+        }
+        item.spawnTime = (float)GetTime();  // Immunity mulai dari sekarang
+        item.isAdded = item.isPickedUp;
         itemData.activeItems.push_back(item);
     }
 
@@ -918,7 +933,7 @@ void SaveManager::ApplyPostSpawn(const GameSnapshot& snap)
 
     /*--- Map: camera ---*/
     camera.target = snap.cameraTarget;
-    camera.zoom = snap.cameraZoom;
+    camera.zoom = snap.cameraZoom > 0.0f ? snap.cameraZoom : 1.0f;
 
     /*--- Map: history ---*/
     if (!snap.mapHistory.empty())
@@ -954,7 +969,18 @@ void SaveManager::ApplyCheckpointData(const GameSnapshot& snap)
         {
             if (!saved.isAlive)
             {
-                Entities::RegisterDeath(GetCurrentMapPath(), saved.mapObjectID);
+                // Deactivate matched enemy directly; RegisterDeath would poison the shared MapObjectID
+                for (auto& enemy : enemyReg)
+                {
+                    if (!enemy || matchedEnemies.count(enemy)) continue;
+                    if (enemy->MapObjectID == saved.mapObjectID && enemy->Name == saved.enemyName)
+                    {
+                        enemy->IsActive = false;
+                        enemy->Health = 0.0f;
+                        matchedEnemies.insert(enemy);
+                        break;
+                    }
+                }
                 continue;
             }
 
@@ -1027,6 +1053,7 @@ void SaveManager::ApplyCheckpointData(const GameSnapshot& snap)
                 if (item.uuid == saved.uuid && !saved.uuid.empty())
                 {
                     item.isPickedUp = saved.isPickedUp;
+                    item.isAdded = saved.isPickedUp;
                     item.position = saved.position;
                     item.definitionId = saved.definitionId;
                     item.amount = saved.amount;
@@ -1044,6 +1071,7 @@ void SaveManager::ApplyCheckpointData(const GameSnapshot& snap)
                     || item.uuid != snap.items[itemIndex].uuid)
                 {
                     item.isPickedUp = snap.items[itemIndex].isPickedUp;
+                    item.isAdded = snap.items[itemIndex].isPickedUp;
                     item.position = snap.items[itemIndex].position;
                     item.definitionId = snap.items[itemIndex].definitionId;
                     item.amount = snap.items[itemIndex].amount;

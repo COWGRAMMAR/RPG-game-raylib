@@ -151,9 +151,10 @@ struct ItemSpawn
     Rectangle hitbox; // Hitbox untuk deteksi pickup oleh player
     bool isPickedUp;  // True jika item sudah diambil player
     bool isAdded;     // True jika item sudah ditambahkan ke inventory
-    float spawnTime;  // Timestamp saat item di-spawn (untuk efek atau despawn)
-    int amount = 1;   ///< Jumlah item dalam satu spawn (untuk stackable item)
-    std::string uuid; ///< Unique identifier for persistent entity matching across save/load cycles. Generated at spawn time, persisted in save files, used for restore matching.
+    float spawnTime;        // Timestamp saat item di-spawn (untuk efek atau despawn)
+    float dropImmunity = 0; // Sisa waktu immunity setelah di-drop (Minecraft style, default 0)
+    int amount = 1;         ///< Jumlah item dalam satu spawn (untuk stackable item)
+    std::string uuid;       ///< Unique identifier for persistent entity matching across save/load cycles
 };
 
 /**

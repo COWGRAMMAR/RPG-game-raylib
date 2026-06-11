@@ -60,6 +60,25 @@ namespace Entities
     bool IsAlreadyDead(const std::string &mapPath, int objectId);
 
     /**
+     * @brief Catat entitas mati berdasarkan UUID (per-enemy, bukan per-spawn-point)
+     * @param mapPath Path map tempat entitas mati
+     * @param uuid UUID unik per-instance enemy
+     *
+     * Menggantikan RegisterDeath() untuk tracking kematian per-instance enemy.
+     * Mencegah bug di mana kematian satu enemy dari rectangle spawn
+     * menyebabkan seluruh spawn point di-skip saat reload.
+     */
+    void RegisterDeathByUUID(const std::string &mapPath, const std::string &uuid);
+
+    /**
+     * @brief Cek apakah entitas dengan UUID tertentu sudah mati di map
+     * @param mapPath Path map
+     * @param uuid UUID unik per-instance enemy
+     * @return true jika sudah mati sebelumnya
+     */
+    bool IsDeadByUUID(const std::string &mapPath, const std::string &uuid);
+
+    /**
      * @brief Membersihkan semua catatan entitas mati (untuk new game).
      */
     void ClearDeadEntities();

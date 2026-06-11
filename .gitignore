@@ -1,30 +1,19 @@
 /build/
 /build-linux/
-/main.exe
 *.o
 .clangd
 *.bak
 /Backups/
 
-logrun1.md
-logrun2.md
-logrun3.md
-
-run_backup.bat
-floorB_tester.json
-floorC_tester.json
-
-# Personal
-*.Personal.*
-
 # AI Agents
+.agents/
+.agent/
 .omo/
 .opencode/
 .sisyphus/
 .agent/
 .cache/
 AGENTS.md
-docs/trader-plan.md
 
 # Runtime save data
 saves/
@@ -34,15 +23,8 @@ saves/
 *.tar.gz
 *.zip
 
-# Auto-downloaded raylib
-raylib/
-lib/raylib/
-
-# Auto-downloaded tileson
-lib/tileson/
-
-# Auto-downloaded nlohmann-json
-lib/json/
+# Auto-downloaded external libraries contents
+lib/
 
 # Temp extraction for setup
 json-temp/

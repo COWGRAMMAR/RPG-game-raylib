@@ -11,6 +11,7 @@
  */
 
 #include "item.h"
+#include "config/game_constants.h"
 // include fonts.h untuk fontLoadingTitle
 #include "fonts.h"
 #include "screen.h"
@@ -418,7 +419,7 @@ void ItemRenderManager::Update(std::vector<ItemSpawn> &items, Vector2 playerCent
                                Rectangle playerHitbox, float magnetRadius, float itemSpeed)
 {
 
-    float spawnImmunityDuration = 1.0f;
+    float spawnImmunityDuration = SPAWN_IMMUNITY_DURATION;
     float currentTime = (float)GetTime();
     for (auto &item : items)
     {
@@ -815,7 +816,7 @@ void ItemSpawnManager::SpawnAll(std::vector<ItemSpawn> &activeItems)
         if (!area.isActive)
             continue;
 
-        unsigned int globalSeed = static_cast<unsigned int>(time(nullptr));
+        unsigned int globalSeed = SeedFromName(area.name) ^ WORLDOGEN_SEED_MAGIC;
         unsigned int nameSeed = SeedFromName(area.name);
         std::mt19937 rng(globalSeed ^ nameSeed);
         std::uniform_int_distribution<int> countDist(area.minSpawn, area.maxSpawn);

@@ -11,6 +11,7 @@
  */
 
 #include "player.h"
+#include "config/game_constants.h"
 #include "../../include/systems/audioManager.h"
 #include "screen.h"
 #include "movement.h"
@@ -450,7 +451,7 @@ void Player::HandleAction(void)
             playerCenter.y + dropDir.y * INTERACT_RANGE};
 
         ItemSpawn dropped = itemData.CreateItem(dropPos, slot.definitionId);
-        dropped.dropImmunity = 5.0f; // Minecraft-style: 5 detik immunity setelah drop
+        dropped.dropImmunity = DROP_IMMUNITY_DURATION; // Minecraft-style: 5 detik immunity setelah drop
         if (dropAll)
         {
             dropped.amount = slot.amount;

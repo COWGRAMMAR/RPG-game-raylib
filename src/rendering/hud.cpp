@@ -1,4 +1,5 @@
 #include "hud.h"
+#include "config/game_constants.h"
 #include "../../include/systems/audioManager.h"
 #include "keybindManager.h"
 // include fonts.h untuk fontLoadingTitle
@@ -538,7 +539,7 @@ void DrawInventory()
         Vector2 dropPos = {playerCenter.x + dropDir.x * PlayerInstance.GetInteractRange(), playerCenter.y + dropDir.y * PlayerInstance.GetInteractRange()};
         ItemSpawn dropped = itemData.CreateItem(dropPos, dragItem.definitionId);
         dropped.amount = dragItem.amount;
-        dropped.dropImmunity = 5.0f;
+        dropped.dropImmunity = DROP_IMMUNITY_DURATION;
         itemData.activeItems.push_back(dropped);
         src = {-1, 0};
         dragSlot = -1;

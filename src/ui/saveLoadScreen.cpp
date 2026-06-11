@@ -37,6 +37,7 @@ SaveLoadScreen::SaveLoadScreen()
     , slotMapName{}
     , slotTimestamp{}
     , m_mode(SaveLoadMode::SAVE_MODE)
+    , m_previousMode(SaveLoadMode::SAVE_MODE)
     , m_overwritePopup("Overwrite existing save?", "Overwrite", "Cancel", 0.7f)
     , m_loadPopup("Load this save?", "Load", "Cancel", 0.7f)
     , m_deletePopup("Delete this save?", "Delete", "Cancel", 0.7f)
@@ -169,9 +170,8 @@ void SaveLoadScreen::Update(GameState* state, Vector2 mousePosition, bool mouseC
                 std::string path = GetSlotPath(m_selectedSlot, "manual");
                 TraceLog(LOG_INFO, "LOAD: slot=%d mapPath='%s' worldgenSlot=%d",
                     m_selectedSlot, savedMapState.mapPath.c_str(), savedPlayerState.worldgenSlot);
-                if (ReadSaveFile(path)) {
-                    RestoreGameState(state);
-                }
+                ReadSaveFile(path);
+                // RestoreGameState di-loading_screen.cpp (HandleFastPath) setelah InitAll
             }
             active = false;
             state->currentScreen = LOADING;
@@ -246,12 +246,17 @@ void SaveLoadScreen::Update(GameState* state, Vector2 mousePosition, bool mouseC
 
     // DELETE button - switch to delete mode
     if (deleteButton.isClicked(mousePosition, mouseClicked)) {
+        m_previousMode = m_mode;
         m_mode = SaveLoadMode::DELETE_MODE;
         return;
     }
 
-    // Back button
+    // Back button (one level up in DELETE_MODE, otherwise exit)
     if (backButton.isClicked(mousePosition, mouseClicked)) {
+        if (m_mode == SaveLoadMode::DELETE_MODE) {
+            m_mode = m_previousMode;
+            return;
+        }
         active = false;
         state->currentScreen = returnScreen;
     }

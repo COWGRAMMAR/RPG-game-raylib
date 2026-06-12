@@ -460,7 +460,7 @@ void Explosion(Vector2 centerPosition, float radius, float progress)
     DrawFrame(frameName, display);
 }
 
-void TileCollisionEffect(Vector2 tilePosition, float progress)
+void Collision(Vector2 centerPosition, float progress, float scaleTiles)
 {
     std::string frameName;
     int frameIndex = (int)(progress * 5.0f);
@@ -469,10 +469,10 @@ void TileCollisionEffect(Vector2 tilePosition, float progress)
     frameName = "collision" + std::to_string(frameIndex + 1);
 
     Display display;
-    display.position = tilePosition;
-    display.size = 32;
+    display.position = centerPosition;
+    display.size = (int)(32.0f * scaleTiles);
     display.offset = {0, 0};
-    display.origin = {0, 0};
+    display.origin = { (float)display.size / 2.0f, (float)display.size / 2.0f };
     display.tint = WHITE;
     display.rotation = 0.0f;
     display.flip = false;

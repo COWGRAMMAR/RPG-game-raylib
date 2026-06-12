@@ -476,15 +476,12 @@ namespace Combat
             bool hit = false;
             if (player.attack.weapon->attackType == ATTACK_SLAM)
             {
-                float radiusTiles = std::floor(reach / 32.0f);
-                float gridSize = 2.0f * radiusTiles + 1.0f;
-                float tX = std::floor(attackCenter.x / 32.0f);
-                float tY = std::floor(attackCenter.y / 32.0f);
+                float size = reach * 2.0f;
                 Rectangle slamAABB = {
-                    (tX - radiusTiles) * 32.0f,
-                    (tY - radiusTiles) * 32.0f,
-                    gridSize * 32.0f,
-                    gridSize * 32.0f
+                    attackCenter.x - reach,
+                    attackCenter.y - reach,
+                    size,
+                    size
                 };
                 if (CheckCollisionRecs(slamAABB, entity->GetHitbox()))
                 {
@@ -508,15 +505,12 @@ namespace Combat
         Rectangle attackAABB;
         if (player.attack.weapon->attackType == ATTACK_SLAM)
         {
-            float radiusTiles = std::floor(reach / 32.0f);
-            float gridSize = 2.0f * radiusTiles + 1.0f;
-            float tX = std::floor(attackCenter.x / 32.0f);
-            float tY = std::floor(attackCenter.y / 32.0f);
+            float size = reach * 2.0f;
             attackAABB = {
-                (tX - radiusTiles) * 32.0f,
-                (tY - radiusTiles) * 32.0f,
-                gridSize * 32.0f,
-                gridSize * 32.0f
+                attackCenter.x - reach,
+                attackCenter.y - reach,
+                size,
+                size
             };
         }
         else
@@ -651,7 +645,7 @@ namespace Combat
             //                 (tX + x) * 32.0f,
             //                 (tY + y) * 32.0f
             //             };
-            //             TileCollisionEffect(tilePos, progress);
+            //             Collision(tilePos, progress);
             //         }
             //     }
             // }
@@ -665,22 +659,10 @@ namespace Combat
             if (player.attack.weapon->attackType == ATTACK_SLAM)
             {
                 float progress = player.attack.timer / player.attack.weapon->duration;
-                float tX = std::floor(player.attack.startCenter.x / 32.0f);
-                float tY = std::floor(player.attack.startCenter.y / 32.0f);
                 float reach = player.attack.weapon->reach;
-                int radiusTiles = (int)std::floor(reach / 32.0f);
+                float scaleTiles = (reach * 2.0f) / 32.0f;
 
-                for (int x = -radiusTiles; x <= radiusTiles; ++x)
-                {
-                    for (int y = -radiusTiles; y <= radiusTiles; ++y)
-                    {
-                        Vector2 tilePos = {
-                            (tX + x) * 32.0f,
-                            (tY + y) * 32.0f
-                        };
-                        TileCollisionEffect(tilePos, progress);
-                    }
-                }
+                Collision(player.attack.startCenter, progress, scaleTiles);
             }
         }
     }

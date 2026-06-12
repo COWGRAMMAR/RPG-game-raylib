@@ -127,7 +127,7 @@ namespace Effects {
             CollisionEffect& data = currentCol->data;
             if (data.active) {
                 float progress = data.timer / data.duration;
-                TileCollisionEffect(data.position, progress);
+                Collision(data.position, progress);
             }
             currentCol = currentCol->next;
         }
@@ -155,7 +155,7 @@ namespace Effects {
 
     void AddCollision(Vector2 pos) {
         CollisionEffect c;
-        c.position = { pos.x - 16.0f, pos.y - 16.0f };
+        c.position = pos;
         c.timer = 0.0f;
         c.duration = 0.25f;
         c.active = true;

@@ -43,14 +43,11 @@ static const Color SLIDER_FILL  = {50, 200, 50, 255};
 /** @brief Warna border saat hover */
 static const Color SLIDER_HOVER = {255, 255, 255, 120};
 
-/** @brief Posisi X label */
-static const int LABEL_X = 180;
+/** @brief Offset X label dari startX panel */
+static const int LABEL_OFFSET = 40;
 
-/** @brief Posisi X slider bar */
+/** @brief Posisi X slider bar relatif ke startX */
 static const int SLIDER_BAR_X = 380;
-
-/** @brief Posisi X value text */
-static const int VALUE_X = 660;
 
 /** @brief Font size untuk label dan value */
 static const int FONT_SIZE = 30;
@@ -81,13 +78,14 @@ static const char* SLIDER_LABELS[4] = {
 static void DrawSliderBar(
     const char* label,
     int valuePct,
+    int labelX,
     int barX,
     int barY,
     Vector2 mousePosition)
 {
     // Label
     DrawTextEx(fontLoadingTitle, label,
-        Vector2{static_cast<float>(LABEL_X), static_cast<float>(barY - 5)},
+        Vector2{static_cast<float>(labelX), static_cast<float>(barY - 5)},
         FONT_SIZE, 0, WHITE);
 
     // Background bar
@@ -133,6 +131,7 @@ void DrawAudioTab(
 {
     int contentStartY = startY + 100;
     int barX = startX + SLIDER_BAR_X;
+    int labelX = startX + LABEL_OFFSET;
 
     for (int i = 0; i < 4; i++)
     {
@@ -142,7 +141,7 @@ void DrawAudioTab(
                     (i == 2) ? g_sliders.sfxVolume :
                                g_sliders.videoVolume;
 
-        DrawSliderBar(SLIDER_LABELS[i], value, barX, barY, mousePosition);
+        DrawSliderBar(SLIDER_LABELS[i], value, labelX, barX, barY, mousePosition);
     }
 }
 

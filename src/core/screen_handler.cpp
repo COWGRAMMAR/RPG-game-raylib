@@ -183,10 +183,11 @@ GameState InitScreen()
     state.pendingMapPath.clear();
     state.pendingDoorName.clear();
 
-    // Fullscreen ON secara default
+    // Fullscreen ON secara default (inline: ToggleFullscreenMode uses gState which isn't set yet)
     if (!IsWindowFullscreen())
     {
-        ToggleFullscreenMode();
+        SetWindowSize(GetMonitorWidth(0), GetMonitorHeight(0));
+        ToggleFullscreen();
     }
 
     return state;

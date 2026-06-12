@@ -215,6 +215,11 @@ public:
 
 private:
     /**
+     * @brief Menghitung dimensi menu berdasarkan layar
+     */
+    void CalculateDimensions();
+
+    /**
      * @brief Handle klik pada tombol berdasarkan index
      * @param buttonIndex Index tombol yang diklik (0-5)
      * @param state Pointer ke GameState

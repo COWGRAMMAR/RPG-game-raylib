@@ -1,13 +1,26 @@
-# Font System Rework — Implementation Plan
+# Font System Rework — Status & Font Inventory
 
-## Goal
-Bikin font system dengan atlas resolution caching: `FontId` (abstract role) → `FontDef` (asset), lazy load per resolution, wrapper `DrawTextCached()`.
+> **Status**: SEMUA SELESAI. Full migration tuntas — 82 GetOrLoad + 48 DrawDefaultText + button.h.
 
 ---
 
-## 1. Data Structures
+## 1. Font Assets (11 file)
 
-### `enum class FontId`
+| Font | File | Terdaftar? | Role |
+|------|------|-----------|------|
+| Poppins-Bold | `Poppins-Bold.ttf` |  | LOADING_TITLE (+ DEFAULT nanti) |
+| Poppins-Regular | `Poppins-Regular.ttf` |  | KEYBIND_ENTRY |
+| NewDawn | `NewDawn.ttf` |  | KEYBIND_HEADER |
+| MedievalSharp-Regular | `MedievalSharp-Regular.ttf` |  | — |
+| Quicksand-Bold | `Quicksand-Bold.ttf` |  | — |
+| Quicksand-SemiBold | `Quicksand-SemiBold.ttf` |  | — |
+| Quicksand-Medium | `Quicksand-Medium.ttf` |  | — |
+| Quicksand-Regular | `Quicksand-Regular.ttf` |  | — |
+| Quicksand-Light | `Quicksand-Light.ttf` |  | — |
+| Norsebold | `Norsebold.otf` |  | — |
+| Norse | `Norse.otf` |  | — |
+
+### FontId saat ini (`fonts.h`)
 ```cpp
 enum class FontId : int {
     KEYBIND_HEADER,  // NewDawn.ttf
@@ -16,171 +29,241 @@ enum class FontId : int {
     COUNT
 };
 ```
-Abstract role — gak nyentuh file path langsung.
 
-### `enum class AtlasRes`
+### FontId rencana (nambah DEFAULT)
 ```cpp
-enum class AtlasRes : int {
-    RES_128  = 128,
-    RES_256  = 256,
-    RES_512  = 512,
-    RES_1024 = 1024
+enum class FontId : int {
+    DEFAULT,         // Poppins-Bold.ttf — font utama UI
+    KEYBIND_HEADER,  // NewDawn.ttf
+    KEYBIND_ENTRY,   // Poppins-Regular.ttf
+    LOADING_TITLE,   // alias DEFAULT (Poppins-Bold), bisa hapus nanti
+    COUNT
 };
 ```
-Nilai langsung = `fontSize` parameter di `LoadFontEx`.
 
-### `struct FontDef`
+---
+
+## 2. SUDAH Dimigrasi — GetOrLoad Calls (9 file, ~82 calls)
+
+Semua udah pake `GetOrLoad(FontId::...)`. Tinggal ganti FontId kalo mau ganti font.
+
+| File | Jumlah | Fungsi | Font / Abstrak Role | Resolusi | Isi Pesan |
+|------|--------|--------|-------------------|:--------:|-----------|
+| `hud.cpp` | 27× | `GetOrLoad(LOADING_TITLE)` | `Poppins-Bold.ttf` → `FontId::LOADING_TITLE` | `RES_256` | item name, stack amount, "Press 'I' to Close", keybind hints |
+| `keybindsTab.cpp` | 19× | `GetOrLoad(...)` | lihat detail | lihat detail | lihat detail |
+| `popup.cpp` | 16× | `GetOrLoad(LOADING_TITLE)` | `Poppins-Bold.ttf` → `FontId::LOADING_TITLE` | `RES_256` | pesan dialog, label tombol |
+| `saveLoadScreen.cpp` | 10× | `GetOrLoad(...)` | lihat detail | lihat detail | lihat detail |
+| `loading_screen.cpp` | 6× | `GetOrLoad(LOADING_TITLE)` | `Poppins-Bold.ttf` → `FontId::LOADING_TITLE` | `RES_256` | "Loading...", "85%", nama map |
+| `pauseMenu.cpp` | 4× | `GetOrLoad(LOADING_TITLE)` | `Poppins-Bold.ttf` → `FontId::LOADING_TITLE` | `RES_256` | "Reset Tab", "Back", "Apply" |
+| `audioTab.cpp` | 4× | `GetOrLoad(LOADING_TITLE)` | `Poppins-Bold.ttf` → `FontId::LOADING_TITLE` | `RES_256` | "Master Volume", "100" |
+| `item.cpp` | 2× | `GetOrLoad(LOADING_TITLE)` | `Poppins-Bold.ttf` → `FontId::LOADING_TITLE` | `RES_256` | jumlah stack item di-drop |
+| `videoTab.cpp` | 2× | `GetOrLoad(LOADING_TITLE)` | `Poppins-Bold.ttf` → `FontId::LOADING_TITLE` | `RES_256` | "Fullscreen", "Show FPS" |
+
+### Detail per file
+
+**`hud.cpp`** (27×, `GetOrLoad(FontId::LOADING_TITLE)`, `Poppins-Bold.ttf` → `FontId::LOADING_TITLE`, `RES_256`)
+| Fungsi | Isi Pesan | Size | Warna |
+|--------|----------|:----:|:-----:|
+| `DrawTextHUD()` | variabel `text` | fontSize(16/20) | WHITE/GRAY |
+| — | literal `"99"` | 18 | WHITE |
+| — | literal `"99"` | 18 | WHITE |
+| — | literal `"99"` | 16 | WHITE |
+| — | literal `"1.2"` | 14 | WHITE |
+| — | literal `"1.2"` | 14 | WHITE |
+| — | literal `"1.2"` | 14 | WHITE |
+| — | variabel item name | 22 | WHITE |
+| — | variabel item description | 14 | WHITE |
+| — | variabel keybind hints | hintFontSize(25/22) | WHITE |
+| — | literal `"Press 'I' to Close"` | 20 | GRAY |
+| — | variabel loot popup item | 16 | WHITE |
+
+**`keybindsTab.cpp`** (19 calls)
+| Fungsi | Isi Pesan | Font / Abstrak Role | Resolusi | Size | Warna |
+|--------|----------|-------------------|:--------:|:----:|:-----:|
+| `GetOrLoad(KEYBIND_HEADER)` | `"MOVEMENT"`, `"ACTION"`, `"INVENTORY"` | `NewDawn.ttf` → `FontId::KEYBIND_HEADER` | `RES_256` | 32 | WHITE |
+| `GetOrLoad(KEYBIND_ENTRY)` | `"Move Up => [W]"`, `"Drag = Klik & tarik"` | `Poppins-Regular.ttf` → `FontId::KEYBIND_ENTRY` | `RES_256` | 28 | WHITE |
+| `GetOrLoad(LOADING_TITLE)` | `"Key already bound to [action]!"`, `"Press key or click for [action]..."` | `Poppins-Bold.ttf` → `FontId::LOADING_TITLE` | `RES_256` | 30 | WHITE |
+
+**`popup.cpp`** (16×, `GetOrLoad(FontId::LOADING_TITLE)`, `Poppins-Bold.ttf` → `FontId::LOADING_TITLE`, `RES_256`)
+| Fungsi | Isi Pesan | Size | Warna |
+|--------|----------|:----:|:-----:|
+| `DrawTextEx()` | variabel `text` / `subMessage` | fontSize(30) | WHITE |
+| `DrawTextEx()` | `"OK"`, `"Cancel"` | fontSize(30) | WHITE |
+
+**`saveLoadScreen.cpp`** (10 calls)
+| Fungsi | Isi Pesan | Font / Abstrak Role | Resolusi | Size | Warna |
+|--------|----------|-------------------|:--------:|:----:|:-----:|
+| `GetOrLoad(LOADING_TITLE)` | `"MANUAL SAVE"`, `"AUTO SAVE"` | `Poppins-Bold.ttf` → `FontId::LOADING_TITLE` | `RES_256` | 22 | WHITE |
+| `GetOrLoad(LOADING_TITLE)` | variabel header area text | —"— | — | headerFontSize(28) | WHITE |
+| `GetOrLoad(KEYBIND_ENTRY)` | `"Auto Save"`, `"Slot #2"`, `"Empty Slot"`, variabel map/timestamp | `Poppins-Regular.ttf` → `FontId::KEYBIND_ENTRY` | `RES_256` | 14-20 | WHITE |
+
+**`loading_screen.cpp`** (6×, `GetOrLoad(FontId::LOADING_TITLE)`, `Poppins-Bold.ttf` → `FontId::LOADING_TITLE`, `RES_256`)
+| Fungsi | Isi Pesan | Size | Warna |
+|--------|----------|:----:|:-----:|
+| — | `"Loading..."` | 32 | WHITE |
+| — | variabel `"85%"` | 20 | WHITE |
+| — | variabel nama map | 18 | WHITE |
+
+**`pauseMenu.cpp`** (4×, same font)
+| Fungsi | Isi Pesan | Size | Warna |
+|--------|----------|:----:|:-----:|
+| — | ON/OFF (toggle buttons) | labelFontSize(24) | GREEN/RED/GRAY |
+| — | `"Reset Tab"`, `"Reset All"` | 20 | ORANGE |
+
+**`audioTab.cpp`** (5×, same font)
+| Fungsi | Isi Pesan | Size | Warna |
+|--------|----------|:----:|:-----:|
+| — | `"Master Volume"`, `"Music Volume"`, `"SFX Volume"` | FONT_SIZE(30) | WHITE |
+| — | `"100%"`, `"75%"`, `"50%"` | FONT_SIZE(30) | BLACK |
+
+**`item.cpp`** (2×, same font)
+| Fungsi | Isi Pesan | Size | Warna |
+|--------|----------|:----:|:-----:|
+| — | literal `"3"` / jumlah stack | 14 | WHITE |
+
+**`videoTab.cpp`** (2×, same font)
+| Fungsi | Isi Pesan | Size | Warna |
+|--------|----------|:----:|:-----:|
+| — | `"Fullscreen"` | fontSize(34) | WHITE |
+| — | `"Show FPS"` | fontSize(34) | WHITE |
+
+---
+
+## 3. SUDAH Dimigrasi — Raw DrawText (6 file, 48 calls)
+
+Semua pake `DrawDefaultText(...)` → `GetOrLoad(FontId::DEFAULT)` (Poppins-Bold).
+
+### `debugmode.cpp` — 26× `DrawText()`, `GetFontDefault()` / —
+
+| Isi Pesan | Size | Warna |
+|-----------|:----:|:-----:|
+| variabel `title` | 18 | borderColor |
+| `"Attack Area (Slam AABB)"` | 14 | RED |
+| `"Attack Area (Rotated OBB)"` | 14 | RED |
+| variabel `obj.name` | 12 | PURPLE |
+| `"Count: %d"` | 10 | MAGENTA |
+| `"Rad: %.0f"` | 10 | MAGENTA |
+| `"Size: %dx%d tiles"`, `"Layers: %d"`, `"Tileset: %s"` | 14 | — |
+| `"Target: (%.1f, %.1f)"`, `"Zoom: %.2f"` | 14 | — |
+| `"Position: (%.1f, %.1f)"`, `"Speed: %.1f"`, dll | 14 | — |
+| `"Zoom: %.2f"`, `"[Scroll] Zoom In/Out"` | 14 | — |
+| `"Tiles Drawn: %d"`, `"Range X: %d-%d"`, dll | 14 | — |
+| `"Rect Count: %d"`, `"Boundary Mode: %s"`, dll | 14 | — |
+| variabel `def.name` | 10 | PINK |
+
+### `combatTurn.cpp` — 14× `DrawText()`, `GetFontDefault()` / —
+
+| Fungsi / Konteks | Isi Pesan | Size | Warna |
+|-----------------|-----------|:----:|:-----:|
+| `DrawTextCentered` | variabel `text` | fontSize(28/22/20/18) | color(GOLD/RED/YELLOW/GREEN) |
+| `DrawActionButton` | variabel label `[key] name` | 20 | GOLD / WHITE |
+| — | `"PLAYER"` | 18 | BLUE |
+| — | `"HP: %.0f / %.0f"` | 16 | WHITE |
+| — | `"MP: %.0f / %.0f"` | 16 | GOLD |
+| — | `"BOSS: %s"` | 18 | RED |
+| — | `"HP: %.0f / %.0f"` | 16 | WHITE |
+| — | `">>> BERTAHAN! <<<"` | 14 | GREEN |
+| — | `"MENANG"` (×5, outline efek tebal) | 80 | YELLOW / WHITE |
+| — | variabel `itemText` | 20 | LIGHTGRAY |
+
+### `effects.cpp` — 3× `DrawText()`, `GetFontDefault()` / —
+
+| Isi Pesan | Size | Warna |
+|-----------|:----:|:-----:|
+| variabel `dmgStr` (damage number, e.g. "-12") | 10 | YELLOW |
+| variabel `entry.text` (shadow) | 10 | BLACK(alpha) |
+| variabel `entry.text` (foreground) | 10 | WHITE(alpha) |
+
+### `hud.cpp` — 2× `DrawText()`, `GetFontDefault()` / —
+
+| Isi Pesan | Size | Warna |
+|-----------|:----:|:-----:|
+| variabel `line` (loot popup item name) | 16 | WHITE |
+| `"[Klik kiri] untuk tutup"` | 10 | GRAY |
+
+### `videoScreen.cpp` — 2× `DrawText()`, `GetFontDefault()` / —
+
+| Isi Pesan | Size | Warna |
+|-----------|:----:|:-----:|
+| variabel `loadingText` | 20 | WHITE |
+| `"Tekan SPACE untuk skip"` | 20 | WHITE(180) |
+
+### `screen_handler.cpp` — 1× `DrawText()`, `GetFontDefault()` / —
+
+| Isi Pesan | Size | Warna |
+|-----------|:----:|:-----:|
+| variabel `fpsText` (e.g. `"87 FPS"`) | 20 | GREEN |
+
+---
+
+## 4. Belum Dimigrasi — button.h Constructor
+
+| File | Baris | Kode |
+|------|-------|------|
+| `button.h` | 36 | `TextPolicy() : font(GetFontDefault()) {}` |
+| `button.h` | 39 | `TextPolicy(..., Font font = GetFontDefault())` |
+
+Semua button object di codebase yang gak explicit pass font → pake default font.
+
+---
+
+## 5. Font Default Decision Table
+
+Setelah audit, tentuin tiap konteks text pake **FontId** apa:
+
+| Konteks | fontSize range | FontId saran |
+|---------|---------------|-------------|
+| **HUD / UI pesan** (popup, pause menu, inventory, loading screen, audio/video tab) | 10-32 | `DEFAULT` (Poppins-Bold) |
+| **Debug overlay** | 10-18 | `DEFAULT` atau `KEYBIND_ENTRY` |
+| **Combat UI** (label, HP/MP, button) | 14-80 | `DEFAULT` |
+| **Combat "MENANG"** (outline effect) | 80 | `DEFAULT` |
+| **Damage number / log** | 10 | `DEFAULT` atau `KEYBIND_ENTRY` |
+| **FPS counter** | 20 | `DEFAULT` |
+| **Video skip text** | 20 | `DEFAULT` |
+| **Keybind header** | 32 | `KEYBIND_HEADER` (NewDawn) |
+| **Keybind entry** | 28 | `KEYBIND_ENTRY` (Poppins-Regular) |
+| **Keybind toast** | 30 | `DEFAULT` |
+| **button.h** | varies | `DEFAULT` |
+
+---
+
+## 6. Implementasi FontId::DEFAULT
+
+### fonts.h
 ```cpp
-struct FontDef {
-    const char* filePath;
-    const char* displayName; // debug/log
-    AtlasRes defaultRes;
+enum class FontId : int {
+    DEFAULT,         // Poppins-Bold.ttf — font utama UI
+    KEYBIND_HEADER,  // NewDawn.ttf
+    KEYBIND_ENTRY,   // Poppins-Regular.ttf
+    LOADING_TITLE,   // sama dengan DEFAULT (Poppins-Bold) — alias aja
+    COUNT
 };
 ```
-Array static, indexed by `(int)FontId`. Urutan harus match enum.
 
-### `struct FontHandle`
+### fonts.cpp — FONT_DEFS
 ```cpp
-struct FontHandle {
-    FontId id;
-    AtlasRes res;
+static const FontDef FONT_DEFS[(int)FontId::COUNT] = {
+    {"Poppins-Bold.ttf",   "Poppins-Bold",   AtlasRes::RES_256},  // DEFAULT
+    {"NewDawn.ttf",        "NewDawn",        AtlasRes::RES_256},  // KEYBIND_HEADER
+    {"Poppins-Regular.ttf", "Poppins-Regular", AtlasRes::RES_256}, // KEYBIND_ENTRY
+    {"Poppins-Bold.ttf",   "Poppins-Bold",   AtlasRes::RES_256},  // LOADING_TITLE (alias)
 };
 ```
-Yang di-pass ke `DrawTextCached()`.
 
-### `struct CachedFont`
-```cpp
-struct CachedFont {
-    Font font;
-    int refCount;  // optional, buat debug
-};
-```
-Isi cache.
+`LOADING_TITLE` pointing ke file sama — jadi semua code yang udah migrasi tetap jalan.
+Nanti kalo udah selesai migrate semua `LOADING_TITLE` → `DEFAULT`, LOADING_TITLE bisa dihapus.
 
 ---
 
-## 2. Cache System
+## 7. Status akhir — SEMUA TUNTAS
 
-### Key design
- `std::pair<FontId, AtlasRes>` **gak punya default hash** di C++ — bakal gagal compile.
-Pake **combined `uint32_t` key**:
-```
-uint32_t key = ((uint32_t)id << 16) | (uint32_t)res;
-              ^^^^^^^^^^^^^^^^^^^^   ^^^^^^^^^^^^^^^^
-              FontId di upper 16bit  AtlasRes di lower 16bit
-```
+| Langkah | Status |
+|---------|--------|
+| Font system cache (Phase 1-3) |  |
+| FontId::DEFAULT + 11 font assets registered |  |
+| 82 GetOrLoad calls migrated (9 files) |  |
+| 48 DrawDefaultText calls (6 files) |  |
+| button.h font fix |  |
+| Plan trace tables updated (parameter value tracing) |  |
 
-### Storage
-```cpp
-static std::unordered_map<uint32_t, CachedFont> s_FontCache;
-```
-
-### Lazy Load Logic
-```
-GetOrLoad(FontId id, AtlasRes res):
-    uint32_t key = PackKey(id, res);
-    if key in s_FontCache → return s_FontCache[key].font
-    path = FONT_DEFS[(int)id].filePath
-    f = LoadFontEx(path, (int)res, 0, 0)
-    if f.glyphCount == 0:
-        TraceLog(WARNING, "... fallback to default")
-        f = GetFontDefault()
-    SetTextureFilter(f.texture, TEXTURE_FILTER_BILINEAR)
-    s_FontCache[key] = { f, 1 }
-    return f
-```
-
-### Init / Unload
-```cpp
-void InitFonts() {
-    // lightweight — cuma clear cache flag, gak load apapun
-    s_FontsInitialized = true;
-}
-
-void UnloadFonts() {
-    for (auto& [key, cached] : s_FontCache)
-        UnloadFont(cached.font);
-    s_FontCache.clear();
-}
-```
-
----
-
-## 3. Public API
-
-### `DrawTextCached(FontHandle fh, const char* text, Vector2 pos, float fontSize, float spacing, Color tint)`
-- Panggil `GetOrLoad(fh.id, fh.res)` — dapet `Font`
-- `DrawTextEx(font, text, pos, fontSize, spacing, tint)`
-- Overload: versi `DrawTextCached(FontId id, AtlasRes res, ...)` langsung
-
-### `FontHandle FontDefault(FontId id)`
-- Return `{ id, FONT_DEFS[(int)id].defaultRes }`
-
-### `Vector2 MeasureTextCached(FontHandle fh, const char* text, float fontSize, float spacing)`
-- Panggil `GetOrLoad` → `MeasureTextEx(font, text, fontSize, spacing)`
-
----
-
-## 4. File Changes
-
-| File | Action |
-|------|--------|
-| `include/rendering/fonts.h` | **Replace** — definisi FontId, AtlasRes, FontDef, FontHandle, API |
-| `src/rendering/fonts.cpp` | **New** — cache logic, GetOrLoad, DrawTextCached, Init/Unload |
-| `src/rendering/animation.cpp` | **Edit** — hapus `InitFonts()` call dari `InitTextures()`, hapus font globals |
-| `src/rendering/animation.cpp` | **Reassign** — font global definitions jadi include fonts.h aja |
-| `src/core/main.cpp` | **Edit** — `InitFonts()` tetap dipanggil, UnloadFonts() tetap |
-| `src/core/screen_handler.cpp` | **Edit** — tetap panggil UnloadFonts() |
-| `src/core/loading_screen.cpp` | **Edit** — `InitFonts()` tetap, tapi sekarang lightweight |
-
-### Call site migration (ganti `DrawTextEx(fontLoadingTitle,...)` → `DrawTextCached(...)`):
-
-| File | Jumlah | FontId target |
-|------|--------|---------------|
-| `hud.cpp` | ~8 | LOADING_TITLE |
-| `keybindsTab.cpp` | ~10 | KEYBIND_HEADER / KEYBIND_ENTRY / LOADING_TITLE |
-| `loading_screen.cpp` | ~3 | LOADING_TITLE |
-| `saveLoadScreen.cpp` | ~7 | LOADING_TITLE + KEYBIND_ENTRY |
-| `popup.cpp` | ~2 | LOADING_TITLE |
-| `audioTab.cpp` | ~2 | LOADING_TITLE |
-| `videoTab.cpp` | ~2 | LOADING_TITLE |
-| `pauseMenu.cpp` | ~4 | LOADING_TITLE |
-| `item.cpp` | ~1 | LOADING_TITLE |
-
-### Known gaps (di-skip di rework ini)
-- `button.h` — semua button masih pake `GetFontDefault()`. Akan di-consolidate terpisah.
-- `debugmode.cpp` / `combatTurn.cpp` / `effects.cpp` / `screen_handler.cpp` — masih pake `DrawText` default font. Belum kena migrasi.
-- Font fallback system (kalo glyph gak ada di font yg di-load).
-
----
-
-## 5. Migration Strategy
-
-**Phase 1** — Bikin file + cache system (gak pecahin existing code):
-1. Tulis `fonts.h` (replace) + `fonts.cpp` (new)
-2. Jaga `fontKeybindHeader/fontKeybindEntry/fontLoadingTitle` sebagai global sementara dari `GetOrLoad` dengan default res
-3. `InitFonts()` jadi lightweight
-4. Build → verify gak ada yg broken
-
-**Phase 2** — Call site migration:
-1. Per file: ganti `DrawTextEx(fontLoadingTitle, ...)` → `DrawTextCached({FontId::LOADING_TITLE, AtlasRes::RES_256}, ...)`
-2. Per file: ganti `DrawTextEx(fontKeybindHeader, ...)` → `DrawTextCached({FontId::KEYBIND_HEADER, AtlasRes::RES_256}, ...)`
-3. Per file: ganti `DrawTextEx(fontKeybindEntry, ...)` → `DrawTextCached({FontId::KEYBIND_ENTRY, AtlasRes::RES_256}, ...)`
-
-**Phase 3** — Cleanup:
-1. Hapus font globals dari `animation.cpp`
-2. Hapus `InitFonts()` call dari `InitTextures()`
-3. Hapus `fonts.h` lama + include referencenya dari animation.cpp
-
----
-
-## 6. Edge Cases
-
-| Case | Handling |
-|------|----------|
-| Font file missing | `glyphCount == 0` → `GetFontDefault()` fallback |
-| InitFonts() dipanggil multiple times | Idempotent — cuma set flag, gak redundant load |
-| Cache full / memory pressure | Lazy load — cuma fonts yg dipake aja di-cache |
-| Thread safety | Single-threaded (raylib), gak perlu lock |
-| 0 glyphs dari LoadFontEx | Fallback + TraceLog warning |
-| `std::pair` gak punya default hash | Pake `uint32_t` combined key `(id<<16 \| res)` |
+**Opsional**: rename `LOADING_TITLE` → `DEFAULT` di existing code, hapus entry duplikat di `FONT_DEFS`. Tapi gak urgent — `LOADING_TITLE` sudah pointing ke file yang sama dengan `DEFAULT`.

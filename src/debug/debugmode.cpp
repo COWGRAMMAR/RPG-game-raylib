@@ -12,6 +12,7 @@
 #include "game_debug.h"
 #include "raylib.h"
 #include "input.h"
+#include "fonts.h"
 #include "raymath.h"
 #include "screen.h"
 #include "map.h"
@@ -86,7 +87,7 @@ void Debug::DrawPanelFrame(Rectangle bounds, const char *title, Color borderColo
 {
     DrawRectangle((int)bounds.x, (int)bounds.y, (int)bounds.width, (int)bounds.height, Fade(BLACK, 0.7f));
     DrawRectangleLines((int)bounds.x, (int)bounds.y, (int)bounds.width, (int)bounds.height, borderColor);
-    DrawText(title, (int)bounds.x + 10, (int)bounds.y + 5, 18, borderColor);
+    DrawDefaultText(title, (int)bounds.x + 10, (int)bounds.y + 5, 18, borderColor);
 }
 
 // Gambar overlay collision untuk layer tertentu
@@ -157,7 +158,7 @@ void Debug::DrawAttackOverlay(void)
         if (PlayerInstance.LastHit.hit)
             DrawCircleV(PlayerInstance.LastHit.point, 4.0f, VIOLET);
 
-        DrawText("Attack Area (Slam AABB)", (int)slamAABB.x, (int)slamAABB.y - 14, 14, RED);
+        DrawDefaultText("Attack Area (Slam AABB)", (int)slamAABB.x, (int)slamAABB.y - 14, 14, RED);
         return;
     }
 
@@ -198,7 +199,7 @@ void Debug::DrawAttackOverlay(void)
         DrawCircleV(PlayerInstance.LastHit.point, 4.0f, VIOLET);
 
     // Label
-    DrawText("Attack Area (Rotated OBB)", (int)minX, (int)minY - 14, 14, RED);
+    DrawDefaultText("Attack Area (Rotated OBB)", (int)minX, (int)minY - 14, 14, RED);
 }
 
 // Gambar titik spawn musuh yang terdeteksi dari data map
@@ -234,7 +235,7 @@ void Debug::DrawEnemySpawnOverlay(void)
             DrawCircleLinesV(pos, 8.0f, Fade(PURPLE, 0.5f));
 
             // Label nama objek
-            DrawText(obj.name.c_str(), (int)pos.x - 35, (int)pos.y - 28, 12, PURPLE);
+            DrawDefaultText(obj.name.c_str(), (int)pos.x - 35, (int)pos.y - 28, 12, PURPLE);
 
             // Tampilkan jumlah jika ada properti 'count'
             if (obj.properties.count("count"))
@@ -245,7 +246,7 @@ void Debug::DrawEnemySpawnOverlay(void)
                     count = prop.getValue<int>();
                 else if (prop.getType() == tson::Type::Float)
                     count = (int)prop.getValue<float>();
-                DrawText(TextFormat("Count: %d", count), (int)pos.x + 10, (int)pos.y + 10, 10, MAGENTA);
+                DrawDefaultText(TextFormat("Count: %d", count), (int)pos.x + 10, (int)pos.y + 10, 10, MAGENTA);
             }
 
             // Tampilkan radius patroli (Lingkaran besar transparan)
@@ -259,7 +260,7 @@ void Debug::DrawEnemySpawnOverlay(void)
                     radius = prop.getValue<float>();
             }
             DrawCircleLinesV(pos, radius, Fade(PURPLE, 0.2f));
-            DrawText(TextFormat("Rad: %.0f", radius), (int)pos.x - 20, (int)pos.y + 15, 10, MAGENTA);
+            DrawDefaultText(TextFormat("Rad: %.0f", radius), (int)pos.x - 20, (int)pos.y + 15, 10, MAGENTA);
         }
     }
 }
@@ -340,11 +341,11 @@ void Debug::DrawMapPanel(Rectangle bounds)
         return;
 
     DrawPanelFrame(bounds, "[ MAP DEBUG ]", YELLOW);
-    DrawText(TextFormat("Size    : %dx%d tiles", tilesonMap->width, tilesonMap->height),
+    DrawDefaultText(TextFormat("Size    : %dx%d tiles", tilesonMap->width, tilesonMap->height),
              (int)bounds.x + 10, (int)bounds.y + 27, 16, WHITE);
-    DrawText(TextFormat("Layers  : %d", tilesonMap->layerCount),
+    DrawDefaultText(TextFormat("Layers  : %d", tilesonMap->layerCount),
              (int)bounds.x + 10, (int)bounds.y + 47, 16, WHITE);
-    DrawText(TextFormat("Tileset : %s", !tilesonMap->tilesets.empty() ? "Loaded" : "Not loaded"),
+    DrawDefaultText(TextFormat("Tileset : %s", !tilesonMap->tilesets.empty() ? "Loaded" : "Not loaded"),
              (int)bounds.x + 10, (int)bounds.y + 67, 16, !tilesonMap->tilesets.empty() ? GREEN : RED);
 }
 
@@ -356,9 +357,9 @@ void Debug::DrawMapPanel(Rectangle bounds)
 void Debug::DrawCameraPanel(Rectangle bounds)
 {
     DrawPanelFrame(bounds, "[ CAMERA DEBUG ]", SKYBLUE);
-    DrawText(TextFormat("Target  : (%.1f, %.1f)", camera.target.x, camera.target.y),
+    DrawDefaultText(TextFormat("Target  : (%.1f, %.1f)", camera.target.x, camera.target.y),
              (int)bounds.x + 10, (int)bounds.y + 27, 16, WHITE);
-    DrawText(TextFormat("Zoom    : %.2f", camera.zoom),
+    DrawDefaultText(TextFormat("Zoom    : %.2f", camera.zoom),
              (int)bounds.x + 10, (int)bounds.y + 47, 16, WHITE);
 }
 
@@ -372,13 +373,13 @@ void Debug::DrawCameraPanel(Rectangle bounds)
 void Debug::DrawPlayerPanel(Rectangle bounds)
 {
     DrawPanelFrame(bounds, "[ PLAYER DEBUG ]", GREEN);
-    DrawText(TextFormat("Position   : (%.1f, %.1f)", PlayerInstance.GetPosition().x, PlayerInstance.GetPosition().y),
+    DrawDefaultText(TextFormat("Position   : (%.1f, %.1f)", PlayerInstance.GetPosition().x, PlayerInstance.GetPosition().y),
              (int)bounds.x + 10, (int)bounds.y + 27, 16, WHITE);
-    DrawText(TextFormat("Speed      : %.1f", PlayerInstance.Speed),
+    DrawDefaultText(TextFormat("Speed      : %.1f", PlayerInstance.Speed),
              (int)bounds.x + 10, (int)bounds.y + 47, 16, WHITE);
-    DrawText(TextFormat("Hitbox Size: %.1f x %.1f", PlayerInstance.GetHitboxWidth(), PlayerInstance.GetHitboxHeight()),
+    DrawDefaultText(TextFormat("Hitbox Size: %.1f x %.1f", PlayerInstance.GetHitboxWidth(), PlayerInstance.GetHitboxHeight()),
              (int)bounds.x + 10, (int)bounds.y + 67, 16, YELLOW);
-    DrawText(TextFormat("Hitbox Off : (%.1f, %.1f)", PlayerInstance.GetHitboxOffsetX(), PlayerInstance.GetHitboxOffsetY()),
+    DrawDefaultText(TextFormat("Hitbox Off : (%.1f, %.1f)", PlayerInstance.GetHitboxOffsetX(), PlayerInstance.GetHitboxOffsetY()),
              (int)bounds.x + 10, (int)bounds.y + 87, 16, YELLOW);
 }
 
@@ -407,9 +408,9 @@ void Debug::DrawZoomPanel(Rectangle bounds)
     }
 
     DrawPanelFrame(bounds, "[ ZOOM DEBUG ]", ORANGE);
-    DrawText(TextFormat("Zoom    : %.2f", camera.zoom),
+    DrawDefaultText(TextFormat("Zoom    : %.2f", camera.zoom),
              (int)bounds.x + 10, (int)bounds.y + 27, 16, WHITE);
-    DrawText("[Scroll] Zoom In/Out",
+    DrawDefaultText("[Scroll] Zoom In/Out",
              (int)bounds.x + 10, (int)bounds.y + 47, 16, YELLOW);
 }
 
@@ -428,13 +429,13 @@ void Debug::DrawFrustumPanel(Rectangle bounds)
     int totalMapTiles = tilesonMap->width * tilesonMap->height * tilesonMap->layerCount;
 
     DrawPanelFrame(bounds, "[ FRUSTUM DEBUG ]", VIOLET);
-    DrawText(TextFormat("Tiles Drawn : %d", lastTilesRendered),
+    DrawDefaultText(TextFormat("Tiles Drawn : %d", lastTilesRendered),
              (int)bounds.x + 10, (int)bounds.y + 27, 16, WHITE);
-    DrawText(TextFormat("Total Map   : %d", totalMapTiles),
+    DrawDefaultText(TextFormat("Total Map   : %d", totalMapTiles),
              (int)bounds.x + 10, (int)bounds.y + 47, 16, GRAY);
-    DrawText(TextFormat("Range X: %d-%d", currentVisibleRange.minX, currentVisibleRange.maxX),
+    DrawDefaultText(TextFormat("Range X: %d-%d", currentVisibleRange.minX, currentVisibleRange.maxX),
              (int)bounds.x + 10, (int)bounds.y + 67, 16, WHITE);
-    DrawText(TextFormat("Range Y: %d-%d", currentVisibleRange.minY, currentVisibleRange.maxY),
+    DrawDefaultText(TextFormat("Range Y: %d-%d", currentVisibleRange.minY, currentVisibleRange.maxY),
              (int)bounds.x + 10, (int)bounds.y + 87, 16, WHITE);
 }
 
@@ -466,13 +467,13 @@ void Debug::DrawCollisionPanel(Rectangle bounds)
     }
 
     DrawPanelFrame(bounds, "[ COLLISION DEBUG ]", RED);
-    DrawText(TextFormat("Rect Count     : %d", collisionRectCount),
+    DrawDefaultText(TextFormat("Rect Count     : %d", collisionRectCount),
              (int)bounds.x + 10, (int)bounds.y + 27, 16, WHITE);
-    DrawText(TextFormat("Polygon Count  : %d", collisionPolygonCount),
+    DrawDefaultText(TextFormat("Polygon Count  : %d", collisionPolygonCount),
              (int)bounds.x + 10, (int)bounds.y + 47, 16, WHITE);
-    DrawText(TextFormat("Map Bound Poly : %d", mapBoundPolygonCount),
+    DrawDefaultText(TextFormat("Map Bound Poly : %d", mapBoundPolygonCount),
              (int)bounds.x + 10, (int)bounds.y + 67, 16, WHITE);
-    DrawText(TextFormat("Boundary Mode  : %s", mapBoundPolygonCount > 0 ? "Custom Polygon" : "Default Rectangle"),
+    DrawDefaultText(TextFormat("Boundary Mode  : %s", mapBoundPolygonCount > 0 ? "Custom Polygon" : "Default Rectangle"),
              (int)bounds.x + 10, (int)bounds.y + 87, 16, mapBoundPolygonCount > 0 ? GREEN : YELLOW);
 }
 
@@ -553,7 +554,7 @@ void Debug::DrawWorldOverlay(void)
         {
             const ItemDefinition &def = itemDefs.GetById(item.definitionId);
             DrawRectangleLinesEx(item.hitbox, 1.5f, PINK);
-            DrawText(def.name.c_str(), (int)item.hitbox.x, (int)item.hitbox.y - 12, 10, PINK);
+            DrawDefaultText(def.name.c_str(), (int)item.hitbox.x, (int)item.hitbox.y - 12, 10, PINK);
         }
     }
 }

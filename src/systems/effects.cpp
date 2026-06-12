@@ -2,6 +2,7 @@
 #include "effectQueue.h"
 #include "animation.h"
 #include "player.h"
+#include "fonts.h"
 #include <vector>
 
 namespace Effects {
@@ -64,7 +65,7 @@ namespace Effects {
                 
                 std::string dmgStr = std::to_string((int)data.damage);
                 int textW = MeasureText(dmgStr.c_str(), 10);
-                DrawText(dmgStr.c_str(), (int)(data.position.x - textW / 2.0f), (int)data.position.y, 10, color);
+                DrawDefaultText(dmgStr.c_str(), (int)(data.position.x - textW / 2.0f), (int)data.position.y, 10, color);
             }
             currentDmg = currentDmg->next;
         }
@@ -87,8 +88,8 @@ namespace Effects {
             int y = (int)(playerCenter.y + entry.verticalOffset + (index * LOG_LINE_HEIGHT));
 
             // Draw shadow & text
-            DrawText(entry.text.c_str(), x + 1, y + 1, fontSize, ColorAlpha(BLACK, alpha * 0.7f));
-            DrawText(entry.text.c_str(), x, y, fontSize, ColorAlpha(WHITE, alpha));
+            DrawDefaultText(entry.text.c_str(), x + 1, y + 1, fontSize, ColorAlpha(BLACK, alpha * 0.7f));
+            DrawDefaultText(entry.text.c_str(), x, y, fontSize, ColorAlpha(WHITE, alpha));
 
             currentLog = currentLog->next;
             index++;

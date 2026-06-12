@@ -419,6 +419,7 @@ void DrawRenderTexture(GameState *state)
 void DrawUIOverlay(GameState *state)
 {
     DrawPlayerHUD();
+    DrawBossHPBar();
 
     // 2. FPS Counter (if enabled)
     if (state->showFPS)
@@ -426,7 +427,7 @@ void DrawUIOverlay(GameState *state)
         int fps = GetFPS();
         char fpsText[16];
         snprintf(fpsText, sizeof(fpsText), "FPS: %d", fps);
-        DrawText(fpsText, 10, 10, 20, GREEN);
+        DrawDefaultText(fpsText, 10, 10, 20, GREEN);
     }
 
     // 3. Sign dialog overlay (placeholder UI)

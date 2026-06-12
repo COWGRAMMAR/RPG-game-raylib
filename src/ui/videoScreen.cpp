@@ -1,4 +1,5 @@
 #include "videoScreen.h"
+#include "fonts.h"
 
 // -----------------------------------------------------------------------------
 // Konstruktor / Destruktor
@@ -146,7 +147,7 @@ void VideoScreen::Draw()
         const int screenW = GetScreenWidth();
         const int screenH = GetScreenHeight();
 
-        DrawText(
+        DrawDefaultText(
             loadingText,
             (screenW - textW) / 2,
             screenH / 2 - fontSize / 2,
@@ -164,7 +165,7 @@ void VideoScreen::Draw()
         const int screenH = GetScreenHeight();
         const Color hintColor = { 255, 255, 255, 180 };
 
-        DrawText(
+        DrawDefaultText(
             skipText,
             screenW - textW - 20,
             screenH - fontSize - 20,

@@ -22,7 +22,7 @@ using json = nlohmann::json;
  *==============================================================================*/
 
 /** @brief Global slider state untuk tab Audio */
-SliderState g_sliders = {100, 100, 100, false, -1};
+SliderState g_sliders = {100, 100, 100, 100, false, -1};
 
 /*==============================================================================
  * Constants
@@ -86,7 +86,7 @@ static void DrawSliderBar(
     Vector2 mousePosition)
 {
     // Label
-    DrawTextEx(fontLoadingTitle, label,
+    DrawTextEx(GetOrLoad(FontId::LOADING_TITLE), label,
         Vector2{static_cast<float>(LABEL_X), static_cast<float>(barY - 5)},
         FONT_SIZE, 0, WHITE);
 
@@ -100,13 +100,13 @@ static void DrawSliderBar(
         DrawRectangle(barX, barY, fillWidth, SLIDER_HEIGHT, SLIDER_FILL);
     }
 
-    // value text pakai fontLoadingTitle (bold) menggantikan fontKeybindEntry
+    // value text pakai GetOrLoad(FontId::LOADING_TITLE) (bold) menggantikan GetOrLoad(FontId::KEYBIND_ENTRY)
     char valueStr[16];
     snprintf(valueStr, sizeof(valueStr), "%d%%", valuePct);
-    Vector2 textSize = MeasureTextEx(fontLoadingTitle, valueStr, FONT_SIZE, 0);
+    Vector2 textSize = MeasureTextEx(GetOrLoad(FontId::LOADING_TITLE), valueStr, FONT_SIZE, 0);
     float valX = barX + (SLIDER_WIDTH - textSize.x) * 0.5f;
     float valY = barY + (SLIDER_HEIGHT - textSize.y) * 0.5f;
-    DrawTextEx(fontLoadingTitle, valueStr,
+    DrawTextEx(GetOrLoad(FontId::LOADING_TITLE), valueStr,
         Vector2{valX, valY}, FONT_SIZE, 0, BLACK);
 
     // Hover effect

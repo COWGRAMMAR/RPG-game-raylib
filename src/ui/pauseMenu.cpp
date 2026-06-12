@@ -189,7 +189,7 @@ void OptionsScreen::CalculateDimensions()
         labelFontSize,
         isFullscreen ? GREEN : RED,
         0.7F,
-        fontLoadingTitle);
+        GetOrLoad(FontId::LOADING_TITLE));
 
     fpsButton = buttonTxt(
         showFPS ? "ON" : "OFF",
@@ -198,9 +198,9 @@ void OptionsScreen::CalculateDimensions()
         labelFontSize,
         showFPS ? GREEN : GRAY,
         0.7F,
-        fontLoadingTitle);
+        GetOrLoad(FontId::LOADING_TITLE));
 
-    // tombol Reset Tab / Reset All pakai fontLoadingTitle (bold)
+    // tombol Reset Tab / Reset All pakai GetOrLoad(FontId::LOADING_TITLE) (bold)
     resetTabButton = buttonTxt(
         "Reset Tab",
         startX + 60,
@@ -208,7 +208,7 @@ void OptionsScreen::CalculateDimensions()
         20,
         ORANGE,
         0.7F,
-        fontLoadingTitle);
+        GetOrLoad(FontId::LOADING_TITLE));
 
     resetOptionsButton = buttonTxt(
         "Reset All",
@@ -217,7 +217,7 @@ void OptionsScreen::CalculateDimensions()
         20,
         ORANGE,
         0.7F,
-        fontLoadingTitle);
+        GetOrLoad(FontId::LOADING_TITLE));
 }
 
 /**
@@ -261,9 +261,9 @@ void OptionsScreen::Update(GameState* state, Vector2 mousePosition, bool mouseCl
             state->showFPS = false;
             showFPS = false;
         } else if (selectedTab == 1) {
-            g_sliders = {100, 100, 100, false, -1};
-            AudioManager::SetVolumesFromPct(100, 100, 100);
-            SaveAudioSettings(g_sliders.masterVolume, g_sliders.musicVolume, g_sliders.sfxVolume);
+            g_sliders = {100, 100, 100, 100, false, -1};
+            AudioManager::SetVolumesFromPct(100, 100, 100, 100);
+            SaveAudioSettings(g_sliders.masterVolume, g_sliders.musicVolume, g_sliders.sfxVolume, g_sliders.videoVolume);
         } else if (selectedTab == 2) {
             keybindManager.ResetDefaults();
             keybindManager.SaveToFile(paths[2]);
@@ -287,9 +287,9 @@ void OptionsScreen::Update(GameState* state, Vector2 mousePosition, bool mouseCl
             ToggleFullscreenMode();
         state->showFPS = false;
         showFPS = false;
-        g_sliders = {100, 100, 100, false, -1};
-        AudioManager::SetVolumesFromPct(100, 100, 100);
-        SaveAudioSettings(g_sliders.masterVolume, g_sliders.musicVolume, g_sliders.sfxVolume);
+        g_sliders = {100, 100, 100, 100, false, -1};
+        AudioManager::SetVolumesFromPct(100, 100, 100, 100);
+        SaveAudioSettings(g_sliders.masterVolume, g_sliders.musicVolume, g_sliders.sfxVolume, g_sliders.videoVolume);
         keybindManager.ResetDefaults();
         keybindManager.SaveToFile("saves/settings/keybindsTab.json");
         CalculateDimensions();

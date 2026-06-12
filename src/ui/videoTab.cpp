@@ -27,10 +27,10 @@ void DrawVideoTab(
     const int fontSize = 34;
     int labelX = startX + 40;
 
-    DrawTextEx(fontLoadingTitle, "Fullscreen",
+    DrawTextEx(GetOrLoad(FontId::LOADING_TITLE), "Fullscreen",
         Vector2{static_cast<float>(labelX), static_cast<float>(contentStartY + 12)},
         fontSize, 0, WHITE);
-    DrawTextEx(fontLoadingTitle, "Show FPS",
+    DrawTextEx(GetOrLoad(FontId::LOADING_TITLE), "Show FPS",
         Vector2{static_cast<float>(labelX), static_cast<float>(contentStartY + 72)},
         fontSize, 0, WHITE);
 

@@ -87,13 +87,13 @@ static float CalculateMaxNameWidth()
         for (int ai = 0; ai < sec.actionCount; ai++)
         {
             Action a = static_cast<Action>(sec.actionIndices[ai]);
-            Vector2 sz = MeasureTextEx(fontKeybindEntry, keybindManager.GetActionName(a), KEYB_FONT_SZ, 0);
+            Vector2 sz = MeasureTextEx(GetOrLoad(FontId::KEYBIND_ENTRY), keybindManager.GetActionName(a), KEYB_FONT_SZ, 0);
             if (sz.x > maxW)
                 maxW = sz.x;
         }
         for (int ii = 0; ii < sec.infoCount; ii++)
         {
-            Vector2 sz = MeasureTextEx(fontKeybindEntry, sec.infoEntries[ii].actionName, KEYB_FONT_SZ, 0);
+            Vector2 sz = MeasureTextEx(GetOrLoad(FontId::KEYBIND_ENTRY), sec.infoEntries[ii].actionName, KEYB_FONT_SZ, 0);
             if (sz.x > maxW)
                 maxW = sz.x;
         }
@@ -208,7 +208,7 @@ static void RenderSection(const SectionInfo &sec, int startX, int &currentLocalY
     // Header
     if (isVisible(currentLocalY, HEADER_HEIGHT))
     {
-        DrawTextEx(fontKeybindHeader, sec.title,
+        DrawTextEx(GetOrLoad(FontId::KEYBIND_HEADER), sec.title,
                    Vector2{(float)(startX + COL_X), (float)screenY(currentLocalY)},
                    KEYB_HEADER_SZ, 0, sec.color);
     }
@@ -248,8 +248,8 @@ static void RenderSection(const SectionInfo &sec, int startX, int &currentLocalY
         Color keyColor = isListening ? GREEN : WHITE;
 
         // Hover background (±1 spasi kiri/kanan)
-        Vector2 keySz = MeasureTextEx(fontKeybindEntry, keyName, KEYB_FONT_SZ, 0);
-        Vector2 spaceSz = MeasureTextEx(fontKeybindEntry, " ", KEYB_FONT_SZ, 0);
+        Vector2 keySz = MeasureTextEx(GetOrLoad(FontId::KEYBIND_ENTRY), keyName, KEYB_FONT_SZ, 0);
+        Vector2 spaceSz = MeasureTextEx(GetOrLoad(FontId::KEYBIND_ENTRY), " ", KEYB_FONT_SZ, 0);
         int rowStartX = keyBoxX - (int)spaceSz.x;
         int rowEndX = keyColX + (int)keySz.x + (int)spaceSz.x;
         int rowW = rowEndX - rowStartX;
@@ -265,11 +265,11 @@ static void RenderSection(const SectionInfo &sec, int startX, int &currentLocalY
             DrawRectangle(rowStartX, keyBoxY, rowW, ROW_HEIGHT, bgColor);
 
         // Format: "Action Name =>  [Key]" (tab-stop alignment)
-        DrawTextEx(fontKeybindEntry, actionName,
+        DrawTextEx(GetOrLoad(FontId::KEYBIND_ENTRY), actionName,
                    Vector2{(float)keyBoxX, (float)y}, KEYB_FONT_SZ, 0, WHITE);
-        DrawTextEx(fontKeybindEntry, " =>  ",
+        DrawTextEx(GetOrLoad(FontId::KEYBIND_ENTRY), " =>  ",
                    Vector2{(float)nameColEndX, (float)y}, KEYB_FONT_SZ, 0, BLACK);
-        DrawTextEx(fontKeybindEntry, keyName,
+        DrawTextEx(GetOrLoad(FontId::KEYBIND_ENTRY), keyName,
                    Vector2{(float)keyColX, (float)y}, KEYB_FONT_SZ, 0, keyColor);
 
         // Click entry → mulai listening
@@ -296,11 +296,11 @@ static void RenderSection(const SectionInfo &sec, int startX, int &currentLocalY
         const InfoEntry &info = sec.infoEntries[ii];
 
         // "Action Name =>  [Combo]" (tab-stop alignment, warna entry biasa)
-        DrawTextEx(fontKeybindEntry, info.actionName,
+        DrawTextEx(GetOrLoad(FontId::KEYBIND_ENTRY), info.actionName,
                    Vector2{(float)keyBoxX, (float)y}, KEYB_FONT_SZ, 0, WHITE);
-        DrawTextEx(fontKeybindEntry, " =>  ",
+        DrawTextEx(GetOrLoad(FontId::KEYBIND_ENTRY), " =>  ",
                    Vector2{(float)nameColEndX, (float)y}, KEYB_FONT_SZ, 0, BLACK);
-        DrawTextEx(fontKeybindEntry, info.comboDisplay,
+        DrawTextEx(GetOrLoad(FontId::KEYBIND_ENTRY), info.comboDisplay,
                    Vector2{(float)keyColX, (float)y}, KEYB_FONT_SZ, 0, WHITE);
 
         currentLocalY += ROW_HEIGHT;
@@ -317,8 +317,8 @@ static void DrawToastNotification(const char toastLine1[128], const char toastLi
     if (toastTimer <= 0 || !toastLine1[0])
         return;
 
-    Vector2 sz1 = MeasureTextEx(fontLoadingTitle, toastLine1, KEYB_TOAST_SZ, 0);
-    Vector2 sz2 = MeasureTextEx(fontLoadingTitle, toastLine2, KEYB_TOAST_SZ, 0);
+    Vector2 sz1 = MeasureTextEx(GetOrLoad(FontId::LOADING_TITLE), toastLine1, KEYB_TOAST_SZ, 0);
+    Vector2 sz2 = MeasureTextEx(GetOrLoad(FontId::LOADING_TITLE), toastLine2, KEYB_TOAST_SZ, 0);
     int toastW = std::max((int)sz1.x, (int)sz2.x) + 40;
     int toastH = (sz1.y > 0 ? (int)sz1.y + 10 : 0) + (sz2.y > 0 ? (int)sz2.y : 0) + 30;
     int toastX = GameScreenWidth - toastW - 20;
@@ -331,10 +331,10 @@ static void DrawToastNotification(const char toastLine1[128], const char toastLi
                          Color{255, 165, 0, a});
 
     float textY = toastY + 15.0f;
-    DrawTextEx(fontLoadingTitle, toastLine1,
+    DrawTextEx(GetOrLoad(FontId::LOADING_TITLE), toastLine1,
                Vector2{(float)(toastX + 20), textY}, KEYB_TOAST_SZ, 0, Color{255, 255, 255, a});
     textY += sz1.y + 10.0f;
-    DrawTextEx(fontLoadingTitle, toastLine2,
+    DrawTextEx(GetOrLoad(FontId::LOADING_TITLE), toastLine2,
                Vector2{(float)(toastX + 20), textY}, KEYB_TOAST_SZ, 0, Color{255, 255, 255, a});
 }
 
@@ -351,12 +351,12 @@ static void DrawListeningPopup(int startX, int startY, int contentW)
 
     const char *line1 = "Press a key or click a mouse button.";
     const char *line2 = "ESC to cancel.";
-    Vector2 sz1 = MeasureTextEx(fontLoadingTitle, line1, KEYB_TOAST_SZ, 0);
-    Vector2 sz2 = MeasureTextEx(fontLoadingTitle, line2, KEYB_TOAST_SZ, 0);
-    DrawTextEx(fontLoadingTitle, line1,
+    Vector2 sz1 = MeasureTextEx(GetOrLoad(FontId::LOADING_TITLE), line1, KEYB_TOAST_SZ, 0);
+    Vector2 sz2 = MeasureTextEx(GetOrLoad(FontId::LOADING_TITLE), line2, KEYB_TOAST_SZ, 0);
+    DrawTextEx(GetOrLoad(FontId::LOADING_TITLE), line1,
                Vector2{(float)(popupX + (POPUP_W - sz1.x) / 2), (float)(popupY + 8)},
                KEYB_TOAST_SZ, 0, WHITE);
-    DrawTextEx(fontLoadingTitle, line2,
+    DrawTextEx(GetOrLoad(FontId::LOADING_TITLE), line2,
                Vector2{(float)(popupX + (POPUP_W - sz2.x) / 2), (float)(popupY + 44)},
                KEYB_TOAST_SZ, 0, GREEN);
 }

@@ -25,10 +25,11 @@ namespace Combat
         if (player.Anim.isDead)
             return;
 
+        HandleStamina(player);
+
         if (InputInstance.IsInventoryOpen())
             return;
 
-        HandleStamina(player);
         HandleAttack(player);
     }
 

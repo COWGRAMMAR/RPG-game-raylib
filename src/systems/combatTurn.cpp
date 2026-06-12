@@ -10,6 +10,7 @@
 #include <raylib.h>
 #include <raymath.h>
 #include <cstdio>
+#include "fonts.h"
 #include <algorithm>
 
 extern const int GameScreenWidth;
@@ -95,9 +96,6 @@ void TurnCombat::Init(Enemy* boss, Player* player) {
 
     // Player faces right during combat
     PlayAnimation(player->Anim, IDLE, RIGHT);
-
-    // Play boss theme
-    AudioManager::PlayTrack("Boss");
 }
 
 static void TransitionTo(TurnPhase newPhase) {
@@ -488,7 +486,7 @@ static void DrawHealthBar(float x, float y, float w, float h, float ratio, Color
 
 static void DrawTextCentered(const char* text, int y, int fontSize, Color color) {
     int textW = MeasureText(text, fontSize);
-    DrawText(text, (GameScreenWidth - textW) / 2, y, fontSize, color);
+    DrawDefaultText(text, (GameScreenWidth - textW) / 2, y, fontSize, color);
 }
 
 static void DrawActionButton(const char* key, const char* label, int x, int y, int w, int h, bool selected, bool highlight) {
@@ -503,7 +501,7 @@ static void DrawActionButton(const char* key, const char* label, int x, int y, i
     snprintf(fullLabel, sizeof(fullLabel), "[%s] %s", key, label);
     int fontSize = 20;
     int textW = MeasureText(fullLabel, fontSize);
-    DrawText(fullLabel, x + (w - textW) / 2, y + (h - fontSize) / 2, fontSize, highlight ? GOLD : WHITE);
+    DrawDefaultText(fullLabel, x + (w - textW) / 2, y + (h - fontSize) / 2, fontSize, highlight ? GOLD : WHITE);
 }
 
 void TurnCombat::Draw() {
@@ -522,7 +520,7 @@ void TurnCombat::Draw() {
     int playerX = 60;
     DrawRectangleRounded((Rectangle){(float)playerX, (float)panelY, (float)panelW, (float)panelH}, 0.2f, 8, ColorAlpha(BLACK, 0.5f));
     DrawRectangleRoundedLinesEx((Rectangle){(float)playerX, (float)panelY, (float)panelW, (float)panelH}, 0.2f, 8, OUTLINE_THICK, ColorAlpha(BLUE, 0.5f));
-    DrawText("PLAYER", playerX + 15, panelY + 10, 18, BLUE);
+    DrawDefaultText("PLAYER", playerX + 15, panelY + 10, 18, BLUE);
 
     float hp = state.player->Health;
     float maxHp = state.player->MaxHealth;
@@ -532,13 +530,13 @@ void TurnCombat::Draw() {
 
     char hpText[32];
     snprintf(hpText, sizeof(hpText), "HP: %.0f / %.0f", hp, maxHp);
-    DrawText(hpText, playerX + 15, panelY + 70, 16, WHITE);
+    DrawDefaultText(hpText, playerX + 15, panelY + 70, 16, WHITE);
 
     float mana = state.player->Mana;
     float maxMana = state.player->MaxMana;
     char manaText[32];
     snprintf(manaText, sizeof(manaText), "MP: %.0f / %.0f", mana, maxMana);
-    DrawText(manaText, playerX + 15, panelY + 90, 16, GOLD);
+    DrawDefaultText(manaText, playerX + 15, panelY + 90, 16, GOLD);
 
     // Boss panel (right)
     int bossX = GameScreenWidth - 60 - panelW;
@@ -548,7 +546,7 @@ void TurnCombat::Draw() {
     const char* bossName = state.boss->Def ? state.boss->Def->name.c_str() : "BOSS";
     char bossLabel[64];
     snprintf(bossLabel, sizeof(bossLabel), "BOSS: %s", bossName);
-    DrawText(bossLabel, bossX + 15, panelY + 10, 18, RED);
+    DrawDefaultText(bossLabel, bossX + 15, panelY + 10, 18, RED);
 
     float bossHp = state.boss->Health;
     float bossMaxHp = state.boss->MaxHealth;
@@ -557,10 +555,10 @@ void TurnCombat::Draw() {
 
     char bossHpText[32];
     snprintf(bossHpText, sizeof(bossHpText), "HP: %.0f / %.0f", bossHp, bossMaxHp);
-    DrawText(bossHpText, bossX + 15, panelY + 70, 16, WHITE);
+    DrawDefaultText(bossHpText, bossX + 15, panelY + 70, 16, WHITE);
 
     if (state.playerDefending) {
-        DrawText(">>> BERTAHAN! <<<", bossX + 15, panelY + 90, 14, GREEN);
+        DrawDefaultText(">>> BERTAHAN! <<<", bossX + 15, panelY + 90, 14, GREEN);
     }
 
     // Boss sprite area — below boss panel
@@ -611,11 +609,11 @@ void TurnCombat::Draw() {
         int textX = (GameScreenWidth - textW) / 2;
         int textY = GameScreenHeight / 2 - fontSize / 2 - 40;
 
-        DrawText(menangText, textX - 3, textY, fontSize, YELLOW);
-        DrawText(menangText, textX + 3, textY, fontSize, YELLOW);
-        DrawText(menangText, textX, textY - 3, fontSize, YELLOW);
-        DrawText(menangText, textX, textY + 3, fontSize, YELLOW);
-        DrawText(menangText, textX, textY, fontSize, WHITE);
+        DrawDefaultText(menangText, textX - 3, textY, fontSize, YELLOW);
+        DrawDefaultText(menangText, textX + 3, textY, fontSize, YELLOW);
+        DrawDefaultText(menangText, textX, textY - 3, fontSize, YELLOW);
+        DrawDefaultText(menangText, textX, textY + 3, fontSize, YELLOW);
+        DrawDefaultText(menangText, textX, textY, fontSize, WHITE);
 
         // Loot list below the title (icon + text centered as group)
         int lootY = textY + fontSize + 20;
@@ -632,7 +630,7 @@ void TurnCombat::Draw() {
             Rectangle iconDest = {(float)groupX, (float)itemY - 3, (float)iconSize, (float)iconSize};
             Display iconDisplay = {{iconDest.x, iconDest.y}, (int)iconDest.width, {0,0}, {0,0}, 0.0f, WHITE};
             DrawFrame(def.spriteKey, iconDisplay);
-            DrawText(itemText, groupX + iconSize + gap, itemY + 4, 20, LIGHTGRAY);
+            DrawDefaultText(itemText, groupX + iconSize + gap, itemY + 4, 20, LIGHTGRAY);
         }
 
         DrawTextCentered("Tekan ENTER atau klik untuk melanjutkan.", GameScreenHeight - 60, 20, GREEN);
@@ -668,7 +666,6 @@ void TurnCombat::Shutdown() {
     if (state.boss)
     {
         state.boss->isTurnBasedMode = false;
-        state.boss->bossMusicPlaying = false;
         state.boss->Position = state.origBossPos;
     }
     if (state.player)

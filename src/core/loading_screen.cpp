@@ -291,7 +291,6 @@ static void HandleFastPath(GameState* state)
     }
 
     InitAll();
-    InitFonts();
     if (HasSavedState())
     {
         RestoreGameState(state);
@@ -501,10 +500,10 @@ void RenderLoadingScreen(GameState *state)
     BeginTextureMode(state->Dungeon);
     DrawMenuBackground();
 
-    Vector2 textSize = MeasureTextEx(fontLoadingTitle, state->loadingText, 32, 2);
+    Vector2 textSize = MeasureTextEx(GetOrLoad(FontId::LOADING_TITLE), state->loadingText, 32, 2);
     float textX = (GameScreenWidth - textSize.x) / 2.0f;
     float textY = (float)(GameScreenHeight / 2) - textSize.y - 30.0f;
-    DrawTextEx(fontLoadingTitle, state->loadingText, {textX, textY}, 32, 2, WHITE);
+    DrawTextEx(GetOrLoad(FontId::LOADING_TITLE), state->loadingText, {textX, textY}, 32, 2, WHITE);
 
     // Smooth progress bar animation
     static float currentDisplayProgress = 0.0f;
@@ -534,18 +533,18 @@ void RenderLoadingScreen(GameState *state)
 
     std::array<char, 10> progressText;
     sprintf(progressText.data(), "%d%%", (int)state->loadingProgress);
-    Vector2 pctSize = MeasureTextEx(fontLoadingTitle, progressText.data(), 20, 1);
+    Vector2 pctSize = MeasureTextEx(GetOrLoad(FontId::LOADING_TITLE), progressText.data(), 20, 1);
     float pctX = (GameScreenWidth - pctSize.x) / 2.0f;
     float pctY = (float)(GameScreenHeight / 2) + 50.0f;
-    DrawTextEx(fontLoadingTitle, progressText.data(), {pctX, pctY}, 20, 1, WHITE);
+    DrawTextEx(GetOrLoad(FontId::LOADING_TITLE), progressText.data(), {pctX, pctY}, 20, 1, WHITE);
 
     // Map name display
     std::string mapName = GetDisplayMapName();
     if (!mapName.empty()) {
-        Vector2 mapSize = MeasureTextEx(fontLoadingTitle, mapName.c_str(), 18, 1);
+        Vector2 mapSize = MeasureTextEx(GetOrLoad(FontId::LOADING_TITLE), mapName.c_str(), 18, 1);
         float mapX = (GameScreenWidth - mapSize.x) / 2.0f;
         float mapY = (float)(GameScreenHeight / 2) + 80.0f;
-        DrawTextEx(fontLoadingTitle, mapName.c_str(), {mapX, mapY}, 18, 1, ColorAlpha(WHITE, 0.6f));
+        DrawTextEx(GetOrLoad(FontId::LOADING_TITLE), mapName.c_str(), {mapX, mapY}, 18, 1, ColorAlpha(WHITE, 0.6f));
     }
 
     EndTextureMode();

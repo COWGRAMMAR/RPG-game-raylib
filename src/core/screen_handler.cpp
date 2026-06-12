@@ -6,9 +6,10 @@
  * Semua rendering dan update logic masuk lewat fungsi-fungsi di sini.
  *
  * Arsitektur rendering:
- * - Game dirender ke RenderTexture2D virtual (1280x720)
- * - Texture virtual di-scale ke window asli sambil jaga aspect ratio
- * - Sisi yang tidak terpakai diisi black bar (letterbox)
+ * - Game dirender ke RenderTexture2D virtual (1600x900) — fixed native res
+ * - Texture virtual di-scale ke window asli (crop-to-fill, no black bars)
+ * - Camera zoom = GScreenWidth / 1280 (1.25) agar world area sama dengan original
+ * - POINT filter menjaga ketajaman pixel saat scaling
  *
  * Urutan init yang benar:
  * InitScreen() → InitMap() → InitAll() → masuk game loop
@@ -33,6 +34,7 @@
 #include "interaction.h"
 #include "input.h"
 #include <cstdio>
+#include <algorithm>
 #include "enemy_ai.h"
 #include "raylib.h"
 #include "raymath.h"
@@ -70,8 +72,8 @@ const float ScaleMultiplierMonitor = 0.7F;
 /** @brief Skala minimum monitor */
 const float ScaleMinMultiplierMonitor = 0.4F;
 
-extern const int GameScreenWidth = 1280;
-extern const int GameScreenHeight = 720;
+int GScreenWidth = 1600;
+int GScreenHeight = 900;
 
 /*==============================================================================
  * Initialization
@@ -100,9 +102,9 @@ void InitAll()
     // set camera ke tengah posisi spawn player
     Vector2 spawnPos = PlayerInstance.GetPosition();
     camera.target = {spawnPos.x + (FRAME_SIZE / 2.0F), spawnPos.y + (FRAME_SIZE / 2.0F)};
-    camera.offset = {(float)(GameScreenWidth / 2), (float)(GameScreenHeight / 2)};
+    camera.offset = {(float)(GScreenWidth / 2), (float)(GScreenHeight / 2)};
     camera.rotation = 0;
-    camera.zoom = 1.0F;
+    camera.zoom = (float)GScreenWidth / 1280.0F;
 
     // Daftarkan player ke sistem entitas agar diupdate & dirender otomatis (Index 0)
     Entities::Add(&PlayerInstance);
@@ -156,17 +158,14 @@ GameState InitScreen()
 
     state.WindowScreenWidth = (int)(GetMonitorWidth(0) * ScaleMultiplierMonitor);
     state.WindowScreenHeight = (int)(GetMonitorHeight(0) * ScaleMultiplierMonitor);
-    state.ScaleMultiplier = MIN(
-        (float)state.WindowScreenWidth / GameScreenWidth,
-        (float)state.WindowScreenHeight / GameScreenHeight);
 
     SetWindowSize(state.WindowScreenWidth, state.WindowScreenHeight);
     SetWindowMinSize(
         (int)(GetMonitorWidth(0) * ScaleMinMultiplierMonitor),
         (int)(GetMonitorHeight(0) * ScaleMinMultiplierMonitor));
 
-    state.Dungeon = LoadRenderTexture(GameScreenWidth, GameScreenHeight);
-    SetTextureFilter(state.Dungeon.texture, TEXTURE_FILTER_BILINEAR);
+    state.Dungeon = LoadRenderTexture(GScreenWidth, GScreenHeight);
+    SetTextureFilter(state.Dungeon.texture, TEXTURE_FILTER_POINT);
 
     state.WindowedWidth = state.WindowScreenWidth;
     state.WindowedHeight = state.WindowScreenHeight;
@@ -202,9 +201,6 @@ void UpdateGame(GameState *state)
     {
         state->WindowScreenWidth = w;
         state->WindowScreenHeight = h;
-        state->ScaleMultiplier = MIN(
-            (float)w / GameScreenWidth,
-            (float)h / GameScreenHeight);
 
         if (!IsWindowFullscreen())
         {
@@ -456,24 +452,30 @@ void DrawUIOverlay(GameState *state)
 }
 
 /**
- * @brief Scale dan render layar virtual ke window asli
+ * @brief Scale dan render layar virtual (1600x900) ke window asli
+ *
+ * Crop-to-fill: menjaga aspect ratio, tidak ada black bars.
+ * Virtual canvas di-crop simetris untuk mengisi penuh window.
  */
 void DrawRenderWindows(GameState *state)
 {
-    float offsetX = (state->WindowScreenWidth - ((float)GameScreenWidth * state->ScaleMultiplier)) * 0.5F;
-    float offsetY = (state->WindowScreenHeight - ((float)GameScreenHeight * state->ScaleMultiplier)) * 0.5F;
+    float scale = std::max(
+        (float)state->WindowScreenWidth / (float)GScreenWidth,
+        (float)state->WindowScreenHeight / (float)GScreenHeight);
+    float virtualW = (float)state->WindowScreenWidth / scale;
+    float virtualH = (float)state->WindowScreenHeight / scale;
+    float cropX = ((float)GScreenWidth - virtualW) * 0.5F;
+    float cropY = ((float)GScreenHeight - virtualH) * 0.5F;
 
     BeginDrawing();
     ClearBackground(BLACK);
-
     DrawTexturePro(
         state->Dungeon.texture,
-        (Rectangle){0, 0, (float)GameScreenWidth, -(float)GameScreenHeight},
-        (Rectangle){offsetX, offsetY, (float)GameScreenWidth * state->ScaleMultiplier, (float)GameScreenHeight * state->ScaleMultiplier},
+        (Rectangle){cropX, (float)GScreenHeight - cropY, virtualW, -virtualH},
+        (Rectangle){0, 0, (float)state->WindowScreenWidth, (float)state->WindowScreenHeight},
         (Vector2){0, 0},
         0.0F,
         WHITE);
-
     EndDrawing();
 }
 
@@ -482,17 +484,23 @@ void DrawRenderWindows(GameState *state)
  *==============================================================================*/
 
 /**
- * @brief Konversi posisi mouse dari window space ke virtual screen space
+ * @brief Konversi posisi mouse dari window space ke virtual 1600x900 space
  */
 Vector2 GetVirtualMousePosition(GameState *state)
 {
     Vector2 mouse = GetMousePosition();
-    Vector2 virtualMouse = {0, 0};
+    float scale = std::max(
+        (float)state->WindowScreenWidth / (float)GScreenWidth,
+        (float)state->WindowScreenHeight / (float)GScreenHeight);
+    float virtualW = (float)state->WindowScreenWidth / scale;
+    float virtualH = (float)state->WindowScreenHeight / scale;
+    float cropX = ((float)GScreenWidth - virtualW) * 0.5F;
+    float cropY = ((float)GScreenHeight - virtualH) * 0.5F;
 
-    virtualMouse.x = (mouse.x - ((state->WindowScreenWidth - (GameScreenWidth * state->ScaleMultiplier)) * 0.5F)) / state->ScaleMultiplier;
-    virtualMouse.y = (mouse.y - ((state->WindowScreenHeight - (GameScreenHeight * state->ScaleMultiplier)) * 0.5F)) / state->ScaleMultiplier;
-
-    return Vector2Clamp(virtualMouse, (Vector2){0, 0}, (Vector2){(float)GameScreenWidth, (float)GameScreenHeight});
+    Vector2 virtualMouse;
+    virtualMouse.x = cropX + mouse.x / scale;
+    virtualMouse.y = cropY + mouse.y / scale;
+    return Vector2Clamp(virtualMouse, (Vector2){0, 0}, (Vector2){(float)GScreenWidth, (float)GScreenHeight});
 }
 
 /*==============================================================================
@@ -581,7 +589,7 @@ void DrawMenuBackground(void)
 {
     DrawRectangleGradientV(
         0, 0,
-        GameScreenWidth, GameScreenHeight,
+        GScreenWidth, GScreenHeight,
         {36, 28, 58, 255},   // top: muted dark purple-blue
         {5, 5, 15, 255}      // bottom: near-black
     );

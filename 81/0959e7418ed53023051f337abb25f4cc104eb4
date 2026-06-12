@@ -1,0 +1,33 @@
+src/ui/videoScreen.cpp
+  s_f9c1efef0fd20c::t_862d0b2a4db6b1 47,50
+  s_f9c1efef0fd20c::t_5aa6f85f9dec26 76,78-79
+  s_f9c1efef0fd20c::t_e6afb1136ff5a7 77,80
+  s_f9c1efef0fd20c::t_51981cff50add8 15-16
+  s_f9c1efef0fd20c::t_3c2f78c5090852 61,63-64
+  s_f9c1efef0fd20c::t_6e7e0d0e3fa90b 62
+  s_f9c1efef0fd20c::t_5c58e5fd2c9060 46,48-49
+  s_f9c1efef0fd20c::t_22d49455e3b7c0 176-177
+src/systems/audioManager.cpp
+  s_f9c1efef0fd20c::t_8b43b8c816662e 418
+  s_f9c1efef0fd20c::t_8637f099c2f02b 149,191-192
+  s_f9c1efef0fd20c::t_ce8c5a36955d99 66-67
+  s_f9c1efef0fd20c::t_fd9ee78646c018 135
+  s_f9c1efef0fd20c::t_f976a7b79c1a8c 328,330-331
+  s_f9c1efef0fd20c::t_15eac5e1892bfc 272-275
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "810959e7418ed53023051f337abb25f4cc104eb4",
+  "prompts": {},
+  "sessions": {
+    "s_f9c1efef0fd20c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_148a838eaffey946nQmaQvhaP4",
+        "model": "unknown"
+      },
+      "human_author": "NiskoDT <65821447+NiskoDT@users.noreply.github.com>"
+    }
+  }
+}

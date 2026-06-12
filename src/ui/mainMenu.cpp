@@ -25,6 +25,13 @@
 /** Array tombol menu utama (Start, Load, Options, Quit) */
 static std::array<buttonImage, 4> buttons;
 
+static constexpr struct { const char *path; float scale; int yOffset; } btnConfig[4] = {
+    {"assets/textures/mainMenuButt/main-start.png",    1, -40},
+    {"assets/textures/mainMenuButt/main-load.png",     1,  50},
+    {"assets/textures/mainMenuButt/main-settings.png", 1, 140},
+    {"assets/textures/mainMenuButt/main-quit.png",     1, 230},
+};
+
 /** Logo texture untuk main menu */
 static Texture2D logoTexture;
 
@@ -46,14 +53,12 @@ extern SaveLoadScreen saveLoadScreen;
  */
 void InitMainMenu(GameState *state)
 {
-    (void)state; // unused parameter, buat future use
+    (void)state;
 
-    // set texture background load-notif untuk semua popup main menu
     loadPopup.SetBackgroundTexture("assets/textures/pauseButt/load-notif.png");
     mainNoSavePopup.SetBackgroundTexture("assets/textures/pauseButt/load-notif.png");
     mainCorruptPopup.SetBackgroundTexture("assets/textures/pauseButt/load-notif.png");
 
-    // Load dan resize logo
     Image logoImg = LoadImage("assets/textures/logo.png");
     int targetWidth = static_cast<int>(3840 * 0.25F);
     int targetHeight = static_cast<int>(2160 * 0.25F);
@@ -61,16 +66,7 @@ void InitMainMenu(GameState *state)
     logoTexture = LoadTextureFromImage(logoImg);
     UnloadImage(logoImg);
 
-    // Konfigurasi individu untuk setiap tombol (path, scale, yOffset)
-    struct { const char *path; float scale; int yOffset; } btnConfig[4] = {
-        {"assets/textures/mainMenuButt/main-start.png",    1, -40},
-        {"assets/textures/mainMenuButt/main-load.png",     1,  50},
-        {"assets/textures/mainMenuButt/main-settings.png", 1, 140},
-        {"assets/textures/mainMenuButt/main-quit.png",     1, 230},
-    };
-
     int startY = (GScreenHeight / 2) + 20;
-
     for (int i = 0; i < 4; i++)
     {
         Vector2 pos = {
@@ -78,6 +74,19 @@ void InitMainMenu(GameState *state)
             static_cast<float>(startY + btnConfig[i].yOffset)
         };
         buttons[i] = buttonImage(btnConfig[i].path, pos, btnConfig[i].scale, 0.6F);
+    }
+}
+
+static void UpdateMainMenuButtonPositions()
+{
+    int startY = (GScreenHeight / 2) + 20;
+    for (int i = 0; i < 4; i++)
+    {
+        Vector2 pos = {
+            GScreenWidth / 2.0F,
+            static_cast<float>(startY + btnConfig[i].yOffset)
+        };
+        buttons[i].SetPosition(pos);
     }
 }
 
@@ -172,9 +181,9 @@ void UpdateMainMenu(GameState *state)
  */
 void RenderMainMenuToVirtualScreen(GameState *state)
 {
+    UpdateMainMenuButtonPositions();
     Vector2 virtualMouse = GetVirtualMousePosition(state);
 
-    // Mulai render ke texture virtual
     BeginTextureMode(state->Dungeon);
     DrawMenuBackground();
 

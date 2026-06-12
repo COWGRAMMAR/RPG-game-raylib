@@ -27,6 +27,7 @@
 #include "../../include/ui/videoTab.h"
 #include "../../include/ui/audioTab.h"
 #include "../../include/systems/audioManager.h"
+#include "../../include/rendering/hud.h"
 #include "../../include/map/propsbehavior.h"
 #include "raylib.h"
 #include "raymath.h"
@@ -109,8 +110,6 @@ int main()
     // Step 6: init main menu (needed for menu buttons to render)
     InitMainMenu(&state);
 
-    InitFonts();
-
     // Migrasi satu kali: saves/settings.json -> saves/settings/keybindsTab.json
     {
         namespace fs = std::filesystem;
@@ -146,6 +145,8 @@ int main()
     {
         // Update audio system setiap frame (UpdateMusicStream + auto-switch track)
         AudioManager::Update(state.currentScreen);
+        // Boss music ambient — deteksi proximity, play/stop boss track
+        UpdateBossMusic();
 
         // ===== State: VIDEO (intro saat startup) =====
         if (state.currentScreen == VIDEO)
@@ -279,7 +280,9 @@ int main()
                 {
                     UpdateLogicAll();
                     if (PlayerInstance.Anim.isDead)
+                    {
                         state.currentScreen = GAME_OVER;
+                    }
                 }
                 accumulator -= Time::DELTA_TIME;
             }

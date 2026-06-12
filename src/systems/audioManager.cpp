@@ -32,8 +32,14 @@ static ScreenState _lastMusicScreen = MAIN_MENU;
 /** @brief Index track yang sedang aktif (-1 = none) */
 static int _activeTrackIndex = -1;
 
+/** @brief Index track boss music */
+static const int BOSS_TRACK_INDEX = 5;
+
 /** @brief Flag inisialisasi */
 static bool _initialized = false;
+
+/** @brief Blok auto-switch biar WinTheme gak di-overwrite pas VICTORY phase */
+static bool _blockAutoSwitch = false;
 
 /*==============================================================================
  * Track File Mapping
@@ -173,7 +179,8 @@ void AudioManager::Update(ScreenState currentScreen)
     // Deteksi perubahan screen untuk auto-switch
     // LOADING dan OPTIONS tidak memicu switch
     // Juga start track kalo belum ada yg playing (_activeTrackIndex == -1)
-    if (currentScreen != LOADING && currentScreen != OPTIONS &&
+    // _blockAutoSwitch: skip auto-switch (VICTORY phase, biar WinTheme gak di-overwrite)
+    if (!_blockAutoSwitch && currentScreen != LOADING && currentScreen != OPTIONS &&
         (_activeTrackIndex == -1 || currentScreen != _lastMusicScreen))
     {
         int newTrackIndex = ScreenToTrackIndex(currentScreen);
@@ -348,6 +355,18 @@ void AudioManager::ResetToScreenTrack()
     _lastMusicScreen = MAIN_MENU;
     TraceLog(LOG_INFO, "AUDIO: Reset track untuk auto-switch");
 }
+
+void AudioManager::BlockAutoSwitch()
+{
+    _blockAutoSwitch = true;
+}
+
+void AudioManager::UnblockAutoSwitch()
+{
+    _blockAutoSwitch = false;
+}
+
+
 
 /*==============================================================================
  * SFX Control

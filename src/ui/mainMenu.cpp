@@ -22,6 +22,11 @@
  * Static Variables
  *==============================================================================*/
 
+/** Skala logo dari resolusi sumber (3840x2160 -> 960x540) */
+static constexpr float LOGO_SCALE = 0.25F;
+/** Offset vertikal dari tengah layar untuk baris tombol */
+static constexpr int BTN_START_OFFSET = 20;
+
 /** Array tombol menu utama (Start, Load, Options, Quit) */
 static std::array<buttonImage, 4> buttons;
 
@@ -60,13 +65,13 @@ void InitMainMenu(GameState *state)
     mainCorruptPopup.SetBackgroundTexture("assets/textures/pauseButt/load-notif.png");
 
     Image logoImg = LoadImage("assets/textures/logo.png");
-    int targetWidth = static_cast<int>(3840 * 0.25F);
-    int targetHeight = static_cast<int>(2160 * 0.25F);
+    int targetWidth = static_cast<int>(3840 * LOGO_SCALE);
+    int targetHeight = static_cast<int>(2160 * LOGO_SCALE);
     ImageResize(&logoImg, targetWidth, targetHeight);
     logoTexture = LoadTextureFromImage(logoImg);
     UnloadImage(logoImg);
 
-    int startY = (GScreenHeight / 2) + 20;
+    int startY = (GScreenHeight / 2) + BTN_START_OFFSET;
     for (int i = 0; i < 4; i++)
     {
         Vector2 pos = {
@@ -79,7 +84,7 @@ void InitMainMenu(GameState *state)
 
 static void UpdateMainMenuButtonPositions()
 {
-    int startY = (GScreenHeight / 2) + 20;
+    int startY = (GScreenHeight / 2) + BTN_START_OFFSET;
     for (int i = 0; i < 4; i++)
     {
         Vector2 pos = {

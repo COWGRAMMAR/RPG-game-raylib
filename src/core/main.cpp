@@ -147,7 +147,7 @@ int main()
         // Update audio system setiap frame (UpdateMusicStream + auto-switch track)
         AudioManager::Update(state.currentScreen);
 
-        // Global fullscreen toggle from any screen
+        // Toggle fullscreen global dari screen mana pun
         if (IsKeyPressed(keybindManager.GetKeycode(TOGGLE_FULLSCREEN)))
         {
             ToggleFullscreenMode();

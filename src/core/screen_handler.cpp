@@ -8,7 +8,7 @@
  * Arsitektur rendering:
  * - Game dirender ke RenderTexture2D seukuran window — dynamic native res
  * - Texture di-blt 1:1 ke window (crop-to-fill jadi no-op kalo size sama)
- * - Camera zoom = GScreenWidth / 1280 agar world area sama dengan original
+ * - Camera zoom = GScreenWidth / VIRTUAL_WIDTH agar world area sama dengan original
  * - POINT filter menjaga ketajaman pixel saat scaling
  *
  * Urutan init yang benar:
@@ -44,6 +44,7 @@
 #include <cctype>
 #include <filesystem>
 #include "../../include/systems/audioManager.h"
+#include "config/game_constants.h"
 #include "hud.h"
 #include "propsbehavior.h"
 #include "combatTurn.h"
@@ -104,7 +105,7 @@ void InitAll()
     camera.target = {spawnPos.x + (FRAME_SIZE / 2.0F), spawnPos.y + (FRAME_SIZE / 2.0F)};
     camera.offset = {(float)(GScreenWidth / 2), (float)(GScreenHeight / 2)};
     camera.rotation = 0;
-    camera.zoom = (float)GScreenWidth / 1280.0F;
+    camera.zoom = (float)GScreenWidth / static_cast<float>(VIRTUAL_WIDTH);
 
     // Daftarkan player ke sistem entitas agar diupdate & dirender otomatis (Index 0)
     Entities::Add(&PlayerInstance);
@@ -153,7 +154,7 @@ GameState InitScreen()
     GameState state = {{0}};
 
     SetConfigFlags(FLAG_WINDOW_RESIZABLE);
-    InitWindow(1280, 720, "Dungeon Game");
+    InitWindow(VIRTUAL_WIDTH, VIRTUAL_HEIGHT, "Dungeon Game");
     SetExitKey(0);  // ESC handled by keybindManager (pause toggle), not by raylib quit
     InitAudioDevice();
 
@@ -183,7 +184,7 @@ GameState InitScreen()
     state.pendingMapPath.clear();
     state.pendingDoorName.clear();
 
-    // Fullscreen ON secara default (inline: ToggleFullscreenMode uses gState which isn't set yet)
+    // Fullscreen aktif default (inline: gState belum diinisialisasi)
     if (!IsWindowFullscreen())
     {
         SetWindowSize(GetMonitorWidth(0), GetMonitorHeight(0));
@@ -218,16 +219,16 @@ void UpdateGame(GameState *state)
             state->WindowedHeight = h;
         }
 
-        // Dynamic render texture: recreate agar ukurannya mengikuti window
+        // Buat ulang render texture ukuran baru
         GScreenWidth = w;
         GScreenHeight = h;
         UnloadRenderTexture(state->Dungeon);
         state->Dungeon = LoadRenderTexture(GScreenWidth, GScreenHeight);
         SetTextureFilter(state->Dungeon.texture, TEXTURE_FILTER_POINT);
 
-        // Camera offset dan zoom mengikuti ukuran baru
+        // Sesuaikan camera untuk ukuran baru
         camera.offset = {(float)(GScreenWidth / 2), (float)(GScreenHeight / 2)};
-        camera.zoom = (float)GScreenWidth / 1280.0F;
+        camera.zoom = (float)GScreenWidth / static_cast<float>(VIRTUAL_WIDTH);
     }
 }
 

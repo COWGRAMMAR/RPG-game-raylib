@@ -48,15 +48,7 @@ bool UpdateVideoTab(
     auto* state = static_cast<GameState*>(stateVoid);
 
     if (fullscreenButton.isClicked(mousePosition, mouseClicked)) {
-        if (IsWindowFullscreen()) {
-            ToggleFullscreenMode();
-        } else {
-            Rectangle monitorRes = GetMonitorResolution();
-            SetWindowSize(
-                static_cast<int>(monitorRes.width),
-                static_cast<int>(monitorRes.height));
-            ToggleFullscreenMode();
-        }
+        ToggleFullscreenMode();
         SaveVideoSettings(IsWindowFullscreen(), state->showFPS);
         return true;
     }

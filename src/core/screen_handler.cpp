@@ -168,6 +168,9 @@ GameState InitScreen()
     state.Dungeon = LoadRenderTexture(GameScreenWidth, GameScreenHeight);
     SetTextureFilter(state.Dungeon.texture, TEXTURE_FILTER_BILINEAR);
 
+    state.WindowedWidth = state.WindowScreenWidth;
+    state.WindowedHeight = state.WindowScreenHeight;
+
     const int FPS = 60;
     SetTargetFPS(FPS);
 
@@ -202,6 +205,12 @@ void UpdateGame(GameState *state)
         state->ScaleMultiplier = MIN(
             (float)w / GameScreenWidth,
             (float)h / GameScreenHeight);
+
+        if (!IsWindowFullscreen())
+        {
+            state->WindowedWidth = w;
+            state->WindowedHeight = h;
+        }
     }
 }
 
@@ -517,9 +526,13 @@ void ToggleFullscreenMode(void)
     if (IsWindowFullscreen())
     {
         ToggleFullscreen();
+        SetWindowSize(gState->WindowedWidth, gState->WindowedHeight);
     }
     else
     {
+        gState->WindowedWidth = GetScreenWidth();
+        gState->WindowedHeight = GetScreenHeight();
+        SetWindowSize(GetMonitorWidth(0), GetMonitorHeight(0));
         ToggleFullscreen();
     }
 }

@@ -93,6 +93,11 @@ private:
      */
     void CalculateDimensions();
 
+    /**
+     * @brief Memperbarui posisi dan teks tombol (tanpa reload texture)
+     */
+    void RefreshLayout();
+
     /// Status aktif layar options
     bool active;
 

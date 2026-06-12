@@ -219,6 +219,54 @@ void OptionsScreen::CalculateDimensions()
         fontLoadingTitle);
 }
 
+void OptionsScreen::RefreshLayout()
+{
+    const int tabHeight = 56;
+    const int labelFontSize = 24;
+
+    width = bgTexture.width > 0 ? bgTexture.width : 800;
+    height = bgTexture.height > 0 ? bgTexture.height : 600;
+    startX = (GScreenWidth - width) / 2;
+    startY = (GScreenHeight - height) / 2;
+
+    backgroundRect = {static_cast<float>(startX), static_cast<float>(startY), static_cast<float>(width), static_cast<float>(height)};
+
+    int tabY = startY + 15 + 120;
+    for (int i = 0; i < 3; i++) {
+        float cx = static_cast<float>(startX + width / 2 + (i - 1) * 302);
+        float cy = static_cast<float>(tabY + tabHeight / 2);
+        tabButtons[i].SetPosition(Vector2{cx, cy});
+    }
+
+    backButton.SetPosition(Vector2{static_cast<float>(startX + width - 133),
+                                   static_cast<float>(startY + height - 53)});
+
+    int valueX = startX + 339;
+    int contentStartY = startY + 221;
+
+    bool isFullscreen = IsWindowFullscreen();
+    fullscreenButton = buttonTxt(
+        isFullscreen ? "ON" : "OFF",
+        valueX,
+        contentStartY + 15,
+        labelFontSize,
+        isFullscreen ? GREEN : RED,
+        0.7F,
+        fontLoadingTitle);
+
+    fpsButton = buttonTxt(
+        showFPS ? "ON" : "OFF",
+        valueX,
+        contentStartY + 75,
+        labelFontSize,
+        showFPS ? GREEN : GRAY,
+        0.7F,
+        fontLoadingTitle);
+
+    resetTabButton.SetPosition(Vector2{static_cast<float>(startX + 60), static_cast<float>(startY + height - 70)});
+    resetOptionsButton.SetPosition(Vector2{static_cast<float>(startX + 220), static_cast<float>(startY + height - 70)});
+}
+
 /**
  * @brief Memperbarui handling input
  * @param state Pointer ke GameState
@@ -298,6 +346,8 @@ void OptionsScreen::Update(GameState* state, Vector2 mousePosition, bool mouseCl
     if (selectedTab == 0) {
         if (UpdateVideoTab(fullscreenButton, fpsButton, state, mousePosition, mouseClicked)) {
             showFPS = state->showFPS;
+            GScreenWidth = GetScreenWidth();
+            GScreenHeight = GetScreenHeight();
             CalculateDimensions();
         }
     }
@@ -316,6 +366,8 @@ void OptionsScreen::Draw(Vector2 mousePosition)
     if (!active) {
         return;
     }
+
+    RefreshLayout();
 
     if (bgTexture.id != 0) {
         DrawTexture(bgTexture, startX, startY, WHITE);

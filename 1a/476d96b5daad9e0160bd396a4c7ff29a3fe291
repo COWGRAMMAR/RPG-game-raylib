@@ -1,0 +1,21 @@
+src/core/screen_handler.cpp
+  s_20c8e07ec9ffad::t_9655451a249dee 475-492
+  s_20c8e07ec9ffad::t_e10f8f03fe46e4 502,508
+  s_20c8e07ec9ffad::t_4a65fc4ba55ce1 526,529-530
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "1a476d96b5daad9e0160bd396a4c7ff29a3fe291",
+  "prompts": {},
+  "sessions": {
+    "s_20c8e07ec9ffad": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_14931db1affe7pYqWlC73Jr9SV",
+        "model": "unknown"
+      },
+      "human_author": "NiskoDT <65821447+NiskoDT@users.noreply.github.com>"
+    }
+  }
+}

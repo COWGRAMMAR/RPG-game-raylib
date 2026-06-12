@@ -41,6 +41,8 @@ enum Action {
     DEBUG_TOGGLE,
     DEBUG_TOGGLE_ENEMY,
     DEBUG_TOGGLE_PLAYER,
+    // System
+    TOGGLE_FULLSCREEN,
 
     ACTION_COUNT  ///< Sentinel — must be last
 };

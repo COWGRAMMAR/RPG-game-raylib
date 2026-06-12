@@ -18,6 +18,10 @@ namespace Interaction
      */
     void HandleInteractions(Player &player)
     {
+        // Gak bisa interact pas inventory kebuka
+        if (InputInstance.IsInventoryOpen())
+            return;
+
         player.canInteract = false;
         UpdateRaycast(player);
         CheckDoors(player); // Interaksi berbasis kedekatan (proximity)

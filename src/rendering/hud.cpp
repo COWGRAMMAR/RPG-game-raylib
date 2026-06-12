@@ -486,8 +486,8 @@ void DrawInventory()
             if (def.category == ITEM_POTION && PlayerInstance.PotionCooldown > 0.0f && PlayerInstance.PotionCooldownMax > 0.0f)
             {
                 float ratio = PlayerInstance.PotionCooldown / PlayerInstance.PotionCooldownMax;
-                float startAngle = 270.0f;
-                float endAngle = 270.0f + (360.0f * ratio);
+                float startAngle = 270.0f - (360.0f * ratio);
+                float endAngle = 270.0f;
                 Vector2 center = {
                     slotRect.x + slotRect.width / 2.0f,
                     slotRect.y + slotRect.height / 2.0f
@@ -703,8 +703,8 @@ void DrawHotbar()
             if (def.category == ITEM_POTION && PlayerInstance.PotionCooldown > 0.0f && PlayerInstance.PotionCooldownMax > 0.0f)
             {
                 float ratio = PlayerInstance.PotionCooldown / PlayerInstance.PotionCooldownMax;
-                float startAngle = 270.0f;
-                float endAngle = 270.0f + (360.0f * ratio);
+                float startAngle = 270.0f - (360.0f * ratio);
+                float endAngle = 270.0f;
                 Vector2 center = {
                     slotRect.x + slotRect.width / 2.0f,
                     slotRect.y + slotRect.height / 2.0f

@@ -35,12 +35,10 @@
 #include "input.h"
 #include <cstdio>
 #include <algorithm>
-#include "enemy_ai.h"
 #include "raylib.h"
 #include "raymath.h"
 #include <string>
 #include <cstring>
-#include <algorithm>
 #include <cctype>
 #include <filesystem>
 #include "../../include/systems/audioManager.h"
@@ -61,8 +59,6 @@
 GameState *gState;
 
 extern PauseMenu pauseMenu;
-
-#define MIN(a, b) ((a) < (b) ? (a) : (b))
 
 /*==============================================================================
  * Constants

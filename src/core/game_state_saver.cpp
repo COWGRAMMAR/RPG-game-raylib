@@ -575,7 +575,6 @@ void SaveGameState(GameState *state)
     auto &enemyReg = Entities::GetEnemyRegistry();
     for (const auto &enemy : enemyReg)
     {
-        if (!enemy->IsActive) continue;
         SavedEnemyState saved;
         saved.position = enemy->Position;
         saved.enemyName = enemy->Name;

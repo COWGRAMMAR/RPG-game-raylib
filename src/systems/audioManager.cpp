@@ -19,12 +19,10 @@
 /** @brief Array music tracks yang sudah di-load */
 static Music _tracks[7] = {};
 
-
-
 static float _masterVolume = 1.0f;
-static float _musicVolume  = 0.8f;
-static float _sfxVolume    = 1.0f;
-static float _videoVolume  = 1.0f;
+static float _musicVolume = 0.8f;
+static float _sfxVolume = 1.0f;
+static float _videoVolume = 1.0f;
 
 /** @brief Screen terakhir yang memicu music switch */
 static ScreenState _lastMusicScreen = MAIN_MENU;
@@ -56,15 +54,14 @@ static bool _blockAutoSwitch = false;
  * Index 5: BossMusic.mp3 — turn-based boss fight
  * Index 6: WinTheme.mp3 — turn-based victory
  */
-static const char* TRACK_FILES[] = {
+static const char *TRACK_FILES[] = {
     "assets/audio/music/MainMenu.mp3",
     "assets/audio/music/DungeonMusic.mp3",
     "assets/audio/music/GameOver.mp3",
     "assets/audio/music/Dungeon.mp3",
     "assets/audio/music/Minecraft Volume Alpha - 3 - Subwoofer Lullaby.mp3",
     "assets/audio/music/BossMusic.mp3",
-    "assets/audio/music/WinTheme.mp3"
-};
+    "assets/audio/music/WinTheme.mp3"};
 
 static const int TRACK_COUNT = sizeof(TRACK_FILES) / sizeof(TRACK_FILES[0]);
 
@@ -77,10 +74,14 @@ static int ScreenToTrackIndex(ScreenState screen)
 {
     switch (screen)
     {
-        case MAIN_MENU: return 0;
-        case PLAY:      return 1;
-        case GAME_OVER: return 2;
-        default:        return -1;
+    case MAIN_MENU:
+        return 0;
+    case PLAY:
+        return 1;
+    case GAME_OVER:
+        return 2;
+    default:
+        return -1;
     }
 }
 
@@ -91,9 +92,9 @@ static int ScreenToTrackIndex(ScreenState screen)
 void AudioManager::Init()
 {
     _masterVolume = 1.0f;
-    _musicVolume  = 1.0f;
-    _sfxVolume    = 1.0f;
-    _videoVolume  = 1.0f;
+    _musicVolume = 1.0f;
+    _sfxVolume = 1.0f;
+    _videoVolume = 1.0f;
 
     ::SetMasterVolume(_masterVolume);
 
@@ -126,13 +127,12 @@ void AudioManager::LoadAudioAssets()
             TraceLog(LOG_INFO, "AUDIO: Music track dimuat: %s", TRACK_FILES[i]);
         }
     }
-
-
 }
 
 void AudioManager::Shutdown()
 {
-    if (!_initialized) return;
+    if (!_initialized)
+        return;
 
     // Stop semua music
     if (_activeTrackIndex >= 0)
@@ -150,8 +150,6 @@ void AudioManager::Shutdown()
         }
     }
 
-
-
     _activeTrackIndex = -1;
     _initialized = false;
 
@@ -164,7 +162,8 @@ void AudioManager::Shutdown()
 
 void AudioManager::Update(ScreenState currentScreen)
 {
-    if (!_initialized) return;
+    if (!_initialized)
+        return;
 
     // Update music stream untuk track yang aktif
     if (_activeTrackIndex >= 0 && _tracks[_activeTrackIndex].ctxData != nullptr)
@@ -237,23 +236,27 @@ float AudioManager::GetVideoVolume()
 
 void AudioManager::SetMasterVolume(float vol)
 {
-    _masterVolume = (vol < 0.0f) ? 0.0f : (vol > 1.0f) ? 1.0f : vol;
+    _masterVolume = (vol < 0.0f) ? 0.0f : (vol > 1.0f) ? 1.0f
+                                                       : vol;
     ::SetMasterVolume(_masterVolume);
 }
 
 void AudioManager::SetMusicVolume(float vol)
 {
-    _musicVolume = (vol < 0.0f) ? 0.0f : (vol > 1.0f) ? 1.0f : vol;
+    _musicVolume = (vol < 0.0f) ? 0.0f : (vol > 1.0f) ? 1.0f
+                                                      : vol;
 }
 
 void AudioManager::SetSfxVolume(float vol)
 {
-    _sfxVolume = (vol < 0.0f) ? 0.0f : (vol > 1.0f) ? 1.0f : vol;
+    _sfxVolume = (vol < 0.0f) ? 0.0f : (vol > 1.0f) ? 1.0f
+                                                    : vol;
 }
 
 void AudioManager::SetVideoVolume(float vol)
 {
-    _videoVolume = (vol < 0.0f) ? 0.0f : (vol > 1.0f) ? 1.0f : vol;
+    _videoVolume = (vol < 0.0f) ? 0.0f : (vol > 1.0f) ? 1.0f
+                                                      : vol;
 }
 
 /*==============================================================================
@@ -283,14 +286,22 @@ int AudioManager::GetVideoVolumePct()
 void AudioManager::SetVolumesFromPct(int masterPct, int musicPct, int sfxPct, int videoPct)
 {
     // Clamp ke 0-100
-    if (masterPct < 0) masterPct = 0;
-    if (masterPct > 100) masterPct = 100;
-    if (musicPct < 0) musicPct = 0;
-    if (musicPct > 100) musicPct = 100;
-    if (sfxPct < 0) sfxPct = 0;
-    if (sfxPct > 100) sfxPct = 100;
-    if (videoPct < 0) videoPct = 0;
-    if (videoPct > 100) videoPct = 100;
+    if (masterPct < 0)
+        masterPct = 0;
+    if (masterPct > 100)
+        masterPct = 100;
+    if (musicPct < 0)
+        musicPct = 0;
+    if (musicPct > 100)
+        musicPct = 100;
+    if (sfxPct < 0)
+        sfxPct = 0;
+    if (sfxPct > 100)
+        sfxPct = 100;
+    if (videoPct < 0)
+        videoPct = 0;
+    if (videoPct > 100)
+        videoPct = 100;
 
     SetMasterVolume(static_cast<float>(masterPct) / 100.0f);
     SetMusicVolume(static_cast<float>(musicPct) / 100.0f);
@@ -302,9 +313,10 @@ void AudioManager::SetVolumesFromPct(int masterPct, int musicPct, int sfxPct, in
  * Music Control
  *==============================================================================*/
 
-void AudioManager::PlayTrack(const char* trackName)
+void AudioManager::PlayTrack(const char *trackName)
 {
-    if (!_initialized) return;
+    if (!_initialized)
+        return;
 
     // Cari track berdasarkan substring nama file
     int foundIndex = -1;
@@ -339,7 +351,8 @@ void AudioManager::PlayTrack(const char* trackName)
 
 void AudioManager::StopMusic()
 {
-    if (!_initialized) return;
+    if (!_initialized)
+        return;
 
     if (_activeTrackIndex >= 0 && _tracks[_activeTrackIndex].ctxData != nullptr)
     {
@@ -351,7 +364,8 @@ void AudioManager::StopMusic()
 
 void AudioManager::ResetToScreenTrack()
 {
-    if (!_initialized) return;
+    if (!_initialized)
+        return;
     _lastMusicScreen = MAIN_MENU;
     TraceLog(LOG_INFO, "AUDIO: Reset track untuk auto-switch");
 }
@@ -366,33 +380,34 @@ void AudioManager::UnblockAutoSwitch()
     _blockAutoSwitch = false;
 }
 
-
-
 /*==============================================================================
  * SFX Control
  *==============================================================================*/
 
-
-
-struct SoundPool {
+struct SoundPool
+{
     Sound sounds[4];
     int currentIndex;
 };
 
 static std::unordered_map<std::string, SoundPool> loadedSFX;
 
-static void LoadSFXToPool(const std::string& name, const char* path) {
-    if (!IsAudioDeviceReady()) return;
+static void LoadSFXToPool(const std::string &name, const char *path)
+{
+    if (!IsAudioDeviceReady())
+        return;
 
     Sound original = LoadSound(path);
-    if (original.frameCount == 0) {
+    if (original.frameCount == 0)
+    {
         TraceLog(LOG_WARNING, "SFX: Failed to load %s, alias creation skipped.", path);
         return;
     }
-    
+
     SoundPool pool;
     pool.sounds[0] = original;
-    for (int i = 1; i < 4; i++) {
+    for (int i = 1; i < 4; i++)
+    {
         pool.sounds[i] = LoadSoundAlias(original);
     }
     pool.currentIndex = 0;
@@ -429,11 +444,13 @@ void AudioManager::InitSFX()
 
 void AudioManager::CloseSFX()
 {
-    if (!IsAudioDeviceReady()) return;
+    if (!IsAudioDeviceReady())
+        return;
 
     for (auto &pair : loadedSFX)
     {
-        for (int i = 1; i < 4; i++) {
+        for (int i = 1; i < 4; i++)
+        {
             UnloadSoundAlias(pair.second.sounds[i]);
         }
         UnloadSound(pair.second.sounds[0]);
@@ -444,7 +461,8 @@ void AudioManager::CloseSFX()
 
 void AudioManager::PlaySFX(const std::string &name)
 {
-    if (!IsAudioDeviceReady()) return;
+    if (!IsAudioDeviceReady())
+        return;
 
     auto it = loadedSFX.find(name);
     if (it != loadedSFX.end())
@@ -459,4 +477,3 @@ void AudioManager::PlaySFX(const std::string &name)
         TraceLog(LOG_WARNING, "SFX: Sound not found: %s", name.c_str());
     }
 }
- 

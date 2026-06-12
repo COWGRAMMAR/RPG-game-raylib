@@ -19,15 +19,15 @@
  */
 
 /** @brief Spawn count range constants */
-constexpr int SPAWN_PINPOINT_NORMAL_MIN = 0;  // [DEBUG] original=9
-constexpr int SPAWN_PINPOINT_NORMAL_MAX = 0;  // [DEBUG] original=13
-constexpr int SPAWN_PINPOINT_ELITE_MIN = 0;   // [DEBUG] original=3
-constexpr int SPAWN_PINPOINT_ELITE_MAX = 0;   // [DEBUG] original=7
-constexpr int SPAWN_RECT_NORMAL_MIN = 1;      // [DEBUG] original=20
-constexpr int SPAWN_RECT_NORMAL_MAX = 1;      // [DEBUG] original=25
-constexpr int SPAWN_RECT_ELITE_MIN = 0;       // [DEBUG] original=10
-constexpr int SPAWN_RECT_ELITE_MAX = 0;       // [DEBUG] original=15
-constexpr int SPAWN_RETRY_LIMIT = 0;          // [DEBUG] original=200
+constexpr int SPAWN_PINPOINT_NORMAL_MIN = 9;
+constexpr int SPAWN_PINPOINT_NORMAL_MAX = 13;
+constexpr int SPAWN_PINPOINT_ELITE_MIN = 3;
+constexpr int SPAWN_PINPOINT_ELITE_MAX = 7;
+constexpr int SPAWN_RECT_NORMAL_MIN = 20;
+constexpr int SPAWN_RECT_NORMAL_MAX = 25;
+constexpr int SPAWN_RECT_ELITE_MIN = 10;
+constexpr int SPAWN_RECT_ELITE_MAX = 15;
+constexpr int SPAWN_RETRY_LIMIT = 200;
 
 // --- Loot drop tunable constants ---
 constexpr float LOOT_DROP_CHANCE_NORMAL = 0.25f;
@@ -193,6 +193,8 @@ public:
     Rectangle SpawnRect;               // Area spawn asal jika dari rectangle spawn
     float PatrolTimer;                 // Timer tunggu di titik patroli (runtime)
     const float PatrolWaitTime = 2.0f; // Durasi tunggu sebelum patroli ke titik berikutnya
+    int PatrolFailCount = 0;           // Counter gagal patrol berturut-turut — progressive backoff
+    float PatrolStuckTimer = 0;        // Timer deteksi macet di HandlePatrol
 
     // --- Hitbox ---
     float HitboxWidth;   // Lebar hitbox enemy

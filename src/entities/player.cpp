@@ -50,28 +50,15 @@ void Player::Init(GameState *state, const char *spawnObjectName)
         ManaRegenTimer = 0.0f;
 
         // Inisialisasi perlengkapan hotbar default
-        Hotbar[0] = {2, 8};  // Small Health Potion
-        Hotbar[1] = {3, 8};  // Small Stamina Potion
-        Hotbar[2] = {9, 8};  // Small Damage Potion
-        Hotbar[3] = {11, 8}; // Small Speed Potion
+        Hotbar[0] = {0, 1};  // Iron Sword
+        Hotbar[1] = {4, 1};  // Bow
+        Hotbar[2] = {2, 8};  // Small Health Potion
+        Hotbar[3] = {3, 8};  // Small Mana Potion
 
         for (int i = 0; i < PlayerInstance.MaxBag; i++)
         {
             Bag[i] = {EMPTY_ITEM_ID, 0};
         }
-
-        Bag[0]  = {15, 1}; // AK-47
-        Bag[1]  = {4, 1};  // Bow
-        Bag[2]  = {5, 8};  // Medium Health Potion
-        Bag[3]  = {7, 8};  // Large Health Potion
-        Bag[4]  = {6, 8};  // Medium Stamina Potion
-        Bag[5]  = {8, 8};  // Large Stamina Potion
-        Bag[6]  = {10, 8}; // Medium Damage Potion
-        Bag[7]  = {12, 8}; // Medium Speed Potion
-        Bag[8]  = {13, 3}; // Small Invincibility Potion
-        Bag[9]  = {14, 3}; // Medium Invincibility Potion
-        Bag[10] = {0, 1};  // Iron Sword
-        Bag[11] = {1, 1};  // Steel Sword
 
         // Reset buff timers & multipliers
         BuffDamageTimer = 0.0f;
@@ -141,24 +128,12 @@ void Player::ResetForNewGame()
     Health = MaxHealth = 100.0f;
     Mana = MaxMana = 100.0f;
     ManaRegenTimer = 0.0f;
-    Hotbar[0] = {2, 8};  // Small Health Potion
-    Hotbar[1] = {3, 8};  // Small Stamina Potion
-    Hotbar[2] = {9, 8};  // Small Damage Potion
-    Hotbar[3] = {11, 8}; // Small Speed Potion
+    Hotbar[0] = {0, 1};  // Iron Sword
+    Hotbar[1] = {4, 1};  // Bow
+    Hotbar[2] = {2, 8};  // Small Health Potion
+    Hotbar[3] = {3, 8};  // Small Mana Potion
     for (int i = 0; i < MaxBag; i++)
         Bag[i] = {-1, 0};
-    Bag[0]  = {15, 1}; // AK-47
-    Bag[1]  = {4, 1};  // Bow
-    Bag[2]  = {5, 8};  // Medium Health Potion
-    Bag[3]  = {7, 8};  // Large Health Potion
-    Bag[4]  = {6, 8};  // Medium Stamina Potion
-    Bag[5]  = {8, 8};  // Large Stamina Potion
-    Bag[6]  = {10, 8}; // Medium Damage Potion
-    Bag[7]  = {12, 8}; // Medium Speed Potion
-    Bag[8]  = {13, 3}; // Small Invincibility Potion
-    Bag[9]  = {14, 3}; // Medium Invincibility Potion
-    Bag[10] = {0, 1};  // Iron Sword
-    Bag[11] = {1, 1};  // Steel Sword
     Anim.isDead = false;
     Anim.isAttacking = false;
     HitFlashTimer = 0.0f;
@@ -510,6 +485,37 @@ void Player::HandleAction(void)
         Vector2 dropPos = {
             playerCenter.x + dropDir.x * INTERACT_RANGE,
             playerCenter.y + dropDir.y * INTERACT_RANGE};
+
+        {
+            const ItemDefinition &def = itemDefs.GetById(slot.definitionId);
+            float halfW = def.hitboxSize.x / 2.0f;
+            float halfH = def.hitboxSize.y / 2.0f;
+            Vector2 topLeft = {dropPos.x - halfW, dropPos.y - halfH};
+
+            if (!IsPositionSafe(topLeft, def.hitboxSize.x, def.hitboxSize.y, 0, 0))
+            {
+                constexpr int TILE = 32;
+                const Vector2 offsets[8] = {
+                    {0, -TILE}, {TILE, -TILE}, {TILE, 0}, {TILE, TILE}, {0, TILE}, {-TILE, TILE}, {-TILE, 0}, {-TILE, -TILE}};
+                bool found = false;
+                for (const auto &off : offsets)
+                {
+                    Vector2 cand = {dropPos.x + off.x, dropPos.y + off.y};
+                    Vector2 candTL = {cand.x - halfW, cand.y - halfH};
+                    if (IsPositionSafe(candTL, def.hitboxSize.x, def.hitboxSize.y, 0, 0))
+                    {
+                        dropPos = cand;
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found)
+                {
+                    TraceLog(LOG_INFO, "Cannot drop item here — no safe position");
+                    break;
+                }
+            }
+        }
 
         ItemSpawn dropped = itemData.CreateItem(dropPos, slot.definitionId);
         dropped.dropImmunity = DROP_IMMUNITY_DURATION; // Minecraft-style: 5 detik immunity setelah drop

@@ -74,10 +74,11 @@ void InitLoadingScreen(GameState *state)
 // tapi save yang di-load butuh seed stage yang bener.
 /*=== Extract Stage dari Map Path ===*/
 
-static int ExtractStageFromPath(const std::string& mapPath)
+static int ExtractStageFromPath(const std::string &mapPath)
 {
     auto pos = mapPath.find("stage_");
-    if (pos == std::string::npos) return 0;
+    if (pos == std::string::npos)
+        return 0;
     pos += 6;
     int num = 0;
     while (pos < mapPath.size() && isdigit((unsigned char)mapPath[pos]))
@@ -92,13 +93,21 @@ static int ExtractStageFromPath(const std::string& mapPath)
 
 // LoadMeta + extract stage dari mapPath + RunWorldgen
 // Dipanggil pas initial load / fast path (bukan map-switch — SeedManager udah bener)
-static bool LoadWorldgenForSave(const std::string& mapPath, int worldgenSlot)
+static bool LoadWorldgenForSave(const std::string &mapPath, int worldgenSlot)
 {
     TraceLog(LOG_INFO, "LoadWorldgenForSave: worldgenSlot=%d mapPath='%s'", worldgenSlot, mapPath.c_str());
-    if (worldgenSlot < 0) { TraceLog(LOG_WARNING, "LoadWorldgenForSave: worldgenSlot < 0 — skipping"); return false; }
+    if (worldgenSlot < 0)
+    {
+        TraceLog(LOG_WARNING, "LoadWorldgenForSave: worldgenSlot < 0 — skipping");
+        return false;
+    }
     std::string metaPath = WorldgenIO::GetMetaPath(worldgenSlot);
     TraceLog(LOG_INFO, "LoadWorldgenForSave: metaPath='%s'", metaPath.c_str());
-    if (!g_SeedManager.LoadMeta(metaPath)) { TraceLog(LOG_WARNING, "LoadWorldgenForSave: LoadMeta failed for '%s'", metaPath.c_str()); return false; }
+    if (!g_SeedManager.LoadMeta(metaPath))
+    {
+        TraceLog(LOG_WARNING, "LoadWorldgenForSave: LoadMeta failed for '%s'", metaPath.c_str());
+        return false;
+    }
     // Stage dari mapPath (per-save), bukan meta.json (bisa outdated kalo 2 save
     // di worldgen slot sama punya stage berbeda)
     int stageIdx = ExtractStageFromPath(mapPath);
@@ -120,7 +129,7 @@ static bool LoadWorldgenForSave(const std::string& mapPath, int worldgenSlot)
 
 /*=== Map-switch Mode ===*/
 
-static void HandleMapSwitch(GameState* state)
+static void HandleMapSwitch(GameState *state)
 {
     bool isBack = state->isGoingBack;
 
@@ -149,7 +158,6 @@ static void HandleMapSwitch(GameState* state)
             int stageIdx = g_SeedManager.GetCurrentStage();
             uint64_t seed = g_SeedManager.GetSeed(stageIdx);
             RunWorldgen(seed, stageIdx == SeedManager::SEED_COUNT - 1);
-
         }
         else
         {
@@ -237,10 +245,10 @@ static void HandleMapSwitch(GameState* state)
 
 /*=== Fast Path Mode (assets already loaded) ===*/
 
-static void HandleFastPath(GameState* state)
+static void HandleFastPath(GameState *state)
 {
     TraceLog(LOG_INFO, "=== HandleFastPath: slot=%d mapPath='%s' worldgenSlot=%d hasSaved=%d ===",
-        g_ActiveSaveSlot, savedMapState.mapPath.c_str(), savedPlayerState.worldgenSlot, HasSavedState());
+             g_ActiveSaveSlot, savedMapState.mapPath.c_str(), savedPlayerState.worldgenSlot, HasSavedState());
 
     state->loadingStage = TOTAL_LOADING_STAGES;
     state->loadingProgress = 100.0F;
@@ -281,8 +289,8 @@ static void HandleFastPath(GameState* state)
         GameSnapshot snap;
         bool willApply = HasSavedState() && SaveManager::HasManual(g_ActiveSaveSlot);
         TraceLog(LOG_INFO, "HandleFastPath: ApplyPreSpawn decision hasSaved=%d hasManual=%d -> %s",
-            HasSavedState(), SaveManager::HasManual(g_ActiveSaveSlot),
-            willApply ? "YES" : "SKIP");
+                 HasSavedState(), SaveManager::HasManual(g_ActiveSaveSlot),
+                 willApply ? "YES" : "SKIP");
         if (willApply)
         {
             snap = SaveManager::LoadManual(g_ActiveSaveSlot);
@@ -314,13 +322,13 @@ static void HandleFastPath(GameState* state)
 
 /*=== Initial Load Mode ===*/
 
-static void HandleInitialLoad(GameState* state)
+static void HandleInitialLoad(GameState *state)
 {
     switch (state->loadingStage)
     {
     case 0:
         TraceLog(LOG_INFO, "=== HandleInitialLoad stage 0: slot=%d assetsLoaded=%d hasSaved=%d mapPath='%s' worldgenSlot=%d ===",
-            g_ActiveSaveSlot, state->assetsLoaded, HasSavedState(), savedMapState.mapPath.c_str(), savedPlayerState.worldgenSlot);
+                 g_ActiveSaveSlot, state->assetsLoaded, HasSavedState(), savedMapState.mapPath.c_str(), savedPlayerState.worldgenSlot);
         state->loadingText = "Loading game textures...";
         InitTextures();
         AudioManager::InitSFX();
@@ -390,8 +398,8 @@ static void HandleInitialLoad(GameState* state)
             GameSnapshot snap;
             bool willApply = HasSavedState() && SaveManager::HasManual(g_ActiveSaveSlot);
             TraceLog(LOG_INFO, "HandleInitialLoad: ApplyPreSpawn hasSaved=%d hasManual=%d -> %s",
-                HasSavedState(), SaveManager::HasManual(g_ActiveSaveSlot),
-                willApply ? "YES" : "SKIP");
+                     HasSavedState(), SaveManager::HasManual(g_ActiveSaveSlot),
+                     willApply ? "YES" : "SKIP");
             if (willApply)
             {
                 snap = SaveManager::LoadManual(g_ActiveSaveSlot);
@@ -457,7 +465,7 @@ void UpdateLoadingScreen(GameState *state)
  */
 static std::string GetDisplayMapName()
 {
-    const char* mapPath = GetCurrentMapPath();
+    const char *mapPath = GetCurrentMapPath();
     if (!mapPath || mapPath[0] == '\0')
     {
         mapPath = nullptr;
@@ -475,17 +483,23 @@ static std::string GetDisplayMapName()
     }
 
     // Extract filename stem
-    const char* filename = strrchr(mapPath, '/');
-    if (!filename) filename = strrchr(mapPath, '\\');
-    if (!filename) filename = mapPath; else filename++;
+    const char *filename = strrchr(mapPath, '/');
+    if (!filename)
+        filename = strrchr(mapPath, '\\');
+    if (!filename)
+        filename = mapPath;
+    else
+        filename++;
 
     // Remove .json extension
     std::string name(filename);
     size_t dot = name.rfind('.');
-    if (dot != std::string::npos) name = name.substr(0, dot);
+    if (dot != std::string::npos)
+        name = name.substr(0, dot);
 
     // Capitalize first letter
-    if (!name.empty()) name[0] = (char)toupper((unsigned char)name[0]);
+    if (!name.empty())
+        name[0] = (char)toupper((unsigned char)name[0]);
 
     return name;
 }
@@ -507,12 +521,15 @@ void RenderLoadingScreen(GameState *state)
 
     // Smooth progress bar animation
     static float currentDisplayProgress = 0.0f;
-    float dt = fminf(Time::DELTA_TIME , 0.1f);
+    float dt = fminf(Time::DELTA_TIME, 0.1f);
     float targetProgress = state->loadingProgress / 100.0f;
 
-    if (state->loadingComplete) {
+    if (state->loadingComplete)
+    {
         currentDisplayProgress = targetProgress;
-    } else {
+    }
+    else
+    {
         currentDisplayProgress += (targetProgress - currentDisplayProgress) * fminf(dt * 5.0f, 1.0f);
     }
 
@@ -526,7 +543,8 @@ void RenderLoadingScreen(GameState *state)
 
     // Draw progress bar (track + fill + border)
     DrawRectangleRounded({barX, barY, barWidth, barHeight}, 0.3f, 8, DARKGRAY);
-    if (currentDisplayProgress > 0.0f) {
+    if (currentDisplayProgress > 0.0f)
+    {
         DrawRectangleRounded({barX, barY, animatedWidth, barHeight}, 0.3f, 8, GREEN);
     }
     DrawRectangleRoundedLines({barX, barY, barWidth, barHeight}, 0.3f, 8, ColorAlpha(WHITE, 0.2f));
@@ -540,7 +558,8 @@ void RenderLoadingScreen(GameState *state)
 
     // Map name display
     std::string mapName = GetDisplayMapName();
-    if (!mapName.empty()) {
+    if (!mapName.empty())
+    {
         Vector2 mapSize = MeasureTextEx(GetOrLoad(FontId::LOADING_TITLE), mapName.c_str(), 18, 1);
         float mapX = (GameScreenWidth - mapSize.x) / 2.0f;
         float mapY = (float)(GameScreenHeight / 2) + 80.0f;

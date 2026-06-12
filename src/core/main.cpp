@@ -59,13 +59,27 @@ static void TimestampLog(int msgType, const char *text, va_list args)
     const char *level = "";
     switch (msgType)
     {
-        case LOG_TRACE: level = "TRACE"; break;
-        case LOG_DEBUG: level = "DEBUG"; break;
-        case LOG_INFO:  level = "INFO"; break;
-        case LOG_WARNING: level = "WARNING"; break;
-        case LOG_ERROR: level = "ERROR"; break;
-        case LOG_FATAL: level = "FATAL"; break;
-        default: level = "UNKNOWN"; break;
+    case LOG_TRACE:
+        level = "TRACE";
+        break;
+    case LOG_DEBUG:
+        level = "DEBUG";
+        break;
+    case LOG_INFO:
+        level = "INFO";
+        break;
+    case LOG_WARNING:
+        level = "WARNING";
+        break;
+    case LOG_ERROR:
+        level = "ERROR";
+        break;
+    case LOG_FATAL:
+        level = "FATAL";
+        break;
+    default:
+        level = "UNKNOWN";
+        break;
     }
 
     printf("%02d:%02d:%02d.%03d %s: %s\n", hours, minutes, seconds, millis, level, buf);
@@ -114,7 +128,7 @@ int main()
     {
         namespace fs = std::filesystem;
         fs::create_directories("saves/settings");
-        const char* target = "saves/settings/keybindsTab.json";
+        const char *target = "saves/settings/keybindsTab.json";
         if (fs::exists("saves/settings.json"))
         {
             fs::rename("saves/settings.json", target);
@@ -172,7 +186,8 @@ int main()
                 videoStarted = false;
             }
 
-            if (WindowShouldClose()) break;
+            if (WindowShouldClose())
+                break;
 
             // Render video fullscreen (tanpa virtual screen biar ga distretch)
             BeginDrawing();
@@ -185,7 +200,8 @@ int main()
         {
             UpdateGame(&state);
             UpdateMainMenu(&state);
-            if (WindowShouldClose()) break;
+            if (WindowShouldClose())
+                break;
             RenderMainMenuToVirtualScreen(&state);
             DrawRenderWindows(&state);
         }
@@ -200,7 +216,8 @@ int main()
                 InitLoadingScreen(&state);
             }
             UpdateLoadingScreen(&state);
-            if (WindowShouldClose()) break;
+            if (WindowShouldClose())
+                break;
             RenderLoadingScreen(&state);
             DrawRenderWindows(&state);
         }
@@ -215,7 +232,8 @@ int main()
             UpdateGame(&state);
             bool mouseClicked = IsMouseButtonPressed(MOUSE_LEFT_BUTTON);
             optionsScreen.Update(&state, GetVirtualMousePosition(&state), mouseClicked);
-            if (WindowShouldClose()) break;
+            if (WindowShouldClose())
+                break;
             BeginTextureMode(state.Dungeon);
             DrawMenuBackground();
             optionsScreen.Draw(GetVirtualMousePosition(&state));
@@ -304,7 +322,8 @@ int main()
         else if (state.currentScreen == GAME_OVER)
         {
             UpdateGameOverScreen(&state);
-            if (WindowShouldClose()) break;
+            if (WindowShouldClose())
+                break;
             RenderGameOverScreen(&state);
             DrawRenderWindows(&state);
         }
@@ -319,7 +338,8 @@ int main()
             UpdateGame(&state);
             bool mouseClicked = IsMouseButtonPressed(MOUSE_LEFT_BUTTON);
             saveLoadScreen.Update(&state, GetVirtualMousePosition(&state), mouseClicked);
-            if (WindowShouldClose()) break;
+            if (WindowShouldClose())
+                break;
             BeginTextureMode(state.Dungeon);
             DrawMenuBackground();
             saveLoadScreen.Draw(GetVirtualMousePosition(&state));
@@ -341,4 +361,3 @@ int main()
     GameShutDown(&state);
     return 0;
 }
- 

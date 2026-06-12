@@ -907,7 +907,8 @@ void WorldGenCanvas::StampCorridor(const MapObject &exitObj, int slotCol, int sl
             int curX = exitTileX - CORRIDOR_CENTER_OFFSET;
             int curY = exitTileY - i;
             TilesonMapData *corridor = pools->GetRandomCorridor(cp.vertical, curX, curY, exitTypeHash);
-            if (!corridor) continue;
+            if (!corridor)
+                continue;
             Stamp(corridor, curX, curY, WG_CORRIDOR_LAYER_START);
         }
     }
@@ -919,7 +920,8 @@ void WorldGenCanvas::StampCorridor(const MapObject &exitObj, int slotCol, int sl
             int curX = exitTileX - CORRIDOR_CENTER_OFFSET;
             int curY = exitTileY + i;
             TilesonMapData *corridor = pools->GetRandomCorridor(cp.vertical, curX, curY, exitTypeHash);
-            if (!corridor) continue;
+            if (!corridor)
+                continue;
             Stamp(corridor, curX, curY, WG_CORRIDOR_LAYER_START);
         }
     }
@@ -931,7 +933,8 @@ void WorldGenCanvas::StampCorridor(const MapObject &exitObj, int slotCol, int sl
             int curX = exitTileX + i;
             int curY = exitTileY - CORRIDOR_CENTER_OFFSET;
             TilesonMapData *corridor = pools->GetRandomCorridor(cp.horizontal, curX, curY, exitTypeHash);
-            if (!corridor) continue;
+            if (!corridor)
+                continue;
             Stamp(corridor, curX, curY, WG_CORRIDOR_LAYER_START);
         }
     }
@@ -943,7 +946,8 @@ void WorldGenCanvas::StampCorridor(const MapObject &exitObj, int slotCol, int sl
             int curX = exitTileX - i;
             int curY = exitTileY - CORRIDOR_CENTER_OFFSET;
             TilesonMapData *corridor = pools->GetRandomCorridor(cp.horizontal, curX, curY, exitTypeHash);
-            if (!corridor) continue;
+            if (!corridor)
+                continue;
             Stamp(corridor, curX, curY, WG_CORRIDOR_LAYER_START);
         }
     }

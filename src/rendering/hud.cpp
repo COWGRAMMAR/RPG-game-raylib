@@ -62,8 +62,7 @@ static void DrawItemIcon(const InventoryItem &item, Rectangle dest)
         (float)(frame.positionX * (FRAME_SIZE + FRAME_GAP)),
         (float)(frame.positionY * (FRAME_SIZE + FRAME_GAP)),
         (float)(frame.width * FRAME_SIZE),
-        (float)(frame.height * FRAME_SIZE)
-    };
+        (float)(frame.height * FRAME_SIZE)};
 
     if (def.spriteKey == "sword2" || def.spriteKey == "axe")
     {
@@ -82,27 +81,25 @@ static void DrawItemIcon(const InventoryItem &item, Rectangle dest)
 
     Vector2 position = {
         dest.x + (dest.width - renderWidth) / 2.0f,
-        dest.y + (dest.height - renderHeight) / 2.0f
-    };
+        dest.y + (dest.height - renderHeight) / 2.0f};
 
     bool isMelee = false;
     if (def.category == ITEM_WEAPON)
     {
-        const WeaponData* wd = std::get_if<WeaponData>(&def.data);
+        const WeaponData *wd = std::get_if<WeaponData>(&def.data);
         if (wd && wd->attackType != ATTACK_PIERCE)
         {
             isMelee = true;
         }
     }
 
-    Vector2 origin = isMelee ? Vector2{ renderWidth / 2.0f, renderHeight / 2.0f } : Vector2{ 0.0f, 0.0f };
+    Vector2 origin = isMelee ? Vector2{renderWidth / 2.0f, renderHeight / 2.0f} : Vector2{0.0f, 0.0f};
 
     Rectangle drawDest = {
         position.x + origin.x,
         position.y + origin.y,
         renderWidth,
-        renderHeight
-    };
+        renderHeight};
 
     DrawTexturePro(textures[frame.texture], src, drawDest, origin, isMelee ? -45.0f : 0.0f, WHITE);
 }
@@ -425,8 +422,10 @@ void DrawInventory()
         bool isHovered = CheckCollisionPointRec(mousePos, slotRect);
         bool isDragSource = (dragSlot == i);
 
-        if (isHovered && !isDragSource) DrawRectangleRec(slotRect, ColorAlpha(WHITE, 0.15f));
-        if (isDragSource) DrawRectangleRec(slotRect, ColorAlpha(GOLD, 0.25f));
+        if (isHovered && !isDragSource)
+            DrawRectangleRec(slotRect, ColorAlpha(WHITE, 0.15f));
+        if (isDragSource)
+            DrawRectangleRec(slotRect, ColorAlpha(GOLD, 0.25f));
 
         InventoryItem &item = PlayerInstance.GetBagItem(i);
         if (item.definitionId != -1 && !isDragSource)
@@ -437,7 +436,8 @@ void DrawInventory()
             // stack amount bag: GetOrLoad(FontId::LOADING_TITLE) 18px dengan background rounded hitam
             if (item.amount > 1)
             {
-                char buf[12]; sprintf(buf, "%d", item.amount);
+                char buf[12];
+                sprintf(buf, "%d", item.amount);
                 Vector2 sz = MeasureTextEx(GetOrLoad(FontId::LOADING_TITLE), buf, 18, 0);
                 float bx = slotRect.x + slotSize - 34;
                 float by = slotRect.y + slotSize - 24;
@@ -448,13 +448,25 @@ void DrawInventory()
 
         if (isHovered && mousePressed && dragSlot == -1 && !isDragSplit && item.definitionId != -1)
         {
-            if (InputInstance.IsCtrlDown()) HandleMergeStack(i);
-            else { dragSlot = i; dragItem = item; }
+            if (InputInstance.IsCtrlDown())
+                HandleMergeStack(i);
+            else
+            {
+                dragSlot = i;
+                dragItem = item;
+            }
         }
         if (isHovered && mouseReleased && dragSlot != -1 && dragSlot != i && !isDragSplit)
-        { HandleDrop(i); dragHandled = true; }
+        {
+            HandleDrop(i);
+            dragHandled = true;
+        }
         if (isHovered && mouseReleased && dragSlot == i)
-        { dragSlot = -1; dragItem = {-1, 0}; dragHandled = true; }
+        {
+            dragSlot = -1;
+            dragItem = {-1, 0};
+            dragHandled = true;
+        }
         HandleSplitDragSlot(i, slotRect, mousePos);
     }
 
@@ -466,8 +478,10 @@ void DrawInventory()
         bool isHovered = CheckCollisionPointRec(mousePos, slotRect);
         bool isDragSource = (dragSlot == globalIdx);
 
-        if (isHovered && !isDragSource) DrawRectangleRec(slotRect, ColorAlpha(WHITE, 0.15f));
-        if (isDragSource) DrawRectangleRec(slotRect, ColorAlpha(GOLD, 0.25f));
+        if (isHovered && !isDragSource)
+            DrawRectangleRec(slotRect, ColorAlpha(WHITE, 0.15f));
+        if (isDragSource)
+            DrawRectangleRec(slotRect, ColorAlpha(GOLD, 0.25f));
 
         InventoryItem &item = PlayerInstance.GetHotbarItem(i);
         if (item.definitionId != -1 && !isDragSource)
@@ -478,7 +492,8 @@ void DrawInventory()
             // stack amount hotbar (inventory open): GetOrLoad(FontId::LOADING_TITLE) 18px
             if (item.amount > 1)
             {
-                char buf[12]; sprintf(buf, "%d", item.amount);
+                char buf[12];
+                sprintf(buf, "%d", item.amount);
                 Vector2 sz = MeasureTextEx(GetOrLoad(FontId::LOADING_TITLE), buf, 18, 0);
                 float bx = slotRect.x + slotSize - 34;
                 float by = slotRect.y + slotSize - 24;
@@ -498,8 +513,7 @@ void DrawInventory()
                     float endAngle = 270.0f + (360.0f * ratio);
                     Vector2 center = {
                         slotRect.x + slotRect.width / 2.0f,
-                        slotRect.y + slotRect.height / 2.0f
-                    };
+                        slotRect.y + slotRect.height / 2.0f};
                     DrawCircleSector(center, iconSize / 2.0f + 4.0f, startAngle, endAngle, 36, ColorAlpha(BLACK, 0.65f));
 
                     char cdBuf[16];
@@ -510,23 +524,32 @@ void DrawInventory()
                         snprintf(cdBuf, sizeof(cdBuf), "%.1f", cd);
                     int cdFontSize = 26;
                     Vector2 cdSz = MeasureTextEx(GetOrLoad(FontId::LOADING_TITLE), cdBuf, cdFontSize, 0);
-                    DrawTextEx(GetOrLoad(FontId::LOADING_TITLE), cdBuf, Vector2{
-                        slotRect.x + (slotRect.width - cdSz.x) / 2.0f,
-                        slotRect.y + (slotRect.height - cdSz.y) / 2.0f
-                    }, cdFontSize, 0, WHITE);
+                    DrawTextEx(GetOrLoad(FontId::LOADING_TITLE), cdBuf, Vector2{slotRect.x + (slotRect.width - cdSz.x) / 2.0f, slotRect.y + (slotRect.height - cdSz.y) / 2.0f}, cdFontSize, 0, WHITE);
                 }
             }
         }
 
         if (isHovered && mousePressed && dragSlot == -1 && !isDragSplit && item.definitionId != -1)
         {
-            if (InputInstance.IsCtrlDown()) HandleMergeStack(globalIdx);
-            else { dragSlot = globalIdx; dragItem = item; }
+            if (InputInstance.IsCtrlDown())
+                HandleMergeStack(globalIdx);
+            else
+            {
+                dragSlot = globalIdx;
+                dragItem = item;
+            }
         }
         if (isHovered && mouseReleased && dragSlot != -1 && dragSlot != globalIdx && !isDragSplit)
-        { HandleDrop(globalIdx); dragHandled = true; }
+        {
+            HandleDrop(globalIdx);
+            dragHandled = true;
+        }
         if (isHovered && mouseReleased && dragSlot == globalIdx)
-        { dragSlot = -1; dragItem = {-1, 0}; dragHandled = true; }
+        {
+            dragSlot = -1;
+            dragItem = {-1, 0};
+            dragHandled = true;
+        }
         HandleSplitDragSlot(globalIdx, slotRect, mousePos);
     }
 
@@ -541,10 +564,18 @@ void DrawInventory()
         Vector2 facingDir = {0, 0};
         switch (PlayerInstance.Anim.direction)
         {
-        case UP:    facingDir = {0, -1}; break;
-        case DOWN:  facingDir = {0, 1};  break;
-        case LEFT:  facingDir = {-1, 0}; break;
-        case RIGHT: facingDir = {1, 0};  break;
+        case UP:
+            facingDir = {0, -1};
+            break;
+        case DOWN:
+            facingDir = {0, 1};
+            break;
+        case LEFT:
+            facingDir = {-1, 0};
+            break;
+        case RIGHT:
+            facingDir = {1, 0};
+            break;
         }
         float dot = Vector2DotProduct(facingDir, aimDir);
         Vector2 dropDir = aimDir;
@@ -575,7 +606,7 @@ void DrawInventory()
 
     // keybind hints (Merge, Split, Arrange, Drop) di kanan atas pakai GetOrLoad(FontId::LOADING_TITLE)
     {
-        const char* hints[] = {"[Left-Click Drag] Arrange", "[Ctrl+Click] Merge", "[Right-Click Drag] Split", "[Drop Outside Menu] Drop"};
+        const char *hints[] = {"[Left-Click Drag] Arrange", "[Ctrl+Click] Merge", "[Right-Click Drag] Split", "[Drop Outside Menu] Drop"};
         int hintCount = sizeof(hints) / sizeof(hints[0]);
         int hintFontSize = 25;
         float rightX = (float)GameScreenWidth - 20.0f;
@@ -620,7 +651,7 @@ void DrawInventory()
         }
         if (hoveredId != -1)
         {
-            const char* itemName = itemDefs.GetById(hoveredId).name.c_str();
+            const char *itemName = itemDefs.GetById(hoveredId).name.c_str();
             Vector2 nameSz = MeasureTextEx(GetOrLoad(FontId::LOADING_TITLE), itemName, 22, 0);
             float nameX = mousePos.x - nameSz.x / 2.0f;
             float nameY = mousePos.y - 40.0f;
@@ -669,7 +700,8 @@ static void DrawStatBar(Vector2 pos, float width, float height, float ratio, Col
  */
 void DrawHotbar()
 {
-    if (InputInstance.IsInventoryOpen()) return;
+    if (InputInstance.IsInventoryOpen())
+        return;
 
     const float slotSize = 55.0f;
     const float padding = 10.0f;
@@ -735,8 +767,7 @@ void DrawHotbar()
                     float endAngle = 270.0f + (360.0f * ratio);
                     Vector2 center = {
                         slotRect.x + slotRect.width / 2.0f,
-                        slotRect.y + slotRect.height / 2.0f
-                    };
+                        slotRect.y + slotRect.height / 2.0f};
                     DrawCircleSector(center, iconDrawSize / 2.0f + 4.0f, startAngle, endAngle, 36, ColorAlpha(BLACK, 0.65f));
 
                     // Teks sisa cooldown
@@ -748,10 +779,7 @@ void DrawHotbar()
                         snprintf(cdBuf, sizeof(cdBuf), "%.1f", cd);
                     int cdFontSize = 22;
                     Vector2 cdSz = MeasureTextEx(GetOrLoad(FontId::LOADING_TITLE), cdBuf, cdFontSize, 0);
-                    DrawTextEx(GetOrLoad(FontId::LOADING_TITLE), cdBuf, Vector2{
-                        slotRect.x + (slotRect.width - cdSz.x) / 2.0f,
-                        slotRect.y + (slotRect.height - cdSz.y) / 2.0f
-                    }, cdFontSize, 0, WHITE);
+                    DrawTextEx(GetOrLoad(FontId::LOADING_TITLE), cdBuf, Vector2{slotRect.x + (slotRect.width - cdSz.x) / 2.0f, slotRect.y + (slotRect.height - cdSz.y) / 2.0f}, cdFontSize, 0, WHITE);
                 }
             }
         }
@@ -798,10 +826,16 @@ static void DrawBuffIndicators()
     float manaPosY = dashPosY - gap - barHeight;
     float healthPosY = manaPosY - gap - barHeight;
 
-    struct { const char *spriteKey; float *timer; float *maxTimer; Color barColor; } buffs[] = {
-        {"damagePotionMedium",     &PlayerInstance.BuffDamageTimer,     &PlayerInstance.BuffDamageTimerMax,     Color{255,106,0,255}},
-        {"speedPotionMedium",      &PlayerInstance.BuffSpeedTimer,      &PlayerInstance.BuffSpeedTimerMax,      Color{0,255,233,255}},
-        {"invincibilityPotionMedium", &PlayerInstance.InvincibilityTimer, &PlayerInstance.InvincibilityTimerMax, Color{142,167,178,255}},
+    struct
+    {
+        const char *spriteKey;
+        float *timer;
+        float *maxTimer;
+        Color barColor;
+    } buffs[] = {
+        {"damagePotionMedium", &PlayerInstance.BuffDamageTimer, &PlayerInstance.BuffDamageTimerMax, Color{255, 106, 0, 255}},
+        {"speedPotionMedium", &PlayerInstance.BuffSpeedTimer, &PlayerInstance.BuffSpeedTimerMax, Color{0, 255, 233, 255}},
+        {"invincibilityPotionMedium", &PlayerInstance.InvincibilityTimer, &PlayerInstance.InvincibilityTimerMax, Color{142, 167, 178, 255}},
     };
 
     // Hitung jumlah buff aktif
@@ -811,7 +845,8 @@ static void DrawBuffIndicators()
         if (*buffs[i].timer > 0.0f)
             activeCount++;
     }
-    if (activeCount == 0) return;
+    if (activeCount == 0)
+        return;
 
     // Ukuran entry
     const float buffBarWidth = 150.0f;
@@ -825,7 +860,8 @@ static void DrawBuffIndicators()
 
     for (int i = 0; i < 3; i++)
     {
-        if (*buffs[i].timer <= 0.0f) continue;
+        if (*buffs[i].timer <= 0.0f)
+            continue;
 
         float x = barsX;
 
@@ -835,17 +871,15 @@ static void DrawBuffIndicators()
             (float)(frame.positionX * (FRAME_SIZE + FRAME_GAP)),
             (float)(frame.positionY * (FRAME_SIZE + FRAME_GAP)),
             (float)(frame.width * FRAME_SIZE),
-            (float)(frame.height * FRAME_SIZE)
-        };
+            (float)(frame.height * FRAME_SIZE)};
         int maxDim = (src.width > src.height) ? (int)src.width : (int)src.height;
         float scale = spriteSize / maxDim;
         float rw = src.width * scale;
         float rh = src.height * scale;
         Rectangle dest = {
             x + (spriteSize - rw) / 2.0f,
-            y + (buffBarHeight - rh) / 2.0f, rw, rh
-        };
-        DrawTexturePro(textures[frame.texture], src, dest, {0,0}, 0, WHITE);
+            y + (buffBarHeight - rh) / 2.0f, rw, rh};
+        DrawTexturePro(textures[frame.texture], src, dest, {0, 0}, 0, WHITE);
 
         float barX = x + spriteSize + 6.0f;
 
@@ -918,7 +952,7 @@ void DrawPlayerHUD()
 
     float barsX = padding;
     const float dashBarHeight = 6.0f;
-    
+
     Vector2 dashPos = {barsX, (float)GameScreenHeight - padding - dashBarHeight};
     Vector2 manaPos = {barsX, dashPos.y - gap - barHeight};
     Vector2 healthPos = {barsX, manaPos.y - gap - barHeight};
@@ -928,12 +962,13 @@ void DrawPlayerHUD()
     DrawStatBar(manaPos, barWidth, barHeight, manaRatio, GOLD, (int)mana);
 
     float dashCooldownRatio = 1.0f;
-    if (PlayerInstance.DashCooldownMax > 0.0f) {
+    if (PlayerInstance.DashCooldownMax > 0.0f)
+    {
         float currentCd = PlayerInstance.DashCooldown < 0.0f ? 0.0f : PlayerInstance.DashCooldown;
         dashCooldownRatio = 1.0f - (currentCd / PlayerInstance.DashCooldownMax);
     }
-    
-        DrawRectangleRounded((Rectangle){dashPos.x, dashPos.y, barWidth, dashBarHeight}, 0.5f, 8, DARKGRAY);
+
+    DrawRectangleRounded((Rectangle){dashPos.x, dashPos.y, barWidth, dashBarHeight}, 0.5f, 8, DARKGRAY);
     if (dashCooldownRatio > 0.0f)
         DrawRectangleRounded((Rectangle){dashPos.x, dashPos.y, barWidth * dashCooldownRatio, dashBarHeight}, 0.5f, 8, SKYBLUE);
 
@@ -943,31 +978,44 @@ void DrawPlayerHUD()
     if (InputInstance.IsInventoryOpen())
         DrawDragGhost(GetVirtualMousePosition(gState));
 
-    if (!InputInstance.IsInventoryOpen()) {
-        struct Hint { Action action; const char* keyName; const char* label; bool isCustom; };
+    if (!InputInstance.IsInventoryOpen())
+    {
+        struct Hint
+        {
+            Action action;
+            const char *keyName;
+            const char *label;
+            bool isCustom;
+        };
         Hint hints[] = {
-            {INTERACT,         nullptr, "Interact",      false},
-            {TOGGLE_INVENTORY, nullptr, "Inventory",     false},
-            {DROP_ITEM,        nullptr, "Drop Item",     false},
-            {DROP_ALL,         nullptr, "Drop All",      false},
-            {PAUSE_MENU,       nullptr, "Pause",         false},
-            {ACTION_COUNT,     "Scroll", "Switch Item",  true},
+            {INTERACT, nullptr, "Interact", false},
+            {TOGGLE_INVENTORY, nullptr, "Inventory", false},
+            {DROP_ITEM, nullptr, "Drop Item", false},
+            {DROP_ALL, nullptr, "Drop All", false},
+            {PAUSE_MENU, nullptr, "Pause", false},
+            {ACTION_COUNT, "Scroll", "Switch Item", true},
         };
         int hintFontSize = 22;
         float rightX = (float)GameScreenWidth - 20.0f;
         float hintY = 20.0f;
         float lineGap = 28.0f;
 
-        for (const auto& h : hints) {
+        for (const auto &h : hints)
+        {
             std::string text;
-            if (h.isCustom) {
+            if (h.isCustom)
+            {
                 text = std::string("[") + h.keyName + "] " + h.label;
-            } else if (h.action == DROP_ALL) {
-                const char* mod = keybindManager.GetKeyDisplayName(DROP_ALL);
-                const char* key = keybindManager.GetKeyDisplayName(DROP_ITEM);
+            }
+            else if (h.action == DROP_ALL)
+            {
+                const char *mod = keybindManager.GetKeyDisplayName(DROP_ALL);
+                const char *key = keybindManager.GetKeyDisplayName(DROP_ITEM);
                 text = std::string("[") + mod + "+" + key + "] " + h.label;
-            } else {
-                const char* keyName = keybindManager.GetKeyDisplayName(h.action);
+            }
+            else
+            {
+                const char *keyName = keybindManager.GetKeyDisplayName(h.action);
                 text = std::string("[") + keyName + "] " + h.label;
             }
             Vector2 sz = MeasureTextEx(GetOrLoad(FontId::LOADING_TITLE), text.c_str(), hintFontSize, 0);
@@ -1007,8 +1055,7 @@ void DrawSignDialog()
         GameScreenWidth * 0.1f,
         GameScreenHeight * 0.6f,
         GameScreenWidth * 0.8f,
-        GameScreenHeight * 0.3f
-    };
+        GameScreenHeight * 0.3f};
     DrawRectangleRounded(box, 0.15f, 8, ColorAlpha(DARKGRAY, 0.95f));
     DrawRectangleRoundedLines(box, 0.15f, 8, WHITE);
 
@@ -1131,8 +1178,8 @@ void DrawBossHPBar()
     int nameFontSize = 28;
     Vector2 nameSz = MeasureTextEx(GetOrLoad(FontId::LOADING_TITLE), bossName, nameFontSize, 0);
     DrawTextEx(GetOrLoad(FontId::LOADING_TITLE), bossName,
-        Vector2{centerX - nameSz.x / 2.0f, barY - nameSz.y - 6.0f},
-        nameFontSize, 0, WHITE);
+               Vector2{centerX - nameSz.x / 2.0f, barY - nameSz.y - 6.0f},
+               nameFontSize, 0, WHITE);
 
     // Background bar
     Rectangle barBg = {centerX - barWidth / 2.0f, barY, barWidth, barHeight};
@@ -1144,7 +1191,7 @@ void DrawBossHPBar()
         Rectangle barFill = {centerX - barWidth / 2.0f, barY, barWidth * ratio, barHeight};
         DrawRectangleRounded(barFill, 0.4f, 8, (Color){125, 15, 15, 255});
         DrawRectangleRounded((Rectangle){centerX - barWidth / 2.0f, barY, barWidth * ratio, barHeight * 0.4f},
-            0.4f, 8, ColorAlpha(WHITE, 0.1f));
+                             0.4f, 8, ColorAlpha(WHITE, 0.1f));
     }
     DrawRectangleRoundedLines(barBg, 0.4f, 8, ColorAlpha(WHITE, 0.2f));
 
@@ -1155,6 +1202,6 @@ void DrawBossHPBar()
     int hpFontSize = 24;
     Vector2 hpSz = MeasureTextEx(GetOrLoad(FontId::LOADING_TITLE), hpBuf, hpFontSize, 0);
     DrawTextEx(GetOrLoad(FontId::LOADING_TITLE), hpBuf,
-        Vector2{centerX + barWidth / 2.0f + 12.0f, barY + (barHeight - (float)hpFontSize) / 2.0f},
-        hpFontSize, 0, WHITE);
+               Vector2{centerX + barWidth / 2.0f + 12.0f, barY + (barHeight - (float)hpFontSize) / 2.0f},
+               hpFontSize, 0, WHITE);
 }

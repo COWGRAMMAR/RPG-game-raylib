@@ -133,7 +133,6 @@ static std::string ToLower(std::string str)
     return str;
 }
 
-
 /**
  * @brief Inisialisasi window, audio, dan render texture virtual
  *
@@ -151,7 +150,7 @@ GameState InitScreen()
 
     SetConfigFlags(FLAG_WINDOW_RESIZABLE);
     InitWindow(1280, 720, "Dungeon Game");
-    SetExitKey(0);  // ESC handled by keybindManager (pause toggle), not by raylib quit
+    SetExitKey(0); // ESC handled by keybindManager (pause toggle), not by raylib quit
     InitAudioDevice();
 
     state.WindowScreenWidth = (int)(GetMonitorWidth(0) * ScaleMultiplierMonitor);
@@ -346,7 +345,7 @@ void UpdateLogicAll()
                 TraceLog(LOG_INFO, "PICKUP: added to inventory");
                 item.isAdded = true;
                 AudioManager::PlaySFX("pickup-item");
-                
+
                 const ItemDefinition &def = itemDefs.GetById(item.definitionId);
                 std::string logMsg = def.name;
                 if (item.amount > 1)
@@ -570,7 +569,7 @@ void DrawMenuBackground(void)
     DrawRectangleGradientV(
         0, 0,
         GameScreenWidth, GameScreenHeight,
-        {36, 28, 58, 255},   // top: muted dark purple-blue
-        {5, 5, 15, 255}      // bottom: near-black
+        {36, 28, 58, 255}, // top: muted dark purple-blue
+        {5, 5, 15, 255}    // bottom: near-black
     );
 }

@@ -131,12 +131,14 @@ namespace Inventory
         {
             if (potion.isMana)
             {
-                if (player.Mana < player.MaxMana) Effects::AddLog("Mana Pulih!");
+                if (player.Mana < player.MaxMana)
+                    Effects::AddLog("Mana Pulih!");
                 player.Mana = std::min(player.Mana + (float)potion.healValue, player.MaxMana);
             }
             else
             {
-                if (player.Health < player.MaxHealth) Effects::AddLog("Health Pulih!");
+                if (player.Health < player.MaxHealth)
+                    Effects::AddLog("Health Pulih!");
                 player.Health = std::min(player.Health + (float)potion.healValue, player.MaxHealth);
             }
         }

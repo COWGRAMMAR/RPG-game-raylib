@@ -5,7 +5,8 @@
 #include "fonts.h"
 #include <vector>
 
-namespace Effects {
+namespace Effects
+{
     // --- Internal State ---
     static EffectQueue<DamagePopup> damageQueue;
     static EffectQueue<LogEntry> logQueue;
@@ -15,16 +16,22 @@ namespace Effects {
     static const float LOG_UP_SPEED = 30.0f;
     static const int LOG_LINE_HEIGHT = 12;
 
-    void Update(float dt) {
+    void Update(float dt)
+    {
         // 1. Update Damage Popups
-        EffectNode<DamagePopup>* currentDmg = damageQueue.GetHead();
-        while (currentDmg != nullptr) {
-            DamagePopup& data = currentDmg->data;
-            if (data.active) {
+        EffectNode<DamagePopup> *currentDmg = damageQueue.GetHead();
+        while (currentDmg != nullptr)
+        {
+            DamagePopup &data = currentDmg->data;
+            if (data.active)
+            {
                 data.timer += dt;
-                if (data.timer >= data.duration) {
+                if (data.timer >= data.duration)
+                {
                     data.active = false;
-                } else {
+                }
+                else
+                {
                     DamageFloat(data.position, data.velocity, 0.1f, 0.95f, dt);
                 }
             }
@@ -32,18 +39,21 @@ namespace Effects {
         }
 
         // Cleanup inactive damage popups from head
-        while (!damageQueue.IsEmpty() && !damageQueue.GetHead()->data.active) {
+        while (!damageQueue.IsEmpty() && !damageQueue.GetHead()->data.active)
+        {
             damageQueue.Dequeue();
         }
 
         // 2. Update Message Log
-        EffectNode<LogEntry>* currentLog = logQueue.GetHead();
-        while (currentLog != nullptr) {
-            LogEntry& entry = currentLog->data;
+        EffectNode<LogEntry> *currentLog = logQueue.GetHead();
+        while (currentLog != nullptr)
+        {
+            LogEntry &entry = currentLog->data;
             entry.timer += dt;
 
             // Since it's a queue, we only cleanup from head if it's expired
-            if (currentLog == logQueue.GetHead() && entry.timer >= LOG_DURATION) {
+            if (currentLog == logQueue.GetHead() && entry.timer >= LOG_DURATION)
+            {
                 logQueue.Dequeue();
                 currentLog = logQueue.GetHead();
                 continue;
@@ -54,15 +64,18 @@ namespace Effects {
         }
     }
 
-    void Draw() {
+    void Draw()
+    {
         // 1. Draw Damage Popups
-        EffectNode<DamagePopup>* currentDmg = damageQueue.GetHead();
-        while (currentDmg != nullptr) {
-            DamagePopup& data = currentDmg->data;
-            if (data.active) {
+        EffectNode<DamagePopup> *currentDmg = damageQueue.GetHead();
+        while (currentDmg != nullptr)
+        {
+            DamagePopup &data = currentDmg->data;
+            if (data.active)
+            {
                 float alpha = FadeOut(data.timer, data.duration);
                 Color color = Fade(YELLOW, alpha);
-                
+
                 std::string dmgStr = std::to_string((int)data.damage);
                 int textW = MeasureText(dmgStr.c_str(), 10);
                 DrawDefaultText(dmgStr.c_str(), (int)(data.position.x - textW / 2.0f), (int)data.position.y, 10, color);
@@ -72,16 +85,17 @@ namespace Effects {
 
         // 2. Draw Message Log
         Vector2 playerCenter = PlayerInstance.GetCenter();
-        EffectNode<LogEntry>* currentLog = logQueue.GetHead();
+        EffectNode<LogEntry> *currentLog = logQueue.GetHead();
         int index = 0;
 
-        while (currentLog != nullptr) {
-            LogEntry& entry = currentLog->data;
-            
+        while (currentLog != nullptr)
+        {
+            LogEntry &entry = currentLog->data;
+
             float alpha = FadeOut(entry.timer, LOG_DURATION);
             int fontSize = 10;
             int textWidth = MeasureText(entry.text.c_str(), fontSize);
-            
+
             // Calculate screen position relative to player head
             // Add (index * LOG_LINE_HEIGHT) to stack them vertically
             int x = (int)playerCenter.x - textWidth / 2;
@@ -96,7 +110,8 @@ namespace Effects {
         }
     }
 
-    void AddDamage(Vector2 pos, float damage) {
+    void AddDamage(Vector2 pos, float damage)
+    {
         DamagePopup p;
         p.position = pos;
         p.damage = damage;
@@ -107,16 +122,19 @@ namespace Effects {
         damageQueue.Enqueue(p);
     }
 
-    void AddLog(const char* message) {
+    void AddLog(const char *message)
+    {
         logQueue.Enqueue({message, 0.0f, -20.0f});
-        
+
         // Limit log size
-        if (logQueue.Size() > 5) {
+        if (logQueue.Size() > 5)
+        {
             logQueue.Dequeue();
         }
     }
 
-    void Clear() {
+    void Clear()
+    {
         damageQueue.Clear();
         logQueue.Clear();
     }

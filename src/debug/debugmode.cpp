@@ -150,8 +150,7 @@ void Debug::DrawAttackOverlay(void)
             (tX - radiusTiles) * 32.0f,
             (tY - radiusTiles) * 32.0f,
             gridSize * 32.0f,
-            gridSize * 32.0f
-        };
+            gridSize * 32.0f};
         DrawRectangleRec(slamAABB, Fade(RED, 0.3f));
         DrawRectangleLinesEx(slamAABB, 2.0f, RED);
 
@@ -274,7 +273,7 @@ void Debug::DrawEnemySpawnOverlay(void)
  */
 void Debug::Toggle(void)
 {
-    const InputState& in = InputInstance.GetState();
+    const InputState &in = InputInstance.GetState();
 
     if (in.debugToggle)
     {
@@ -342,11 +341,11 @@ void Debug::DrawMapPanel(Rectangle bounds)
 
     DrawPanelFrame(bounds, "[ MAP DEBUG ]", YELLOW);
     DrawDefaultText(TextFormat("Size    : %dx%d tiles", tilesonMap->width, tilesonMap->height),
-             (int)bounds.x + 10, (int)bounds.y + 27, 16, WHITE);
+                    (int)bounds.x + 10, (int)bounds.y + 27, 16, WHITE);
     DrawDefaultText(TextFormat("Layers  : %d", tilesonMap->layerCount),
-             (int)bounds.x + 10, (int)bounds.y + 47, 16, WHITE);
+                    (int)bounds.x + 10, (int)bounds.y + 47, 16, WHITE);
     DrawDefaultText(TextFormat("Tileset : %s", !tilesonMap->tilesets.empty() ? "Loaded" : "Not loaded"),
-             (int)bounds.x + 10, (int)bounds.y + 67, 16, !tilesonMap->tilesets.empty() ? GREEN : RED);
+                    (int)bounds.x + 10, (int)bounds.y + 67, 16, !tilesonMap->tilesets.empty() ? GREEN : RED);
 }
 
 /**
@@ -358,9 +357,9 @@ void Debug::DrawCameraPanel(Rectangle bounds)
 {
     DrawPanelFrame(bounds, "[ CAMERA DEBUG ]", SKYBLUE);
     DrawDefaultText(TextFormat("Target  : (%.1f, %.1f)", camera.target.x, camera.target.y),
-             (int)bounds.x + 10, (int)bounds.y + 27, 16, WHITE);
+                    (int)bounds.x + 10, (int)bounds.y + 27, 16, WHITE);
     DrawDefaultText(TextFormat("Zoom    : %.2f", camera.zoom),
-             (int)bounds.x + 10, (int)bounds.y + 47, 16, WHITE);
+                    (int)bounds.x + 10, (int)bounds.y + 47, 16, WHITE);
 }
 
 /**
@@ -374,13 +373,13 @@ void Debug::DrawPlayerPanel(Rectangle bounds)
 {
     DrawPanelFrame(bounds, "[ PLAYER DEBUG ]", GREEN);
     DrawDefaultText(TextFormat("Position   : (%.1f, %.1f)", PlayerInstance.GetPosition().x, PlayerInstance.GetPosition().y),
-             (int)bounds.x + 10, (int)bounds.y + 27, 16, WHITE);
+                    (int)bounds.x + 10, (int)bounds.y + 27, 16, WHITE);
     DrawDefaultText(TextFormat("Speed      : %.1f", PlayerInstance.Speed),
-             (int)bounds.x + 10, (int)bounds.y + 47, 16, WHITE);
+                    (int)bounds.x + 10, (int)bounds.y + 47, 16, WHITE);
     DrawDefaultText(TextFormat("Hitbox Size: %.1f x %.1f", PlayerInstance.GetHitboxWidth(), PlayerInstance.GetHitboxHeight()),
-             (int)bounds.x + 10, (int)bounds.y + 67, 16, YELLOW);
+                    (int)bounds.x + 10, (int)bounds.y + 67, 16, YELLOW);
     DrawDefaultText(TextFormat("Hitbox Off : (%.1f, %.1f)", PlayerInstance.GetHitboxOffsetX(), PlayerInstance.GetHitboxOffsetY()),
-             (int)bounds.x + 10, (int)bounds.y + 87, 16, YELLOW);
+                    (int)bounds.x + 10, (int)bounds.y + 87, 16, YELLOW);
 }
 
 /**
@@ -409,9 +408,9 @@ void Debug::DrawZoomPanel(Rectangle bounds)
 
     DrawPanelFrame(bounds, "[ ZOOM DEBUG ]", ORANGE);
     DrawDefaultText(TextFormat("Zoom    : %.2f", camera.zoom),
-             (int)bounds.x + 10, (int)bounds.y + 27, 16, WHITE);
+                    (int)bounds.x + 10, (int)bounds.y + 27, 16, WHITE);
     DrawDefaultText("[Scroll] Zoom In/Out",
-             (int)bounds.x + 10, (int)bounds.y + 47, 16, YELLOW);
+                    (int)bounds.x + 10, (int)bounds.y + 47, 16, YELLOW);
 }
 
 /**
@@ -430,13 +429,13 @@ void Debug::DrawFrustumPanel(Rectangle bounds)
 
     DrawPanelFrame(bounds, "[ FRUSTUM DEBUG ]", VIOLET);
     DrawDefaultText(TextFormat("Tiles Drawn : %d", lastTilesRendered),
-             (int)bounds.x + 10, (int)bounds.y + 27, 16, WHITE);
+                    (int)bounds.x + 10, (int)bounds.y + 27, 16, WHITE);
     DrawDefaultText(TextFormat("Total Map   : %d", totalMapTiles),
-             (int)bounds.x + 10, (int)bounds.y + 47, 16, GRAY);
+                    (int)bounds.x + 10, (int)bounds.y + 47, 16, GRAY);
     DrawDefaultText(TextFormat("Range X: %d-%d", currentVisibleRange.minX, currentVisibleRange.maxX),
-             (int)bounds.x + 10, (int)bounds.y + 67, 16, WHITE);
+                    (int)bounds.x + 10, (int)bounds.y + 67, 16, WHITE);
     DrawDefaultText(TextFormat("Range Y: %d-%d", currentVisibleRange.minY, currentVisibleRange.maxY),
-             (int)bounds.x + 10, (int)bounds.y + 87, 16, WHITE);
+                    (int)bounds.x + 10, (int)bounds.y + 87, 16, WHITE);
 }
 
 /**
@@ -468,13 +467,13 @@ void Debug::DrawCollisionPanel(Rectangle bounds)
 
     DrawPanelFrame(bounds, "[ COLLISION DEBUG ]", RED);
     DrawDefaultText(TextFormat("Rect Count     : %d", collisionRectCount),
-             (int)bounds.x + 10, (int)bounds.y + 27, 16, WHITE);
+                    (int)bounds.x + 10, (int)bounds.y + 27, 16, WHITE);
     DrawDefaultText(TextFormat("Polygon Count  : %d", collisionPolygonCount),
-             (int)bounds.x + 10, (int)bounds.y + 47, 16, WHITE);
+                    (int)bounds.x + 10, (int)bounds.y + 47, 16, WHITE);
     DrawDefaultText(TextFormat("Map Bound Poly : %d", mapBoundPolygonCount),
-             (int)bounds.x + 10, (int)bounds.y + 67, 16, WHITE);
+                    (int)bounds.x + 10, (int)bounds.y + 67, 16, WHITE);
     DrawDefaultText(TextFormat("Boundary Mode  : %s", mapBoundPolygonCount > 0 ? "Custom Polygon" : "Default Rectangle"),
-             (int)bounds.x + 10, (int)bounds.y + 87, 16, mapBoundPolygonCount > 0 ? GREEN : YELLOW);
+                    (int)bounds.x + 10, (int)bounds.y + 87, 16, mapBoundPolygonCount > 0 ? GREEN : YELLOW);
 }
 
 /*==============================================================================

@@ -25,26 +25,7 @@
  * Menggunakan buttonTxt (berbasis teks) untuk tombol BACK.
  */
 SaveLoadScreen::SaveLoadScreen()
-    : active(false)
-    , texturesLoaded(false)
-    , returnScreen(PLAY)
-    , width(0)
-    , height(0)
-    , startX(0)
-    , startY(0)
-    , bgTexture({0})
-    , slotOccupied{}
-    , slotMapName{}
-    , slotTimestamp{}
-    , m_mode(SaveLoadMode::SAVE_MODE)
-    , m_previousMode(SaveLoadMode::SAVE_MODE)
-    , m_overwritePopup("Overwrite existing save?", "Overwrite", "Cancel", 0.7f)
-    , m_loadPopup("Load this save?", "Load", "Cancel", 0.7f)
-    , m_deletePopup("Delete this save?", "Delete", "Cancel", 0.7f)
-    , m_showOverwritePopup(false)
-    , m_showLoadPopup(false)
-    , m_showDeletePopup(false)
-    , m_selectedSlot(-1)
+    : active(false), texturesLoaded(false), returnScreen(PLAY), width(0), height(0), startX(0), startY(0), bgTexture({0}), slotOccupied{}, slotMapName{}, slotTimestamp{}, m_mode(SaveLoadMode::SAVE_MODE), m_previousMode(SaveLoadMode::SAVE_MODE), m_overwritePopup("Overwrite existing save?", "Overwrite", "Cancel", 0.7f), m_loadPopup("Load this save?", "Load", "Cancel", 0.7f), m_deletePopup("Delete this save?", "Delete", "Cancel", 0.7f), m_showOverwritePopup(false), m_showLoadPopup(false), m_showDeletePopup(false), m_selectedSlot(-1)
 {
 }
 
@@ -55,7 +36,8 @@ SaveLoadScreen::SaveLoadScreen()
  */
 SaveLoadScreen::~SaveLoadScreen()
 {
-    if (bgTexture.id != 0) {
+    if (bgTexture.id != 0)
+    {
         UnloadTexture(bgTexture);
     }
 }
@@ -73,7 +55,8 @@ SaveLoadScreen::~SaveLoadScreen()
 void SaveLoadScreen::Show()
 {
     active = true;
-    if (!texturesLoaded) {
+    if (!texturesLoaded)
+    {
         // Texture akan dimuat di task mendatang jika diperlukan
         texturesLoaded = true;
     }
@@ -129,16 +112,19 @@ void SaveLoadScreen::SetMode(SaveLoadMode mode)
  * Menangani popup konfirmasi, klik slot save/load,
  * dan tombol BACK.
  */
-void SaveLoadScreen::Update(GameState* state, Vector2 mousePosition, bool mouseClicked)
+void SaveLoadScreen::Update(GameState *state, Vector2 mousePosition, bool mouseClicked)
 {
-    if (!active) {
+    if (!active)
+    {
         return;
     }
 
     // Handle overwrite popup
-    if (m_showOverwritePopup) {
+    if (m_showOverwritePopup)
+    {
         m_overwritePopup.Update(mousePosition, mouseClicked);
-        if (m_overwritePopup.IsConfirmClicked()) {
+        if (m_overwritePopup.IsConfirmClicked())
+        {
             m_showOverwritePopup = false;
             SetActiveSlot(m_selectedSlot);
             SaveGameState(state);
@@ -146,70 +132,87 @@ void SaveLoadScreen::Update(GameState* state, Vector2 mousePosition, bool mouseC
             {
                 GameSnapshot snap = SaveManager::CaptureSnapshot();
                 TraceLog(LOG_INFO, "MANUAL SAVE: slot=%d enemies=%zu items=%zu dead=%zu bomb=%zu crate=%zu playerPos=(%.0f,%.0f) mapPath='%s'",
-                    m_selectedSlot, snap.enemies.size(), snap.items.size(), snap.deadEntities.size(),
-                    snap.bombConsumed.size(), snap.crateConsumed.size(),
-                    snap.playerPosition.x, snap.playerPosition.y, snap.mapPath.c_str());
+                         m_selectedSlot, snap.enemies.size(), snap.items.size(), snap.deadEntities.size(),
+                         snap.bombConsumed.size(), snap.crateConsumed.size(),
+                         snap.playerPosition.x, snap.playerPosition.y, snap.mapPath.c_str());
                 SaveManager::SaveManual(snap, m_selectedSlot);
             }
             WriteSaveFile(GetSlotPath(m_selectedSlot, "manual"));
             active = false;
             state->currentScreen = returnScreen;
-        } else if (!m_overwritePopup.IsActive()) {
+        }
+        else if (!m_overwritePopup.IsActive())
+        {
             m_showOverwritePopup = false; // Cancelled
         }
         return;
     }
 
     // Handle load popup
-    if (m_showLoadPopup) {
+    if (m_showLoadPopup)
+    {
         m_loadPopup.Update(mousePosition, mouseClicked);
-        if (m_loadPopup.IsConfirmClicked()) {
+        if (m_loadPopup.IsConfirmClicked())
+        {
             m_showLoadPopup = false;
             SetActiveSlot(m_selectedSlot);
             {
                 std::string path = GetSlotPath(m_selectedSlot, "manual");
                 TraceLog(LOG_INFO, "LOAD: slot=%d mapPath='%s' worldgenSlot=%d",
-                    m_selectedSlot, savedMapState.mapPath.c_str(), savedPlayerState.worldgenSlot);
+                         m_selectedSlot, savedMapState.mapPath.c_str(), savedPlayerState.worldgenSlot);
                 ReadSaveFile(path);
                 // RestoreGameState di-loading_screen.cpp (HandleFastPath) setelah InitAll
             }
             active = false;
             state->currentScreen = LOADING;
-        } else if (!m_loadPopup.IsActive()) {
+        }
+        else if (!m_loadPopup.IsActive())
+        {
             m_showLoadPopup = false; // Cancelled
         }
         return;
     }
 
     // Handle delete popup
-    if (m_showDeletePopup) {
+    if (m_showDeletePopup)
+    {
         m_deletePopup.Update(mousePosition, mouseClicked);
-        if (m_deletePopup.IsConfirmClicked()) {
+        if (m_deletePopup.IsConfirmClicked())
+        {
             m_showDeletePopup = false;
             SaveManager::DeleteSlot(m_selectedSlot);
             RefreshSlotMetadata();
             m_selectedSlot = -1;
-        } else if (!m_deletePopup.IsActive()) {
+        }
+        else if (!m_deletePopup.IsActive())
+        {
             m_showDeletePopup = false; // Cancelled
         }
         return;
     }
 
     // Handle slot clicks
-    if (mouseClicked) {
+    if (mouseClicked)
+    {
         int clickedSlot = GetSlotAtPosition(mousePosition);
-        if (clickedSlot >= 0) {
-            if (m_mode == SaveLoadMode::SAVE_MODE) {
+        if (clickedSlot >= 0)
+        {
+            if (m_mode == SaveLoadMode::SAVE_MODE)
+            {
                 // Autosave slots disabled in save mode
-                if (clickedSlot >= MANUAL_SLOT_COUNT) {
+                if (clickedSlot >= MANUAL_SLOT_COUNT)
+                {
                     return;
                 }
 
                 m_selectedSlot = clickedSlot;
-                if (slotOccupied[clickedSlot]) {
+                if (slotOccupied[clickedSlot])
+                {
                     m_overwritePopup.Show();
                     m_showOverwritePopup = true;
-                } else {
+                }
+                else
+                {
                     SetActiveSlot(clickedSlot);
                     SaveGameState(state);
                     // Save new-format snapshot
@@ -221,18 +224,24 @@ void SaveLoadScreen::Update(GameState* state, Vector2 mousePosition, bool mouseC
                     active = false;
                     state->currentScreen = returnScreen;
                 }
-            } else if (m_mode == SaveLoadMode::LOAD_MODE) {
+            }
+            else if (m_mode == SaveLoadMode::LOAD_MODE)
+            {
                 // Empty slots disabled in load mode
-                if (!slotOccupied[clickedSlot]) {
+                if (!slotOccupied[clickedSlot])
+                {
                     return;
                 }
 
                 m_selectedSlot = clickedSlot;
                 m_loadPopup.Show();
                 m_showLoadPopup = true;
-            } else if (m_mode == SaveLoadMode::DELETE_MODE) {
+            }
+            else if (m_mode == SaveLoadMode::DELETE_MODE)
+            {
                 // Empty slots disabled in delete mode
-                if (!slotOccupied[clickedSlot]) {
+                if (!slotOccupied[clickedSlot])
+                {
                     return;
                 }
 
@@ -245,15 +254,18 @@ void SaveLoadScreen::Update(GameState* state, Vector2 mousePosition, bool mouseC
     }
 
     // DELETE button - switch to delete mode
-    if (deleteButton.isClicked(mousePosition, mouseClicked)) {
+    if (deleteButton.isClicked(mousePosition, mouseClicked))
+    {
         m_previousMode = m_mode;
         m_mode = SaveLoadMode::DELETE_MODE;
         return;
     }
 
     // Back button (one level up in DELETE_MODE, otherwise exit)
-    if (backButton.isClicked(mousePosition, mouseClicked)) {
-        if (m_mode == SaveLoadMode::DELETE_MODE) {
+    if (backButton.isClicked(mousePosition, mouseClicked))
+    {
+        if (m_mode == SaveLoadMode::DELETE_MODE)
+        {
             m_mode = m_previousMode;
             return;
         }
@@ -272,25 +284,32 @@ void SaveLoadScreen::Update(GameState* state, Vector2 mousePosition, bool mouseC
  */
 void SaveLoadScreen::Draw(Vector2 mousePosition)
 {
-    if (!active) {
+    if (!active)
+    {
         return;
     }
 
     DrawMenuBackground();
 
-    if (bgTexture.id != 0) {
+    if (bgTexture.id != 0)
+    {
         DrawTexture(bgTexture, startX, startY, WHITE);
-    } else {
+    }
+    else
+    {
         Color bgColor = {40, 40, 40, 230};
         DrawRectangleRec(backgroundRect, bgColor);
         DrawRectangleLinesEx(backgroundRect, 2, WHITE);
     }
 
     // Draw header based on mode
-    const char* headerText = "SAVE GAME";
-    if (m_mode == SaveLoadMode::LOAD_MODE) {
+    const char *headerText = "SAVE GAME";
+    if (m_mode == SaveLoadMode::LOAD_MODE)
+    {
         headerText = "LOAD GAME";
-    } else if (m_mode == SaveLoadMode::DELETE_MODE) {
+    }
+    else if (m_mode == SaveLoadMode::DELETE_MODE)
+    {
         headerText = "DELETE SAVE";
     }
     int headerFontSize = 28;
@@ -305,13 +324,16 @@ void SaveLoadScreen::Draw(Vector2 mousePosition)
     backButton.Draw(mousePosition);
 
     // Draw popups on top
-    if (m_showOverwritePopup) {
+    if (m_showOverwritePopup)
+    {
         m_overwritePopup.Draw(mousePosition);
     }
-    if (m_showLoadPopup) {
+    if (m_showLoadPopup)
+    {
         m_loadPopup.Draw(mousePosition);
     }
-    if (m_showDeletePopup) {
+    if (m_showDeletePopup)
+    {
         m_deletePopup.Draw(mousePosition);
     }
 }
@@ -337,8 +359,7 @@ void SaveLoadScreen::CalculateDimensions()
         static_cast<float>(startX),
         static_cast<float>(startY),
         static_cast<float>(width),
-        static_cast<float>(height)
-    };
+        static_cast<float>(height)};
 
     backButton = buttonTxt(
         "BACK",
@@ -369,38 +390,46 @@ int SaveLoadScreen::GetSlotAtPosition(Vector2 mousePosition)
     int row1X = startX + (width - rowWidth3) / 2;
 
     // Manual row 1 (slots 0, 1, 2)
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < 3; i++)
+    {
         int slotX = row1X + i * (SLOT_WIDTH + SLOT_GAP);
         Rectangle rect = {static_cast<float>(slotX), static_cast<float>(manualRow1Y), static_cast<float>(SLOT_WIDTH), static_cast<float>(SLOT_HEIGHT)};
-        if (CheckCollisionPointRec(mousePosition, rect)) return i;
+        if (CheckCollisionPointRec(mousePosition, rect))
+            return i;
     }
 
     int manualRow2Y = manualRow1Y + SLOT_HEIGHT + SLOT_GAP;
 
     // Manual row 2 (slots 3, 4, 5)
-    for (int i = 3; i < 6; i++) {
+    for (int i = 3; i < 6; i++)
+    {
         int slotX = row1X + (i - 3) * (SLOT_WIDTH + SLOT_GAP);
         Rectangle rect = {static_cast<float>(slotX), static_cast<float>(manualRow2Y), static_cast<float>(SLOT_WIDTH), static_cast<float>(SLOT_HEIGHT)};
-        if (CheckCollisionPointRec(mousePosition, rect)) return i;
+        if (CheckCollisionPointRec(mousePosition, rect))
+            return i;
     }
 
     int autoLabelY = manualRow2Y + SLOT_HEIGHT + 15;
     int autoRow1Y = autoLabelY + 25;
 
     // Auto row 1 (slots 6, 7, 8)
-    for (int i = 6; i < 9; i++) {
+    for (int i = 6; i < 9; i++)
+    {
         int slotX = row1X + (i - 6) * (SLOT_WIDTH + SLOT_GAP);
         Rectangle rect = {static_cast<float>(slotX), static_cast<float>(autoRow1Y), static_cast<float>(SLOT_WIDTH), static_cast<float>(SLOT_HEIGHT)};
-        if (CheckCollisionPointRec(mousePosition, rect)) return i;
+        if (CheckCollisionPointRec(mousePosition, rect))
+            return i;
     }
 
     int autoRow2Y = autoRow1Y + SLOT_HEIGHT + SLOT_GAP;
 
     // Auto row 2 (slots 9, 10, 11)
-    for (int i = 9; i < 12; i++) {
+    for (int i = 9; i < 12; i++)
+    {
         int slotX = row1X + (i - 9) * (SLOT_WIDTH + SLOT_GAP);
         Rectangle rect = {static_cast<float>(slotX), static_cast<float>(autoRow2Y), static_cast<float>(SLOT_WIDTH), static_cast<float>(SLOT_HEIGHT)};
-        if (CheckCollisionPointRec(mousePosition, rect)) return i;
+        if (CheckCollisionPointRec(mousePosition, rect))
+            return i;
     }
 
     return -1;
@@ -417,49 +446,64 @@ int SaveLoadScreen::GetSlotAtPosition(Vector2 mousePosition)
  * @param mousePosition Posisi mouse untuk efek hover
  * @param enabled Apakah slot dapat diinteraksi
  */
-void SaveLoadScreen::DrawSlotBox(int slotIndex, int posX, int posY, bool occupied, const std::string& mapName, const std::string& timestamp, Vector2 mousePosition, bool enabled)
+void SaveLoadScreen::DrawSlotBox(int slotIndex, int posX, int posY, bool occupied, const std::string &mapName, const std::string &timestamp, Vector2 mousePosition, bool enabled)
 {
     Rectangle slotRect = {
         static_cast<float>(posX),
         static_cast<float>(posY),
         static_cast<float>(SLOT_WIDTH),
-        static_cast<float>(SLOT_HEIGHT)
-    };
+        static_cast<float>(SLOT_HEIGHT)};
 
     bool hovered = enabled && CheckCollisionPointRec(mousePosition, slotRect);
 
     Color bgColor;
-    if (!enabled) {
+    if (!enabled)
+    {
         bgColor = {20, 20, 30, 140};
-    } else if (hovered) {
+    }
+    else if (hovered)
+    {
         bgColor = {70, 70, 100, 220};
-    } else if (occupied) {
+    }
+    else if (occupied)
+    {
         bgColor = {50, 50, 70, 220};
-    } else {
+    }
+    else
+    {
         bgColor = {30, 30, 40, 180};
     }
 
     DrawRectangleRec(slotRect, bgColor);
 
     Color borderColor;
-    if (!enabled) {
+    if (!enabled)
+    {
         borderColor = {60, 60, 70, 100};
-    } else {
+    }
+    else
+    {
         borderColor = occupied ? (hovered ? WHITE : (Color){180, 180, 200, 255}) : GRAY;
     }
     DrawRectangleLinesEx(slotRect, 1, borderColor);
 
-    if (!enabled && slotIndex >= MANUAL_SLOT_COUNT && m_mode == SaveLoadMode::SAVE_MODE) {
+    if (!enabled && slotIndex >= MANUAL_SLOT_COUNT && m_mode == SaveLoadMode::SAVE_MODE)
+    {
         DrawTextEx(GetOrLoad(FontId::KEYBIND_ENTRY), "Auto Save", Vector2{(float)(posX + 5), (float)(posY + 5)}, 16, 1, DARKGRAY);
-    } else {
+    }
+    else
+    {
         DrawTextEx(GetOrLoad(FontId::KEYBIND_ENTRY), TextFormat("Slot %d", slotIndex), Vector2{(float)(posX + 5), (float)(posY + 5)}, 16, 1, enabled ? LIGHTGRAY : DARKGRAY);
     }
 
-    if (occupied) {
+    if (occupied)
+    {
         DrawTextEx(GetOrLoad(FontId::KEYBIND_ENTRY), mapName.c_str(), Vector2{(float)(posX + 5), (float)(posY + 24)}, 18, 1, enabled ? WHITE : GRAY);
         DrawTextEx(GetOrLoad(FontId::KEYBIND_ENTRY), timestamp.c_str(), Vector2{(float)(posX + 5), (float)(posY + 48)}, 14, 1, enabled ? (Color){180, 180, 180, 255} : (Color){80, 80, 80, 255});
-    } else {
-        const char* emptyText = "Empty";
+    }
+    else
+    {
+        const char *emptyText = "Empty";
         Vector2 emptyTextSize = MeasureTextEx(GetOrLoad(FontId::KEYBIND_ENTRY), emptyText, 20, 1);
         int emptyX = posX + (SLOT_WIDTH - (int)emptyTextSize.x) / 2;
         int emptyY = posY + (SLOT_HEIGHT - 20) / 2;
@@ -482,12 +526,16 @@ void SaveLoadScreen::DrawSlotGrid(Vector2 mousePosition)
     int rowWidth3 = 3 * SLOT_WIDTH + 2 * SLOT_GAP;
     int row1X = startX + (width - rowWidth3) / 2;
 
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < 3; i++)
+    {
         int slotX = row1X + i * (SLOT_WIDTH + SLOT_GAP);
         bool enabled;
-        if (m_mode == SaveLoadMode::DELETE_MODE) {
+        if (m_mode == SaveLoadMode::DELETE_MODE)
+        {
             enabled = slotOccupied[i];
-        } else {
+        }
+        else
+        {
             enabled = !(m_mode == SaveLoadMode::LOAD_MODE && !slotOccupied[i]);
         }
         DrawSlotBox(i, slotX, manualRow1Y, slotOccupied[i], slotMapName[i], slotTimestamp[i], mousePosition, enabled);
@@ -495,12 +543,16 @@ void SaveLoadScreen::DrawSlotGrid(Vector2 mousePosition)
 
     int manualRow2Y = manualRow1Y + SLOT_HEIGHT + SLOT_GAP;
 
-    for (int i = 3; i < 6; i++) {
+    for (int i = 3; i < 6; i++)
+    {
         int slotX = row1X + (i - 3) * (SLOT_WIDTH + SLOT_GAP);
         bool enabled;
-        if (m_mode == SaveLoadMode::DELETE_MODE) {
+        if (m_mode == SaveLoadMode::DELETE_MODE)
+        {
             enabled = slotOccupied[i];
-        } else {
+        }
+        else
+        {
             enabled = !(m_mode == SaveLoadMode::LOAD_MODE && !slotOccupied[i]);
         }
         DrawSlotBox(i, slotX, manualRow2Y, slotOccupied[i], slotMapName[i], slotTimestamp[i], mousePosition, enabled);
@@ -511,14 +563,20 @@ void SaveLoadScreen::DrawSlotGrid(Vector2 mousePosition)
 
     int autoRow1Y = autoLabelY + 25;
 
-    for (int i = 6; i < 9; i++) {
+    for (int i = 6; i < 9; i++)
+    {
         int slotX = row1X + (i - 6) * (SLOT_WIDTH + SLOT_GAP);
         bool enabled;
-        if (m_mode == SaveLoadMode::DELETE_MODE) {
+        if (m_mode == SaveLoadMode::DELETE_MODE)
+        {
             enabled = slotOccupied[i];
-        } else if (m_mode == SaveLoadMode::LOAD_MODE) {
+        }
+        else if (m_mode == SaveLoadMode::LOAD_MODE)
+        {
             enabled = slotOccupied[i]; // Only occupied autosaves enabled in load mode
-        } else {
+        }
+        else
+        {
             enabled = !(m_mode == SaveLoadMode::SAVE_MODE); // Autosave disabled in save mode
         }
         DrawSlotBox(i, slotX, autoRow1Y, slotOccupied[i], slotMapName[i], slotTimestamp[i], mousePosition, enabled);
@@ -526,14 +584,20 @@ void SaveLoadScreen::DrawSlotGrid(Vector2 mousePosition)
 
     int autoRow2Y = autoRow1Y + SLOT_HEIGHT + SLOT_GAP;
 
-    for (int i = 9; i < 12; i++) {
+    for (int i = 9; i < 12; i++)
+    {
         int slotX = row1X + (i - 9) * (SLOT_WIDTH + SLOT_GAP);
         bool enabled;
-        if (m_mode == SaveLoadMode::DELETE_MODE) {
+        if (m_mode == SaveLoadMode::DELETE_MODE)
+        {
             enabled = slotOccupied[i];
-        } else if (m_mode == SaveLoadMode::LOAD_MODE) {
+        }
+        else if (m_mode == SaveLoadMode::LOAD_MODE)
+        {
             enabled = slotOccupied[i]; // Only occupied autosaves enabled in load mode
-        } else {
+        }
+        else
+        {
             enabled = !(m_mode == SaveLoadMode::SAVE_MODE); // Autosave disabled in save mode
         }
         DrawSlotBox(i, slotX, autoRow2Y, slotOccupied[i], slotMapName[i], slotTimestamp[i], mousePosition, enabled);
@@ -559,18 +623,22 @@ void SaveLoadScreen::RefreshSlotMetadata()
         {
             slotOccupied[i] = true;
             std::string metaPath = hasNewFormat
-                ? SaveManager::GetManualPath(i)
-                : oldPath;
-            try {
+                                       ? SaveManager::GetManualPath(i)
+                                       : oldPath;
+            try
+            {
                 std::ifstream file(metaPath);
                 nlohmann::json root;
                 file >> root;
 
                 slotMapName[i] = root.value("mapDisplayName", "Unknown");
 
-                if (root.contains("timestamp")) {
+                if (root.contains("timestamp"))
+                {
                     slotTimestamp[i] = root["timestamp"].get<std::string>();
-                } else {
+                }
+                else
+                {
                     auto ftime = std::filesystem::last_write_time(metaPath);
                     auto sctp = std::chrono::time_point_cast<std::chrono::system_clock::duration>(
                         ftime - decltype(ftime)::clock::now() + std::chrono::system_clock::now());
@@ -582,7 +650,9 @@ void SaveLoadScreen::RefreshSlotMetadata()
                 }
 
                 file.close();
-            } catch (...) {
+            }
+            catch (...)
+            {
                 slotMapName[i] = "Error";
                 slotTimestamp[i] = "";
             }

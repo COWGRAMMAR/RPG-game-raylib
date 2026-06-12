@@ -378,7 +378,7 @@ public:
     /** @brief Set state hasReLocked */
     void SetHasReLocked(bool v) { hasReLocked = v; }
 
-    static constexpr float KILL_THRESHOLD = 0.01f; // [DEBUG] original=0.9f
+    static constexpr float KILL_THRESHOLD = 0.9f;
 
 private:
     /** @brief Data internal satu barrier */

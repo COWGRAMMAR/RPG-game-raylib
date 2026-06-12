@@ -14,7 +14,8 @@ static bool goLoaded = false;
 
 void InitGameOverScreen()
 {
-    if (goLoaded) return;
+    if (goLoaded)
+        return;
 
     Image img = LoadImage("assets/textures/gameOver/gameover.png");
     goTitle = LoadTextureFromImage(img);
@@ -48,10 +49,12 @@ void UpdateGameOverScreen(GameState *state)
     Vector2 mousePos = GetVirtualMousePosition(state);
     bool mouseClicked = IsMouseButtonPressed(MOUSE_LEFT_BUTTON);
 
-    if (!goLoaded) InitGameOverScreen();
+    if (!goLoaded)
+        InitGameOverScreen();
 
     if (reviveBtn.isClicked(mousePos, mouseClicked))
     {
+        InputInstance.ResetMenuFlags();
         PlayerInstance.Anim.isDead = false;
         PlayerInstance.Anim.isAttacking = false;
         PlayAnimation(PlayerInstance.Anim, IDLE, PlayerInstance.Anim.direction);
@@ -80,6 +83,7 @@ void UpdateGameOverScreen(GameState *state)
 
     if (goToMain.isClicked(mousePos, mouseClicked))
     {
+        InputInstance.ResetMenuFlags();
         state->enteredLoading = false;
         state->loadingStage = 0;
         state->loadingProgress = 0.0F;
@@ -90,7 +94,8 @@ void UpdateGameOverScreen(GameState *state)
 
 void RenderGameOverScreen(GameState *state)
 {
-    if (!goLoaded) InitGameOverScreen();
+    if (!goLoaded)
+        InitGameOverScreen();
 
     DrawRenderTexture(state);
 

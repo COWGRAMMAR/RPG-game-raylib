@@ -20,8 +20,8 @@ namespace Interaction
     {
         player.canInteract = false;
         UpdateRaycast(player);
-        CheckDoors(player);    // Interaksi berbasis kedekatan (proximity)
-        CheckProps(player);    // Interaksi berbasis raycast
+        CheckDoors(player); // Interaksi berbasis kedekatan (proximity)
+        CheckProps(player); // Interaksi berbasis raycast
     }
 
     /**
@@ -142,7 +142,8 @@ namespace Interaction
                 }
                 if (!bossAlive)
                 {
-                g_SeedManager.ResetRun();
+                    InputInstance.ResetMenuFlags();
+                    g_SeedManager.ResetRun();
                     gState->currentScreen = MAIN_MENU;
                 }
                 return;
@@ -179,10 +180,18 @@ namespace Interaction
         Vector2 facingDir = {0, 0};
         switch (player.Anim.direction)
         {
-            case UP:    facingDir = {0, -1}; break;
-            case DOWN:  facingDir = {0, 1};  break;
-            case LEFT:  facingDir = {-1, 0}; break;
-            case RIGHT: facingDir = {1, 0};  break;
+        case UP:
+            facingDir = {0, -1};
+            break;
+        case DOWN:
+            facingDir = {0, 1};
+            break;
+        case LEFT:
+            facingDir = {-1, 0};
+            break;
+        case RIGHT:
+            facingDir = {1, 0};
+            break;
         }
 
         float dot = Vector2DotProduct(facingDir, aimDir);
@@ -213,4 +222,3 @@ namespace Interaction
         }
     }
 }
-

@@ -69,12 +69,12 @@ void InitMainMenu(GameState *state)
         {"assets/textures/mainMenuButt/main-quit.png",     1, 230},
     };
 
-    int startY = (GameScreenHeight / 2) + 20;
+    int startY = (GScreenHeight / 2) + 20;
 
     for (int i = 0; i < 4; i++)
     {
         Vector2 pos = {
-            GameScreenWidth / 2.0F,
+            GScreenWidth / 2.0F,
             static_cast<float>(startY + btnConfig[i].yOffset)
         };
         buttons[i] = buttonImage(btnConfig[i].path, pos, btnConfig[i].scale, 0.6F);
@@ -179,7 +179,7 @@ void RenderMainMenuToVirtualScreen(GameState *state)
     DrawMenuBackground();
 
     // Render logo
-    int logoX = (GameScreenWidth / 2) - (logoTexture.width / 2);
+    int logoX = (GScreenWidth / 2) - (logoTexture.width / 2);
     DrawTexture(logoTexture, logoX, 10, WHITE);
 
     // Render semua tombol menu

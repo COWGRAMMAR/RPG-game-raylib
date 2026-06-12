@@ -24,20 +24,20 @@ void InitGameOverScreen()
     float btnH = (float)img.height;
     UnloadImage(img);
 
-    goTitleY = (GameScreenHeight - goTitle.height) / 2.0F - 80;
+    goTitleY = (GScreenHeight - goTitle.height) / 2.0F - 80;
     float topY = goTitleY + goTitle.height + 10;
     float gap = 20.0f;
 
     // tombol Settings baru di antara Revive dan To Main dengan gap 20px
-    Vector2 revivePos = {GameScreenWidth / 2.0F, topY + btnH / 2.0F};
+    Vector2 revivePos = {GScreenWidth / 2.0F, topY + btnH / 2.0F};
     reviveBtn = buttonImage("assets/textures/gameOver/gameover-revive.png", revivePos, 1.0F, 0.6F);
 
     topY += btnH + gap;
-    Vector2 settingsPos = {GameScreenWidth / 2.0F, topY + btnH / 2.0F};
+    Vector2 settingsPos = {GScreenWidth / 2.0F, topY + btnH / 2.0F};
     settingsBtn = buttonImage("assets/textures/gameOver/gameover-settings.png", settingsPos, 1.0F, 0.6F);
 
     topY += btnH + gap;
-    Vector2 toMainPos = {GameScreenWidth / 2.0F, topY + btnH / 2.0F};
+    Vector2 toMainPos = {GScreenWidth / 2.0F, topY + btnH / 2.0F};
     goToMain = buttonImage("assets/textures/gameOver/gameover-to-main.png", toMainPos, 1.0F, 0.6F);
 
     goLoaded = true;
@@ -90,9 +90,9 @@ void RenderGameOverScreen(GameState *state)
 
     BeginTextureMode(state->Dungeon);
 
-    DrawRectangle(0, 0, GameScreenWidth, GameScreenHeight, {0, 0, 0, 102});
+    DrawRectangle(0, 0, GScreenWidth, GScreenHeight, {0, 0, 0, 102});
 
-    DrawTexture(goTitle, (GameScreenWidth - goTitle.width) / 2, (int)goTitleY, WHITE);
+    DrawTexture(goTitle, (GScreenWidth - goTitle.width) / 2, (int)goTitleY, WHITE);
 
     Vector2 mousePos = GetVirtualMousePosition(state);
     reviveBtn.Draw(mousePos);

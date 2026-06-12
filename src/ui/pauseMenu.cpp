@@ -148,8 +148,8 @@ void OptionsScreen::CalculateDimensions()
 
     width = bgTexture.width > 0 ? bgTexture.width : 800;
     height = bgTexture.height > 0 ? bgTexture.height : 600;
-    startX = (GameScreenWidth - width) / 2;
-    startY = (GameScreenHeight - height) / 2;
+    startX = (GScreenWidth - width) / 2;
+    startY = (GScreenHeight - height) / 2;
 
     backgroundRect = {static_cast<float>(startX), static_cast<float>(startY), static_cast<float>(width), static_cast<float>(height)};
 
@@ -429,8 +429,8 @@ void PauseMenu::LoadTextures()
 
     width = bgTexture.width;
     height = bgTexture.height;
-    position.x = (GameScreenWidth - width) / 2.0F;
-    position.y = (GameScreenHeight - height) / 2.0F;
+    position.x = (GScreenWidth - width) / 2.0F;
+    position.y = (GScreenHeight - height) / 2.0F;
     backgroundRect = {position.x, position.y, static_cast<float>(width), static_cast<float>(height)};
 
     float centerX = position.x + width / 2.0F;
@@ -673,7 +673,7 @@ void PauseMenu::Update(GameState* state, Vector2 mousePosition, bool mouseClicke
             // Reset camera ke posisi player
             Vector2 spawnPos = PlayerInstance.GetPosition();
             camera.target = {spawnPos.x + (FRAME_SIZE / 2.0F), spawnPos.y + (FRAME_SIZE / 2.0F)};
-            camera.offset = {(float)(GameScreenWidth / 2), (float)(GameScreenHeight / 2)};
+            camera.offset = {(float)(GScreenWidth / 2), (float)(GScreenHeight / 2)};
             camera.rotation = 0;
             camera.zoom = 1.0F;
 
@@ -711,7 +711,7 @@ void PauseMenu::Draw(Vector2 mousePosition)
         return;
     }
 
-    Rectangle fullScreen = {0, 0, static_cast<float>(GameScreenWidth), static_cast<float>(GameScreenHeight)};
+    Rectangle fullScreen = {0, 0, static_cast<float>(GScreenWidth), static_cast<float>(GScreenHeight)};
     Color dimColor = {0, 0, 0, static_cast<unsigned char>(255 * 0.2F)};
     DrawRectangleRec(fullScreen, dimColor);
 

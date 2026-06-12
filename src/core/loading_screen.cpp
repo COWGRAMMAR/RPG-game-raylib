@@ -214,7 +214,7 @@ static void HandleMapSwitch(GameState* state)
         {
             Vector2 spawnPos = PlayerInstance.GetPosition();
             camera.target = {spawnPos.x + (FRAME_SIZE / 2.0F), spawnPos.y + (FRAME_SIZE / 2.0F)};
-            camera.offset = {(float)(GameScreenWidth / 2), (float)(GameScreenHeight / 2)};
+            camera.offset = {(float)(GScreenWidth / 2), (float)(GScreenHeight / 2)};
             camera.rotation = 0;
             camera.zoom = 1.0F;
             Movement::UpdateCamera(PlayerInstance);
@@ -502,8 +502,8 @@ void RenderLoadingScreen(GameState *state)
     DrawMenuBackground();
 
     Vector2 textSize = MeasureTextEx(fontLoadingTitle, state->loadingText, 32, 2);
-    float textX = (GameScreenWidth - textSize.x) / 2.0f;
-    float textY = (float)(GameScreenHeight / 2) - textSize.y - 30.0f;
+    float textX = (GScreenWidth - textSize.x) / 2.0f;
+    float textY = (float)(GScreenHeight / 2) - textSize.y - 30.0f;
     DrawTextEx(fontLoadingTitle, state->loadingText, {textX, textY}, 32, 2, WHITE);
 
     // Smooth progress bar animation
@@ -519,8 +519,8 @@ void RenderLoadingScreen(GameState *state)
 
     currentDisplayProgress = std::clamp(currentDisplayProgress, 0.0f, 1.0f);
 
-    float barX = (float)(GameScreenWidth / 2) - 150.0f;
-    float barY = (float)(GameScreenHeight / 2) + 20.0f;
+    float barX = (float)(GScreenWidth / 2) - 150.0f;
+    float barY = (float)(GScreenHeight / 2) + 20.0f;
     float barWidth = 300.0f;
     float barHeight = 20.0f;
     float animatedWidth = barWidth * currentDisplayProgress;
@@ -535,16 +535,16 @@ void RenderLoadingScreen(GameState *state)
     std::array<char, 10> progressText;
     sprintf(progressText.data(), "%d%%", (int)state->loadingProgress);
     Vector2 pctSize = MeasureTextEx(fontLoadingTitle, progressText.data(), 20, 1);
-    float pctX = (GameScreenWidth - pctSize.x) / 2.0f;
-    float pctY = (float)(GameScreenHeight / 2) + 50.0f;
+    float pctX = (GScreenWidth - pctSize.x) / 2.0f;
+    float pctY = (float)(GScreenHeight / 2) + 50.0f;
     DrawTextEx(fontLoadingTitle, progressText.data(), {pctX, pctY}, 20, 1, WHITE);
 
     // Map name display
     std::string mapName = GetDisplayMapName();
     if (!mapName.empty()) {
         Vector2 mapSize = MeasureTextEx(fontLoadingTitle, mapName.c_str(), 18, 1);
-        float mapX = (GameScreenWidth - mapSize.x) / 2.0f;
-        float mapY = (float)(GameScreenHeight / 2) + 80.0f;
+        float mapX = (GScreenWidth - mapSize.x) / 2.0f;
+        float mapY = (float)(GScreenHeight / 2) + 80.0f;
         DrawTextEx(fontLoadingTitle, mapName.c_str(), {mapX, mapY}, 18, 1, ColorAlpha(WHITE, 0.6f));
     }
 

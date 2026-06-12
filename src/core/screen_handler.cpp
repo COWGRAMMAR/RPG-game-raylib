@@ -226,7 +226,6 @@ void UpdateGame(GameState *state)
         state->Dungeon = LoadRenderTexture(GScreenWidth, GScreenHeight);
         SetTextureFilter(state->Dungeon.texture, TEXTURE_FILTER_POINT);
 
-        // Sesuaikan camera untuk ukuran baru
         camera.offset = {(float)(GScreenWidth / 2), (float)(GScreenHeight / 2)};
         camera.zoom = (float)GScreenWidth / static_cast<float>(VIRTUAL_WIDTH);
     }
@@ -473,6 +472,24 @@ void DrawUIOverlay(GameState *state)
     }
 }
 
+struct CropParams {
+    float scale, virtualW, virtualH, cropX, cropY;
+};
+
+static CropParams GetCropParams(GameState *state)
+{
+    float scale = std::max(
+        (float)state->WindowScreenWidth / (float)GScreenWidth,
+        (float)state->WindowScreenHeight / (float)GScreenHeight);
+    return {
+        scale,
+        (float)state->WindowScreenWidth / scale,
+        (float)state->WindowScreenHeight / scale,
+        ((float)GScreenWidth - (float)state->WindowScreenWidth / scale) * 0.5F,
+        ((float)GScreenHeight - (float)state->WindowScreenHeight / scale) * 0.5F
+    };
+}
+
 /**
  * @brief Scale dan render layar virtual ke window asli
  *
@@ -482,19 +499,13 @@ void DrawUIOverlay(GameState *state)
  */
 void DrawRenderWindows(GameState *state)
 {
-    float scale = std::max(
-        (float)state->WindowScreenWidth / (float)GScreenWidth,
-        (float)state->WindowScreenHeight / (float)GScreenHeight);
-    float virtualW = (float)state->WindowScreenWidth / scale;
-    float virtualH = (float)state->WindowScreenHeight / scale;
-    float cropX = ((float)GScreenWidth - virtualW) * 0.5F;
-    float cropY = ((float)GScreenHeight - virtualH) * 0.5F;
+    CropParams cp = GetCropParams(state);
 
     BeginDrawing();
     ClearBackground(BLACK);
     DrawTexturePro(
         state->Dungeon.texture,
-        (Rectangle){cropX, cropY, virtualW, -virtualH},
+        (Rectangle){cp.cropX, cp.cropY, cp.virtualW, -cp.virtualH},
         (Rectangle){0, 0, (float)state->WindowScreenWidth, (float)state->WindowScreenHeight},
         (Vector2){0, 0},
         0.0F,
@@ -512,17 +523,11 @@ void DrawRenderWindows(GameState *state)
 Vector2 GetVirtualMousePosition(GameState *state)
 {
     Vector2 mouse = GetMousePosition();
-    float scale = std::max(
-        (float)state->WindowScreenWidth / (float)GScreenWidth,
-        (float)state->WindowScreenHeight / (float)GScreenHeight);
-    float virtualW = (float)state->WindowScreenWidth / scale;
-    float virtualH = (float)state->WindowScreenHeight / scale;
-    float cropX = ((float)GScreenWidth - virtualW) * 0.5F;
-    float cropY = ((float)GScreenHeight - virtualH) * 0.5F;
+    CropParams cp = GetCropParams(state);
 
     Vector2 virtualMouse;
-    virtualMouse.x = cropX + mouse.x / scale;
-    virtualMouse.y = cropY + mouse.y / scale;
+    virtualMouse.x = cp.cropX + mouse.x / cp.scale;
+    virtualMouse.y = cp.cropY + mouse.y / cp.scale;
     return Vector2Clamp(virtualMouse, (Vector2){0, 0}, (Vector2){(float)GScreenWidth, (float)GScreenHeight});
 }
 

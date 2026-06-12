@@ -144,6 +144,18 @@ void StopMusic();
  */
 void ResetToScreenTrack();
 
+/**
+ * @brief Blok auto-switch biar track yang sedang play gak di-overwrite
+ *
+ * Dipake pas VICTORY phase biar WinTheme gak dimatiin oleh auto-switch.
+ */
+void BlockAutoSwitch();
+
+/** @brief Unblock auto-switch, biar normal lagi */
+void UnblockAutoSwitch();
+
+
+
 /*------------------------------------------------------------------------------
  * SFX Control
  *------------------------------------------------------------------------------*/

@@ -1,7 +1,7 @@
 /**
  * @file videoTab.cpp
  * @brief Implementasi Video Settings Tab
- * 
+ *
  * Handle rendering dan input untuk pengaturan video.
  */
 
@@ -16,8 +16,8 @@
 using json = nlohmann::json;
 
 void DrawVideoTab(
-    buttonTxt& fullscreenButton,
-    buttonTxt& fpsButton,
+    buttonTxt &fullscreenButton,
+    buttonTxt &fpsButton,
     Vector2 mousePosition,
     int startX,
     int startY)
@@ -27,30 +27,34 @@ void DrawVideoTab(
     const int fontSize = 34;
     int labelX = startX + 40;
 
-    DrawTextEx(fontLoadingTitle, "Fullscreen",
-        Vector2{static_cast<float>(labelX), static_cast<float>(contentStartY + 12)},
-        fontSize, 0, WHITE);
-    DrawTextEx(fontLoadingTitle, "Show FPS",
-        Vector2{static_cast<float>(labelX), static_cast<float>(contentStartY + 72)},
-        fontSize, 0, WHITE);
+    DrawTextEx(GetOrLoad(FontId::LOADING_TITLE), "Fullscreen",
+               Vector2{static_cast<float>(labelX), static_cast<float>(contentStartY + 12)},
+               fontSize, 0, WHITE);
+    DrawTextEx(GetOrLoad(FontId::LOADING_TITLE), "Show FPS",
+               Vector2{static_cast<float>(labelX), static_cast<float>(contentStartY + 72)},
+               fontSize, 0, WHITE);
 
     fullscreenButton.Draw(mousePosition);
     fpsButton.Draw(mousePosition);
 }
 
 bool UpdateVideoTab(
-    buttonTxt& fullscreenButton,
-    buttonTxt& fpsButton,
-    void* stateVoid,
+    buttonTxt &fullscreenButton,
+    buttonTxt &fpsButton,
+    void *stateVoid,
     Vector2 mousePosition,
     bool mouseClicked)
 {
-    auto* state = static_cast<GameState*>(stateVoid);
+    auto *state = static_cast<GameState *>(stateVoid);
 
-    if (fullscreenButton.isClicked(mousePosition, mouseClicked)) {
-        if (IsWindowFullscreen()) {
+    if (fullscreenButton.isClicked(mousePosition, mouseClicked))
+    {
+        if (IsWindowFullscreen())
+        {
             ToggleFullscreenMode();
-        } else {
+        }
+        else
+        {
             Rectangle monitorRes = GetMonitorResolution();
             SetWindowSize(
                 static_cast<int>(monitorRes.width),
@@ -61,7 +65,8 @@ bool UpdateVideoTab(
         return true;
     }
 
-    if (fpsButton.isClicked(mousePosition, mouseClicked)) {
+    if (fpsButton.isClicked(mousePosition, mouseClicked))
+    {
         state->showFPS = !state->showFPS;
         SaveVideoSettings(IsWindowFullscreen(), state->showFPS);
         return true;
@@ -70,9 +75,9 @@ bool UpdateVideoTab(
     return false;
 }
 
-bool LoadVideoSettings(void* stateVoid)
+bool LoadVideoSettings(void *stateVoid)
 {
-    auto* state = static_cast<GameState*>(stateVoid);
+    auto *state = static_cast<GameState *>(stateVoid);
 
     if (!std::filesystem::exists(VIDEO_SETTINGS_PATH))
     {
@@ -110,7 +115,7 @@ bool LoadVideoSettings(void* stateVoid)
         TraceLog(LOG_INFO, "VIDEO: Settings dimuat dari %s", VIDEO_SETTINGS_PATH);
         return true;
     }
-    catch (const std::exception& e)
+    catch (const std::exception &e)
     {
         TraceLog(LOG_WARNING, "VIDEO: Gagal muat %s: %s", VIDEO_SETTINGS_PATH, e.what());
         return false;
@@ -122,9 +127,9 @@ bool SaveVideoSettings(bool fullscreen, bool showFPS)
     try
     {
         json root;
-        root["version"]    = 1;
+        root["version"] = 1;
         root["fullscreen"] = fullscreen;
-        root["showFPS"]    = showFPS;
+        root["showFPS"] = showFPS;
 
         std::filesystem::path fsPath(VIDEO_SETTINGS_PATH);
         std::filesystem::create_directories(fsPath.parent_path());
@@ -142,7 +147,7 @@ bool SaveVideoSettings(bool fullscreen, bool showFPS)
         TraceLog(LOG_INFO, "VIDEO: Settings disimpan ke %s", VIDEO_SETTINGS_PATH);
         return true;
     }
-    catch (const std::exception& e)
+    catch (const std::exception &e)
     {
         TraceLog(LOG_WARNING, "VIDEO: Gagal simpan: %s", e.what());
         return false;

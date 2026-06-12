@@ -29,6 +29,14 @@ constexpr int SPAWN_RECT_ELITE_MIN = 10;
 constexpr int SPAWN_RECT_ELITE_MAX = 15;
 constexpr int SPAWN_RETRY_LIMIT = 200;
 
+// --- Loot drop tunable constants ---
+constexpr float LOOT_DROP_CHANCE_NORMAL = 0.25f;
+constexpr float LOOT_DROP_CHANCE_ELITE  = 0.50f;
+constexpr int LOOT_RARITY_COMMON   = 75;
+constexpr int LOOT_RARITY_UNCOMMON = 25;
+constexpr int LOOT_RARITY_ELITE_UNCOMMON = 70;
+constexpr int LOOT_RARITY_ELITE_RARE     = 30;
+
 /*==============================================================================
  * Enums
  *==============================================================================*/
@@ -95,6 +103,8 @@ struct EnemyDefinition
     EnemyHitboxData hitbox;      ///< Konfigurasi hitbox
     EnemyRank rank = ENEMY_NORMAL; ///< Rank untuk spawn/balance
     float Scale = 1.0f;           ///< Skala visual (1.0 = normal, 1.25 = elite, 1.75 = boss)
+    int potionWeight = 5;          ///< Bobot potion saat roll kategori loot (default 5)
+    int weaponWeight = 5;          ///< Bobot weapon saat roll kategori loot (default 5)
     std::string AnimSetName;      ///< Nama AnimationSet yang digunakan (e.g. "Slime", "Skeleton", "Wolf")
     const AnimationSet *animSet;  ///< Pointer ke AnimationSet global, di-resolve dari AnimSetName
 };
@@ -171,7 +181,7 @@ public:
     // --- Turn-Based ---
     bool isTurnBasedMode = false; // True jika sedang dalam mode combat turn-based
     bool isMyTurn = false;        // True jika giliran enemy di mode turn-based
-    bool bossMusicPlaying = false; // True jika boss music sedang diputar karena HP < 50%
+
 
     // --- Animasi ---
     Animation Anim;              // State animasi aktif (runtime)
@@ -183,6 +193,8 @@ public:
     Rectangle SpawnRect;               // Area spawn asal jika dari rectangle spawn
     float PatrolTimer;                 // Timer tunggu di titik patroli (runtime)
     const float PatrolWaitTime = 2.0f; // Durasi tunggu sebelum patroli ke titik berikutnya
+    int PatrolFailCount = 0;           // Counter gagal patrol berturut-turut — progressive backoff
+    float PatrolStuckTimer = 0;        // Timer deteksi macet di HandlePatrol
 
     // --- Hitbox ---
     float HitboxWidth;   // Lebar hitbox enemy
@@ -248,6 +260,8 @@ public:
 
     // --- Feedback Visual & Kematian (runtime, accessible externally) ---
     float HitFlashTimer = 0.0f;       // Timer tint merah saat terkena damage (runtime)
+    float HealthBarTimer = 0.0f;      // Timer health bar muncul setelah kena damage (runtime)
+    const float HealthBarDuration = 1.5f; // Durasi health bar muncul
     Vector2 KnockbackVelocity;        // Vektor knockback aktif (runtime)
     float DeathTimer = 0.0f;          // Timer animasi kematian (runtime)
     const float DeathDuration = 1.2f; // Durasi animasi kematian sebelum di-deactivate

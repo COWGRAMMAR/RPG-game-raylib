@@ -319,7 +319,39 @@ void OptionsScreen::Draw(Vector2 mousePosition)
         return;
     }
 
-    CalculateDimensions();
+    int newStartX = (GScreenWidth - width) / 2;
+    int newStartY = (GScreenHeight - height) / 2;
+    if (newStartX != startX || newStartY != startY) {
+        startX = newStartX;
+        startY = newStartY;
+        backgroundRect = {static_cast<float>(startX), static_cast<float>(startY), static_cast<float>(width), static_cast<float>(height)};
+
+        int tabY = startY + 15 + 120;
+        for (int i = 0; i < 3; i++) {
+            float cx = static_cast<float>(startX + width / 2 + (i - 1) * 302);
+            float cy = static_cast<float>(tabY + 28);
+            tabButtons[i].SetPosition(Vector2{cx, cy});
+        }
+        backButton.SetPosition(Vector2{static_cast<float>(startX + width - 133),
+                                       static_cast<float>(startY + height - 53)});
+
+        int valueX = startX + 339;
+        int contentStartY = startY + 221;
+        bool isFullscreen = IsWindowFullscreen();
+        fullscreenButton = buttonTxt(
+            isFullscreen ? "ON" : "OFF",
+            valueX, contentStartY + 15, 24,
+            isFullscreen ? GREEN : RED, 0.7F, fontLoadingTitle);
+        fpsButton = buttonTxt(
+            showFPS ? "ON" : "OFF",
+            valueX, contentStartY + 75, 24,
+            showFPS ? GREEN : GRAY, 0.7F, fontLoadingTitle);
+
+        resetTabButton.SetPosition(Vector2{static_cast<float>(startX + 60),
+                                           static_cast<float>(startY + height - 70)});
+        resetOptionsButton.SetPosition(Vector2{static_cast<float>(startX + 220),
+                                               static_cast<float>(startY + height - 70)});
+    }
 
     if (bgTexture.id != 0) {
         DrawTexture(bgTexture, startX, startY, WHITE);
@@ -506,11 +538,11 @@ bool PauseMenu::IsActive() const
 }
 
 /**
- * @brief Menghitung ulang dimensi (dummy — virtual screen fixed, tidak perlu)
+ * @brief Menghitung ulang dimensi (dummy — ukuran PauseMenu mengikuti window)
  */
 void PauseMenu::CalculateDimensions()
 {
-    // Virtual screen 1280x720 is fixed; textures loaded once in LoadTextures()
+    // Ukuran dan posisi dihitung otomatis per Draw(); texture di-load sekali di LoadTextures()
 }
 
 /**

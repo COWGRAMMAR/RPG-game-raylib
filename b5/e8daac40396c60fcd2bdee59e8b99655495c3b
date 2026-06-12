@@ -1,0 +1,21 @@
+include/ui/pauseMenu.h
+  s_20c8e07ec9ffad::t_2ce3be51427ef4 217-221
+src/ui/pauseMenu.cpp
+  s_20c8e07ec9ffad::t_322080cc88e5a7 540-547
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "b5e8daac40396c60fcd2bdee59e8b99655495c3b",
+  "prompts": {},
+  "sessions": {
+    "s_20c8e07ec9ffad": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_14931db1affe7pYqWlC73Jr9SV",
+        "model": "unknown"
+      },
+      "human_author": "NiskoDT <65821447+NiskoDT@users.noreply.github.com>"
+    }
+  }
+}

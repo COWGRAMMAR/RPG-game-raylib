@@ -12,32 +12,16 @@
 #include <cstring>
 #include <unordered_map>
 
-/*==============================================================================
- * Internal State (file-scope statics)
- *==============================================================================*/
-
-/** @brief Array music tracks yang sudah di-load */
 static Music _tracks[7] = {};
-
-
 
 static float _masterVolume = 1.0f;
 static float _musicVolume  = 0.8f;
 static float _sfxVolume    = 1.0f;
 static float _videoVolume  = 1.0f;
 
-/** @brief Screen terakhir yang memicu music switch */
 static ScreenState _lastMusicScreen = MAIN_MENU;
-
-/** @brief Index track yang sedang aktif (-1 = none) */
 static int _activeTrackIndex = -1;
-
-/** @brief Flag inisialisasi */
 static bool _initialized = false;
-
-/*==============================================================================
- * Track File Mapping
- *==============================================================================*/
 
 /**
  * @brief Nama file music berdasarkan index
@@ -59,8 +43,6 @@ static const char* TRACK_FILES[] = {
     "assets/audio/music/BossMusic.mp3",
     "assets/audio/music/WinTheme.mp3"
 };
-
-/** @brief Index main menu loop track (auto-transition target from track 0) */
 static const int MAINMENU_LOOP_INDEX = 3;
 
 static const int TRACK_COUNT = sizeof(TRACK_FILES) / sizeof(TRACK_FILES[0]);
@@ -81,9 +63,8 @@ static int ScreenToTrackIndex(ScreenState screen)
     }
 }
 
-/*==============================================================================
- * Lifecycle Implementation
- *==============================================================================*/
+/** @name Lifecycle */
+/**@{*/
 
 void AudioManager::Init()
 {
@@ -109,7 +90,6 @@ void AudioManager::LoadAudioAssets()
         return;
     }
 
-    // Load semua music tracks
     for (int i = 0; i < TRACK_COUNT; i++)
     {
         _tracks[i] = LoadMusicStream(TRACK_FILES[i]);
@@ -124,7 +104,6 @@ void AudioManager::LoadAudioAssets()
         }
     }
 
-
     if (_tracks[0].ctxData != nullptr)
         _tracks[0].looping = false;
 }
@@ -133,13 +112,11 @@ void AudioManager::Shutdown()
 {
     if (!_initialized) return;
 
-    // Stop semua music
     if (_activeTrackIndex >= 0)
     {
         StopMusicStream(_tracks[_activeTrackIndex]);
     }
 
-    // Unload semua music tracks
     for (int i = 0; i < TRACK_COUNT; i++)
     {
         if (_tracks[i].ctxData != nullptr)
@@ -149,35 +126,27 @@ void AudioManager::Shutdown()
         }
     }
 
-
-
     _activeTrackIndex = -1;
     _initialized = false;
 
     TraceLog(LOG_INFO, "AUDIO: AudioManager shutdown selesai");
 }
 
-/*==============================================================================
- * Per-frame Update
- *==============================================================================*/
+/**@}*/
 
 void AudioManager::Update(ScreenState currentScreen)
 {
     if (!_initialized) return;
 
-    // Update music stream untuk track yang aktif
     if (_activeTrackIndex >= 0 && _tracks[_activeTrackIndex].ctxData != nullptr)
     {
         UpdateMusicStream(_tracks[_activeTrackIndex]);
 
-        // Terapkan volume setiap frame (supaya perubahan slider langsung terasa)
         float effectiveVolume = _musicVolume * _masterVolume;
         SetMusicVolume(_tracks[_activeTrackIndex], effectiveVolume);
     }
 
-    // Deteksi perubahan screen untuk auto-switch
-    // LOADING dan OPTIONS tidak memicu switch
-    // Juga start track kalo belum ada yg playing (_activeTrackIndex == -1)
+    // LOADING dan OPTIONS tidak memicu auto-switch
     if (currentScreen != LOADING && currentScreen != OPTIONS &&
         (_activeTrackIndex == -1 || currentScreen != _lastMusicScreen))
     {
@@ -185,13 +154,9 @@ void AudioManager::Update(ScreenState currentScreen)
 
         if (newTrackIndex >= 0 && newTrackIndex != _activeTrackIndex)
         {
-            // Stop track lama
             if (_activeTrackIndex >= 0 && _tracks[_activeTrackIndex].ctxData != nullptr)
-            {
                 StopMusicStream(_tracks[_activeTrackIndex]);
-            }
 
-            // Play track baru
             if (_tracks[newTrackIndex].ctxData != nullptr)
             {
                 SeekMusicStream(_tracks[newTrackIndex], 0.0f);
@@ -223,9 +188,8 @@ void AudioManager::Update(ScreenState currentScreen)
     }
 }
 
-/*==============================================================================
- * Volume Getters (float)
- *==============================================================================*/
+/** @name Volume */
+/**@{*/
 
 float AudioManager::GetMasterVolume()
 {
@@ -247,10 +211,6 @@ float AudioManager::GetVideoVolume()
     return _videoVolume;
 }
 
-/*==============================================================================
- * Volume Setters (float, otomatis clamp)
- *==============================================================================*/
-
 void AudioManager::SetMasterVolume(float vol)
 {
     _masterVolume = (vol < 0.0f) ? 0.0f : (vol > 1.0f) ? 1.0f : vol;
@@ -271,10 +231,6 @@ void AudioManager::SetVideoVolume(float vol)
 {
     _videoVolume = (vol < 0.0f) ? 0.0f : (vol > 1.0f) ? 1.0f : vol;
 }
-
-/*==============================================================================
- * Percentage Convenience (0-100)
- *==============================================================================*/
 
 int AudioManager::GetMasterVolumePct()
 {
@@ -298,7 +254,6 @@ int AudioManager::GetVideoVolumePct()
 
 void AudioManager::SetVolumesFromPct(int masterPct, int musicPct, int sfxPct, int videoPct)
 {
-    // Clamp ke 0-100
     if (masterPct < 0) masterPct = 0;
     if (masterPct > 100) masterPct = 100;
     if (musicPct < 0) musicPct = 0;
@@ -314,15 +269,15 @@ void AudioManager::SetVolumesFromPct(int masterPct, int musicPct, int sfxPct, in
     SetVideoVolume(static_cast<float>(videoPct) / 100.0f);
 }
 
-/*==============================================================================
- * Music Control
- *==============================================================================*/
+/**@}*/
+
+/** @name Music Control */
+/**@{*/
 
 void AudioManager::PlayTrack(const char* trackName)
 {
     if (!_initialized) return;
 
-    // Cari track berdasarkan substring nama file
     int foundIndex = -1;
     for (int i = 0; i < TRACK_COUNT; i++)
     {
@@ -339,13 +294,11 @@ void AudioManager::PlayTrack(const char* trackName)
         return;
     }
 
-    // Stop track lama
     if (_activeTrackIndex >= 0 && _tracks[_activeTrackIndex].ctxData != nullptr)
     {
         StopMusicStream(_tracks[_activeTrackIndex]);
     }
 
-    // Play track baru
     SeekMusicStream(_tracks[foundIndex], 0.0f);
     PlayMusicStream(_tracks[foundIndex]);
     _activeTrackIndex = foundIndex;
@@ -372,11 +325,10 @@ void AudioManager::ResetToScreenTrack()
     TraceLog(LOG_INFO, "AUDIO: Reset track untuk auto-switch");
 }
 
-/*==============================================================================
- * SFX Control
- *==============================================================================*/
+/**@}*/
 
-
+/** @name SFX */
+/**@{*/
 
 struct SoundPool {
     Sound sounds[4];

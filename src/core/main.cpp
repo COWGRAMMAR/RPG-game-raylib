@@ -141,13 +141,10 @@ int main()
 
     float accumulator = 0.0f;
 
-    // Main Game Loop
     while (!WindowShouldClose())
     {
-        // Update audio system setiap frame (UpdateMusicStream + auto-switch track)
         AudioManager::Update(state.currentScreen);
 
-        // ===== State: VIDEO (intro saat startup) =====
         if (state.currentScreen == VIDEO)
         {
             enum class VPhase : uint8_t { COUNTDOWN, INTRODUCTION, DONE };
@@ -193,13 +190,11 @@ int main()
 
             if (WindowShouldClose()) break;
 
-            // Render video fullscreen (tanpa virtual screen biar ga distretch)
             BeginDrawing();
             ClearBackground(BLACK);
             videoScreen.Draw();
             EndDrawing();
         }
-        // ===== State: MAIN_MENU =====
         else if (state.currentScreen == MAIN_MENU)
         {
             UpdateGame(&state);
@@ -208,7 +203,6 @@ int main()
             RenderMainMenuToVirtualScreen(&state);
             DrawRenderWindows(&state);
         }
-        // ===== State: LOADING =====
         else if (state.currentScreen == LOADING)
         {
             // Initialize loading screen on first entry or after returning from MAIN_MENU

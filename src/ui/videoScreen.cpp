@@ -1,9 +1,5 @@
 #include "videoScreen.h"
 
-// -----------------------------------------------------------------------------
-// Konstruktor / Destruktor
-// -----------------------------------------------------------------------------
-
 VideoScreen::VideoScreen()
     : m_videoPath("assets/video/dolby-countdown.mkv")
     , m_skipRequested(false)
@@ -16,9 +12,8 @@ VideoScreen::~VideoScreen()
     Unload();
 }
 
-// -----------------------------------------------------------------------------
-// Manajemen Video
-// -----------------------------------------------------------------------------
+/** @name Playback */
+/**@{*/
 
 bool VideoScreen::LoadAndPlay()
 {
@@ -48,6 +43,11 @@ bool VideoScreen::LoadAndPlay()
     return m_player.IsValid();
 }
 
+/**@}*/
+
+/** @name Setup / Teardown */
+/**@{*/
+
 void VideoScreen::Unload()
 {
     if (m_loaded)
@@ -58,9 +58,10 @@ void VideoScreen::Unload()
     m_loaded = false;
 }
 
-// -----------------------------------------------------------------------------
-// Setter / Getter
-// -----------------------------------------------------------------------------
+/**@}*/
+
+/** @name Setters / Getters */
+/**@{*/
 
 void VideoScreen::SetVideoPath(const std::string& path)
 {
@@ -72,14 +73,15 @@ const std::string& VideoScreen::GetVideoPath() const
     return m_videoPath;
 }
 
+/**@}*/
+
+/** @name Update / Render */
+/**@{*/
+
 void VideoScreen::SetVolume(float vol)
 {
     m_player.SetVolume(vol);
 }
-
-// -----------------------------------------------------------------------------
-// Update & Render
-// -----------------------------------------------------------------------------
 
 bool VideoScreen::Update(float deltaTime)
 {
@@ -90,7 +92,6 @@ bool VideoScreen::Update(float deltaTime)
         m_skipRequested = true;
     }
 
-    // Jika video belum dimuat, jangan lanjut ke update player
     if (!m_loaded)
     {
         return m_skipRequested;
@@ -98,7 +99,6 @@ bool VideoScreen::Update(float deltaTime)
 
     m_player.Update(deltaTime);
 
-    // Transisi jika video selesai atau di-skip
     if (m_player.IsFinished())
     {
         TraceLog(LOG_INFO, "VIDEO: Playback finished (%.1fs)", m_player.GetPosition());
@@ -120,7 +120,6 @@ void VideoScreen::Draw()
 
     if (m_player.IsValid())
     {
-        // Hitung posisi dan ukuran agar video fit di window dengan aspek rasio terjaga
         const int videoW   = m_player.GetWidth();
         const int videoH   = m_player.GetHeight();
         const int screenW  = GetScreenWidth();
@@ -129,7 +128,6 @@ void VideoScreen::Draw()
         // Hindari division-by-zero bila texture video belum siap
         if (videoW == 0 || videoH == 0) return;
 
-        // Skala proporisional
         const float scaleX = static_cast<float>(screenW) / static_cast<float>(videoW);
         const float scaleY = static_cast<float>(screenH) / static_cast<float>(videoH);
         const float scale  = (scaleX < scaleY) ? scaleX : scaleY;
@@ -143,7 +141,6 @@ void VideoScreen::Draw()
     }
     else if (!m_loaded)
     {
-        // Tampilkan teks "Memuat video..." jika belum dimuat
         const char* loadingText = "Memuat video...";
         const int fontSize = 20;
         const int textW = MeasureText(loadingText, fontSize);
@@ -159,7 +156,6 @@ void VideoScreen::Draw()
         );
     }
 
-    // Teks hint skip di pojok kanan bawah
     {
         const char* skipText = "Tekan SPACE untuk skip";
         const int fontSize = 20;
@@ -177,4 +173,6 @@ void VideoScreen::Draw()
         );
     }
 }
+
+/**@}*/
  

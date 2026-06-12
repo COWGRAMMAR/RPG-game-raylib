@@ -265,6 +265,7 @@ public:
      */
     void SpawnItemAtLocation(Vector2 pos, std::mt19937 *rng = nullptr, ItemCategory category = ITEM_ANY);
     void SpawnItemAtLocation(Vector2 pos, const std::map<ItemRarity, int> &weights, std::mt19937 *rng = nullptr);
+    void SpawnItemAtLocation(Vector2 pos, const std::map<ItemRarity, int> &weights, ItemCategory category, std::mt19937 *rng = nullptr);
 
     /**
      * @brief Simpan state item aktif untuk map tertentu

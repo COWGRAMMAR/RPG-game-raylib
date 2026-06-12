@@ -27,6 +27,7 @@
 #include "core/utils.h"
 #include "audioManager.h"
 #include <map>
+#include <random>
 #include "core/game_state_saver.h"
 #include <cmath>
 #include <fstream>
@@ -117,6 +118,8 @@ void EnemyDataManager::Load(const std::string &path)
         def.hitbox.offset = ParseVector2(h.at("offset"));
 
         def.Scale = SafeGet<float>(data, "scale", 1.0f);
+        def.potionWeight = SafeGet<int>(data, "potionWeight", 5);
+        def.weaponWeight = SafeGet<int>(data, "weaponWeight", 5);
         def.animSet = ResolveAnimSet(name);
 
         definitions_[name] = std::move(def);
@@ -219,6 +222,8 @@ void Enemy::Update()
 
     if (Health <= 0)
     {
+        HealthBarTimer = 0.0f; // Langsung matikan health bar sebelum death anim
+
         if (Anim.state != DEAD)
         {
             PlayAnimation(Anim, DEAD, Anim.direction);
@@ -227,12 +232,28 @@ void Enemy::Update()
             Entities::RegisterDeathByUUID(GetCurrentMapPath(), GetUUID());
 
             if (!Def->stats.canTriggerTurnBased) {
-                if (rank == ENEMY_ELITE) {
-                    static const std::map<ItemRarity, int> eliteWeights = {{RARITY_UNCOMMON, 70}, {RARITY_RARE, 30}};
-                    itemData.SpawnItemAtLocation(Position, eliteWeights);
-                } else {
-                    static const std::map<ItemRarity, int> normalWeights = {{RARITY_COMMON, 80}, {RARITY_UNCOMMON, 20}};
-                    itemData.SpawnItemAtLocation(Position, normalWeights);
+                // Loot pipeline: dropChance → rollCategory → rollRarity → spawn
+                static std::mt19937 lootRng(std::random_device{}());
+
+                // Drop chance per rank
+                float dropChance = (rank == ENEMY_ELITE) ? LOOT_DROP_CHANCE_ELITE : LOOT_DROP_CHANCE_NORMAL;
+                std::uniform_real_distribution<float> chanceDist(0.0f, 1.0f);
+                bool shouldDrop = chanceDist(lootRng) <= dropChance;
+
+                if (shouldDrop)
+                {
+                    // Roll kategori (potion vs weapon)
+                    int totalWeight = Def->potionWeight + Def->weaponWeight;
+                    if (totalWeight <= 0) totalWeight = 1;
+                    std::uniform_int_distribution<int> catDist(0, totalWeight - 1);
+                    ItemCategory category = (catDist(lootRng) < Def->potionWeight) ? ITEM_POTION : ITEM_WEAPON;
+
+                    // Roll rarity per rank
+                    static const std::map<ItemRarity, int> normalRarity  = {{RARITY_COMMON, LOOT_RARITY_COMMON}, {RARITY_UNCOMMON, LOOT_RARITY_UNCOMMON}};
+                    static const std::map<ItemRarity, int> eliteRarity   = {{RARITY_UNCOMMON, LOOT_RARITY_ELITE_UNCOMMON}, {RARITY_RARE, LOOT_RARITY_ELITE_RARE}};
+                    const auto &rarityWeights = (rank == ENEMY_ELITE) ? eliteRarity : normalRarity;
+
+                    itemData.SpawnItemAtLocation(Position, rarityWeights, category);
                 }
             }
         }
@@ -298,16 +319,9 @@ void Enemy::Update()
 void Enemy::UpdateAI()
 {
     // Turn-based trigger: boss dengan HP ≤ 50% memicu combat turn-based
+    // Catatan: boss music ambient di-handle oleh UpdateBossMusic() di hud.cpp
     if (Def->stats.canTriggerTurnBased) {
-        bool belowHalf = (Health <= MaxHealth * 0.5f);
-        if (belowHalf && !bossMusicPlaying) {
-            AudioManager::PlayTrack("Boss");
-            bossMusicPlaying = true;
-        } else if (!belowHalf && bossMusicPlaying) {
-            AudioManager::StopMusic();
-            bossMusicPlaying = false;
-        }
-        isTurnBasedMode = belowHalf;
+        isTurnBasedMode = (Health <= MaxHealth * 0.5f);
     }
 
     // Jika player mati, paksa idle agar enemy tidak terus mengejar posisi terakhir
@@ -677,8 +691,8 @@ void Enemy::Render()
         DrawAnimation(Anim, tint, Def->Scale);
     }
 
-    // Health bar tampil saat agresif atau setelah kena damage
-    if (HealthBarTimer > 0 || AIState == ENEMY_CHASE || AIState == ENEMY_ATTACK)
+    // Health bar tampil saat agresif atau setelah kena damage (boss pake bar sendiri)
+    if (rank != ENEMY_BOSS && (HealthBarTimer > 0 || AIState == ENEMY_CHASE || AIState == ENEMY_ATTACK))
     {
         int hpBarX = 4, hpBarY = 38, hpBarW = 24, hpBarH = 4;
         DrawRectangle((int)Position.x + hpBarX, (int)Position.y + hpBarY, hpBarW, hpBarH, BLACK);
@@ -723,17 +737,7 @@ void InitEnemy()
 
 void ClearEnemies()
 {
-    // Stop boss music jika ada boss dengan music aktif sebelum entity dihapus
-    for (Entity *entity : Entities::GetRegistry())
-    {
-        Enemy *enemy = dynamic_cast<Enemy *>(entity);
-        if (enemy && enemy->bossMusicPlaying)
-        {
-            AudioManager::StopMusic();
-            AudioManager::ResetToScreenTrack();
-            break;
-        }
-    }
+    // Boss music di-handle otomatis oleh UpdateBossMusic() tiap frame
     Entities::Clear();
 }
 

@@ -12,7 +12,7 @@
 
 #include "item.h"
 #include "config/game_constants.h"
-// include fonts.h untuk fontLoadingTitle
+// include fonts.h untuk GetOrLoad(FontId::LOADING_TITLE)
 #include "fonts.h"
 #include "screen.h"
 #include "inventory.h"
@@ -388,6 +388,16 @@ void ItemDataManager::SpawnItemAtLocation(Vector2 pos, const std::map<ItemRarity
     activeItems.push_back(CreateItem(pos, defId));
 }
 
+void ItemDataManager::SpawnItemAtLocation(Vector2 pos, const std::map<ItemRarity, int> &weights, ItemCategory category, std::mt19937 *rng)
+{
+    std::mt19937 localRng(static_cast<unsigned int>(time(nullptr)));
+    std::mt19937 &useRng = rng ? *rng : localRng;
+    int defId = spawnManager.PickRandomDefinitionId(useRng, weights, category);
+    if (defId == -1)
+        return;
+    activeItems.push_back(CreateItem(pos, defId));
+}
+
 /**
  * @brief Simpan state activeItems untuk map tertentu
  * @param mapPath Path map sebagai key penyimpanan
@@ -539,19 +549,19 @@ void ItemRenderManager::Render(ItemSpawn &item)
 
     DrawFrame(def.spriteKey, display);
 
-    // stack amount item di-drop: fontLoadingTitle 14px, bg rounded hitam, di bawah sprite
+    // stack amount item di-drop: GetOrLoad(FontId::LOADING_TITLE) 14px, bg rounded hitam, di bawah sprite
     if (item.amount > 1)
     {
         std::string amountText = std::to_string(item.amount);
         int fontSize = 14;
-        Vector2 textSz = MeasureTextEx(fontLoadingTitle, amountText.c_str(), fontSize, 0);
+        Vector2 textSz = MeasureTextEx(GetOrLoad(FontId::LOADING_TITLE), amountText.c_str(), fontSize, 0);
         Vector2 textPos = {
             center.x - textSz.x / 2.0f,
             center.y + 16.0f + 2.0f};
         DrawRectangleRounded(
             (Rectangle){textPos.x - 4, textPos.y - 4, textSz.x + 8, textSz.y + 8},
             0.3f, 8, ColorAlpha(BLACK, 0.8f));
-        DrawTextEx(fontLoadingTitle, amountText.c_str(), textPos, fontSize, 0, WHITE);
+        DrawTextEx(GetOrLoad(FontId::LOADING_TITLE), amountText.c_str(), textPos, fontSize, 0, WHITE);
     }
 }
 

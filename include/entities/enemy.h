@@ -19,15 +19,23 @@
  */
 
 /** @brief Spawn count range constants */
-constexpr int SPAWN_PINPOINT_NORMAL_MIN = 9;
-constexpr int SPAWN_PINPOINT_NORMAL_MAX = 13;
-constexpr int SPAWN_PINPOINT_ELITE_MIN = 3;
-constexpr int SPAWN_PINPOINT_ELITE_MAX = 7;
-constexpr int SPAWN_RECT_NORMAL_MIN = 20;
-constexpr int SPAWN_RECT_NORMAL_MAX = 25;
-constexpr int SPAWN_RECT_ELITE_MIN = 10;
-constexpr int SPAWN_RECT_ELITE_MAX = 15;
-constexpr int SPAWN_RETRY_LIMIT = 200;
+constexpr int SPAWN_PINPOINT_NORMAL_MIN = 0;  // [DEBUG] original=9
+constexpr int SPAWN_PINPOINT_NORMAL_MAX = 0;  // [DEBUG] original=13
+constexpr int SPAWN_PINPOINT_ELITE_MIN = 0;   // [DEBUG] original=3
+constexpr int SPAWN_PINPOINT_ELITE_MAX = 0;   // [DEBUG] original=7
+constexpr int SPAWN_RECT_NORMAL_MIN = 1;      // [DEBUG] original=20
+constexpr int SPAWN_RECT_NORMAL_MAX = 1;      // [DEBUG] original=25
+constexpr int SPAWN_RECT_ELITE_MIN = 0;       // [DEBUG] original=10
+constexpr int SPAWN_RECT_ELITE_MAX = 0;       // [DEBUG] original=15
+constexpr int SPAWN_RETRY_LIMIT = 0;          // [DEBUG] original=200
+
+// --- Loot drop tunable constants ---
+constexpr float LOOT_DROP_CHANCE_NORMAL = 0.25f;
+constexpr float LOOT_DROP_CHANCE_ELITE  = 0.50f;
+constexpr int LOOT_RARITY_COMMON   = 75;
+constexpr int LOOT_RARITY_UNCOMMON = 25;
+constexpr int LOOT_RARITY_ELITE_UNCOMMON = 70;
+constexpr int LOOT_RARITY_ELITE_RARE     = 30;
 
 /*==============================================================================
  * Enums
@@ -95,6 +103,8 @@ struct EnemyDefinition
     EnemyHitboxData hitbox;      ///< Konfigurasi hitbox
     EnemyRank rank = ENEMY_NORMAL; ///< Rank untuk spawn/balance
     float Scale = 1.0f;           ///< Skala visual (1.0 = normal, 1.25 = elite, 1.75 = boss)
+    int potionWeight = 5;          ///< Bobot potion saat roll kategori loot (default 5)
+    int weaponWeight = 5;          ///< Bobot weapon saat roll kategori loot (default 5)
     std::string AnimSetName;      ///< Nama AnimationSet yang digunakan (e.g. "Slime", "Skeleton", "Wolf")
     const AnimationSet *animSet;  ///< Pointer ke AnimationSet global, di-resolve dari AnimSetName
 };
@@ -171,7 +181,7 @@ public:
     // --- Turn-Based ---
     bool isTurnBasedMode = false; // True jika sedang dalam mode combat turn-based
     bool isMyTurn = false;        // True jika giliran enemy di mode turn-based
-    bool bossMusicPlaying = false; // True jika boss music sedang diputar karena HP < 50%
+
 
     // --- Animasi ---
     Animation Anim;              // State animasi aktif (runtime)

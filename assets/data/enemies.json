@@ -3,6 +3,8 @@
     "slime": {
       "id": 0,
       "rank": "normal",
+      "potionWeight": 9,
+      "weaponWeight": 1,
       "stats": {
         "maxHealth": 100.0,
         "speed": 1.0,
@@ -25,6 +27,8 @@
     "skeleton": {
       "id": 1,
       "rank": "normal",
+      "potionWeight": 2,
+      "weaponWeight": 8,
       "stats": {
         "maxHealth": 100.0,
         "speed": 1.3,
@@ -47,6 +51,8 @@
     "wolf": {
       "id": 2,
       "rank": "normal",
+      "potionWeight": 5,
+      "weaponWeight": 4,
       "stats": {
         "maxHealth": 150.0,
         "speed": 1.7,
@@ -70,6 +76,8 @@
       "id": 10,
       "rank": "elite",
       "scale": 1.25,
+      "potionWeight": 9,
+      "weaponWeight": 1,
       "stats": {
         "maxHealth": 250.0,
         "speed": 1.2,
@@ -93,6 +101,8 @@
       "id": 11,
       "rank": "elite",
       "scale": 1.25,
+      "potionWeight": 2,
+      "weaponWeight": 8,
       "stats": {
         "maxHealth": 250.0,
         "speed": 1.2,
@@ -116,6 +126,8 @@
       "id": 22,
       "rank": "boss",
       "scale": 1.75,
+      "potionWeight": 5,
+      "weaponWeight": 5,
       "stats": {
         "maxHealth": 600.0,
         "speed": 1.0,

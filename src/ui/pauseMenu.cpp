@@ -538,14 +538,6 @@ bool PauseMenu::IsActive() const
 }
 
 /**
- * @brief Menghitung ulang dimensi (dummy — ukuran PauseMenu mengikuti window)
- */
-void PauseMenu::CalculateDimensions()
-{
-    // Ukuran dan posisi dihitung otomatis per Draw(); texture di-load sekali di LoadTextures()
-}
-
-/**
  * @brief Handle klik pada tombol berdasarkan index
  * @param buttonIndex Index tombol yang diklik (0-5)
  * @param state Pointer ke GameState

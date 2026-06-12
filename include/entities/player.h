@@ -215,7 +215,7 @@ public:
     float InvincibilityTimer = 0.0f;   ///< Timer durasi invincibility
 
     // movement
-    float Speed = 6.0f;         // Kecepatan gerak dasar 
+    float Speed = 4.0f;         // Kecepatan gerak dasar 
     float DashSpeed = 0.0f;       // Current dash speed tambahan
     float DashMaxSpeed = 4.0f;    // Max dash speed
     float DashDecel = 0.06f;      // Lerp factor deselerasi

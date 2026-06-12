@@ -9,6 +9,15 @@ namespace Effects {
     static EffectQueue<DamagePopup> damageQueue;
     static EffectQueue<LogEntry> logQueue;
 
+    struct CollisionEffect {
+        Vector2 position;
+        float timer;
+        float duration;
+        bool active;
+    };
+
+    static EffectQueue<CollisionEffect> collisionQueue;
+
     // Constants for MessageLog
     static const float LOG_DURATION = 1.5f;
     static const float LOG_UP_SPEED = 30.0f;
@@ -50,6 +59,24 @@ namespace Effects {
 
             entry.verticalOffset = TextFloat(entry.verticalOffset, LOG_UP_SPEED, dt);
             currentLog = currentLog->next;
+        }
+
+        // 3. Update Collision Effects
+        EffectNode<CollisionEffect>* currentCol = collisionQueue.GetHead();
+        while (currentCol != nullptr) {
+            CollisionEffect& data = currentCol->data;
+            if (data.active) {
+                data.timer += dt;
+                if (data.timer >= data.duration) {
+                    data.active = false;
+                }
+            }
+            currentCol = currentCol->next;
+        }
+
+        // Cleanup inactive collision effects from head
+        while (!collisionQueue.IsEmpty() && !collisionQueue.GetHead()->data.active) {
+            collisionQueue.Dequeue();
         }
     }
 
@@ -93,6 +120,17 @@ namespace Effects {
             currentLog = currentLog->next;
             index++;
         }
+
+        // 3. Draw Collision Effects
+        EffectNode<CollisionEffect>* currentCol = collisionQueue.GetHead();
+        while (currentCol != nullptr) {
+            CollisionEffect& data = currentCol->data;
+            if (data.active) {
+                float progress = data.timer / data.duration;
+                TileCollisionEffect(data.position, progress);
+            }
+            currentCol = currentCol->next;
+        }
     }
 
     void AddDamage(Vector2 pos, float damage) {
@@ -115,8 +153,18 @@ namespace Effects {
         }
     }
 
+    void AddCollision(Vector2 pos) {
+        CollisionEffect c;
+        c.position = { pos.x - 16.0f, pos.y - 16.0f };
+        c.timer = 0.0f;
+        c.duration = 0.25f;
+        c.active = true;
+        collisionQueue.Enqueue(c);
+    }
+
     void Clear() {
         damageQueue.Clear();
         logQueue.Clear();
+        collisionQueue.Clear();
     }
 }

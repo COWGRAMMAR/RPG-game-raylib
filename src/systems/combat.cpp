@@ -720,6 +720,7 @@ void Arrow::Update()
 
     if (Vector2Distance(StartPos, Position) >= Reach)
     {
+        Effects::AddCollision(Position);
         IsActive = false;
         return;
     }
@@ -728,6 +729,7 @@ void Arrow::Update()
     if (CheckCollisionAgainstRects(hitbox, PlayerInstance.CollisionRects) || 
         CheckCollisionAgainstPolygons(hitbox, PlayerInstance.CollisionPolygons))
     {
+        Effects::AddCollision(Position);
         IsActive = false;
         return;
     }
@@ -735,6 +737,7 @@ void Arrow::Update()
     if (CheckCollisionAgainstRects(hitbox, DynamicObstacles))
     {
         HitPropsByAttack(hitbox, PlayerInstance.GetHitbox(), &PlayerInstance);
+        Effects::AddCollision(Position);
         IsActive = false;
         return;
     }
@@ -752,6 +755,7 @@ void Arrow::Update()
             Vector2 center = entity->GetCenter();
             Effects::AddDamage(center, Damage);
             
+            Effects::AddCollision(Position);
             IsActive = false;
             break;
         }

@@ -84,6 +84,12 @@ void InitMainMenu(GameState *state)
 
 static void UpdateMainMenuButtonPositions()
 {
+    static int lastWidth = 0, lastHeight = 0;
+    if (GScreenWidth == lastWidth && GScreenHeight == lastHeight)
+        return;
+    lastWidth = GScreenWidth;
+    lastHeight = GScreenHeight;
+
     int startY = (GScreenHeight / 2) + BTN_START_OFFSET;
     for (int i = 0; i < 4; i++)
     {

@@ -1,0 +1,20 @@
+src/ui/videoScreen.cpp
+  s_f9c1efef0fd20c::t_e2531cc4acdae8 125
+  s_f9c1efef0fd20c::t_05b65465437bd2 86
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "3368d654359256e70488bc9e97bc7e262e9a5716",
+  "prompts": {},
+  "sessions": {
+    "s_f9c1efef0fd20c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_148a838eaffey946nQmaQvhaP4",
+        "model": "unknown"
+      },
+      "human_author": "NiskoDT <65821447+NiskoDT@users.noreply.github.com>"
+    }
+  }
+}

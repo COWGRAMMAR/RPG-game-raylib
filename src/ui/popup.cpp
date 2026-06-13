@@ -9,7 +9,7 @@
  */
 // konstruktor default dengan inisialisasi textYOffset, buttonYOffset, bgTexture
 Popup::Popup() : active(false), hasCancelButton(false), message(nullptr), subMessage(nullptr),
-    buttonText(nullptr), cancelText(nullptr), hoverAmount(1.0F), confirmClicked(false), position({0, 0}), width(0), height(0), bgTexture({0}), textYOffset(0), buttonYOffset(0)
+                 buttonText(nullptr), cancelText(nullptr), hoverAmount(1.0F), confirmClicked(false), position({0, 0}), width(0), height(0), bgTexture({0}), textYOffset(0), buttonYOffset(0)
 {
 }
 
@@ -20,7 +20,7 @@ Popup::Popup() : active(false), hasCancelButton(false), message(nullptr), subMes
  * @param hoverAmount Nilai pengurangan warna saat hover (0.0 = hitam, 1.0 = normal).
  */
 // konstruktor 1 tombol dengan inisialisasi textYOffset, buttonYOffset, bgTexture
-Popup::Popup(const char* message, const char* buttonText, float hoverAmount) 
+Popup::Popup(const char *message, const char *buttonText, float hoverAmount)
     : active(false), hasCancelButton(false), message(message), subMessage(nullptr),
       buttonText(buttonText), cancelText(nullptr), hoverAmount(hoverAmount), confirmClicked(false), position({0, 0}), width(0), height(0), bgTexture({0}), textYOffset(0), buttonYOffset(0)
 {
@@ -34,7 +34,7 @@ Popup::Popup(const char* message, const char* buttonText, float hoverAmount)
  * @param hoverAmount Nilai pengurangan warna saat hover (0.0 = hitam, 1.0 = normal).
  */
 // konstruktor 2 tombol dengan inisialisasi textYOffset, buttonYOffset, bgTexture
-Popup::Popup(const char* message, const char* confirmText, const char* cancelText, float hoverAmount)
+Popup::Popup(const char *message, const char *confirmText, const char *cancelText, float hoverAmount)
     : active(false), hasCancelButton(true), message(message), subMessage(nullptr),
       buttonText(confirmText), cancelText(cancelText), hoverAmount(hoverAmount), confirmClicked(false),
       position({0, 0}), width(0), height(0), bgTexture({0}), textYOffset(0), buttonYOffset(0)
@@ -47,19 +47,22 @@ Popup::Popup(const char* message, const char* confirmText, const char* cancelTex
 // unload bgTexture di destructor
 Popup::~Popup()
 {
-    if (bgTexture.id != 0) {
+    if (bgTexture.id != 0)
+    {
         UnloadTexture(bgTexture);
     }
 }
 
 // method baru untuk mengatur background texture popup
-void Popup::SetBackgroundTexture(const char* path)
+void Popup::SetBackgroundTexture(const char *path)
 {
-    if (bgTexture.id != 0) {
+    if (bgTexture.id != 0)
+    {
         UnloadTexture(bgTexture);
     }
     Image img = LoadImage(path);
-    if (img.data != nullptr) {
+    if (img.data != nullptr)
+    {
         bgTexture = LoadTextureFromImage(img);
         UnloadImage(img);
     }
@@ -69,7 +72,7 @@ void Popup::SetBackgroundTexture(const char* path)
 void Popup::SetTextYOffset(int offset) { textYOffset = offset; }
 void Popup::SetButtonYOffset(int offset) { buttonYOffset = offset; }
 
-void Popup::SetSubMessage(const char* sub)
+void Popup::SetSubMessage(const char *sub)
 {
     subMessage = sub;
 }
@@ -123,19 +126,23 @@ bool Popup::IsConfirmClicked() const
  */
 void Popup::Update(Vector2 mousePosition, bool mouseClicked)
 {
-    if (!active) {
+    if (!active)
+    {
         return;
     }
 
-    if (okButton.isClicked(mousePosition, mouseClicked)) {
-        if (hasCancelButton) {
+    if (okButton.isClicked(mousePosition, mouseClicked))
+    {
+        if (hasCancelButton)
+        {
             confirmClicked = true;
         }
         Hide();
         return;
     }
 
-    if (hasCancelButton && cancelButton.isClicked(mousePosition, mouseClicked)) {
+    if (hasCancelButton && cancelButton.isClicked(mousePosition, mouseClicked))
+    {
         Hide();
     }
 }
@@ -144,7 +151,7 @@ void Popup::Update(Vector2 mousePosition, bool mouseClicked)
  * @brief CalculateDimensions()
  * Hitung dimensi popup berdasarkan teks message dan button.
  */
-// CalculateDimensions pakai fontLoadingTitle untuk ukur teks & buat tombol
+// CalculateDimensions pakai GetOrLoad(FontId::LOADING_TITLE) untuk ukur teks & buat tombol
 void Popup::CalculateDimensions()
 {
     const int paddingX = 40;
@@ -154,17 +161,18 @@ void Popup::CalculateDimensions()
     const int fontSize = 30;
     const int subMessageSpacing = 10;
 
-    Vector2 msgSize = MeasureTextEx(fontLoadingTitle, message, fontSize, 0);
+    Vector2 msgSize = MeasureTextEx(GetOrLoad(FontId::LOADING_TITLE), message, fontSize, 0);
     int textWidth = static_cast<int>(msgSize.x);
-    int subWidth = (subMessage != nullptr) ? static_cast<int>(MeasureTextEx(fontLoadingTitle, subMessage, fontSize, 0).x) : 0;
-    Vector2 btnSize = MeasureTextEx(fontLoadingTitle, buttonText, fontSize, 0);
+    int subWidth = (subMessage != nullptr) ? static_cast<int>(MeasureTextEx(GetOrLoad(FontId::LOADING_TITLE), subMessage, fontSize, 0).x) : 0;
+    Vector2 btnSize = MeasureTextEx(GetOrLoad(FontId::LOADING_TITLE), buttonText, fontSize, 0);
     int buttonWidth = static_cast<int>(btnSize.x);
 
     // Extra height for sub-message line
     int subExtraHeight = (subMessage != nullptr) ? (fontSize + subMessageSpacing) : 0;
 
-    if (hasCancelButton) {
-        Vector2 cancelSize = MeasureTextEx(fontLoadingTitle, cancelText, fontSize, 0);
+    if (hasCancelButton)
+    {
+        Vector2 cancelSize = MeasureTextEx(GetOrLoad(FontId::LOADING_TITLE), cancelText, fontSize, 0);
         int cancelWidth = static_cast<int>(cancelSize.x);
         int buttonsTotalWidth = buttonWidth + 20 + cancelWidth;
 
@@ -183,10 +191,12 @@ void Popup::CalculateDimensions()
         // posisi Y tombol pakai default -5 + buttonYOffset
         int buttonY = static_cast<int>(position.y + height - paddingY - fontSize) - 5 + buttonYOffset;
 
-        // tombol pakai WHITE dan fontLoadingTitle
-        okButton = buttonTxt(buttonText, startX, buttonY, fontSize, WHITE, hoverAmount, fontLoadingTitle);
-        cancelButton = buttonTxt(cancelText, startX + buttonWidth + 20, buttonY, fontSize, WHITE, hoverAmount, fontLoadingTitle);
-    } else {
+        // tombol pakai WHITE dan GetOrLoad(FontId::LOADING_TITLE)
+        okButton = buttonTxt(buttonText, startX, buttonY, fontSize, WHITE, hoverAmount, GetOrLoad(FontId::LOADING_TITLE));
+        cancelButton = buttonTxt(cancelText, startX + buttonWidth + 20, buttonY, fontSize, WHITE, hoverAmount, GetOrLoad(FontId::LOADING_TITLE));
+    }
+    else
+    {
         int contentWidth = std::max({textWidth, subWidth, buttonWidth});
         width = contentWidth + (paddingX * 2);
         width = std::min(width, maxWidth);
@@ -206,8 +216,8 @@ void Popup::CalculateDimensions()
         TraceLog(LOG_DEBUG, "Popup Debug: position=(%.1f, %.1f)", position.x, position.y);
         TraceLog(LOG_DEBUG, "Popup Debug: buttonX=%d, buttonY=%d, buttonWidth=%d", buttonX, buttonY, buttonWidth);
 
-        // tombol pakai WHITE dan fontLoadingTitle
-        okButton = buttonTxt(buttonText, buttonX, buttonY, fontSize, WHITE, hoverAmount, fontLoadingTitle);
+        // tombol pakai WHITE dan GetOrLoad(FontId::LOADING_TITLE)
+        okButton = buttonTxt(buttonText, buttonX, buttonY, fontSize, WHITE, hoverAmount, GetOrLoad(FontId::LOADING_TITLE));
     }
 }
 
@@ -218,7 +228,8 @@ void Popup::CalculateDimensions()
  */
 void Popup::Draw(Vector2 mousePosition)
 {
-    if (!active) { 
+    if (!active)
+    {
         return;
     }
 
@@ -226,18 +237,20 @@ void Popup::Draw(Vector2 mousePosition)
         0,
         0,
         0,
-        static_cast<unsigned char>(255 * 0.5F)
-    };
+        static_cast<unsigned char>(255 * 0.5F)};
 
     Rectangle fullScreen = {0, 0, static_cast<float>(GameScreenWidth), static_cast<float>(GameScreenHeight)};
     DrawRectangleRec(fullScreen, overlayColor);
 
     // bgTexture di-center di area popup jika ada
-    if (bgTexture.id != 0) {
+    if (bgTexture.id != 0)
+    {
         int texX = static_cast<int>(position.x + (width - bgTexture.width) / 2.0F);
         int texY = static_cast<int>(position.y + (height - bgTexture.height) / 2.0F);
         DrawTexture(bgTexture, texX, texY, WHITE);
-    } else {
+    }
+    else
+    {
         Color bgColor = {20, 20, 20, 255};
         DrawRectangleRec(backgroundRect, bgColor);
         DrawRectangleLines(
@@ -245,40 +258,43 @@ void Popup::Draw(Vector2 mousePosition)
             static_cast<int>(backgroundRect.y),
             static_cast<int>(backgroundRect.width),
             static_cast<int>(backgroundRect.height),
-            WHITE
-        );
+            WHITE);
     }
 
     int fontSize = 30;
-    // teks pesan pakai fontLoadingTitle, WHITE, dengan offset Y +20 + textYOffset
-    Vector2 textSize = MeasureTextEx(fontLoadingTitle, message, fontSize, 0);
+    // teks pesan pakai GetOrLoad(FontId::LOADING_TITLE), WHITE, dengan offset Y +20 + textYOffset
+    Vector2 textSize = MeasureTextEx(GetOrLoad(FontId::LOADING_TITLE), message, fontSize, 0);
     int textX = static_cast<int>(position.x + ((width - textSize.x) / 2.0F));
     int textY = static_cast<int>(position.y + (hasCancelButton ? 20 : 30) + 20 + textYOffset);
 
-    DrawTextEx(fontLoadingTitle, message, Vector2{static_cast<float>(textX), static_cast<float>(textY)}, fontSize, 0, WHITE);
+    DrawTextEx(GetOrLoad(FontId::LOADING_TITLE), message, Vector2{static_cast<float>(textX), static_cast<float>(textY)}, fontSize, 0, WHITE);
 
-    // subMessage pakai fontLoadingTitle, WHITE, posisi Y original
-    if (subMessage != nullptr) {
-        Vector2 subSize = MeasureTextEx(fontLoadingTitle, subMessage, fontSize, 0);
+    // subMessage pakai GetOrLoad(FontId::LOADING_TITLE), WHITE, posisi Y original
+    if (subMessage != nullptr)
+    {
+        Vector2 subSize = MeasureTextEx(GetOrLoad(FontId::LOADING_TITLE), subMessage, fontSize, 0);
         int subX = static_cast<int>(position.x + ((width - subSize.x) / 2.0F));
         int subY = textY + fontSize + 10;
-        DrawTextEx(fontLoadingTitle, subMessage, Vector2{static_cast<float>(subX), static_cast<float>(subY)}, fontSize, 0, WHITE);
+        DrawTextEx(GetOrLoad(FontId::LOADING_TITLE), subMessage, Vector2{static_cast<float>(subX), static_cast<float>(subY)}, fontSize, 0, WHITE);
     }
 
-    // highlight background saat hover — ukur teks pake fontLoadingTitle biar pas
-    if (okButton.isHovered(mousePosition)) {
+    // highlight background saat hover — ukur teks pake GetOrLoad(FontId::LOADING_TITLE) biar pas
+    if (okButton.isHovered(mousePosition))
+    {
         Rectangle b = okButton.GetBounds();
-        Vector2 ts = MeasureTextEx(fontLoadingTitle, buttonText, fontSize, 0);
+        Vector2 ts = MeasureTextEx(GetOrLoad(FontId::LOADING_TITLE), buttonText, fontSize, 0);
         DrawRectangleRounded((Rectangle){b.x, b.y, ts.x, ts.y}, 0.3f, 8, ColorAlpha(WHITE, 0.25f));
     }
-    if (hasCancelButton && cancelButton.isHovered(mousePosition)) {
+    if (hasCancelButton && cancelButton.isHovered(mousePosition))
+    {
         Rectangle b = cancelButton.GetBounds();
-        Vector2 ts = MeasureTextEx(fontLoadingTitle, cancelText, fontSize, 0);
+        Vector2 ts = MeasureTextEx(GetOrLoad(FontId::LOADING_TITLE), cancelText, fontSize, 0);
         DrawRectangleRounded((Rectangle){b.x, b.y, ts.x, ts.y}, 0.3f, 8, ColorAlpha(WHITE, 0.25f));
     }
     // tombol pakai WHITE via buttonTxt (di-set di CalculateDimensions)
     okButton.Draw(mousePosition);
-    if (hasCancelButton) {
+    if (hasCancelButton)
+    {
         cancelButton.Draw(mousePosition);
     }
 }

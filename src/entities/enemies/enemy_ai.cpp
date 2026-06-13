@@ -341,8 +341,24 @@ std::vector<MapObject> BuildObstacleList()
     auto appendType = [&](const char *type)
     {
         for (auto *p : TilesonGetObjectsByType(type))
-            if (p)
-                result.push_back(*p);
+        {
+            if (!p)
+                continue;
+
+            bool isAlive = false;
+            for (const auto &obs : DynamicObstacles)
+            {
+                if (CheckCollisionRecs(p->bounds, obs))
+                {
+                    isAlive = true;
+                    break;
+                }
+            }
+            if (!isAlive)
+                continue;
+
+            result.push_back(*p);
+        }
     };
 
     // jika ada object layer yang perlu dipertimbangkan jadi obstacle layer masukin kesini

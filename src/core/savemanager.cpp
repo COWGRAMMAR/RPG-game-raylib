@@ -55,11 +55,11 @@ std::string SaveManager::GetInitialPath(int slot)
     return std::string(buf);
 }
 
-std::string SaveManager::SanitizePath(const std::string& mapPath)
+std::string SaveManager::SanitizePath(const std::string &mapPath)
 {
     // Ganti karakter berbahaya jadi underscore
     std::string safe = mapPath;
-    for (auto& c : safe)
+    for (auto &c : safe)
     {
         if (c == '/' || c == '\\' || c == ':' || c == '.' || c == ' ')
             c = '_';
@@ -67,7 +67,7 @@ std::string SaveManager::SanitizePath(const std::string& mapPath)
     return safe;
 }
 
-std::string SaveManager::GetCheckpointPath(const std::string& mapPath, int slot)
+std::string SaveManager::GetCheckpointPath(const std::string &mapPath, int slot)
 {
     char buf[256];
     snprintf(buf, sizeof(buf), "saves/slot_%d/checkpoints/%s.json", slot, SanitizePath(mapPath).c_str());
@@ -78,7 +78,7 @@ std::string SaveManager::GetCheckpointPath(const std::string& mapPath, int slot)
  * Directory Utilities
  *==============================================================================*/
 
-bool SaveManager::EnsureDir(const std::string& dir)
+bool SaveManager::EnsureDir(const std::string &dir)
 {
     try
     {
@@ -95,16 +95,14 @@ bool SaveManager::EnsureDir(const std::string& dir)
 bool SaveManager::EnsureDirs(int slot)
 {
     std::string base = GetSlotDir(slot);
-    return EnsureDir(base + "/manual")
-        && EnsureDir(base + "/autosave")
-        && EnsureDir(base + "/checkpoints");
+    return EnsureDir(base + "/manual") && EnsureDir(base + "/autosave") && EnsureDir(base + "/checkpoints");
 }
 
 /*==============================================================================
  * Atomic Write Helper
  *==============================================================================*/
 
-bool SaveManager::AtomicWrite(const std::string& path, const json& data)
+bool SaveManager::AtomicWrite(const std::string &path, const json &data)
 {
     std::string tmpPath = path + ".tmp";
     try
@@ -133,20 +131,22 @@ void SaveManager::CleanupTmpFiles()
         return;
     try
     {
-        for (auto& entry : fs::recursive_directory_iterator("saves"))
+        for (auto &entry : fs::recursive_directory_iterator("saves"))
         {
             if (entry.path().extension() == ".tmp")
                 fs::remove(entry.path());
         }
     }
-    catch (...) {}
+    catch (...)
+    {
+    }
 }
 
 /*==============================================================================
  * Serialize / Deserialize
  *==============================================================================*/
 
-json SaveManager::Serialize(const GameSnapshot& snap)
+json SaveManager::Serialize(const GameSnapshot &snap)
 {
     json root;
 
@@ -203,7 +203,7 @@ json SaveManager::Serialize(const GameSnapshot& snap)
 
     // Enemies
     json enemiesJson = json::array();
-    for (const auto& enemy : snap.enemies)
+    for (const auto &enemy : snap.enemies)
     {
         json e;
         e["position"] = {enemy.position.x, enemy.position.y};
@@ -226,7 +226,7 @@ json SaveManager::Serialize(const GameSnapshot& snap)
 
     // Items
     json itemsJson = json::array();
-    for (const auto& item : snap.items)
+    for (const auto &item : snap.items)
     {
         json it;
         it["position"] = {item.position.x, item.position.y};
@@ -241,7 +241,7 @@ json SaveManager::Serialize(const GameSnapshot& snap)
     // Props — chests
     {
         json arr = json::array();
-        for (const auto& pos : snap.chestConsumed)
+        for (const auto &pos : snap.chestConsumed)
             arr.push_back(pos);
         root["chestsOpened"] = arr;
     }
@@ -259,7 +259,7 @@ json SaveManager::Serialize(const GameSnapshot& snap)
     // Dead Entities
     {
         json arr = json::array();
-        for (const auto& d : snap.deadEntities)
+        for (const auto &d : snap.deadEntities)
             arr.push_back(d);
         root["deadEntities"] = arr;
     }
@@ -272,7 +272,7 @@ json SaveManager::Serialize(const GameSnapshot& snap)
     mapJson["mapDisplayName"] = snap.mapDisplayName;
 
     json historyJson = json::array();
-    for (const auto& entry : snap.mapHistory)
+    for (const auto &entry : snap.mapHistory)
     {
         json h;
         h["mapPath"] = entry.mapPath;
@@ -285,7 +285,7 @@ json SaveManager::Serialize(const GameSnapshot& snap)
     return root;
 }
 
-GameSnapshot SaveManager::Deserialize(const json& root)
+GameSnapshot SaveManager::Deserialize(const json &root)
 {
     GameSnapshot snap;
     snap.version = root.value("version", -1);
@@ -296,7 +296,7 @@ GameSnapshot SaveManager::Deserialize(const json& root)
     // Player
     if (root.contains("player"))
     {
-        const auto& player = root.at("player");
+        const auto &player = root.at("player");
         snap.playerPosition.x = player.at("position")[0].get<float>();
         snap.playerPosition.y = player.at("position")[1].get<float>();
         snap.playerHealth = player.value("health", 100.0f);
@@ -306,7 +306,7 @@ GameSnapshot SaveManager::Deserialize(const json& root)
 
         if (player.contains("hotbar"))
         {
-            const auto& hotbar = player.at("hotbar");
+            const auto &hotbar = player.at("hotbar");
             for (int i = 0; i < HOTBAR_SLOTS && i < (int)hotbar.size(); i++)
             {
                 snap.hotbar[i].definitionId = hotbar[i].value("definitionId", -1);
@@ -316,7 +316,7 @@ GameSnapshot SaveManager::Deserialize(const json& root)
 
         if (player.contains("bag"))
         {
-            const auto& bag = player.at("bag");
+            const auto &bag = player.at("bag");
             for (int i = 0; i < BAG_SLOTS && i < (int)bag.size(); i++)
             {
                 snap.bag[i].definitionId = bag[i].value("definitionId", -1);
@@ -326,7 +326,7 @@ GameSnapshot SaveManager::Deserialize(const json& root)
 
         if (player.contains("animState"))
         {
-            const auto& anim = player.at("animState");
+            const auto &anim = player.at("animState");
             snap.animState.state = anim.value("state", 0);
             snap.animState.direction = anim.value("direction", 0);
             snap.animState.isDead = anim.value("isDead", false);
@@ -343,7 +343,7 @@ GameSnapshot SaveManager::Deserialize(const json& root)
     // Enemies
     if (root.contains("enemies"))
     {
-        for (const auto& e : root.at("enemies"))
+        for (const auto &e : root.at("enemies"))
         {
             SavedEnemyState enemy;
             enemy.position.x = e.at("position")[0].get<float>();
@@ -368,7 +368,7 @@ GameSnapshot SaveManager::Deserialize(const json& root)
     // Items
     if (root.contains("items"))
     {
-        for (const auto& it : root.at("items"))
+        for (const auto &it : root.at("items"))
         {
             SavedItemState item;
             item.position.x = it.at("position")[0].get<float>();
@@ -384,19 +384,19 @@ GameSnapshot SaveManager::Deserialize(const json& root)
     // Props — chests
     if (root.contains("chestsOpened"))
     {
-        for (const auto& c : root.at("chestsOpened"))
+        for (const auto &c : root.at("chestsOpened"))
             snap.chestConsumed.insert(c.get<std::string>());
     }
 
     // Props — bombs & crates
     if (root.contains("bombConsumedPositions"))
     {
-        for (const auto& b : root.at("bombConsumedPositions"))
+        for (const auto &b : root.at("bombConsumedPositions"))
             snap.bombConsumed.insert(b.get<std::string>());
     }
     if (root.contains("crateConsumedPositions"))
     {
-        for (const auto& c : root.at("crateConsumedPositions"))
+        for (const auto &c : root.at("crateConsumedPositions"))
             snap.crateConsumed.insert(c.get<std::string>());
     }
 
@@ -410,14 +410,14 @@ GameSnapshot SaveManager::Deserialize(const json& root)
     // Dead Entities
     if (root.contains("deadEntities"))
     {
-        for (const auto& d : root.at("deadEntities"))
+        for (const auto &d : root.at("deadEntities"))
             snap.deadEntities.insert(d.get<std::string>());
     }
 
     // Map
     if (root.contains("map"))
     {
-        const auto& map = root.at("map");
+        const auto &map = root.at("map");
         snap.mapPath = map.value("mapPath", "");
         if (map.contains("cameraTarget") && map["cameraTarget"].is_array() && map["cameraTarget"].size() >= 2)
         {
@@ -429,7 +429,7 @@ GameSnapshot SaveManager::Deserialize(const json& root)
 
         if (map.contains("mapHistory"))
         {
-            for (const auto& h : map.at("mapHistory"))
+            for (const auto &h : map.at("mapHistory"))
             {
                 MapSystem::MapHistoryEntry entry;
                 entry.mapPath = h.value("mapPath", "");
@@ -446,14 +446,14 @@ GameSnapshot SaveManager::Deserialize(const json& root)
  * Full Save / Load
  *==============================================================================*/
 
-bool SaveManager::WriteSnapshot(const GameSnapshot& snap, const std::string& path)
+bool SaveManager::WriteSnapshot(const GameSnapshot &snap, const std::string &path)
 {
     TraceLog(LOG_INFO, "[SaveManager] Writing snapshot to: %s", path.c_str());
     json root = Serialize(snap);
     return AtomicWrite(path, root);
 }
 
-GameSnapshot SaveManager::ReadSnapshot(const std::string& path)
+GameSnapshot SaveManager::ReadSnapshot(const std::string &path)
 {
     TraceLog(LOG_INFO, "[SaveManager] Reading snapshot from: %s", path.c_str());
     if (!fs::exists(path))
@@ -483,24 +483,24 @@ GameSnapshot SaveManager::ReadSnapshot(const std::string& path)
 
         return Deserialize(root);
     }
-    catch (const json::parse_error& e)
+    catch (const json::parse_error &e)
     {
         TraceLog(LOG_WARNING, "[SaveManager] Parse error: %s", e.what());
         return GameSnapshot();
     }
-    catch (const json::out_of_range& e)
+    catch (const json::out_of_range &e)
     {
         TraceLog(LOG_WARNING, "[SaveManager] Missing field: %s", e.what());
         return GameSnapshot();
     }
-    catch (const json::type_error& e)
+    catch (const json::type_error &e)
     {
         TraceLog(LOG_WARNING, "[SaveManager] Type error: %s", e.what());
         return GameSnapshot();
     }
 }
 
-bool SaveManager::HasSnapshot(const std::string& path)
+bool SaveManager::HasSnapshot(const std::string &path)
 {
     return fs::exists(path) && fs::file_size(path) > 0;
 }
@@ -509,7 +509,7 @@ bool SaveManager::HasSnapshot(const std::string& path)
  * Convenience
  *==============================================================================*/
 
-bool SaveManager::SaveManual(const GameSnapshot& snap, int slot)
+bool SaveManager::SaveManual(const GameSnapshot &snap, int slot)
 {
     EnsureDirs(slot);
     return WriteSnapshot(snap, GetManualPath(slot));
@@ -527,7 +527,8 @@ bool SaveManager::HasManual(int slot)
 
 bool SaveManager::SaveAutosave(int slot)
 {
-    if (slot < 0) return false;
+    if (slot < 0)
+        return false;
 
     EnsureDirs(slot);
 
@@ -548,19 +549,19 @@ bool SaveManager::SaveAutosave(int slot)
     std::vector<fs::path> files;
     if (fs::exists(dir))
     {
-        for (const auto& entry : fs::directory_iterator(dir))
+        for (const auto &entry : fs::directory_iterator(dir))
         {
-            if (entry.path().extension() == ".json"
-                && entry.path().filename().string().find("snapshot_") == 0)
+            if (entry.path().extension() == ".json" && entry.path().filename().string().find("snapshot_") == 0)
                 files.push_back(entry.path());
         }
     }
     if (files.size() > MAX_AUTOSAVE)
     {
         std::sort(files.begin(), files.end(),
-            [](const auto& a, const auto& b) {
-                return fs::last_write_time(a) < fs::last_write_time(b);
-            });
+                  [](const auto &a, const auto &b)
+                  {
+                      return fs::last_write_time(a) < fs::last_write_time(b);
+                  });
         for (size_t i = 0; i < files.size() - MAX_AUTOSAVE; i++)
             fs::remove(files[i]);
     }
@@ -572,18 +573,18 @@ bool SaveManager::SaveAutosave(int slot)
  * Per-map Checkpoint
  *==============================================================================*/
 
-bool SaveManager::SaveCheckpoint(const GameSnapshot& snap, const std::string& mapPath, int slot)
+bool SaveManager::SaveCheckpoint(const GameSnapshot &snap, const std::string &mapPath, int slot)
 {
     EnsureDirs(slot);
     return WriteSnapshot(snap, GetCheckpointPath(mapPath, slot));
 }
 
-GameSnapshot SaveManager::LoadCheckpoint(const std::string& mapPath, int slot)
+GameSnapshot SaveManager::LoadCheckpoint(const std::string &mapPath, int slot)
 {
     return ReadSnapshot(GetCheckpointPath(mapPath, slot));
 }
 
-bool SaveManager::HasCheckpoint(const std::string& mapPath, int slot)
+bool SaveManager::HasCheckpoint(const std::string &mapPath, int slot)
 {
     return HasSnapshot(GetCheckpointPath(mapPath, slot));
 }
@@ -592,7 +593,7 @@ bool SaveManager::HasCheckpoint(const std::string& mapPath, int slot)
  * Initial Snapshot (Restart)
  *==============================================================================*/
 
-bool SaveManager::SaveInitial(const GameSnapshot& snap, int slot)
+bool SaveManager::SaveInitial(const GameSnapshot &snap, int slot)
 {
     EnsureDirs(slot);
     return WriteSnapshot(snap, GetInitialPath(slot));
@@ -646,17 +647,15 @@ GameSnapshot SaveManager::CaptureSnapshot()
         {"duration", PlayerInstance.attack.duration},
         {"raycastAngle", PlayerInstance.attack.raycastAngle},
         {"center", {PlayerInstance.attack.center.x, PlayerInstance.attack.center.y}},
-        {"pressHeld", PlayerInstance.attack.pressHeld}
-    };
+        {"pressHeld", PlayerInstance.attack.pressHeld}};
 
     if (gState)
         snap.showFPS = gState->showFPS;
 
     // Enemies
-    auto& enemyReg = Entities::GetEnemyRegistry();
-    for (const auto& enemy : enemyReg)
+    auto &enemyReg = Entities::GetEnemyRegistry();
+    for (const auto &enemy : enemyReg)
     {
-        if (!enemy->IsActive) continue;
         SavedEnemyState saved;
         saved.position = enemy->Position;
         saved.enemyName = enemy->Name;
@@ -676,7 +675,7 @@ GameSnapshot SaveManager::CaptureSnapshot()
     }
 
     // Items
-    for (const ItemSpawn& item : itemData.activeItems)
+    for (const ItemSpawn &item : itemData.activeItems)
     {
         SavedItemState savedItem;
         savedItem.position = item.position;
@@ -700,12 +699,12 @@ GameSnapshot SaveManager::CaptureSnapshot()
 
     // Dead Entities
     {
-        const auto& deadSet = Entities::GetDeadEntities();
+        const auto &deadSet = Entities::GetDeadEntities();
         snap.deadEntities = deadSet;
     }
 
     // Map
-    const char* mapPath = GetCurrentMapPath();
+    const char *mapPath = GetCurrentMapPath();
     snap.mapPath = (mapPath && mapPath[0] != '\0') ? std::string(mapPath) : "assets/maps/tutorial.json";
     snap.mapDisplayName = GetMapDisplayName(snap.mapPath);
     snap.cameraTarget = camera.target;
@@ -726,7 +725,7 @@ bool SaveManager::CaptureInitialSnapshot(int slot)
  * Apply Pre-Spawn (BEFORE InitAll / SpawnEnemiesFromMap / SpawnObject)
  *==============================================================================*/
 
-void SaveManager::ApplyPreSpawn(const GameSnapshot& snap)
+void SaveManager::ApplyPreSpawn(const GameSnapshot &snap)
 {
     if (snap.version != GameSnapshot::SNAPSHOT_VERSION)
         return;
@@ -753,7 +752,7 @@ void SaveManager::ApplyPreSpawn(const GameSnapshot& snap)
  * Apply Post-Spawn (AFTER InitAll / SpawnEnemiesFromMap / SpawnObject)
  *==============================================================================*/
 
-void SaveManager::ApplyPostSpawn(const GameSnapshot& snap)
+void SaveManager::ApplyPostSpawn(const GameSnapshot &snap)
 {
     // Skip if snapshot is empty (version check)
     if (snap.version != GameSnapshot::SNAPSHOT_VERSION)
@@ -807,17 +806,18 @@ void SaveManager::ApplyPostSpawn(const GameSnapshot& snap)
     /*--- Enemies ---*/
     if (!snap.enemies.empty())
     {
-        auto& enemyReg = Entities::GetEnemyRegistry();
-        std::unordered_set<Enemy*> matchedEnemies;
+        auto &enemyReg = Entities::GetEnemyRegistry();
+        std::unordered_set<Enemy *> matchedEnemies;
 
-        for (const auto& saved : snap.enemies)
+        for (const auto &saved : snap.enemies)
         {
             if (!saved.isAlive)
             {
                 // Deactivate matched enemy directly; RegisterDeath would poison the shared MapObjectID
-                for (auto& enemy : enemyReg)
+                for (auto &enemy : enemyReg)
                 {
-                    if (!enemy || matchedEnemies.count(enemy)) continue;
+                    if (!enemy || matchedEnemies.count(enemy))
+                        continue;
                     if (enemy->MapObjectID == saved.mapObjectID && enemy->Name == saved.enemyName)
                     {
                         enemy->IsActive = false;
@@ -831,9 +831,10 @@ void SaveManager::ApplyPostSpawn(const GameSnapshot& snap)
 
             // First pass: match by UUID
             bool matched = false;
-            for (auto& enemy : enemyReg)
+            for (auto &enemy : enemyReg)
             {
-                if (!enemy || matchedEnemies.count(enemy)) continue;
+                if (!enemy || matchedEnemies.count(enemy))
+                    continue;
                 if (!saved.uuid.empty() && enemy->GetUUID() == saved.uuid)
                 {
                     enemy->Position = saved.position;
@@ -861,9 +862,10 @@ void SaveManager::ApplyPostSpawn(const GameSnapshot& snap)
             // Second pass: fallback to MapObjectID+Name
             if (!matched)
             {
-                for (auto& enemy : enemyReg)
+                for (auto &enemy : enemyReg)
                 {
-                    if (!enemy || matchedEnemies.count(enemy)) continue;
+                    if (!enemy || matchedEnemies.count(enemy))
+                        continue;
                     if (enemy->MapObjectID == saved.mapObjectID && enemy->Name == saved.enemyName)
                     {
                         enemy->Position = saved.position;
@@ -892,7 +894,7 @@ void SaveManager::ApplyPostSpawn(const GameSnapshot& snap)
 
     /*--- Items (full replacement - snapshot is source of truth) ---*/
     itemData.activeItems.clear();
-    for (const auto& saved : snap.items)
+    for (const auto &saved : snap.items)
     {
         ItemSpawn item;
         item.position = saved.position;
@@ -910,7 +912,7 @@ void SaveManager::ApplyPostSpawn(const GameSnapshot& snap)
                            def.hitboxSize.x,
                            def.hitboxSize.y};
         }
-        item.spawnTime = (float)GetTime();  // Immunity mulai dari sekarang
+        item.spawnTime = (float)GetTime(); // Immunity mulai dari sekarang
         item.isAdded = item.isPickedUp;
         itemData.activeItems.push_back(item);
     }
@@ -952,7 +954,7 @@ void SaveManager::ApplyPostSpawn(const GameSnapshot& snap)
  * TIDAK restore player, camera, mapHistory.
  * ApplyPreSpawn() HARUS dipanggil SEBELUM fungsi ini.
  */
-void SaveManager::ApplyCheckpointData(const GameSnapshot& snap)
+void SaveManager::ApplyCheckpointData(const GameSnapshot &snap)
 {
     if (snap.version != GameSnapshot::SNAPSHOT_VERSION)
         return;
@@ -962,17 +964,18 @@ void SaveManager::ApplyCheckpointData(const GameSnapshot& snap)
     /*--- Enemies ---*/
     if (!snap.enemies.empty())
     {
-        auto& enemyReg = Entities::GetEnemyRegistry();
-        std::unordered_set<Enemy*> matchedEnemies;
+        auto &enemyReg = Entities::GetEnemyRegistry();
+        std::unordered_set<Enemy *> matchedEnemies;
 
-        for (const auto& saved : snap.enemies)
+        for (const auto &saved : snap.enemies)
         {
             if (!saved.isAlive)
             {
                 // Deactivate matched enemy directly; RegisterDeath would poison the shared MapObjectID
-                for (auto& enemy : enemyReg)
+                for (auto &enemy : enemyReg)
                 {
-                    if (!enemy || matchedEnemies.count(enemy)) continue;
+                    if (!enemy || matchedEnemies.count(enemy))
+                        continue;
                     if (enemy->MapObjectID == saved.mapObjectID && enemy->Name == saved.enemyName)
                     {
                         enemy->IsActive = false;
@@ -985,9 +988,10 @@ void SaveManager::ApplyCheckpointData(const GameSnapshot& snap)
             }
 
             bool matched = false;
-            for (auto& enemy : enemyReg)
+            for (auto &enemy : enemyReg)
             {
-                if (!enemy || matchedEnemies.count(enemy)) continue;
+                if (!enemy || matchedEnemies.count(enemy))
+                    continue;
                 if (!saved.uuid.empty() && enemy->GetUUID() == saved.uuid)
                 {
                     enemy->Position = saved.position;
@@ -1014,9 +1018,10 @@ void SaveManager::ApplyCheckpointData(const GameSnapshot& snap)
 
             if (!matched)
             {
-                for (auto& enemy : enemyReg)
+                for (auto &enemy : enemyReg)
                 {
-                    if (!enemy || matchedEnemies.count(enemy)) continue;
+                    if (!enemy || matchedEnemies.count(enemy))
+                        continue;
                     if (enemy->MapObjectID == saved.mapObjectID && enemy->Name == saved.enemyName)
                     {
                         enemy->Position = saved.position;
@@ -1046,9 +1051,9 @@ void SaveManager::ApplyCheckpointData(const GameSnapshot& snap)
     /*--- Items ---*/
     if (!snap.items.empty())
     {
-        for (const auto& saved : snap.items)
+        for (const auto &saved : snap.items)
         {
-            for (ItemSpawn& item : itemData.activeItems)
+            for (ItemSpawn &item : itemData.activeItems)
             {
                 if (item.uuid == saved.uuid && !saved.uuid.empty())
                 {
@@ -1063,12 +1068,11 @@ void SaveManager::ApplyCheckpointData(const GameSnapshot& snap)
         }
 
         int itemIndex = 0;
-        for (ItemSpawn& item : itemData.activeItems)
+        for (ItemSpawn &item : itemData.activeItems)
         {
             if (itemIndex < (int)snap.items.size())
             {
-                if (item.uuid.empty() || snap.items[itemIndex].uuid.empty()
-                    || item.uuid != snap.items[itemIndex].uuid)
+                if (item.uuid.empty() || snap.items[itemIndex].uuid.empty() || item.uuid != snap.items[itemIndex].uuid)
                 {
                     item.isPickedUp = snap.items[itemIndex].isPickedUp;
                     item.isAdded = snap.items[itemIndex].isPickedUp;
@@ -1125,7 +1129,7 @@ bool SaveManager::DeleteSlot(int slotIndex)
         fs::remove_all(slotDir);
         TraceLog(LOG_INFO, "[SaveManager] Deleted %s", slotDir.c_str());
     }
-    catch (const std::exception& e)
+    catch (const std::exception &e)
     {
         TraceLog(LOG_WARNING, "[SaveManager] Failed to delete slot %d: %s", slotIndex, e.what());
         return false;

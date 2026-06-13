@@ -93,6 +93,18 @@ struct WeaponData
 };
 
 /**
+ * @brief Kategori potion untuk cooldown per-kategori.
+ */
+enum PotionCategory {
+    POTION_HEALTH = 0,
+    POTION_STAMINA,
+    POTION_DAMAGE,
+    POTION_SPEED,
+    POTION_INVINCIBILITY,
+    POTION_CATEGORY_COUNT
+};
+
+/**
  * @brief Data spesifik untuk item bertipe potion.
  */
 struct PotionData
@@ -104,6 +116,7 @@ struct PotionData
     float invincibilityDuration; // waktu kebal dalam detik
     float duration;              // durasi efek potion
     float cooldown;              // waktu tunggu sebelum potion berikutnya bisa digunakan
+    PotionCategory potionCategory; // Kategori potion (default POTION_HEALTH)
 };
 
 /**
@@ -252,6 +265,7 @@ public:
      */
     void SpawnItemAtLocation(Vector2 pos, std::mt19937 *rng = nullptr, ItemCategory category = ITEM_ANY);
     void SpawnItemAtLocation(Vector2 pos, const std::map<ItemRarity, int> &weights, std::mt19937 *rng = nullptr);
+    void SpawnItemAtLocation(Vector2 pos, const std::map<ItemRarity, int> &weights, ItemCategory category, std::mt19937 *rng = nullptr);
 
     /**
      * @brief Simpan state item aktif untuk map tertentu

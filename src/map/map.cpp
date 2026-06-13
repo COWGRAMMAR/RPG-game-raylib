@@ -579,7 +579,7 @@ void SetCurrentMapPath(const char *newPath)
  * @param mapFilePath Path file map
  * @return Nama map yang mudah dibaca
  */
-std::string GetMapDisplayName(const std::string& mapFilePath)
+std::string GetMapDisplayName(const std::string &mapFilePath)
 {
     // Handle empty path
     if (mapFilePath.empty())

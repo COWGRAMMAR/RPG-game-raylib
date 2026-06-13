@@ -9,6 +9,7 @@
  */
 
 #include "raylib.h"
+#include "fonts.h"
 #include <string>
 #include <iostream>
 #include <type_traits>
@@ -36,7 +37,7 @@ struct TextPolicy
     TextPolicy() : text(nullptr), posX(0), posY(0), fontSize(0), textColor(BLANK), textWidth(0), hoverAmount(1.0F), font(GetFontDefault()) {}
 
     /** @brief Construct dengan text, posisi, font, warna, hover */
-    TextPolicy(const char *text, int posX, int posY, int fontSize, Color color, float hover, Font font = GetFontDefault())
+    TextPolicy(const char *text, int posX, int posY, int fontSize, Color color, float hover, Font font = GetOrLoad(FontId::DEFAULT))
         : text(text), posX(posX), posY(posY), fontSize(fontSize), textColor(color), hoverAmount(hover), font(font)
     {
         textWidth = MeasureText(text, fontSize);

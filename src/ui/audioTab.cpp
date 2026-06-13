@@ -22,7 +22,7 @@ using json = nlohmann::json;
  *==============================================================================*/
 
 /** @brief Global slider state untuk tab Audio */
-SliderState g_sliders = {100, 80, 100, 100, false, -1};
+SliderState g_sliders = {100, 100, 100, 100, false, -1};
 
 /*==============================================================================
  * Constants
@@ -35,10 +35,10 @@ static const int SLIDER_WIDTH = 250;
 static const int SLIDER_HEIGHT = 20;
 
 /** @brief Warna background slider */
-static const Color SLIDER_BG    = {80, 80, 80, 255};
+static const Color SLIDER_BG = {80, 80, 80, 255};
 
 /** @brief Warna fill slider (hijau) */
-static const Color SLIDER_FILL  = {50, 200, 50, 255};
+static const Color SLIDER_FILL = {50, 200, 50, 255};
 
 /** @brief Warna border saat hover */
 static const Color SLIDER_HOVER = {255, 255, 255, 120};
@@ -59,12 +59,11 @@ static const int FONT_SIZE = 30;
 static const int ROW_OFFSETS[4] = {15, 75, 135, 195};
 
 /** @brief Label teks untuk tiap slider */
-static const char* SLIDER_LABELS[4] = {
+static const char *SLIDER_LABELS[4] = {
     "Master Volume",
     "Music Volume",
     "SFX Volume",
-    "Video Volume"
-};
+    "Video Volume"};
 
 /*==============================================================================
  * Draw Functions
@@ -79,16 +78,16 @@ static const char* SLIDER_LABELS[4] = {
  * @param mousePosition Posisi mouse untuk hover
  */
 static void DrawSliderBar(
-    const char* label,
+    const char *label,
     int valuePct,
     int barX,
     int barY,
     Vector2 mousePosition)
 {
     // Label
-    DrawTextEx(fontLoadingTitle, label,
-        Vector2{static_cast<float>(LABEL_X), static_cast<float>(barY - 5)},
-        FONT_SIZE, 0, WHITE);
+    DrawTextEx(GetOrLoad(FontId::LOADING_TITLE), label,
+               Vector2{static_cast<float>(LABEL_X), static_cast<float>(barY - 5)},
+               FONT_SIZE, 0, WHITE);
 
     // Background bar
     DrawRectangle(barX, barY, SLIDER_WIDTH, SLIDER_HEIGHT, SLIDER_BG);
@@ -100,22 +99,21 @@ static void DrawSliderBar(
         DrawRectangle(barX, barY, fillWidth, SLIDER_HEIGHT, SLIDER_FILL);
     }
 
-    // value text pakai fontLoadingTitle (bold) menggantikan fontKeybindEntry
+    // value text pakai GetOrLoad(FontId::LOADING_TITLE) (bold) menggantikan GetOrLoad(FontId::KEYBIND_ENTRY)
     char valueStr[16];
     snprintf(valueStr, sizeof(valueStr), "%d%%", valuePct);
-    Vector2 textSize = MeasureTextEx(fontLoadingTitle, valueStr, FONT_SIZE, 0);
+    Vector2 textSize = MeasureTextEx(GetOrLoad(FontId::LOADING_TITLE), valueStr, FONT_SIZE, 0);
     float valX = barX + (SLIDER_WIDTH - textSize.x) * 0.5f;
     float valY = barY + (SLIDER_HEIGHT - textSize.y) * 0.5f;
-    DrawTextEx(fontLoadingTitle, valueStr,
-        Vector2{valX, valY}, FONT_SIZE, 0, BLACK);
+    DrawTextEx(GetOrLoad(FontId::LOADING_TITLE), valueStr,
+               Vector2{valX, valY}, FONT_SIZE, 0, BLACK);
 
     // Hover effect
     Rectangle sliderRect = {
         static_cast<float>(barX),
         static_cast<float>(barY),
         static_cast<float>(SLIDER_WIDTH),
-        static_cast<float>(SLIDER_HEIGHT)
-    };
+        static_cast<float>(SLIDER_HEIGHT)};
     if (CheckCollisionPointRec(mousePosition, sliderRect))
     {
         DrawRectangleLines(barX, barY, SLIDER_WIDTH, SLIDER_HEIGHT, SLIDER_HOVER);
@@ -137,10 +135,9 @@ void DrawAudioTab(
     for (int i = 0; i < 4; i++)
     {
         int barY = contentStartY + ROW_OFFSETS[i];
-        int value = (i == 0) ? g_sliders.masterVolume :
-                    (i == 1) ? g_sliders.musicVolume :
-                    (i == 2) ? g_sliders.sfxVolume :
-                               g_sliders.videoVolume;
+        int value = (i == 0) ? g_sliders.masterVolume : (i == 1) ? g_sliders.musicVolume
+                                                    : (i == 2)   ? g_sliders.sfxVolume
+                                                                 : g_sliders.videoVolume;
 
         DrawSliderBar(SLIDER_LABELS[i], value, barX, barY, mousePosition);
     }
@@ -151,7 +148,7 @@ void DrawAudioTab(
  *==============================================================================*/
 
 bool UpdateAudioTab(
-    SliderState& sliders,
+    SliderState &sliders,
     Vector2 mousePosition,
     bool mouseClicked,
     int startX,
@@ -166,8 +163,10 @@ bool UpdateAudioTab(
         float relX = mousePosition.x - static_cast<float>(barX);
         float pct = (relX / SLIDER_WIDTH) * 100.0f;
         int vol = static_cast<int>(pct + 0.5f);
-        if (vol < 0) vol = 0;
-        if (vol > 100) vol = 100;
+        if (vol < 0)
+            vol = 0;
+        if (vol > 100)
+            vol = 100;
         return vol;
     };
 
@@ -180,8 +179,7 @@ bool UpdateAudioTab(
                 static_cast<float>(barX),
                 static_cast<float>(barY),
                 static_cast<float>(SLIDER_WIDTH),
-                static_cast<float>(SLIDER_HEIGHT)
-            };
+                static_cast<float>(SLIDER_HEIGHT)};
             if (CheckCollisionPointRec(mousePosition, rect))
                 return i;
         }
@@ -200,18 +198,25 @@ bool UpdateAudioTab(
             int newVol = calcVolumeFromMouse(idx);
             switch (idx)
             {
-                case 0: sliders.masterVolume = newVol; break;
-                case 1: sliders.musicVolume = newVol; break;
-                case 2: sliders.sfxVolume = newVol; break;
-                case 3: sliders.videoVolume = newVol; break;
+            case 0:
+                sliders.masterVolume = newVol;
+                break;
+            case 1:
+                sliders.musicVolume = newVol;
+                break;
+            case 2:
+                sliders.sfxVolume = newVol;
+                break;
+            case 3:
+                sliders.videoVolume = newVol;
+                break;
             }
 
             AudioManager::SetVolumesFromPct(
                 sliders.masterVolume,
                 sliders.musicVolume,
                 sliders.sfxVolume,
-                sliders.videoVolume
-            );
+                sliders.videoVolume);
 
             TraceLog(LOG_INFO, "AUDIO: Slider %d digeser ke %d%%", idx, newVol);
         }
@@ -226,18 +231,25 @@ bool UpdateAudioTab(
             int newVol = calcVolumeFromMouse(idx);
             switch (idx)
             {
-                case 0: sliders.masterVolume = newVol; break;
-                case 1: sliders.musicVolume = newVol; break;
-                case 2: sliders.sfxVolume = newVol; break;
-                case 3: sliders.videoVolume = newVol; break;
+            case 0:
+                sliders.masterVolume = newVol;
+                break;
+            case 1:
+                sliders.musicVolume = newVol;
+                break;
+            case 2:
+                sliders.sfxVolume = newVol;
+                break;
+            case 3:
+                sliders.videoVolume = newVol;
+                break;
             }
 
             AudioManager::SetVolumesFromPct(
                 sliders.masterVolume,
                 sliders.musicVolume,
                 sliders.sfxVolume,
-                sliders.videoVolume
-            );
+                sliders.videoVolume);
         }
     }
 
@@ -251,15 +263,13 @@ bool UpdateAudioTab(
             sliders.masterVolume,
             sliders.musicVolume,
             sliders.sfxVolume,
-            sliders.videoVolume
-        );
+            sliders.videoVolume);
 
         TraceLog(LOG_INFO, "AUDIO: Settings disimpan (M=%d, Mu=%d, S=%d, V=%d)",
-            sliders.masterVolume,
-            sliders.musicVolume,
-            sliders.sfxVolume,
-            sliders.videoVolume
-        );
+                 sliders.masterVolume,
+                 sliders.musicVolume,
+                 sliders.sfxVolume,
+                 sliders.videoVolume);
 
         return true;
     }
@@ -298,19 +308,27 @@ bool LoadAudioSettings()
         }
 
         int master = root.value("masterVolume", 100);
-        int music  = root.value("musicVolume", 80);
-        int sfx    = root.value("sfxVolume", 100);
-        int video  = (ver == 2) ? root.value("videoVolume", 100) : 100;
+        int music = root.value("musicVolume", 80);
+        int sfx = root.value("sfxVolume", 100);
+        int video = (ver == 2) ? root.value("videoVolume", 100) : 100;
 
         // Clamp ke 0-100
-        if (master < 0) master = 0;
-        if (master > 100) master = 100;
-        if (music < 0) music = 0;
-        if (music > 100) music = 100;
-        if (sfx < 0) sfx = 0;
-        if (sfx > 100) sfx = 100;
-        if (video < 0) video = 0;
-        if (video > 100) video = 100;
+        if (master < 0)
+            master = 0;
+        if (master > 100)
+            master = 100;
+        if (music < 0)
+            music = 0;
+        if (music > 100)
+            music = 100;
+        if (sfx < 0)
+            sfx = 0;
+        if (sfx > 100)
+            sfx = 100;
+        if (video < 0)
+            video = 0;
+        if (video > 100)
+            video = 100;
 
         // Apply ke AudioManager
         AudioManager::SetVolumesFromPct(master, music, sfx, video);
@@ -322,11 +340,11 @@ bool LoadAudioSettings()
         g_sliders.videoVolume = video;
 
         TraceLog(LOG_INFO, "AUDIO: Settings dimuat dari %s (M=%d, Mu=%d, S=%d, V=%d)",
-            AUDIO_SETTINGS_PATH, master, music, sfx, video);
+                 AUDIO_SETTINGS_PATH, master, music, sfx, video);
 
         return true;
     }
-    catch (const std::exception& e)
+    catch (const std::exception &e)
     {
         TraceLog(LOG_WARNING, "AUDIO: Gagal muat %s: %s", AUDIO_SETTINGS_PATH, e.what());
         return false;
@@ -338,11 +356,11 @@ bool SaveAudioSettings(int masterVolume, int musicVolume, int sfxVolume, int vid
     try
     {
         json root;
-        root["version"]      = 2;
+        root["version"] = 2;
         root["masterVolume"] = masterVolume;
-        root["musicVolume"]  = musicVolume;
-        root["sfxVolume"]    = sfxVolume;
-        root["videoVolume"]  = videoVolume;
+        root["musicVolume"] = musicVolume;
+        root["sfxVolume"] = sfxVolume;
+        root["videoVolume"] = videoVolume;
 
         std::filesystem::path fsPath(AUDIO_SETTINGS_PATH);
         std::filesystem::create_directories(fsPath.parent_path());
@@ -360,10 +378,9 @@ bool SaveAudioSettings(int masterVolume, int musicVolume, int sfxVolume, int vid
         TraceLog(LOG_INFO, "AUDIO: Settings disimpan ke %s", AUDIO_SETTINGS_PATH);
         return true;
     }
-    catch (const std::exception& e)
+    catch (const std::exception &e)
     {
         TraceLog(LOG_WARNING, "AUDIO: Gagal simpan: %s", e.what());
         return false;
     }
 }
- 

@@ -1,4 +1,5 @@
 #include "videoScreen.h"
+#include "fonts.h"
 
 VideoScreen::VideoScreen()
     : m_videoPath("assets/video/dolby-countdown.mkv")
@@ -30,7 +31,7 @@ bool VideoScreen::LoadAndPlay()
     if (m_loaded)
     {
         TraceLog(LOG_INFO, "VIDEO: Loaded successfully (%dx%d, %.1fs)",
-            m_player.GetWidth(), m_player.GetHeight(), m_player.GetDuration());
+                 m_player.GetWidth(), m_player.GetHeight(), m_player.GetDuration());
         m_player.Play();
         TraceLog(LOG_INFO, "VIDEO: Playback started");
     }
@@ -63,12 +64,12 @@ void VideoScreen::Unload()
 /** @name Setters / Getters */
 /**@{*/
 
-void VideoScreen::SetVideoPath(const std::string& path)
+void VideoScreen::SetVideoPath(const std::string &path)
 {
     m_videoPath = path;
 }
 
-const std::string& VideoScreen::GetVideoPath() const
+const std::string &VideoScreen::GetVideoPath() const
 {
     return m_videoPath;
 }
@@ -85,8 +86,6 @@ void VideoScreen::SetVolume(float vol)
 
 bool VideoScreen::Update(float deltaTime)
 {
-    // Cek input skip -- dilakukan SEBELUM guard !m_loaded agar
-    // user tetap bisa skip meskipun video gagal dimuat.
     if (IsKeyPressed(KEY_SPACE) || IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_ESCAPE))
     {
         m_skipRequested = true;
@@ -125,12 +124,12 @@ void VideoScreen::Draw()
         const int screenW  = GetScreenWidth();
         const int screenH  = GetScreenHeight();
 
-        // Hindari division-by-zero bila texture video belum siap
-        if (videoW == 0 || videoH == 0) return;
+        if (videoW == 0 || videoH == 0)
+            return;
 
         const float scaleX = static_cast<float>(screenW) / static_cast<float>(videoW);
         const float scaleY = static_cast<float>(screenH) / static_cast<float>(videoH);
-        const float scale  = (scaleX < scaleY) ? scaleX : scaleY;
+        const float scale = (scaleX < scaleY) ? scaleX : scaleY;
 
         const int drawW = static_cast<int>(static_cast<float>(videoW) * scale);
         const int drawH = static_cast<int>(static_cast<float>(videoH) * scale);
@@ -147,32 +146,29 @@ void VideoScreen::Draw()
         const int screenW = GetScreenWidth();
         const int screenH = GetScreenHeight();
 
-        DrawText(
+        DrawDefaultText(
             loadingText,
             (screenW - textW) / 2,
             screenH / 2 - fontSize / 2,
             fontSize,
-            WHITE
-        );
+            WHITE);
     }
 
     {
-        const char* skipText = "Tekan SPACE untuk skip";
+        const char *skipText = "Tekan SPACE untuk skip";
         const int fontSize = 20;
         const int textW = MeasureText(skipText, fontSize);
         const int screenW = GetScreenWidth();
         const int screenH = GetScreenHeight();
-        const Color hintColor = { 255, 255, 255, 180 };
+        const Color hintColor = {255, 255, 255, 180};
 
-        DrawText(
+        DrawDefaultText(
             skipText,
             screenW - textW - 20,
             screenH - fontSize - 20,
             fontSize,
-            hintColor
-        );
+            hintColor);
     }
 }
 
 /**@}*/
- 

@@ -38,6 +38,15 @@ namespace Entities
      */
     static std::set<std::string> DeadEntities;
 
+    /**
+     * @brief Set UUID per-instance enemy yang sudah mati.
+     *
+     * Format key: mapPath + "_uuid_" + uuid
+     * Setiap enemy punya UUID unik, jadi kematian satu enemy
+     * tidak mematikan seluruh spawn point (beda dengan MapObjectID).
+     */
+    static std::set<std::string> DeadEntitiesByUUID;
+
     void Init()
     {
         Registry.clear();
@@ -159,9 +168,32 @@ namespace Entities
         return DeadEntities.find(mapPath + "_" + std::to_string(objectId)) != DeadEntities.end();
     }
 
+    /**
+     * @brief Catat kematian enemy per-instance berdasarkan UUID
+     * @param mapPath Path map tempat enemy mati
+     * @param uuid UUID unik per-instance enemy
+     */
+    void RegisterDeathByUUID(const std::string &mapPath, const std::string &uuid)
+    {
+        DeadEntitiesByUUID.insert(mapPath + "_uuid_" + uuid);
+        TraceLog(LOG_INFO, "REGISTER_DEATH_UUID: map='%s' uuid='%s'", mapPath.c_str(), uuid.c_str());
+    }
+
+    /**
+     * @brief Cek apakah enemy dengan UUID tertentu sudah mati
+     * @param mapPath Path map
+     * @param uuid UUID unik per-instance enemy
+     * @return true jika sudah mati
+     */
+    bool IsDeadByUUID(const std::string &mapPath, const std::string &uuid)
+    {
+        return DeadEntitiesByUUID.find(mapPath + "_uuid_" + uuid) != DeadEntitiesByUUID.end();
+    }
+
     void ClearDeadEntities()
     {
         DeadEntities.clear();
+        DeadEntitiesByUUID.clear();
     }
 
     const std::set<std::string> &GetDeadEntities()
@@ -181,13 +213,15 @@ namespace Entities
         int pruned = 0;
         for (auto &enemy : EnemyRegistry)
         {
-            if (enemy == nullptr) continue;
-            if (IsAlreadyDead(currentMap, enemy->MapObjectID))
+            if (enemy == nullptr)
+                continue;
+            if (IsDeadByUUID(currentMap, enemy->GetUUID()) ||
+                IsAlreadyDead(currentMap, enemy->MapObjectID))
             {
                 enemy->IsActive = false;
                 enemy->Health = 0.0f;
-                TraceLog(LOG_WARNING, "PRUNE: Deactivated dead enemy '%s' (ID=%d) that survived spawn",
-                         enemy->Name.c_str(), enemy->MapObjectID);
+                TraceLog(LOG_WARNING, "PRUNE: Deactivated dead enemy '%s' (mapObj=%d uuid=%s) that survived spawn",
+                         enemy->Name.c_str(), enemy->MapObjectID, enemy->GetUUID().c_str());
                 pruned++;
             }
         }

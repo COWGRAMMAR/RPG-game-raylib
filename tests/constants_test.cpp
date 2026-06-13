@@ -115,11 +115,12 @@ TEST_CASE("Direction enum values")
 
 TEST_CASE("ScreenState enum values")
 {
-    CHECK(MAIN_MENU == 0);
-    CHECK(LOADING == 1);
-    CHECK(PLAY == 2);
-    CHECK(OPTIONS == 3);
-    CHECK(GAME_OVER == 4);
+    CHECK(VIDEO == 0);
+    CHECK(MAIN_MENU == 1);
+    CHECK(LOADING == 2);
+    CHECK(PLAY == 3);
+    CHECK(OPTIONS == 4);
+    CHECK(GAME_OVER == 5);
 }
 
 /*==============================================================================

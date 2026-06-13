@@ -211,8 +211,11 @@ public:
     float BuffDamageMultiplier = 1.0f; ///< Multiplier damage dari buff
     float BuffSpeedMultiplier = 1.0f;  ///< Multiplier speed dari buff
     float BuffDamageTimer = 0.0f;      ///< Timer durasi buff damage
+    float BuffDamageTimerMax = 0.0f;   ///< Max durasi buff damage (untuk progress bar)
     float BuffSpeedTimer = 0.0f;       ///< Timer durasi buff speed
+    float BuffSpeedTimerMax = 0.0f;    ///< Max durasi buff speed (untuk progress bar)
     float InvincibilityTimer = 0.0f;   ///< Timer durasi invincibility
+    float InvincibilityTimerMax = 0.0f;///< Max durasi invincibility (untuk progress bar)
 
     // movement
     float Speed = 4.0f;         // Kecepatan gerak dasar 
@@ -227,8 +230,8 @@ public:
     bool IsDashing = false;       // Flag sedang dashing
     bool IsMoving = false;        // Flag sedang bergerak
     bool canInteract = false;     // Flag bisa interaksi
-    float PotionCooldown = 0.0f;  // Timer cooldown potion
-    float PotionCooldownMax = 1.0f; // Durasi cooldown potion
+    float PotionCategoryCooldowns[POTION_CATEGORY_COUNT] = {0};         // Timer cooldown per-kategori
+    float PotionCategoryCooldownMax[POTION_CATEGORY_COUNT] = {1.0f, 1.0f, 1.0f, 1.0f, 1.0f}; // Durasi cooldown per-kategori
 
     // Feedback visual/fisika
     float HitFlashTimer = 0.0f;         // Durasi efek kilatan saat terkena hit

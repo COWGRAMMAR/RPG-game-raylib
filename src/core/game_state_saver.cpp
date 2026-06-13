@@ -103,7 +103,7 @@ bool IsSlotActive(void)
  * @note Slot 2, type "manual" -> "saves/slot_2/manual/manual.json"
  *       Slot 2, type "autosave" -> "saves/slot_2/autosave/"
  */
-std::string GetSlotPath(int slot, const std::string& type)
+std::string GetSlotPath(int slot, const std::string &type)
 {
     char buf[128];
     if (type == "manual")
@@ -135,8 +135,8 @@ std::string GetSlotPath(int slot, const std::string& type)
  */
 void EnsureSlotDirectory(int slot)
 {
-    const char* subdirs[] = {"manual", "autosave"};
-    for (const char* subdir : subdirs)
+    const char *subdirs[] = {"manual", "autosave"};
+    for (const char *subdir : subdirs)
     {
         char buf[128];
         snprintf(buf, sizeof(buf), "saves/slot_%d/%s", slot, subdir);
@@ -152,7 +152,7 @@ void EnsureSlotDirectory(int slot)
 /**
  * WriteSaveFile - Serialize all global saved state to a JSON file using atomic write.
  */
-bool WriteSaveFile(const std::string& path)
+bool WriteSaveFile(const std::string &path)
 {
     TraceLog(LOG_INFO, "Writing save to: %s", path.c_str());
     json root;
@@ -165,11 +165,11 @@ bool WriteSaveFile(const std::string& path)
     root["timestamp"] = std::string(buf);
 
     // Multi-slot metadata
-    root["slotIndex"] = (g_ActiveSaveSlot >= 0) ? g_ActiveSaveSlot : -1;  ///< -1 = unassigned, 0-4 = manual slot
-    root["saveType"] = "manual";       ///< "manual" or "autosave"
-    root["playTime"] = 0.0f;           ///< Placeholder: gameplay timer deferred
+    root["slotIndex"] = (g_ActiveSaveSlot >= 0) ? g_ActiveSaveSlot : -1; ///< -1 = unassigned, 0-4 = manual slot
+    root["saveType"] = "manual";                                         ///< "manual" or "autosave"
+    root["playTime"] = 0.0f;                                             ///< Placeholder: gameplay timer deferred
     root["mapDisplayName"] = savedPlayerState.mapDisplayName;
-    root["worldgenSlot"] = g_SeedManager.IsRunActive() ? g_SeedManager.GetCurrentSlot() : -1;  ///< -1 = unassigned, maps to worldseed/save_N/
+    root["worldgenSlot"] = g_SeedManager.IsRunActive() ? g_SeedManager.GetCurrentSlot() : -1; ///< -1 = unassigned, maps to worldseed/save_N/
 
     // Player section
     json playerJson;
@@ -216,7 +216,7 @@ bool WriteSaveFile(const std::string& path)
 
     // Enemies section
     json enemiesJson = json::array();
-    for (const auto& enemy : savedEnemyStates)
+    for (const auto &enemy : savedEnemyStates)
     {
         json e;
         e["position"] = {enemy.position.x, enemy.position.y};
@@ -239,7 +239,7 @@ bool WriteSaveFile(const std::string& path)
 
     // Items section
     json itemsJson = json::array();
-    for (const auto& item : savedItemStates)
+    for (const auto &item : savedItemStates)
     {
         json it;
         it["position"] = {item.position.x, item.position.y};
@@ -258,17 +258,17 @@ bool WriteSaveFile(const std::string& path)
     mapJson["cameraZoom"] = savedMapState.cameraZoom;
 
     json deadEntitiesJson = json::array();
-    for (const auto& name : savedMapState.deadEntities)
+    for (const auto &name : savedMapState.deadEntities)
         deadEntitiesJson.push_back(name);
     mapJson["deadEntities"] = deadEntitiesJson;
 
     json chestsOpenedJson = json::array();
-    for (const auto& pos : savedMapState.chestsOpened)
+    for (const auto &pos : savedMapState.chestsOpened)
         chestsOpenedJson.push_back(pos);
     mapJson["chestsOpened"] = chestsOpenedJson;
 
     json mapHistoryJson = json::array();
-    for (const auto& entry : savedMapState.mapHistory)
+    for (const auto &entry : savedMapState.mapHistory)
     {
         json h;
         h["mapPath"] = entry.mapPath;
@@ -298,60 +298,9 @@ bool WriteSaveFile(const std::string& path)
 }
 
 /**
- * WriteAutosave - Simpan state game ke direktori autosave per-slot.
- * Membuat nama file dengan timestamp (autosave_DD-MM-YYYY-HH-MM-SS.json)
- * agar autosave tidak saling menimpa. Maksimal 5 file autosave per slot --
- * jika lebih, file terlama akan dihapus.
- * Path tujuan: saves/slot_N/autosave/autosave_DD-MM-YYYY-HH-MM-SS.json
- */
-bool WriteAutosave(const std::string&)
-{
-    if (g_ActiveSaveSlot < 0) return false;
-
-    EnsureSlotDirectory(g_ActiveSaveSlot);
-
-    std::time_t t = std::time(nullptr);
-    char buf[64];
-    std::strftime(buf, sizeof(buf), "autosave_%d-%m-%Y-%H-%M-%S.json", std::localtime(&t));
-    std::string autosaveName(buf);
-    std::string dir = GetSlotPath(g_ActiveSaveSlot, "autosave");
-    TraceLog(LOG_INFO, "Autosaving to %s/%s", dir.c_str(), autosaveName.c_str());
-    SaveGameState(gState);
-
-    bool result = WriteSaveFile(dir + "/" + autosaveName);
-
-    // Batasi maksimal 5 file autosave per slot — hapus file terlama jika melebihi
-    constexpr int MAX_AUTOSAVE_SLOTS = 5;
-    std::vector<std::filesystem::path> autosaveFiles;
-    if (std::filesystem::exists(dir))
-    {
-        for (const auto& entry : std::filesystem::directory_iterator(dir))
-        {
-            if (entry.path().filename().string().find("autosave_") == 0 && entry.path().extension() == ".json")
-                autosaveFiles.push_back(entry.path());
-        }
-    }
-    if (autosaveFiles.size() > MAX_AUTOSAVE_SLOTS)
-    {
-        std::sort(autosaveFiles.begin(), autosaveFiles.end(),
-            [](const auto& a, const auto& b) {
-                return std::filesystem::last_write_time(a) < std::filesystem::last_write_time(b);
-            });
-        // Hapus file terlama hingga hanya MAX_AUTOSAVE_SLOTS tersisa
-        for (size_t i = 0; i < autosaveFiles.size() - MAX_AUTOSAVE_SLOTS; i++)
-        {
-            std::filesystem::remove(autosaveFiles[i]);
-            TraceLog(LOG_INFO, "Pruned old autosave: %s", autosaveFiles[i].filename().string().c_str());
-        }
-    }
-
-    return result;
-}
-
-/**
  * ReadSaveFile - Read JSON save file and deserialize into global saved state.
  */
-bool ReadSaveFile(const std::string& path)
+bool ReadSaveFile(const std::string &path)
 {
     TraceLog(LOG_INFO, "Reading save from: %s", path.c_str());
     if (!std::filesystem::exists(path))
@@ -386,7 +335,7 @@ bool ReadSaveFile(const std::string& path)
         }
 
         // Read player section
-        const auto& player = root.at("player");
+        const auto &player = root.at("player");
         savedPlayerState.position.x = player.at("position")[0].get<float>();
         savedPlayerState.position.y = player.at("position")[1].get<float>();
         TraceLog(LOG_INFO, "LOAD: read position = (%.2f, %.2f) from %s", savedPlayerState.position.x, savedPlayerState.position.y, path.c_str());
@@ -397,8 +346,8 @@ bool ReadSaveFile(const std::string& path)
 
         if (player.contains("hotbar"))
         {
-            const auto& hotbar = player.at("hotbar");
-            for (int i = 0; i < 4 && i < (int)hotbar.size(); i++)
+            const auto &hotbar = player.at("hotbar");
+            for (int i = 0; i < HOTBAR_SLOTS && i < (int)hotbar.size(); i++)
             {
                 savedPlayerState.hotbar[i].definitionId = hotbar[i].value("definitionId", -1);
                 savedPlayerState.hotbar[i].amount = hotbar[i].value("amount", 0);
@@ -407,8 +356,8 @@ bool ReadSaveFile(const std::string& path)
 
         if (player.contains("bag"))
         {
-            const auto& bag = player.at("bag");
-            for (int i = 0; i < 12 && i < (int)bag.size(); i++)
+            const auto &bag = player.at("bag");
+            for (int i = 0; i < BAG_SLOTS && i < (int)bag.size(); i++)
             {
                 savedPlayerState.bag[i].definitionId = bag[i].value("definitionId", -1);
                 savedPlayerState.bag[i].amount = bag[i].value("amount", 0);
@@ -417,7 +366,7 @@ bool ReadSaveFile(const std::string& path)
 
         if (player.contains("animState"))
         {
-            const auto& anim = player.at("animState");
+            const auto &anim = player.at("animState");
             savedPlayerState.animState.state = anim.value("state", 0);
             savedPlayerState.animState.direction = anim.value("direction", 0);
             savedPlayerState.animState.isDead = anim.value("isDead", false);
@@ -437,7 +386,7 @@ bool ReadSaveFile(const std::string& path)
         savedEnemyStates.clear();
         if (root.contains("enemies"))
         {
-            for (const auto& e : root.at("enemies"))
+            for (const auto &e : root.at("enemies"))
             {
                 SavedEnemyState enemy;
                 enemy.position.x = e.at("position")[0].get<float>();
@@ -463,7 +412,7 @@ bool ReadSaveFile(const std::string& path)
         savedItemStates.clear();
         if (root.contains("items"))
         {
-            for (const auto& it : root.at("items"))
+            for (const auto &it : root.at("items"))
             {
                 SavedItemState item;
                 item.position.x = it.at("position")[0].get<float>();
@@ -477,7 +426,7 @@ bool ReadSaveFile(const std::string& path)
         }
 
         // Read map section
-        const auto& map = root.at("map");
+        const auto &map = root.at("map");
         savedMapState.mapPath = map.value("mapPath", "");
         savedMapState.cameraTarget.x = map.at("cameraTarget")[0].get<float>();
         savedMapState.cameraTarget.y = map.at("cameraTarget")[1].get<float>();
@@ -486,21 +435,21 @@ bool ReadSaveFile(const std::string& path)
         savedMapState.deadEntities.clear();
         if (map.contains("deadEntities"))
         {
-            for (const auto& d : map.at("deadEntities"))
+            for (const auto &d : map.at("deadEntities"))
                 savedMapState.deadEntities.push_back(d.get<std::string>());
         }
 
         savedMapState.chestsOpened.clear();
         if (map.contains("chestsOpened"))
         {
-            for (const auto& c : map.at("chestsOpened"))
+            for (const auto &c : map.at("chestsOpened"))
                 savedMapState.chestsOpened.push_back(c.get<std::string>());
         }
 
         savedMapState.mapHistory.clear();
         if (map.contains("mapHistory"))
         {
-            for (const auto& h : map.at("mapHistory"))
+            for (const auto &h : map.at("mapHistory"))
             {
                 MapSystem::MapHistoryEntry entry;
                 entry.mapPath = h.value("mapPath", "");
@@ -531,17 +480,17 @@ bool ReadSaveFile(const std::string& path)
         TraceLog(LOG_INFO, "Save file %s loaded successfully (%d enemies, %d items)", path.c_str(), (int)savedEnemyStates.size(), (int)savedItemStates.size());
         return true;
     }
-    catch (const json::parse_error&)
+    catch (const json::parse_error &)
     {
         TraceLog(LOG_WARNING, "Save file corrupted - parse error: %s", path.c_str());
         return false;
     }
-    catch (const json::out_of_range&)
+    catch (const json::out_of_range &)
     {
         TraceLog(LOG_WARNING, "Save file corrupted - missing field: %s", path.c_str());
         return false;
     }
-    catch (const json::type_error&)
+    catch (const json::type_error &)
     {
         TraceLog(LOG_WARNING, "Save file corrupted - type error: %s", path.c_str());
         return false;
@@ -551,14 +500,12 @@ bool ReadSaveFile(const std::string& path)
 /**
  * DeleteSaveFile - Remove save file if it exists.
  */
-void DeleteSaveFile(const std::string& path)
+void DeleteSaveFile(const std::string &path)
 {
     TraceLog(LOG_INFO, "Deleting save file: %s", path.c_str());
     if (std::filesystem::exists(path))
         std::filesystem::remove(path);
 }
-
-
 
 /*==============================================================================
  * State Save/Restore Functions
@@ -616,8 +563,7 @@ void SaveGameState(GameState *state)
         {"duration", PlayerInstance.attack.duration},
         {"raycastAngle", PlayerInstance.attack.raycastAngle},
         {"center", {PlayerInstance.attack.center.x, PlayerInstance.attack.center.y}},
-        {"pressHeld", PlayerInstance.attack.pressHeld}
-    };
+        {"pressHeld", PlayerInstance.attack.pressHeld}};
 
     /*==============================================================================
      * Save Enemy States
@@ -626,7 +572,6 @@ void SaveGameState(GameState *state)
     auto &enemyReg = Entities::GetEnemyRegistry();
     for (const auto &enemy : enemyReg)
     {
-        if (!enemy->IsActive) continue;
         SavedEnemyState saved;
         saved.position = enemy->Position;
         saved.enemyName = enemy->Name;
@@ -710,22 +655,29 @@ void SaveGameState(GameState *state)
 void RestoreGameState(GameState *state)
 {
     TraceLog(LOG_INFO, "RestoreGameState: slot=%d hasSaved=%d enemies=%zu items=%zu mapPath='%s'",
-        g_ActiveSaveSlot, hasSavedState, savedEnemyStates.size(), savedItemStates.size(), savedMapState.mapPath.c_str());
+             g_ActiveSaveSlot, hasSavedState, savedEnemyStates.size(), savedItemStates.size(), savedMapState.mapPath.c_str());
 
     // === NEW PATH: SaveManager (preferred) ===
-    if (g_ActiveSaveSlot >= 0)
+    if (g_ActiveSaveSlot >= 0 && SaveManager::HasManual(g_ActiveSaveSlot))
     {
         GameSnapshot snap = SaveManager::LoadManual(g_ActiveSaveSlot);
         TraceLog(LOG_INFO, "RestoreGameState: snapshot version=%d (expected=%d) enemies=%zu items=%zu playerPos=(%.0f,%.0f) mapPath='%s' worldgenSlot=%d",
-            snap.version, GameSnapshot::SNAPSHOT_VERSION,
-            snap.enemies.size(), snap.items.size(),
-            snap.playerPosition.x, snap.playerPosition.y,
-            snap.mapPath.c_str(), snap.worldgenSlot);
+                 snap.version, GameSnapshot::SNAPSHOT_VERSION,
+                 snap.enemies.size(), snap.items.size(),
+                 snap.playerPosition.x, snap.playerPosition.y,
+                 snap.mapPath.c_str(), snap.worldgenSlot);
         if (snap.version == GameSnapshot::SNAPSHOT_VERSION)
         {
             SaveManager::ApplyPostSpawn(snap);
+            TraceLog(LOG_INFO, "RestoreGameState: restored via SaveManager (slot %d)", g_ActiveSaveSlot);
             return;
         }
+        TraceLog(LOG_WARNING, "RestoreGameState: snapshot version mismatch (%d != %d), falling back to old format",
+                 snap.version, GameSnapshot::SNAPSHOT_VERSION);
+    }
+    else if (g_ActiveSaveSlot >= 0)
+    {
+        TraceLog(LOG_INFO, "RestoreGameState: no new-format snapshot for slot %d, trying old-format fallback", g_ActiveSaveSlot);
     }
 
     // === OLD PATH FALLBACK: restore dari global state ===
@@ -743,8 +695,8 @@ void RestoreGameState(GameState *state)
         }
         else
         {
-            PlayerInstance.MaxHealth = 100.0f;
-            PlayerInstance.MaxMana = 100.0f;
+            PlayerInstance.MaxHealth = DEFAULT_MAX_HEALTH;
+            PlayerInstance.MaxMana = DEFAULT_MAX_MANA;
         }
 
         PlayerInstance.SetHealth(savedPlayerState.health);
@@ -752,13 +704,13 @@ void RestoreGameState(GameState *state)
         PlayerInstance.SetPosition(savedPlayerState.position);
         TraceLog(LOG_INFO, "RESTORE: SetPosition = (%.2f, %.2f)", savedPlayerState.position.x, savedPlayerState.position.y);
 
-        for (int i = 0; i < 4; i++)
+        for (int i = 0; i < HOTBAR_SLOTS; i++)
         {
             PlayerInstance.SetHotbarItem(i, savedPlayerState.hotbar[i]);
         }
 
         // Restore bag inventory
-        for (int i = 0; i < 12; i++)
+        for (int i = 0; i < BAG_SLOTS; i++)
         {
             PlayerInstance.GetBagItem(i) = savedPlayerState.bag[i];
         }
@@ -797,19 +749,33 @@ void RestoreGameState(GameState *state)
     if (hasSavedState && !savedEnemyStates.empty())
     {
         auto &enemyReg = Entities::GetEnemyRegistry();
-        std::unordered_set<Enemy*> matchedEnemies;
+        std::unordered_set<Enemy *> matchedEnemies;
         for (auto &saved : savedEnemyStates)
         {
             if (!saved.isAlive)
             {
-                Entities::RegisterDeath(GetCurrentMapPath(), saved.mapObjectID);
+                // Deactivate matched enemy directly (same pattern as ApplyPostSpawn);
+                // RegisterDeath no longer prevents SpawnEnemiesFromMap from spawning
+                for (auto &enemy : enemyReg)
+                {
+                    if (enemy == nullptr || matchedEnemies.count(enemy))
+                        continue;
+                    if (enemy->MapObjectID == saved.mapObjectID && enemy->Name == saved.enemyName)
+                    {
+                        enemy->IsActive = false;
+                        enemy->Health = 0.0f;
+                        matchedEnemies.insert(enemy);
+                        break;
+                    }
+                }
                 continue;
             }
             // First pass: match by UUID
             bool matched = false;
             for (auto &enemy : enemyReg)
             {
-                if (enemy == nullptr || matchedEnemies.count(enemy)) continue;
+                if (enemy == nullptr || matchedEnemies.count(enemy))
+                    continue;
                 if (!saved.uuid.empty() && enemy->GetUUID() == saved.uuid)
                 {
                     enemy->Position = saved.position;
@@ -838,7 +804,8 @@ void RestoreGameState(GameState *state)
             {
                 for (auto &enemy : enemyReg)
                 {
-                    if (enemy == nullptr || matchedEnemies.count(enemy)) continue;
+                    if (enemy == nullptr || matchedEnemies.count(enemy))
+                        continue;
                     if (enemy->MapObjectID == saved.mapObjectID && enemy->Name == saved.enemyName)
                     {
                         enemy->Position = saved.position;
@@ -879,6 +846,7 @@ void RestoreGameState(GameState *state)
                 if (item.uuid == saved.uuid && !saved.uuid.empty())
                 {
                     item.isPickedUp = saved.isPickedUp;
+                    item.isAdded = saved.isPickedUp;
                     item.position = saved.position;
                     item.definitionId = saved.definitionId;
                     item.amount = saved.amount;
@@ -895,6 +863,7 @@ void RestoreGameState(GameState *state)
                 if (item.uuid.empty() || savedItemStates[itemIndex].uuid.empty() || item.uuid != savedItemStates[itemIndex].uuid)
                 {
                     item.isPickedUp = savedItemStates[itemIndex].isPickedUp;
+                    item.isAdded = savedItemStates[itemIndex].isPickedUp;
                     item.position = savedItemStates[itemIndex].position;
                     item.definitionId = savedItemStates[itemIndex].definitionId;
                     item.amount = savedItemStates[itemIndex].amount;
@@ -927,9 +896,11 @@ void RestoreGameState(GameState *state)
                 savedMapState.chestsOpened.end()));
         }
 
-        // Restore bomb/crate consumed positions
-        bombManager.SetConsumedPositions(savedMapState.bombConsumedPositions.get<std::unordered_set<std::string>>());
-        crateManager.SetConsumedPositions(savedMapState.crateConsumedPositions.get<std::unordered_set<std::string>>());
+        // Restore bomb/crate consumed positions (guarded against null/non-array JSON)
+        if (!savedMapState.bombConsumedPositions.is_null() && savedMapState.bombConsumedPositions.is_array())
+            bombManager.SetConsumedPositions(savedMapState.bombConsumedPositions.get<std::unordered_set<std::string>>());
+        if (!savedMapState.crateConsumedPositions.is_null() && savedMapState.crateConsumedPositions.is_array())
+            crateManager.SetConsumedPositions(savedMapState.crateConsumedPositions.get<std::unordered_set<std::string>>());
 
         // Restore map history
         if (!savedMapState.mapHistory.empty())

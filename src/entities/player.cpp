@@ -11,6 +11,7 @@
  */
 
 #include "player.h"
+#include "config/game_constants.h"
 #include "../../include/systems/audioManager.h"
 #include "screen.h"
 #include "movement.h"
@@ -49,13 +50,32 @@ void Player::Init(GameState *state, const char *spawnObjectName)
         ManaRegenTimer = 0.0f;
 
         // Inisialisasi perlengkapan hotbar default
-        Hotbar[0] = {1, 1}; // Iron Sword
-        Hotbar[1] = {4, 1}; // bow 
-        Hotbar[2] = {2, 8}; // Health Potion
-        Hotbar[3] = {3, 8}; // Mana Bread
+        Hotbar[0] = {0, 1};  // Iron Sword
+        Hotbar[1] = {4, 1};  // Bow
+        Hotbar[2] = {2, 8};  // Small Health Potion
+        Hotbar[3] = {3, 8};  // Small Mana Potion
 
         for (int i = 0; i < PlayerInstance.MaxBag; i++)
+        {
             Bag[i] = {EMPTY_ITEM_ID, 0};
+        }
+
+        // Reset buff timers & multipliers
+        BuffDamageTimer = 0.0f;
+        BuffDamageTimerMax = 0.0f;
+        BuffSpeedTimer = 0.0f;
+        BuffSpeedTimerMax = 0.0f;
+        InvincibilityTimer = 0.0f;
+        InvincibilityTimerMax = 0.0f;
+        BuffDamageMultiplier = 1.0f;
+        BuffSpeedMultiplier = 1.0f;
+
+        // Reset potion cooldowns
+        for (int i = 0; i < POTION_CATEGORY_COUNT; i++)
+        {
+            PotionCategoryCooldowns[i] = 0.0f;
+            PotionCategoryCooldownMax[i] = 1.0f;
+        }
 
         isInitialized = true;
         TraceLog(LOG_INFO, "Player: Resource global dan statistik telah diinisialisasi");
@@ -105,20 +125,37 @@ void Player::Init(GameState *state, const char *spawnObjectName)
  */
 void Player::ResetForNewGame()
 {
-    isInitialized = false;
     Health = MaxHealth = 100.0f;
     Mana = MaxMana = 100.0f;
     ManaRegenTimer = 0.0f;
-    Hotbar[0] = {0, 1};
-    Hotbar[1] = {1, 1};
-    Hotbar[2] = {2, 8};
-    Hotbar[3] = {3, 8};
+    Hotbar[0] = {0, 1};  // Iron Sword
+    Hotbar[1] = {4, 1};  // Bow
+    Hotbar[2] = {2, 8};  // Small Health Potion
+    Hotbar[3] = {3, 8};  // Small Mana Potion
     for (int i = 0; i < MaxBag; i++)
         Bag[i] = {-1, 0};
     Anim.isDead = false;
     Anim.isAttacking = false;
     HitFlashTimer = 0.0f;
     KnockbackVelocity = {0, 0};
+
+    // Reset buff timers
+    BuffDamageTimer = 0.0f;
+    BuffDamageTimerMax = 0.0f;
+    BuffSpeedTimer = 0.0f;
+    BuffSpeedTimerMax = 0.0f;
+    InvincibilityTimer = 0.0f;
+    InvincibilityTimerMax = 0.0f;
+    BuffDamageMultiplier = 1.0f;
+    BuffSpeedMultiplier = 1.0f;
+
+    // Reset potion cooldowns
+    for (int i = 0; i < POTION_CATEGORY_COUNT; i++)
+    {
+        PotionCategoryCooldowns[i] = 0.0f;
+        PotionCategoryCooldownMax[i] = 1.0f;
+    }
+
     TraceLog(LOG_INFO, "PLAYER: Reset for new game");
 }
 
@@ -449,7 +486,39 @@ void Player::HandleAction(void)
             playerCenter.x + dropDir.x * INTERACT_RANGE,
             playerCenter.y + dropDir.y * INTERACT_RANGE};
 
+        {
+            const ItemDefinition &def = itemDefs.GetById(slot.definitionId);
+            float halfW = def.hitboxSize.x / 2.0f;
+            float halfH = def.hitboxSize.y / 2.0f;
+            Vector2 topLeft = {dropPos.x - halfW, dropPos.y - halfH};
+
+            if (!IsPositionSafe(topLeft, def.hitboxSize.x, def.hitboxSize.y, 0, 0))
+            {
+                constexpr int TILE = 32;
+                const Vector2 offsets[8] = {
+                    {0, -TILE}, {TILE, -TILE}, {TILE, 0}, {TILE, TILE}, {0, TILE}, {-TILE, TILE}, {-TILE, 0}, {-TILE, -TILE}};
+                bool found = false;
+                for (const auto &off : offsets)
+                {
+                    Vector2 cand = {dropPos.x + off.x, dropPos.y + off.y};
+                    Vector2 candTL = {cand.x - halfW, cand.y - halfH};
+                    if (IsPositionSafe(candTL, def.hitboxSize.x, def.hitboxSize.y, 0, 0))
+                    {
+                        dropPos = cand;
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found)
+                {
+                    TraceLog(LOG_INFO, "Cannot drop item here — no safe position");
+                    break;
+                }
+            }
+        }
+
         ItemSpawn dropped = itemData.CreateItem(dropPos, slot.definitionId);
+        dropped.dropImmunity = DROP_IMMUNITY_DURATION; // Minecraft-style: 5 detik immunity setelah drop
         if (dropAll)
         {
             dropped.amount = slot.amount;

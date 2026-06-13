@@ -23,9 +23,11 @@
 #include "../../include/rendering/fonts.h"
 #include "../../include/systems/input.h"
 #include "../../include/systems/keybindManager.h"
+#include "../../include/ui/videoScreen.h"
 #include "../../include/ui/videoTab.h"
 #include "../../include/ui/audioTab.h"
 #include "../../include/systems/audioManager.h"
+#include "../../include/rendering/hud.h"
 #include "../../include/map/propsbehavior.h"
 #include "raylib.h"
 #include "raymath.h"
@@ -38,6 +40,7 @@
 PauseMenu pauseMenu;
 OptionsScreen optionsScreen;
 SaveLoadScreen saveLoadScreen;
+VideoScreen videoScreen;
 
 /**
  * @brief Custom TraceLog callback to prepend HH:mm:ss.fff timestamps
@@ -56,13 +59,27 @@ static void TimestampLog(int msgType, const char *text, va_list args)
     const char *level = "";
     switch (msgType)
     {
-        case LOG_TRACE: level = "TRACE"; break;
-        case LOG_DEBUG: level = "DEBUG"; break;
-        case LOG_INFO:  level = "INFO"; break;
-        case LOG_WARNING: level = "WARNING"; break;
-        case LOG_ERROR: level = "ERROR"; break;
-        case LOG_FATAL: level = "FATAL"; break;
-        default: level = "UNKNOWN"; break;
+    case LOG_TRACE:
+        level = "TRACE";
+        break;
+    case LOG_DEBUG:
+        level = "DEBUG";
+        break;
+    case LOG_INFO:
+        level = "INFO";
+        break;
+    case LOG_WARNING:
+        level = "WARNING";
+        break;
+    case LOG_ERROR:
+        level = "ERROR";
+        break;
+    case LOG_FATAL:
+        level = "FATAL";
+        break;
+    default:
+        level = "UNKNOWN";
+        break;
     }
 
     printf("%02d:%02d:%02d.%03d %s: %s\n", hours, minutes, seconds, millis, level, buf);
@@ -83,6 +100,9 @@ int main()
     state.previousScreen = MAIN_MENU; // Default return to main menu
     gState = &state;
 
+    // Override: mulai dari VIDEO (intro) sebelum MAIN_MENU
+    state.currentScreen = VIDEO;
+
     // Register custom TraceLog callback for timestamps
     SetTraceLogCallback(TimestampLog);
 
@@ -94,20 +114,21 @@ int main()
     state.assetsLoaded = false;
     state.enteredLoading = false;
 
-    // Step 5: init options screen (hidden initially)
-    optionsScreen.Show();
+    // Muat pengaturan video SEBELUM init options screen
+    LoadVideoSettings(&state);
+
+    // Step 5: init options screen (hidden initially) — sync dari state yang udah di-load
+    optionsScreen.Show(&state);
     optionsScreen.Hide();
 
     // Step 6: init main menu (needed for menu buttons to render)
     InitMainMenu(&state);
 
-    InitFonts();
-
     // Migrasi satu kali: saves/settings.json -> saves/settings/keybindsTab.json
     {
         namespace fs = std::filesystem;
         fs::create_directories("saves/settings");
-        const char* target = "saves/settings/keybindsTab.json";
+        const char *target = "saves/settings/keybindsTab.json";
         if (fs::exists("saves/settings.json"))
         {
             fs::rename("saves/settings.json", target);
@@ -124,15 +145,12 @@ int main()
     if (!keybindManager.LoadFromFile("saves/settings/keybindsTab.json"))
         keybindManager.SaveToFile("saves/settings/keybindsTab.json");
 
-    // Muat pengaturan video
-    LoadVideoSettings(&state);
-
-    // Muat pengaturan audio
-    LoadAudioSettings();
-
     // Inisialisasi AudioManager dan muat aset audio
     AudioManager::Init();
     AudioManager::LoadAudioAssets();
+
+    // Muat pengaturan audio
+    LoadAudioSettings();
 
     float accumulator = 0.0f;
 
@@ -141,13 +159,49 @@ int main()
     {
         // Update audio system setiap frame (UpdateMusicStream + auto-switch track)
         AudioManager::Update(state.currentScreen);
+        // Boss music ambient — deteksi proximity, play/stop boss track
+        UpdateBossMusic();
 
+        // ===== State: VIDEO (intro saat startup) =====
+        if (state.currentScreen == VIDEO)
+        {
+            // Muat dan putar video hanya sekali saat pertama masuk
+            static bool videoStarted = false;
+            if (!videoStarted)
+            {
+                videoScreen.LoadAndPlay();
+                videoStarted = true;
+            }
+
+            // Delta time, cap maks 1/20 detik biar ga loncat jauh
+            float deltaTime = GetFrameTime();
+            if (deltaTime > 0.05f)
+                deltaTime = 0.05f;
+
+            // Update video; jika selesai/skip -> pindah ke MAIN_MENU
+            if (videoScreen.Update(deltaTime))
+            {
+                videoScreen.Unload();
+                state.currentScreen = MAIN_MENU;
+                videoStarted = false;
+            }
+
+            if (WindowShouldClose())
+                break;
+
+            // Render video fullscreen (tanpa virtual screen biar ga distretch)
+            BeginDrawing();
+            ClearBackground(BLACK);
+            videoScreen.Draw();
+            EndDrawing();
+        }
         // ===== State: MAIN_MENU =====
-        if (state.currentScreen == MAIN_MENU)
+        else if (state.currentScreen == MAIN_MENU)
         {
             UpdateGame(&state);
             UpdateMainMenu(&state);
-            if (WindowShouldClose()) break;
+            if (WindowShouldClose())
+                break;
             RenderMainMenuToVirtualScreen(&state);
             DrawRenderWindows(&state);
         }
@@ -162,7 +216,8 @@ int main()
                 InitLoadingScreen(&state);
             }
             UpdateLoadingScreen(&state);
-            if (WindowShouldClose()) break;
+            if (WindowShouldClose())
+                break;
             RenderLoadingScreen(&state);
             DrawRenderWindows(&state);
         }
@@ -172,12 +227,13 @@ int main()
             if (!optionsScreen.IsActive())
             {
                 optionsScreen.SetReturnScreen(state.previousScreen);
-                optionsScreen.Show();
+                optionsScreen.Show(&state);
             }
             UpdateGame(&state);
             bool mouseClicked = IsMouseButtonPressed(MOUSE_LEFT_BUTTON);
             optionsScreen.Update(&state, GetVirtualMousePosition(&state), mouseClicked);
-            if (WindowShouldClose()) break;
+            if (WindowShouldClose())
+                break;
             BeginTextureMode(state.Dungeon);
             DrawMenuBackground();
             optionsScreen.Draw(GetVirtualMousePosition(&state));
@@ -228,7 +284,7 @@ int main()
                 autosaveTimer += frameTime;
                 if (autosaveTimer >= 60.0f)
                 {
-                    WriteAutosave("periodic.json");
+                    SaveManager::SaveAutosave(g_ActiveSaveSlot);
                     autosaveTimer = 0.0f;
                 }
             }
@@ -242,7 +298,9 @@ int main()
                 {
                     UpdateLogicAll();
                     if (PlayerInstance.Anim.isDead)
+                    {
                         state.currentScreen = GAME_OVER;
+                    }
                 }
                 accumulator -= Time::DELTA_TIME;
             }
@@ -264,7 +322,8 @@ int main()
         else if (state.currentScreen == GAME_OVER)
         {
             UpdateGameOverScreen(&state);
-            if (WindowShouldClose()) break;
+            if (WindowShouldClose())
+                break;
             RenderGameOverScreen(&state);
             DrawRenderWindows(&state);
         }
@@ -279,7 +338,8 @@ int main()
             UpdateGame(&state);
             bool mouseClicked = IsMouseButtonPressed(MOUSE_LEFT_BUTTON);
             saveLoadScreen.Update(&state, GetVirtualMousePosition(&state), mouseClicked);
-            if (WindowShouldClose()) break;
+            if (WindowShouldClose())
+                break;
             BeginTextureMode(state.Dungeon);
             DrawMenuBackground();
             saveLoadScreen.Draw(GetVirtualMousePosition(&state));

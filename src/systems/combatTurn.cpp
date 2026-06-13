@@ -13,8 +13,8 @@
 #include "fonts.h"
 #include <algorithm>
 
-extern const int GameScreenWidth;
-extern const int GameScreenHeight;
+extern int GScreenWidth;
+extern int GScreenHeight;
 extern GameState *gState;
 
 static struct
@@ -556,7 +556,7 @@ static void DrawHealthBar(float x, float y, float w, float h, float ratio, Color
 static void DrawTextCentered(const char *text, int y, int fontSize, Color color)
 {
     int textW = MeasureText(text, fontSize);
-    DrawDefaultText(text, (GameScreenWidth - textW) / 2, y, fontSize, color);
+    DrawDefaultText(text, (GScreenWidth - textW) / 2, y, fontSize, color);
 }
 
 static void DrawActionButton(const char *key, const char *label, int x, int y, int w, int h, bool selected, bool highlight)
@@ -581,7 +581,7 @@ void TurnCombat::Draw()
         return;
 
     int topBorder = 20;
-    DrawRectangleRoundedLinesEx((Rectangle){10, (float)topBorder, (float)GameScreenWidth - 20, (float)GameScreenHeight - (float)topBorder * 2}, 0.1f, 8, OUTLINE_THICK, ColorAlpha(GOLD, 0.5f));
+    DrawRectangleRoundedLinesEx((Rectangle){10, (float)topBorder, (float)GScreenWidth - 20, (float)GScreenHeight - (float)topBorder * 2}, 0.1f, 8, OUTLINE_THICK, ColorAlpha(GOLD, 0.5f));
 
     DrawTextCentered("TURN-BASED COMBAT", 30, 28, GOLD);
 
@@ -612,7 +612,7 @@ void TurnCombat::Draw()
     DrawDefaultText(manaText, playerX + 15, panelY + 90, 16, GOLD);
 
     // Boss panel (right)
-    int bossX = GameScreenWidth - 60 - panelW;
+    int bossX = GScreenWidth - 60 - panelW;
     DrawRectangleRounded((Rectangle){(float)bossX, (float)panelY, (float)panelW, (float)panelH}, 0.2f, 8, ColorAlpha(BLACK, 0.5f));
     DrawRectangleRoundedLinesEx((Rectangle){(float)bossX, (float)panelY, (float)panelW, (float)panelH}, 0.2f, 8, OUTLINE_THICK, ColorAlpha(RED, 0.5f));
 
@@ -652,11 +652,11 @@ void TurnCombat::Draw()
     // Action buttons (bottom)
     if (state.phase == TurnPhase::PLAYER_CHOICE)
     {
-        int btnY = GameScreenHeight - 80;
+        int btnY = GScreenHeight - 80;
         int btnW = 180;
         int btnH = 50;
         int totalW = btnW * 3 + 20 * 2;
-        int startX = (GameScreenWidth - totalW) / 2;
+        int startX = (GScreenWidth - totalW) / 2;
 
         DrawActionButton("1", "Attack", startX, btnY, btnW, btnH, state.selectedAction == 0, false);
         DrawActionButton("2", "Items", startX + btnW + 20, btnY, btnW, btnH, state.selectedAction == 1, false);
@@ -664,11 +664,11 @@ void TurnCombat::Draw()
     }
     else if (state.phase == TurnPhase::PLAYER_ITEM)
     {
-        int btnY = GameScreenHeight - 80;
+        int btnY = GScreenHeight - 80;
         int btnW = 180;
         int btnH = 50;
         int totalW = btnW * 3 + 20 * 2;
-        int startX = (GameScreenWidth - totalW) / 2;
+        int startX = (GScreenWidth - totalW) / 2;
         const char *potionNames[] = {"Small HP", "Medium HP", "Large HP"};
         int potionDefs[] = {2, 5, 7};
         int selPotion = state.selectedPotionId;
@@ -679,14 +679,14 @@ void TurnCombat::Draw()
     else if (state.phase == TurnPhase::VICTORY)
     {
         // Darken screen
-        DrawRectangle(0, 0, GameScreenWidth, GameScreenHeight, ColorAlpha(BLACK, 0.5f));
+        DrawRectangle(0, 0, GScreenWidth, GScreenHeight, ColorAlpha(BLACK, 0.5f));
 
         // Big MENANG text with yellow outline
         const char *menangText = "MENANG";
         int fontSize = 80;
         int textW = MeasureText(menangText, fontSize);
-        int textX = (GameScreenWidth - textW) / 2;
-        int textY = GameScreenHeight / 2 - fontSize / 2 - 40;
+        int textX = (GScreenWidth - textW) / 2;
+        int textY = GScreenHeight / 2 - fontSize / 2 - 40;
 
         DrawDefaultText(menangText, textX - 3, textY, fontSize, YELLOW);
         DrawDefaultText(menangText, textX + 3, textY, fontSize, YELLOW);
@@ -706,19 +706,19 @@ void TurnCombat::Draw()
             int gap = 8;
             int textW = MeasureText(itemText, 20);
             int groupW = iconSize + gap + textW;
-            int groupX = (GameScreenWidth - groupW) / 2;
+            int groupX = (GScreenWidth - groupW) / 2;
             Rectangle iconDest = {(float)groupX, (float)itemY - 3, (float)iconSize, (float)iconSize};
             Display iconDisplay = {{iconDest.x, iconDest.y}, (int)iconDest.width, {0, 0}, {0, 0}, 0.0f, WHITE};
             DrawFrame(def.spriteKey, iconDisplay);
             DrawDefaultText(itemText, groupX + iconSize + gap, itemY + 4, 20, LIGHTGRAY);
         }
 
-        DrawTextCentered("Tekan ENTER atau klik untuk melanjutkan.", GameScreenHeight - 60, 20, GREEN);
+        DrawTextCentered("Tekan ENTER atau klik untuk melanjutkan.", GScreenHeight - 60, 20, GREEN);
     }
     else if (state.phase == TurnPhase::DEFEAT)
     {
         // Darken screen
-        DrawRectangle(0, 0, GameScreenWidth, GameScreenHeight, ColorAlpha(BLACK, 0.5f));
+        DrawRectangle(0, 0, GScreenWidth, GScreenHeight, ColorAlpha(BLACK, 0.5f));
     }
 
     // Phase indicator
@@ -752,7 +752,7 @@ void TurnCombat::Draw()
     default:
         break;
     }
-    DrawTextCentered(phaseText, GameScreenHeight - 120, 18, LIGHTGRAY);
+    DrawTextCentered(phaseText, GScreenHeight - 120, 18, LIGHTGRAY);
 }
 
 bool TurnCombat::IsActive()

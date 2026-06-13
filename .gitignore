@@ -19,12 +19,10 @@ floorC_tester.json
 *.Personal.*
 
 # AI Agents
-.agents/
 .agent/
 .omo/
 .opencode/
 .sisyphus/
-.agent/
 .cache/
 AGENTS.md
 

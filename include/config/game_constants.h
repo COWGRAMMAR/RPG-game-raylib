@@ -25,4 +25,10 @@ constexpr float DROP_IMMUNITY_DURATION  = 5.0f; /**< Immunity time after item dr
  *==============================================================================*/
 constexpr unsigned int WORLDOGEN_SEED_MAGIC = 0xDEADBEEF; /**< XOR mask for deterministic seed */
 
+/*==============================================================================
+ * Rendering
+ *==============================================================================*/
+constexpr int VIRTUAL_WIDTH  = 1280; /**< Lebar virtual viewport (dipakai untuk camera zoom) */
+constexpr int VIRTUAL_HEIGHT = 720;  /**< Tinggi virtual viewport */
+
 #endif // GAME_CONSTANTS_H

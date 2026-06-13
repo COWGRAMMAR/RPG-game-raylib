@@ -96,6 +96,10 @@ bool LoadVideoSettings(void *stateVoid)
                     static_cast<int>(monitorRes.height));
                 ToggleFullscreenMode();
             }
+            else if (!fs && IsWindowFullscreen())
+            {
+                ToggleFullscreenMode();
+            }
         }
 
         if (root.contains("showFPS"))

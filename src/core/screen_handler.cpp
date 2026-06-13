@@ -179,13 +179,6 @@ GameState InitScreen()
     state.pendingMapPath.clear();
     state.pendingDoorName.clear();
 
-    // Fullscreen aktif default (inline: gState belum diinisialisasi)
-    if (!IsWindowFullscreen())
-    {
-        SetWindowSize(GetMonitorWidth(0), GetMonitorHeight(0));
-        ToggleFullscreen();
-    }
-
     return state;
 }
 

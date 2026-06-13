@@ -160,6 +160,12 @@ int main()
         // Boss music ambient — deteksi proximity, play/stop boss track
         UpdateBossMusic();
 
+        if (IsKeyPressed(keybindManager.GetKeycode(TOGGLE_FULLSCREEN)))
+        {
+            ToggleFullscreenMode();
+        }
+
+        // State: VIDEO (intro saat startup)
         if (state.currentScreen == VIDEO)
         {
             enum class VPhase : uint8_t { COUNTDOWN, INTRODUCTION, DONE };

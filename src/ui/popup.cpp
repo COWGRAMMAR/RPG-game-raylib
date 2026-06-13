@@ -157,7 +157,7 @@ void Popup::CalculateDimensions()
     const int paddingX = 40;
     const int paddingY = 30;
     const int textPadding = 20;
-    const int maxWidth = static_cast<int>(GameScreenWidth * 0.6F);
+    const int maxWidth = static_cast<int>(GScreenWidth * 0.6F);
     const int fontSize = 30;
     const int subMessageSpacing = 10;
 
@@ -182,8 +182,8 @@ void Popup::CalculateDimensions()
 
         height = fontSize + (fontSize * 2) + (paddingY * 3) + textPadding + subExtraHeight;
 
-        position.x = (GameScreenWidth - width) / 2.0F;
-        position.y = (GameScreenHeight - height) / 2.0F;
+        position.x = (GScreenWidth - width) / 2.0F;
+        position.y = (GScreenHeight - height) / 2.0F;
 
         backgroundRect = {position.x, position.y, static_cast<float>(width), static_cast<float>(height)};
 
@@ -203,8 +203,8 @@ void Popup::CalculateDimensions()
 
         height = fontSize + (fontSize * 2) + (paddingY * 3) + textPadding + subExtraHeight;
 
-        position.x = (GameScreenWidth - width) / 2.0F;
-        position.y = (GameScreenHeight - height) / 2.0F;
+        position.x = (GScreenWidth - width) / 2.0F;
+        position.y = (GScreenHeight - height) / 2.0F;
 
         backgroundRect = {position.x, position.y, static_cast<float>(width), static_cast<float>(height)};
 
@@ -239,7 +239,7 @@ void Popup::Draw(Vector2 mousePosition)
         0,
         static_cast<unsigned char>(255 * 0.5F)};
 
-    Rectangle fullScreen = {0, 0, static_cast<float>(GameScreenWidth), static_cast<float>(GameScreenHeight)};
+    Rectangle fullScreen = {0, 0, static_cast<float>(GScreenWidth), static_cast<float>(GScreenHeight)};
     DrawRectangleRec(fullScreen, overlayColor);
 
     // bgTexture di-center di area popup jika ada

@@ -19,8 +19,8 @@
 #include <string>
 #include <cmath>
 
-extern const int GameScreenWidth;
-extern const int GameScreenHeight;
+extern int GScreenWidth;
+extern int GScreenHeight;
 
 // Drag & Drop State
 /** @brief Slot asal drag */
@@ -397,13 +397,13 @@ void DrawInventory()
     const float gridW = 356.0f;
     const float slotSize = 77.0f, gap = 16.0f;
 
-    const int bgX = (GameScreenWidth - (int)bgW) / 2;
-    const int bgY = (GameScreenHeight - (int)bgH) / 2;
+    const int bgX = (GScreenWidth - (int)bgW) / 2;
+    const int bgY = (GScreenHeight - (int)bgH) / 2;
     const float gridX = (float)bgX + (bgW - gridW) / 2.0f;
     const float gridYOffset = 140.0f;
     const float gridY = (float)bgY + gridYOffset;
 
-    DrawRectangle(0, 0, GameScreenWidth, GameScreenHeight, ColorAlpha(BLACK, 0.7f));
+    DrawRectangle(0, 0, GScreenWidth, GScreenHeight, ColorAlpha(BLACK, 0.7f));
     DrawTextureV(invBgTex, {(float)bgX, (float)bgY}, WHITE);
     DrawTextureV(invSlotGridTex, {gridX, gridY}, WHITE);
 
@@ -601,7 +601,7 @@ void DrawInventory()
     // "Press 'I' to Close" di-center pake MeasureTextEx
     {
         Vector2 closeSz = MeasureTextEx(GetOrLoad(FontId::LOADING_TITLE), "Press 'I' to Close", 20, 0);
-        DrawTextHUD("Press 'I' to Close", (int)(GameScreenWidth / 2.0f - closeSz.x / 2.0f), (int)(bgY + bgH + 15), 20, GRAY);
+        DrawTextHUD("Press 'I' to Close", (int)(GScreenWidth / 2.0f - closeSz.x / 2.0f), (int)(bgY + bgH + 15), 20, GRAY);
     }
 
     // keybind hints (Merge, Split, Arrange, Drop) di kanan atas pakai GetOrLoad(FontId::LOADING_TITLE)
@@ -609,7 +609,7 @@ void DrawInventory()
         const char *hints[] = {"[Left-Click Drag] Arrange", "[Ctrl+Click] Merge", "[Right-Click Drag] Split", "[Drop Outside Menu] Drop"};
         int hintCount = sizeof(hints) / sizeof(hints[0]);
         int hintFontSize = 25;
-        float rightX = (float)GameScreenWidth - 20.0f;
+        float rightX = (float)GScreenWidth - 20.0f;
         float hintY = 20.0f;
         float lineGap = 32.0f;
 
@@ -707,8 +707,8 @@ void DrawHotbar()
     const float padding = 10.0f;
     const float screenPadding = 30.0f;
     const float totalWidth = (slotSize * 4) + (padding * 3);
-    const float startX = (float)GameScreenWidth - screenPadding - totalWidth;
-    const float startY = (float)GameScreenHeight - 30.0f - slotSize;
+    const float startX = (float)GScreenWidth - screenPadding - totalWidth;
+    const float startY = (float)GScreenHeight - 30.0f - slotSize;
 
     int activeSlot = (int)InputInstance.GetActiveSlot();
     bool isInventoryOpen = InputInstance.IsInventoryOpen();
@@ -822,7 +822,7 @@ static void DrawBuffIndicators()
     const float gap = 8.0f;
     const float dashBarHeight = 6.0f;
 
-    float dashPosY = (float)GameScreenHeight - padding - dashBarHeight;
+    float dashPosY = (float)GScreenHeight - padding - dashBarHeight;
     float manaPosY = dashPosY - gap - barHeight;
     float healthPosY = manaPosY - gap - barHeight;
 
@@ -930,7 +930,7 @@ void DrawPlayerHUD()
     const float avatarSize = 80.0f;
     const float avatarPadding = 18.0f;
 
-    Vector2 avatarPos = {padding + avatarSize / 2.0f, (float)GameScreenHeight - padding - avatarSize / 2.0f};
+    Vector2 avatarPos = {padding + avatarSize / 2.0f, (float)GScreenHeight - padding - avatarSize / 2.0f};
     float radius = avatarSize / 2.0f;
 
     // DrawCircleV({avatarPos.x + 2, avatarPos.y + 2}, radius + 2, ColorAlpha(BLACK, 0.4f));
@@ -953,7 +953,7 @@ void DrawPlayerHUD()
     float barsX = padding;
     const float dashBarHeight = 6.0f;
 
-    Vector2 dashPos = {barsX, (float)GameScreenHeight - padding - dashBarHeight};
+    Vector2 dashPos = {barsX, (float)GScreenHeight - padding - dashBarHeight};
     Vector2 manaPos = {barsX, dashPos.y - gap - barHeight};
     Vector2 healthPos = {barsX, manaPos.y - gap - barHeight};
 
@@ -996,7 +996,7 @@ void DrawPlayerHUD()
             {ACTION_COUNT, "Scroll", "Switch Item", true},
         };
         int hintFontSize = 22;
-        float rightX = (float)GameScreenWidth - 20.0f;
+        float rightX = (float)GScreenWidth - 20.0f;
         float hintY = 20.0f;
         float lineGap = 28.0f;
 
@@ -1049,13 +1049,13 @@ void DrawSignDialog()
     if (!signManager.IsDialogActive())
         return;
 
-    DrawRectangle(0, 0, GameScreenWidth, GameScreenHeight, ColorAlpha(BLACK, 0.4f));
+    DrawRectangle(0, 0, GScreenWidth, GScreenHeight, ColorAlpha(BLACK, 0.4f));
 
     Rectangle box = {
-        GameScreenWidth * 0.1f,
-        GameScreenHeight * 0.6f,
-        GameScreenWidth * 0.8f,
-        GameScreenHeight * 0.3f};
+        GScreenWidth * 0.1f,
+        GScreenHeight * 0.6f,
+        GScreenWidth * 0.8f,
+        GScreenHeight * 0.3f};
     DrawRectangleRounded(box, 0.15f, 8, ColorAlpha(DARKGRAY, 0.95f));
     DrawRectangleRoundedLines(box, 0.15f, 8, WHITE);
 
@@ -1167,7 +1167,7 @@ void DrawBossHPBar()
 
     const float barWidth = 400.0f;
     const float barHeight = 18.0f;
-    const float centerX = (float)GameScreenWidth / 2.0f;
+    const float centerX = (float)GScreenWidth / 2.0f;
     const float barY = 75.0f;
 
     float maxHealth = boss->MaxHealth;

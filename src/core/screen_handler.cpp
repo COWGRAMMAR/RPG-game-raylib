@@ -6,9 +6,10 @@
  * Semua rendering dan update logic masuk lewat fungsi-fungsi di sini.
  *
  * Arsitektur rendering:
- * - Game dirender ke RenderTexture2D virtual (1280x720)
- * - Texture virtual di-scale ke window asli sambil jaga aspect ratio
- * - Sisi yang tidak terpakai diisi black bar (letterbox)
+ * - Game dirender ke RenderTexture2D seukuran window — dynamic native res
+ * - Texture di-blt 1:1 ke window (crop-to-fill jadi no-op kalo size sama)
+ * - Camera zoom = GScreenWidth / VIRTUAL_WIDTH agar world area sama dengan original
+ * - POINT filter menjaga ketajaman pixel saat scaling
  *
  * Urutan init yang benar:
  * InitScreen() → InitMap() → InitAll() → masuk game loop
@@ -33,15 +34,15 @@
 #include "interaction.h"
 #include "input.h"
 #include <cstdio>
-#include "enemy_ai.h"
+#include <algorithm>
 #include "raylib.h"
 #include "raymath.h"
 #include <string>
 #include <cstring>
-#include <algorithm>
 #include <cctype>
 #include <filesystem>
 #include "../../include/systems/audioManager.h"
+#include "config/game_constants.h"
 #include "hud.h"
 #include "propsbehavior.h"
 #include "combatTurn.h"
@@ -59,8 +60,6 @@ GameState *gState;
 
 extern PauseMenu pauseMenu;
 
-#define MIN(a, b) ((a) < (b) ? (a) : (b))
-
 /*==============================================================================
  * Constants
  *==============================================================================*/
@@ -70,8 +69,8 @@ const float ScaleMultiplierMonitor = 0.7F;
 /** @brief Skala minimum monitor */
 const float ScaleMinMultiplierMonitor = 0.4F;
 
-extern const int GameScreenWidth = 1280;
-extern const int GameScreenHeight = 720;
+int GScreenWidth = 0;
+int GScreenHeight = 0;
 
 /*==============================================================================
  * Initialization
@@ -100,9 +99,9 @@ void InitAll()
     // set camera ke tengah posisi spawn player
     Vector2 spawnPos = PlayerInstance.GetPosition();
     camera.target = {spawnPos.x + (FRAME_SIZE / 2.0F), spawnPos.y + (FRAME_SIZE / 2.0F)};
-    camera.offset = {(float)(GameScreenWidth / 2), (float)(GameScreenHeight / 2)};
+    camera.offset = {(float)(GScreenWidth / 2), (float)(GScreenHeight / 2)};
     camera.rotation = 0;
-    camera.zoom = 1.0F;
+    camera.zoom = (float)GScreenWidth / static_cast<float>(VIRTUAL_WIDTH);
 
     // Daftarkan player ke sistem entitas agar diupdate & dirender otomatis (Index 0)
     Entities::Add(&PlayerInstance);
@@ -134,13 +133,14 @@ static std::string ToLower(std::string str)
 }
 
 /**
- * @brief Inisialisasi window, audio, dan render texture virtual
+ * @brief Inisialisasi window, audio, dan render texture seukuran window
  *
  * Urutan init internal:
  * 1. Buat window resizable ukuran 70% monitor
  * 2. Hitung scale multiplier berdasarkan ukuran monitor
- * 3. Buat RenderTexture2D 1280x720 sebagai layar virtual
- * 4. Set FPS target ke 60
+ * 3. Buat RenderTexture2D seukuran window — dynamic native resolution
+ * 4. Aktifkan fullscreen secara default
+ * 5. Set FPS target ke 60
  *
  * @return GameState yang sudah diinisialisasi, siap dipakai game loop
  */
@@ -149,23 +149,25 @@ GameState InitScreen()
     GameState state = {{0}};
 
     SetConfigFlags(FLAG_WINDOW_RESIZABLE);
-    InitWindow(1280, 720, "Dungeon Game");
-    SetExitKey(0); // ESC handled by keybindManager (pause toggle), not by raylib quit
+    InitWindow(VIRTUAL_WIDTH, VIRTUAL_HEIGHT, "Dungeon Game");
+    SetExitKey(0);  // ESC handled by keybindManager (pause toggle), not by raylib quit
     InitAudioDevice();
 
     state.WindowScreenWidth = (int)(GetMonitorWidth(0) * ScaleMultiplierMonitor);
     state.WindowScreenHeight = (int)(GetMonitorHeight(0) * ScaleMultiplierMonitor);
-    state.ScaleMultiplier = MIN(
-        (float)state.WindowScreenWidth / GameScreenWidth,
-        (float)state.WindowScreenHeight / GameScreenHeight);
 
     SetWindowSize(state.WindowScreenWidth, state.WindowScreenHeight);
     SetWindowMinSize(
         (int)(GetMonitorWidth(0) * ScaleMinMultiplierMonitor),
         (int)(GetMonitorHeight(0) * ScaleMinMultiplierMonitor));
 
-    state.Dungeon = LoadRenderTexture(GameScreenWidth, GameScreenHeight);
-    SetTextureFilter(state.Dungeon.texture, TEXTURE_FILTER_BILINEAR);
+    GScreenWidth = state.WindowScreenWidth;
+    GScreenHeight = state.WindowScreenHeight;
+    state.Dungeon = LoadRenderTexture(GScreenWidth, GScreenHeight);
+    SetTextureFilter(state.Dungeon.texture, TEXTURE_FILTER_POINT);
+
+    state.WindowedWidth = state.WindowScreenWidth;
+    state.WindowedHeight = state.WindowScreenHeight;
 
     const int FPS = 60;
     SetTargetFPS(FPS);
@@ -177,9 +179,6 @@ GameState InitScreen()
     state.pendingMapPath.clear();
     state.pendingDoorName.clear();
 
-    // Save directories dibuat otomatis oleh EnsureSlotDirectory()
-    // atau WriteAutosave() saat pertama kali menyimpan.
-
     return state;
 }
 
@@ -188,7 +187,10 @@ GameState InitScreen()
  *==============================================================================*/
 
 /**
- * @brief Update ukuran window dan scale multiplier tiap frame
+ * @brief Update ukuran window, render texture, dan camera tiap frame
+ *
+ * Saat window di-resize: GScreenWidth/GScreenHeight mengikuti ukuran baru,
+ * render texture di-recreate, dan camera offset/zoom disesuaikan.
  */
 void UpdateGame(GameState *state)
 {
@@ -198,9 +200,22 @@ void UpdateGame(GameState *state)
     {
         state->WindowScreenWidth = w;
         state->WindowScreenHeight = h;
-        state->ScaleMultiplier = MIN(
-            (float)w / GameScreenWidth,
-            (float)h / GameScreenHeight);
+
+        if (!IsWindowFullscreen())
+        {
+            state->WindowedWidth = w;
+            state->WindowedHeight = h;
+        }
+
+        // Buat ulang render texture ukuran baru
+        GScreenWidth = w;
+        GScreenHeight = h;
+        UnloadRenderTexture(state->Dungeon);
+        state->Dungeon = LoadRenderTexture(GScreenWidth, GScreenHeight);
+        SetTextureFilter(state->Dungeon.texture, TEXTURE_FILTER_POINT);
+
+        camera.offset = {(float)(GScreenWidth / 2), (float)(GScreenHeight / 2)};
+        camera.zoom = (float)GScreenWidth / static_cast<float>(VIRTUAL_WIDTH);
     }
 }
 
@@ -446,25 +461,44 @@ void DrawUIOverlay(GameState *state)
     }
 }
 
+struct CropParams {
+    float scale, virtualW, virtualH, cropX, cropY;
+};
+
+static CropParams GetCropParams(GameState *state)
+{
+    float scale = std::max(
+        (float)state->WindowScreenWidth / (float)GScreenWidth,
+        (float)state->WindowScreenHeight / (float)GScreenHeight);
+    return {
+        scale,
+        (float)state->WindowScreenWidth / scale,
+        (float)state->WindowScreenHeight / scale,
+        ((float)GScreenWidth - (float)state->WindowScreenWidth / scale) * 0.5F,
+        ((float)GScreenHeight - (float)state->WindowScreenHeight / scale) * 0.5F
+    };
+}
+
 /**
  * @brief Scale dan render layar virtual ke window asli
+ *
+ * Crop-to-fill: menjaga aspect ratio, tidak ada black bars.
+ * Virtual canvas di-crop simetris untuk mengisi penuh window.
+ * Jika ukuran canvas == ukuran window, crop menjadi 0 dan blit 1:1.
  */
 void DrawRenderWindows(GameState *state)
 {
-    float offsetX = (state->WindowScreenWidth - ((float)GameScreenWidth * state->ScaleMultiplier)) * 0.5F;
-    float offsetY = (state->WindowScreenHeight - ((float)GameScreenHeight * state->ScaleMultiplier)) * 0.5F;
+    CropParams cp = GetCropParams(state);
 
     BeginDrawing();
     ClearBackground(BLACK);
-
     DrawTexturePro(
         state->Dungeon.texture,
-        (Rectangle){0, 0, (float)GameScreenWidth, -(float)GameScreenHeight},
-        (Rectangle){offsetX, offsetY, (float)GameScreenWidth * state->ScaleMultiplier, (float)GameScreenHeight * state->ScaleMultiplier},
+        (Rectangle){cp.cropX, cp.cropY, cp.virtualW, -cp.virtualH},
+        (Rectangle){0, 0, (float)state->WindowScreenWidth, (float)state->WindowScreenHeight},
         (Vector2){0, 0},
         0.0F,
         WHITE);
-
     EndDrawing();
 }
 
@@ -478,12 +512,12 @@ void DrawRenderWindows(GameState *state)
 Vector2 GetVirtualMousePosition(GameState *state)
 {
     Vector2 mouse = GetMousePosition();
-    Vector2 virtualMouse = {0, 0};
+    CropParams cp = GetCropParams(state);
 
-    virtualMouse.x = (mouse.x - ((state->WindowScreenWidth - (GameScreenWidth * state->ScaleMultiplier)) * 0.5F)) / state->ScaleMultiplier;
-    virtualMouse.y = (mouse.y - ((state->WindowScreenHeight - (GameScreenHeight * state->ScaleMultiplier)) * 0.5F)) / state->ScaleMultiplier;
-
-    return Vector2Clamp(virtualMouse, (Vector2){0, 0}, (Vector2){(float)GameScreenWidth, (float)GameScreenHeight});
+    Vector2 virtualMouse;
+    virtualMouse.x = cp.cropX + mouse.x / cp.scale;
+    virtualMouse.y = cp.cropY + mouse.y / cp.scale;
+    return Vector2Clamp(virtualMouse, (Vector2){0, 0}, (Vector2){(float)GScreenWidth, (float)GScreenHeight});
 }
 
 /*==============================================================================
@@ -516,11 +550,23 @@ void ToggleFullscreenMode(void)
 {
     if (IsWindowFullscreen())
     {
+        // Exit fullscreen: toggle first, then set windowed size
         ToggleFullscreen();
+        SetWindowSize(gState->WindowedWidth, gState->WindowedHeight);
+        GScreenWidth = gState->WindowedWidth;
+        GScreenHeight = gState->WindowedHeight;
     }
     else
     {
+        // Enter fullscreen: save current size, resize to monitor, then toggle
+        gState->WindowedWidth = GetScreenWidth();
+        gState->WindowedHeight = GetScreenHeight();
+        int mw = GetMonitorWidth(0);
+        int mh = GetMonitorHeight(0);
+        SetWindowSize(mw, mh);
         ToggleFullscreen();
+        GScreenWidth = mw;
+        GScreenHeight = mh;
     }
 }
 
@@ -568,8 +614,8 @@ void DrawMenuBackground(void)
 {
     DrawRectangleGradientV(
         0, 0,
-        GameScreenWidth, GameScreenHeight,
-        {36, 28, 58, 255}, // top: muted dark purple-blue
-        {5, 5, 15, 255}    // bottom: near-black
+        GScreenWidth, GScreenHeight,
+        {36, 28, 58, 255},   // top: muted dark purple-blue
+        {5, 5, 15, 255}      // bottom: near-black
     );
 }

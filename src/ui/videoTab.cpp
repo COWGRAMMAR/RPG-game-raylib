@@ -15,6 +15,13 @@
 
 using json = nlohmann::json;
 
+static constexpr int CONTENT_TOP_OFFSET = 100;
+static constexpr int LABEL_FONT_SIZE = 34;
+static constexpr int LABEL_X_OFFSET = 40;
+static constexpr int ROW1_Y_OFFSET = 12;
+static constexpr int ROW2_Y_OFFSET = 72;
+static constexpr int JSON_DUMP_INDENT = 2;
+
 void DrawVideoTab(
     buttonTxt &fullscreenButton,
     buttonTxt &fpsButton,
@@ -22,17 +29,15 @@ void DrawVideoTab(
     int startX,
     int startY)
 {
-    int contentStartY = startY + 100;
-    // ukuran font dinaikkan dari 28 → 34 agar lebih terbaca
-    const int fontSize = 34;
-    int labelX = startX + 40;
+    int contentStartY = startY + CONTENT_TOP_OFFSET;
+    int labelX = startX + LABEL_X_OFFSET;
 
     DrawTextEx(GetOrLoad(FontId::LOADING_TITLE), "Fullscreen",
-               Vector2{static_cast<float>(labelX), static_cast<float>(contentStartY + 12)},
-               fontSize, 0, WHITE);
+               Vector2{static_cast<float>(labelX), static_cast<float>(contentStartY + ROW1_Y_OFFSET)},
+               LABEL_FONT_SIZE, 0, WHITE);
     DrawTextEx(GetOrLoad(FontId::LOADING_TITLE), "Show FPS",
-               Vector2{static_cast<float>(labelX), static_cast<float>(contentStartY + 72)},
-               fontSize, 0, WHITE);
+               Vector2{static_cast<float>(labelX), static_cast<float>(contentStartY + ROW2_Y_OFFSET)},
+               LABEL_FONT_SIZE, 0, WHITE);
 
     fullscreenButton.Draw(mousePosition);
     fpsButton.Draw(mousePosition);
@@ -133,7 +138,7 @@ bool SaveVideoSettings(bool fullscreen, bool showFPS)
 
         {
             std::ofstream file(tmpPath);
-            file << root.dump(2);
+            file << root.dump(JSON_DUMP_INDENT);
         }
 
         std::filesystem::rename(tmpPath, VIDEO_SETTINGS_PATH);

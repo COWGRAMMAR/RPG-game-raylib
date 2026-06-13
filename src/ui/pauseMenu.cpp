@@ -66,6 +66,8 @@ static constexpr int CONTENT_INNER_PAD = 20;
 static constexpr int CONTENT_BOX_Y = 200;
 static constexpr int CONTENT_BOX_BOTTOM_TRIM = 323;
 static constexpr int BTN_BG_PAD = 6;
+static constexpr int CONTENT_OX = 89;
+static constexpr int CONTENT_OY = 121;
 
 /*==============================================================================
  * OptionsScreen Implementation
@@ -410,24 +412,23 @@ void OptionsScreen::Draw(Vector2 mousePosition)
 
     backButton.Draw(mousePosition);
 
-    int contentOX = 89, contentOY = 121;
     Rectangle contentRect = {
-        static_cast<float>(startX + contentOX + CONTENT_INNER_PAD),
+        static_cast<float>(startX + CONTENT_OX + CONTENT_INNER_PAD),
         static_cast<float>(startY + CONTENT_BOX_Y),
-        static_cast<float>(width - 2 * (contentOX + CONTENT_INNER_PAD)),
+        static_cast<float>(width - 2 * (CONTENT_OX + CONTENT_INNER_PAD)),
         static_cast<float>(height - CONTENT_BOX_BOTTOM_TRIM)};
     DrawRectangleRec(contentRect, {0, 0, 0, 51});
 
     switch (selectedTab)
     {
     case 0:
-        DrawVideoTab(fullscreenButton, fpsButton, mousePosition, startX + contentOX, startY + contentOY);
+        DrawVideoTab(fullscreenButton, fpsButton, mousePosition, startX + CONTENT_OX, startY + CONTENT_OY);
         break;
     case 1:
-        DrawAudioTab(mousePosition, startX + contentOX, startY + contentOY);
+        DrawAudioTab(mousePosition, startX + CONTENT_OX, startY + CONTENT_OY);
         break;
     case 2:
-        DrawKeybindsTab(mousePosition, startX + contentOX, startY + contentOY, (int)contentRect.width);
+        DrawKeybindsTab(mousePosition, startX + CONTENT_OX, startY + CONTENT_OY, (int)contentRect.width);
         break;
     }
 

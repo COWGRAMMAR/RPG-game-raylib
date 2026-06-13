@@ -1,0 +1,21 @@
+src/ui/videoTab.cpp
+  s_20c8e07ec9ffad::t_39d72841e0cc1b 36-37,39-40
+  s_20c8e07ec9ffad::t_28005bc7da4af5 141
+  s_20c8e07ec9ffad::t_726311d5ff9f1f 18-24,32-33
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "c71f1012470c98d3d812b61aee72563e54bb0b7c",
+  "prompts": {},
+  "sessions": {
+    "s_20c8e07ec9ffad": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_14931db1affe7pYqWlC73Jr9SV",
+        "model": "unknown"
+      },
+      "human_author": "NiskoDT <65821447+NiskoDT@users.noreply.github.com>"
+    }
+  }
+}

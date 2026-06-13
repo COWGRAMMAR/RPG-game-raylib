@@ -47,7 +47,7 @@ static bool _blockAutoSwitch = false;
  * Index 6: WinTheme.mp3 — turn-based victory
  */
 static const char* TRACK_FILES[] = {
-    "assets/audio/music/MainMenu.mp3",
+    "assets/audio/music/MainMenu-Startup.mp3",
     "assets/audio/music/DungeonMusic.mp3",
     "assets/audio/music/GameOver.mp3",
     "assets/audio/music/MainMenu-Loop.mp3",
@@ -119,6 +119,8 @@ void AudioManager::LoadAudioAssets()
         }
     }
 
+    if (_tracks[0].ctxData != nullptr)
+        _tracks[0].looping = false;
 }
 
 void AudioManager::Shutdown()

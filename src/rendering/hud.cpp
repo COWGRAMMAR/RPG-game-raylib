@@ -1120,9 +1120,19 @@ void UpdateBossMusic()
     }
 
     bool inRange = Vector2Distance(boss->GetCenter(), PlayerInstance.GetCenter()) <= boss->DetectionRange;
-    bool inPrefab = IsCellTypeAtWorldPos(PlayerInstance.GetCenter(), CELL_BOSS);
+    // Cek overlap dengan Tiled object boss_music — trigger area boss
+    bool inBossArea = false;
+    auto musicAreas = TiledHelper::GetObjectsByType("boss_music");
+    for (auto *area : musicAreas)
+    {
+        if (CheckCollisionRecs(PlayerInstance.GetHitbox(), area->bounds))
+        {
+            inBossArea = true;
+            break;
+        }
+    }
     bool inCombat = TurnCombat::IsActive();
-    bool shouldPlay = inRange || inPrefab || inCombat;
+    bool shouldPlay = inRange || inBossArea || inCombat;
 
     if (shouldPlay && !s_BossMusicActive)
     {
@@ -1159,10 +1169,23 @@ void DrawBossHPBar()
     if (!boss)
         return;
 
-    // Trigger: nongol kalo player dalam detection range ATAU di prefab room boss
-    bool inDetectionRange = Vector2Distance(boss->GetCenter(), PlayerInstance.GetCenter()) <= boss->DetectionRange;
-    bool inBossPrefab = IsCellTypeAtWorldPos(PlayerInstance.GetCenter(), CELL_BOSS);
-    if (!inDetectionRange && !inBossPrefab)
+    // Kalo turn combat lagi aktif, jangan ditimpa — UI combat sendiri yang handle
+    if (TurnCombat::IsActive())
+        return;
+
+    // Trigger: nongol kalo player dalam detection range boss ATAU overlap area boss_music
+    bool inRange = Vector2Distance(boss->GetCenter(), PlayerInstance.GetCenter()) <= boss->DetectionRange;
+    bool inBossArea = false;
+    auto bossAreas = TiledHelper::GetObjectsByType("boss_music");
+    for (auto *area : bossAreas)
+    {
+        if (CheckCollisionRecs(PlayerInstance.GetHitbox(), area->bounds))
+        {
+            inBossArea = true;
+            break;
+        }
+    }
+    if (!inRange && !inBossArea)
         return;
 
     const float barWidth = 400.0f;

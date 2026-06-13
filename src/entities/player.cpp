@@ -49,11 +49,11 @@ void Player::Init(GameState *state, const char *spawnObjectName)
         Mana = MaxMana;
         ManaRegenTimer = 0.0f;
 
-        // Inisialisasi perlengkapan hotbar default
-        Hotbar[0] = {0, 1};  // Iron Sword
-        Hotbar[1] = {4, 1};  // Bow
-        Hotbar[2] = {2, 8};  // Small Health Potion
-        Hotbar[3] = {3, 8};  // Small Mana Potion
+        // Inisialisasi perlengkapan hotbar default — semua melee
+        Hotbar[0] = {4, 1};  // Iron Sword
+        Hotbar[1] = {1, 1};  // Steel Sword
+        Hotbar[2] = {17, 1}; // Battle Axe
+        Hotbar[3] = {18, 1}; // War Hammer
 
         for (int i = 0; i < PlayerInstance.MaxBag; i++)
         {
@@ -129,10 +129,10 @@ void Player::ResetForNewGame()
     Mana = MaxMana = 100.0f;
     ManaRegenTimer = 0.0f;
     Hotbar[0] = {0, 1};  // Iron Sword
-    Hotbar[1] = {4, 1};  // Bow
-    Hotbar[2] = {2, 8};  // Small Health Potion
-    Hotbar[3] = {3, 8};  // Small Mana Potion
-    for (int i = 0; i < MaxBag; i++)
+    Hotbar[1] = {4, 1};  // Steel Sword
+    Hotbar[2] = {17, 1}; // Battle Axe
+    Hotbar[3] = {18, 1}; // War Hammer
+    for (int i = 1; i < MaxBag; i++)
         Bag[i] = {-1, 0};
     Anim.isDead = false;
     Anim.isAttacking = false;

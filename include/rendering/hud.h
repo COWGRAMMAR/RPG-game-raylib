@@ -32,7 +32,7 @@ void DrawBossHPBar();
 /**
  * @brief Update boss music ambient per-frame.
  *
- * Deteksi player dalam detection range boss ATAU di prefab room CELL_BOSS.
- * Overwrite current track pake PlayTrack(5), balikin pake ResetToScreenTrack.
+ * Deteksi player dalam detection range boss ATAU overlap Tiled object boss_music.
+ * Overwrite current track pake PlayTrack("Boss"), balikin pake ResetToScreenTrack.
  */
 void UpdateBossMusic();

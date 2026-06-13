@@ -463,6 +463,14 @@ namespace Combat
         float attackAngle = player.attack.raycastAngle;
         float attackerRadius = player.GetHitboxWidth() / 2.0f;
 
+        // Build solid obstacles (static collision tiles + dynamic minus crate/bomb)
+        std::vector<Rectangle> solidObstacles = gCollisionCache.rects;
+        for (const auto &obs : DynamicObstacles)
+        {
+            if (!crateManager.IsCratePos(obs) && !bombManager.IsBombPos(obs))
+                solidObstacles.push_back(obs);
+        }
+
         for (auto *entity : Entities::GetRegistry())
         {
             Entity *playerAsEntity = &player;
@@ -502,6 +510,27 @@ namespace Combat
 
             if (hit)
             {
+                // SLAM: obstacle check pake corridor hitbox (full DynamicObstacles)
+                if (player.attack.weapon->attackType == ATTACK_SLAM)
+                {
+                    Rectangle ph = player.GetHitbox();
+                    Rectangle eh = entity->GetHitbox();
+                    float l = fminf(ph.x, eh.x), t = fminf(ph.y, eh.y);
+                    float r = fmaxf(ph.x + ph.width, eh.x + eh.width);
+                    float b = fmaxf(ph.y + ph.height, eh.y + eh.height);
+                    if (CheckCollisionAgainstRects({l, t, r - l, b - t}, DynamicObstacles))
+                        continue;
+                }
+                // Non-SLAM: per-entity LOS dari attackCenter ke entity
+                else
+                {
+                    Vector2 entityCenter = {
+                        entity->Position.x + FRAME_SIZE / 2.0f,
+                        entity->Position.y + FRAME_SIZE / 2.0f};
+                    if (IsLineBlockedByObstacles(attackCenter, entityCenter, solidObstacles))
+                        continue;
+                }
+
                 ApplyHitToEntity(player, entity, attackCenter);
             }
         }

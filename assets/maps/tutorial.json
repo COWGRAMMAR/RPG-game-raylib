@@ -80,7 +80,7 @@
                  "visible":true,
                  "width":32,
                  "x":448,
-                 "y":512
+                 "y":480
                 }, 
                 {
                  "height":32,
@@ -103,8 +103,8 @@
                  "type":"bomb",
                  "visible":true,
                  "width":32,
-                 "x":448,
-                 "y":544
+                 "x":416,
+                 "y":512
                 }, 
                 {
                  "height":32,
@@ -152,7 +152,7 @@
                  "visible":true,
                  "width":32,
                  "x":416,
-                 "y":512
+                 "y":480
                 }, 
                 {
                  "height":32,
@@ -164,7 +164,7 @@
                  "visible":true,
                  "width":32,
                  "x":384,
-                 "y":512
+                 "y":480
                 }],
          "opacity":1,
          "type":"objectgroup",
@@ -444,6 +444,96 @@
                  "width":32,
                  "x":224,
                  "y":352
+                }, 
+                {
+                 "height":32,
+                 "id":51,
+                 "name":"sign2",
+                 "opacity":1,
+                 "properties":[
+                        {
+                         "name":"dialog",
+                         "type":"string",
+                         "value":"hell nawh twin "
+                        }],
+                 "rotation":0,
+                 "type":"sign",
+                 "visible":true,
+                 "width":32,
+                 "x":384,
+                 "y":448
+                }, 
+                {
+                 "height":32,
+                 "id":52,
+                 "name":"sign2",
+                 "opacity":1,
+                 "properties":[
+                        {
+                         "name":"dialog",
+                         "type":"string",
+                         "value":"hell nawh twin "
+                        }],
+                 "rotation":0,
+                 "type":"sign",
+                 "visible":true,
+                 "width":32,
+                 "x":384,
+                 "y":448
+                }, 
+                {
+                 "height":32,
+                 "id":53,
+                 "name":"sign2",
+                 "opacity":1,
+                 "properties":[
+                        {
+                         "name":"dialog",
+                         "type":"string",
+                         "value":"hell nawh twin "
+                        }],
+                 "rotation":0,
+                 "type":"sign",
+                 "visible":true,
+                 "width":32,
+                 "x":448,
+                 "y":448
+                }, 
+                {
+                 "height":32,
+                 "id":54,
+                 "name":"sign2",
+                 "opacity":1,
+                 "properties":[
+                        {
+                         "name":"dialog",
+                         "type":"string",
+                         "value":"hell nawh twin "
+                        }],
+                 "rotation":0,
+                 "type":"sign",
+                 "visible":true,
+                 "width":32,
+                 "x":448,
+                 "y":448
+                }, 
+                {
+                 "height":32,
+                 "id":55,
+                 "name":"sign2",
+                 "opacity":1,
+                 "properties":[
+                        {
+                         "name":"dialog",
+                         "type":"string",
+                         "value":"hell nawh twin "
+                        }],
+                 "rotation":0,
+                 "type":"sign",
+                 "visible":true,
+                 "width":32,
+                 "x":320,
+                 "y":448
                 }],
          "opacity":1,
          "type":"objectgroup",
@@ -475,7 +565,7 @@
          "y":0
         }],
  "nextlayerid":11,
- "nextobjectid":51,
+ "nextobjectid":56,
  "orientation":"orthogonal",
  "renderorder":"right-down",
  "tiledversion":"1.12.1",

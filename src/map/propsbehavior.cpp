@@ -612,7 +612,7 @@ void BombManager::Explode(BombData &bomb, Rectangle playerBounds, Player *player
     bomb.isExploding = true;
     bomb.isTriggered = true;
     bomb.explosionTimer = BOMB_EXPLOSION_DURATION;
-    
+
     AudioManager::PlaySFX("explosion");
 
     consumedPositions.insert(EncodePos(bomb.tile.position));
@@ -807,13 +807,39 @@ void CrateManager::SpawnCrates(const std::vector<MapObject *> &crateObjects)
  */
 void CrateManager::HitByAttack(Rectangle attackHitbox)
 {
+    std::vector<Rectangle> toRemove;
+    bool anyDestroyed = false;
+
     for (auto &crate : crates)
     {
         if (!crate.isAlive)
             continue;
-        if (!CheckCollisionAgainstRects(attackHitbox, {crate.tile.bounds}))
+        if (!CheckCollisionRecs(attackHitbox, crate.tile.bounds))
             continue;
-        Destroy(crate);
+
+        // Hancurkan crate, tapi tunda DynamicObstacles erase biar batch
+        crate.tile.state = ObjectState::Inactive;
+        crate.isAlive = false;
+        consumedPositions.insert(EncodePos(crate.tile.position));
+        toRemove.push_back(crate.tile.bounds);
+        MarkSpawnFlowFieldsDirty(crate.tile.position);
+        TriggerLoot(crate.tile);
+        anyDestroyed = true;
+    }
+
+    if (anyDestroyed)
+    {
+        AudioManager::PlaySFX("crate"); // cukup sekali
+
+        // Batch: 1× DynamicObstacles erase untuk semua crate
+        DynamicObstacles.erase(
+            std::remove_if(DynamicObstacles.begin(), DynamicObstacles.end(), [&](const Rectangle &r)
+                           {
+                for (const auto &rem : toRemove)
+                    if (r.x == rem.x && r.y == rem.y) return true;
+                return false; }),
+            DynamicObstacles.end());
+        g_PendingObstacleRebuild = true;
     }
 }
 
@@ -824,12 +850,36 @@ void CrateManager::HitByAttack(Rectangle attackHitbox)
  */
 void CrateManager::HitByExplosion(Vector2 bombPos, BombManager *bomber)
 {
+    std::vector<Rectangle> toRemove;
+    bool anyDestroyed = false;
+
     for (auto &crate : crates)
     {
         if (!crate.isAlive)
             continue;
         if (bomber->IsInExplosionRadius(bombPos, crate.tile.bounds))
-            Destroy(crate);
+        {
+            crate.tile.state = ObjectState::Inactive;
+            crate.isAlive = false;
+            consumedPositions.insert(EncodePos(crate.tile.position));
+            toRemove.push_back(crate.tile.bounds);
+            MarkSpawnFlowFieldsDirty(crate.tile.position);
+            TriggerLoot(crate.tile);
+            anyDestroyed = true;
+        }
+    }
+
+    if (anyDestroyed)
+    {
+        AudioManager::PlaySFX("crate");
+        DynamicObstacles.erase(
+            std::remove_if(DynamicObstacles.begin(), DynamicObstacles.end(), [&](const Rectangle &r)
+                           {
+                for (const auto &rem : toRemove)
+                    if (r.x == rem.x && r.y == rem.y) return true;
+                return false; }),
+            DynamicObstacles.end());
+        g_PendingObstacleRebuild = true;
     }
 }
 
@@ -1095,7 +1145,7 @@ void BarrierManager::Update()
 int BarrierManager::Render(Rectangle viewRect)
 {
     int rendered = 0;
-    
+
     // Pass 1: Render barrierDown and barrierUp1 (the base layer)
     for (auto &b : barriers)
     {
@@ -1121,12 +1171,12 @@ int BarrierManager::Render(Rectangle viewRect)
     {
         if (!b.isActive)
             continue;
-            
+
         // We expand the viewRect slightly upwards to ensure barrierUp2 is drawn even if the base is slightly off-screen
         Rectangle expandedView = viewRect;
         expandedView.y -= FRAME_SIZE;
         expandedView.height += FRAME_SIZE;
-        
+
         if (!CheckCollisionRecs(b.tile.bounds, expandedView))
             continue;
 
@@ -1135,7 +1185,7 @@ int BarrierManager::Render(Rectangle viewRect)
         display.position.y -= FRAME_SIZE;
         DrawFrame("barrierUp2", display);
     }
-    
+
     return rendered;
 }
 

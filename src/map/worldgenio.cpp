@@ -184,6 +184,7 @@ namespace WorldgenIO
         if (oldStage >= SeedManager::SEED_COUNT - 1)
         {
             // Sudah stage terakhir (boss) — balik lobby, reset run
+            InputInstance.ResetMenuFlags();
             g_SeedManager.ResetRun();
             gState->currentScreen = MAIN_MENU;
             return;
@@ -219,9 +220,10 @@ namespace WorldgenIO
     }
 
     /** @brief Helper baca worldgenSlot dari file JSON manapun */
-    static int ReadWorldgenSlotFromFile(const std::string& filePath)
+    static int ReadWorldgenSlotFromFile(const std::string &filePath)
     {
-        if (!fs::exists(filePath)) return -1;
+        if (!fs::exists(filePath))
+            return -1;
         try
         {
             std::ifstream in(filePath);
@@ -229,7 +231,10 @@ namespace WorldgenIO
             in >> root;
             return root.value("worldgenSlot", -1);
         }
-        catch (...) { return -1; }
+        catch (...)
+        {
+            return -1;
+        }
     }
 
     void CleanupOrphanedSlots()
@@ -246,11 +251,13 @@ namespace WorldgenIO
         {
             // Old format
             int ws = ReadWorldgenSlotFromFile(GetSlotPath(i, "manual"));
-            if (ws >= 0) activeSlots.insert(ws);
+            if (ws >= 0)
+                activeSlots.insert(ws);
 
             // New format
             ws = ReadWorldgenSlotFromFile(SaveManager::GetManualPath(i));
-            if (ws >= 0) activeSlots.insert(ws);
+            if (ws >= 0)
+                activeSlots.insert(ws);
         }
 
         // Scan autosave files — both old (saves/slot_N/autosave/) and new (saves/slot_N/autosave/snapshot_*.json)
@@ -262,9 +269,11 @@ namespace WorldgenIO
             {
                 for (auto &entry : fs::directory_iterator(oldDir))
                 {
-                    if (entry.path().extension() != ".json") continue;
+                    if (entry.path().extension() != ".json")
+                        continue;
                     int ws = ReadWorldgenSlotFromFile(entry.path().string());
-                    if (ws >= 0) activeSlots.insert(ws);
+                    if (ws >= 0)
+                        activeSlots.insert(ws);
                 }
             }
 
@@ -274,9 +283,11 @@ namespace WorldgenIO
             {
                 for (auto &entry : fs::directory_iterator(newDir))
                 {
-                    if (entry.path().extension() != ".json") continue;
+                    if (entry.path().extension() != ".json")
+                        continue;
                     int ws = ReadWorldgenSlotFromFile(entry.path().string());
-                    if (ws >= 0) activeSlots.insert(ws);
+                    if (ws >= 0)
+                        activeSlots.insert(ws);
                 }
             }
         }

@@ -133,7 +133,6 @@ static std::string ToLower(std::string str)
     return str;
 }
 
-
 /**
  * @brief Inisialisasi window, audio, dan render texture virtual
  *
@@ -151,7 +150,7 @@ GameState InitScreen()
 
     SetConfigFlags(FLAG_WINDOW_RESIZABLE);
     InitWindow(1280, 720, "Dungeon Game");
-    SetExitKey(0);  // ESC handled by keybindManager (pause toggle), not by raylib quit
+    SetExitKey(0); // ESC handled by keybindManager (pause toggle), not by raylib quit
     InitAudioDevice();
 
     state.WindowScreenWidth = (int)(GetMonitorWidth(0) * ScaleMultiplierMonitor);
@@ -218,7 +217,7 @@ void UpdateLogicAll()
     if (TurnCombat::IsActive())
     {
         TurnCombat::Update();
-        Effects::Update(GetFrameTime());
+        Effects::Update(Time::DELTA_TIME);
     }
     else
     {
@@ -346,7 +345,7 @@ void UpdateLogicAll()
                 TraceLog(LOG_INFO, "PICKUP: added to inventory");
                 item.isAdded = true;
                 AudioManager::PlaySFX("pickup-item");
-                
+
                 const ItemDefinition &def = itemDefs.GetById(item.definitionId);
                 std::string logMsg = def.name;
                 if (item.amount > 1)
@@ -357,7 +356,7 @@ void UpdateLogicAll()
             }
             else
             {
-                TraceLog(LOG_INFO, "PICKUP: inventory full");
+                TraceLog(LOG_INFO, "PICKUP: Inventory full");
                 item.isPickedUp = false; // balik ke world
 
                 static float lastInventoryFullTime = 0.0f;
@@ -419,6 +418,7 @@ void DrawRenderTexture(GameState *state)
 void DrawUIOverlay(GameState *state)
 {
     DrawPlayerHUD();
+    DrawBossHPBar();
 
     // 2. FPS Counter (if enabled)
     if (state->showFPS)
@@ -426,7 +426,7 @@ void DrawUIOverlay(GameState *state)
         int fps = GetFPS();
         char fpsText[16];
         snprintf(fpsText, sizeof(fpsText), "FPS: %d", fps);
-        DrawText(fpsText, 10, 10, 20, GREEN);
+        DrawDefaultText(fpsText, 10, 10, 20, GREEN);
     }
 
     // 3. Sign dialog overlay (placeholder UI)
@@ -569,7 +569,7 @@ void DrawMenuBackground(void)
     DrawRectangleGradientV(
         0, 0,
         GameScreenWidth, GameScreenHeight,
-        {36, 28, 58, 255},   // top: muted dark purple-blue
-        {5, 5, 15, 255}      // bottom: near-black
+        {36, 28, 58, 255}, // top: muted dark purple-blue
+        {5, 5, 15, 255}    // bottom: near-black
     );
 }

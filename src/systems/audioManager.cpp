@@ -12,6 +12,7 @@
 #include <cstring>
 #include <unordered_map>
 
+/** @brief Array music tracks yang sudah di-load */
 static Music _tracks[7] = {};
 
 static float _masterVolume = 1.0f;
@@ -34,10 +35,6 @@ static bool _initialized = false;
 /** @brief Blok auto-switch biar WinTheme gak di-overwrite pas VICTORY phase */
 static bool _blockAutoSwitch = false;
 
-/*==============================================================================
- * Track File Mapping
- *==============================================================================*/
-
 /**
  * @brief Nama file music berdasarkan index
  *
@@ -50,7 +47,7 @@ static bool _blockAutoSwitch = false;
  * Index 6: WinTheme.mp3 — turn-based victory
  */
 static const char* TRACK_FILES[] = {
-    "assets/audio/music/MainMenu-Startup.mp3",
+    "assets/audio/music/MainMenu.mp3",
     "assets/audio/music/DungeonMusic.mp3",
     "assets/audio/music/GameOver.mp3",
     "assets/audio/music/MainMenu-Loop.mp3",
@@ -122,9 +119,6 @@ void AudioManager::LoadAudioAssets()
         }
     }
 
-    // Track 0 (MainMenu-Startup) non-looping agar otomatis transisi ke loop track
-    if (_tracks[0].ctxData != nullptr)
-        _tracks[0].looping = false;
 }
 
 void AudioManager::Shutdown()
@@ -279,14 +273,22 @@ int AudioManager::GetVideoVolumePct()
 
 void AudioManager::SetVolumesFromPct(int masterPct, int musicPct, int sfxPct, int videoPct)
 {
-    if (masterPct < 0) masterPct = 0;
-    if (masterPct > 100) masterPct = 100;
-    if (musicPct < 0) musicPct = 0;
-    if (musicPct > 100) musicPct = 100;
-    if (sfxPct < 0) sfxPct = 0;
-    if (sfxPct > 100) sfxPct = 100;
-    if (videoPct < 0) videoPct = 0;
-    if (videoPct > 100) videoPct = 100;
+    if (masterPct < 0)
+        masterPct = 0;
+    if (masterPct > 100)
+        masterPct = 100;
+    if (musicPct < 0)
+        musicPct = 0;
+    if (musicPct > 100)
+        musicPct = 100;
+    if (sfxPct < 0)
+        sfxPct = 0;
+    if (sfxPct > 100)
+        sfxPct = 100;
+    if (videoPct < 0)
+        videoPct = 0;
+    if (videoPct > 100)
+        videoPct = 100;
 
     SetMasterVolume(static_cast<float>(masterPct) / 100.0f);
     SetMusicVolume(static_cast<float>(musicPct) / 100.0f);
@@ -353,6 +355,8 @@ void AudioManager::ResetToScreenTrack()
     TraceLog(LOG_INFO, "AUDIO: Reset track untuk auto-switch");
 }
 
+/**@}*/
+
 void AudioManager::BlockAutoSwitch()
 {
     _blockAutoSwitch = true;
@@ -362,8 +366,6 @@ void AudioManager::UnblockAutoSwitch()
 {
     _blockAutoSwitch = false;
 }
-
-/**@}*/
 
 /** @name SFX */
 /**@{*/

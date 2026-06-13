@@ -1,6 +1,9 @@
 #include "videoScreen.h"
 #include "fonts.h"
 
+/** @name Lifecycle */
+/**@{*/
+
 VideoScreen::VideoScreen()
     : m_videoPath("assets/video/dolby-countdown.mkv")
     , m_skipRequested(false)
@@ -12,6 +15,8 @@ VideoScreen::~VideoScreen()
 {
     Unload();
 }
+
+/**@}*/
 
 /** @name Playback */
 /**@{*/
@@ -59,8 +64,6 @@ void VideoScreen::Unload()
     m_loaded = false;
 }
 
-/**@}*/
-
 /** @name Setters / Getters */
 /**@{*/
 
@@ -86,6 +89,7 @@ void VideoScreen::SetVolume(float vol)
 
 bool VideoScreen::Update(float deltaTime)
 {
+    // Poll skip BEFORE !m_loaded guard so user can skip a failed-to-load video
     if (IsKeyPressed(KEY_SPACE) || IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_ESCAPE))
     {
         m_skipRequested = true;
@@ -119,11 +123,12 @@ void VideoScreen::Draw()
 
     if (m_player.IsValid())
     {
-        const int videoW   = m_player.GetWidth();
-        const int videoH   = m_player.GetHeight();
-        const int screenW  = GetScreenWidth();
-        const int screenH  = GetScreenHeight();
+        const int videoW = m_player.GetWidth();
+        const int videoH = m_player.GetHeight();
+        const int screenW = GetScreenWidth();
+        const int screenH = GetScreenHeight();
 
+        // Guard division-by-zero if video texture isn't ready yet
         if (videoW == 0 || videoH == 0)
             return;
 
@@ -140,7 +145,7 @@ void VideoScreen::Draw()
     }
     else if (!m_loaded)
     {
-        const char* loadingText = "Memuat video...";
+        const char *loadingText = "Memuat video...";
         const int fontSize = 20;
         const int textW = MeasureText(loadingText, fontSize);
         const int screenW = GetScreenWidth();

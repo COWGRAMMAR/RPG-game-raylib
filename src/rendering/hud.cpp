@@ -2,7 +2,7 @@
 #include "config/game_constants.h"
 #include "../../include/systems/audioManager.h"
 #include "keybindManager.h"
-// include fonts.h untuk fontLoadingTitle
+// include fonts.h untuk GetOrLoad(FontId::LOADING_TITLE)
 #include "fonts.h"
 #include "player.h"
 #include "animation.h"
@@ -10,6 +10,9 @@
 #include "inv-bst-sort.h"
 #include "effectQueue.h"
 #include "propsbehavior.h"
+#include "entities.h"
+#include "worldgenenartion.h"
+#include "combatTurn.h"
 #include "raymath.h"
 #include <cstdio>
 #include <vector>
@@ -59,8 +62,7 @@ static void DrawItemIcon(const InventoryItem &item, Rectangle dest)
         (float)(frame.positionX * (FRAME_SIZE + FRAME_GAP)),
         (float)(frame.positionY * (FRAME_SIZE + FRAME_GAP)),
         (float)(frame.width * FRAME_SIZE),
-        (float)(frame.height * FRAME_SIZE)
-    };
+        (float)(frame.height * FRAME_SIZE)};
 
     if (def.spriteKey == "sword2" || def.spriteKey == "axe")
     {
@@ -79,27 +81,25 @@ static void DrawItemIcon(const InventoryItem &item, Rectangle dest)
 
     Vector2 position = {
         dest.x + (dest.width - renderWidth) / 2.0f,
-        dest.y + (dest.height - renderHeight) / 2.0f
-    };
+        dest.y + (dest.height - renderHeight) / 2.0f};
 
     bool isMelee = false;
     if (def.category == ITEM_WEAPON)
     {
-        const WeaponData* wd = std::get_if<WeaponData>(&def.data);
+        const WeaponData *wd = std::get_if<WeaponData>(&def.data);
         if (wd && wd->attackType != ATTACK_PIERCE)
         {
             isMelee = true;
         }
     }
 
-    Vector2 origin = isMelee ? Vector2{ renderWidth / 2.0f, renderHeight / 2.0f } : Vector2{ 0.0f, 0.0f };
+    Vector2 origin = isMelee ? Vector2{renderWidth / 2.0f, renderHeight / 2.0f} : Vector2{0.0f, 0.0f};
 
     Rectangle drawDest = {
         position.x + origin.x,
         position.y + origin.y,
         renderWidth,
-        renderHeight
-    };
+        renderHeight};
 
     DrawTexturePro(textures[frame.texture], src, drawDest, origin, isMelee ? -45.0f : 0.0f, WHITE);
 }
@@ -111,15 +111,15 @@ static void DrawItemIcon(const InventoryItem &item, Rectangle dest)
  * @param fontSize Ukuran font.
  * @param color Warna teks.
  */
-// DrawTextHUD pakai fontLoadingTitle dengan padding tetap 4px
+// DrawTextHUD pakai GetOrLoad(FontId::LOADING_TITLE) dengan padding tetap 4px
 static void DrawTextHUD(const char *text, int x, int y, int fontSize, Color color)
 {
-    Vector2 textSize = MeasureTextEx(fontLoadingTitle, text, fontSize, 0);
+    Vector2 textSize = MeasureTextEx(GetOrLoad(FontId::LOADING_TITLE), text, fontSize, 0);
     float pad = 4.0f;
     DrawRectangleRounded(
         (Rectangle){(float)x - pad, (float)y - pad, textSize.x + pad * 2, (float)fontSize + pad * 2},
         0.3f, 8, ColorAlpha(BLACK, 0.8f));
-    DrawTextEx(fontLoadingTitle, text, Vector2{(float)x, (float)y}, fontSize, 0, color);
+    DrawTextEx(GetOrLoad(FontId::LOADING_TITLE), text, Vector2{(float)x, (float)y}, fontSize, 0, color);
 }
 
 /**
@@ -422,8 +422,10 @@ void DrawInventory()
         bool isHovered = CheckCollisionPointRec(mousePos, slotRect);
         bool isDragSource = (dragSlot == i);
 
-        if (isHovered && !isDragSource) DrawRectangleRec(slotRect, ColorAlpha(WHITE, 0.15f));
-        if (isDragSource) DrawRectangleRec(slotRect, ColorAlpha(GOLD, 0.25f));
+        if (isHovered && !isDragSource)
+            DrawRectangleRec(slotRect, ColorAlpha(WHITE, 0.15f));
+        if (isDragSource)
+            DrawRectangleRec(slotRect, ColorAlpha(GOLD, 0.25f));
 
         InventoryItem &item = PlayerInstance.GetBagItem(i);
         if (item.definitionId != -1 && !isDragSource)
@@ -431,27 +433,40 @@ void DrawInventory()
             float iconSize = 50.0f;
             Rectangle dest = {slotRect.x + (slotSize - iconSize) / 2.0f, slotRect.y + (slotSize - iconSize) / 2.0f, iconSize, iconSize};
             DrawItemIcon(item, dest);
-            // stack amount bag: fontLoadingTitle 18px dengan background rounded hitam
+            // stack amount bag: GetOrLoad(FontId::LOADING_TITLE) 18px dengan background rounded hitam
             if (item.amount > 1)
             {
-                char buf[12]; sprintf(buf, "%d", item.amount);
-                Vector2 sz = MeasureTextEx(fontLoadingTitle, buf, 18, 0);
+                char buf[12];
+                sprintf(buf, "%d", item.amount);
+                Vector2 sz = MeasureTextEx(GetOrLoad(FontId::LOADING_TITLE), buf, 18, 0);
                 float bx = slotRect.x + slotSize - 34;
                 float by = slotRect.y + slotSize - 24;
                 DrawRectangleRounded((Rectangle){bx - 4, by - 4, sz.x + 8, 18 + 8}, 0.3f, 8, ColorAlpha(BLACK, 0.8f));
-                DrawTextEx(fontLoadingTitle, buf, Vector2{bx, by}, 18, 0, WHITE);
+                DrawTextEx(GetOrLoad(FontId::LOADING_TITLE), buf, Vector2{bx, by}, 18, 0, WHITE);
             }
         }
 
         if (isHovered && mousePressed && dragSlot == -1 && !isDragSplit && item.definitionId != -1)
         {
-            if (InputInstance.IsCtrlDown()) HandleMergeStack(i);
-            else { dragSlot = i; dragItem = item; }
+            if (InputInstance.IsCtrlDown())
+                HandleMergeStack(i);
+            else
+            {
+                dragSlot = i;
+                dragItem = item;
+            }
         }
         if (isHovered && mouseReleased && dragSlot != -1 && dragSlot != i && !isDragSplit)
-        { HandleDrop(i); dragHandled = true; }
+        {
+            HandleDrop(i);
+            dragHandled = true;
+        }
         if (isHovered && mouseReleased && dragSlot == i)
-        { dragSlot = -1; dragItem = {-1, 0}; dragHandled = true; }
+        {
+            dragSlot = -1;
+            dragItem = {-1, 0};
+            dragHandled = true;
+        }
         HandleSplitDragSlot(i, slotRect, mousePos);
     }
 
@@ -463,8 +478,10 @@ void DrawInventory()
         bool isHovered = CheckCollisionPointRec(mousePos, slotRect);
         bool isDragSource = (dragSlot == globalIdx);
 
-        if (isHovered && !isDragSource) DrawRectangleRec(slotRect, ColorAlpha(WHITE, 0.15f));
-        if (isDragSource) DrawRectangleRec(slotRect, ColorAlpha(GOLD, 0.25f));
+        if (isHovered && !isDragSource)
+            DrawRectangleRec(slotRect, ColorAlpha(WHITE, 0.15f));
+        if (isDragSource)
+            DrawRectangleRec(slotRect, ColorAlpha(GOLD, 0.25f));
 
         InventoryItem &item = PlayerInstance.GetHotbarItem(i);
         if (item.definitionId != -1 && !isDragSource)
@@ -472,40 +489,67 @@ void DrawInventory()
             float iconSize = 50.0f;
             Rectangle dest = {slotRect.x + (slotSize - iconSize) / 2.0f, slotRect.y + (slotSize - iconSize) / 2.0f, iconSize, iconSize};
             DrawItemIcon(item, dest);
-            // stack amount hotbar (inventory open): fontLoadingTitle 18px
+            // stack amount hotbar (inventory open): GetOrLoad(FontId::LOADING_TITLE) 18px
             if (item.amount > 1)
             {
-                char buf[12]; sprintf(buf, "%d", item.amount);
-                Vector2 sz = MeasureTextEx(fontLoadingTitle, buf, 18, 0);
+                char buf[12];
+                sprintf(buf, "%d", item.amount);
+                Vector2 sz = MeasureTextEx(GetOrLoad(FontId::LOADING_TITLE), buf, 18, 0);
                 float bx = slotRect.x + slotSize - 34;
                 float by = slotRect.y + slotSize - 24;
                 DrawRectangleRounded((Rectangle){bx - 4, by - 4, sz.x + 8, 18 + 8}, 0.3f, 8, ColorAlpha(BLACK, 0.8f));
-                DrawTextEx(fontLoadingTitle, buf, Vector2{bx, by}, 18, 0, WHITE);
+                DrawTextEx(GetOrLoad(FontId::LOADING_TITLE), buf, Vector2{bx, by}, 18, 0, WHITE);
             }
 
             const ItemDefinition &def = itemDefs.GetById(item.definitionId);
-            if (def.category == ITEM_POTION && PlayerInstance.PotionCooldown > 0.0f && PlayerInstance.PotionCooldownMax > 0.0f)
+            if (def.category == ITEM_POTION || def.category == ITEM_POISON)
             {
-                float ratio = PlayerInstance.PotionCooldown / PlayerInstance.PotionCooldownMax;
-                float startAngle = 270.0f;
-                float endAngle = 270.0f + (360.0f * ratio);
-                Vector2 center = {
-                    slotRect.x + slotRect.width / 2.0f,
-                    slotRect.y + slotRect.height / 2.0f
-                };
-                DrawCircleSector(center, iconSize / 2.0f + 4.0f, startAngle, endAngle, 36, ColorAlpha(BLACK, 0.65f));
+                const PotionData &potion = std::get<PotionData>(def.data);
+                PotionCategory cat = potion.potionCategory;
+                if (PlayerInstance.PotionCategoryCooldowns[cat] > 0.0f && PlayerInstance.PotionCategoryCooldownMax[cat] > 0.0f)
+                {
+                    float ratio = PlayerInstance.PotionCategoryCooldowns[cat] / PlayerInstance.PotionCategoryCooldownMax[cat];
+                    float startAngle = 270.0f;
+                    float endAngle = 270.0f + (360.0f * ratio);
+                    Vector2 center = {
+                        slotRect.x + slotRect.width / 2.0f,
+                        slotRect.y + slotRect.height / 2.0f};
+                    DrawCircleSector(center, iconSize / 2.0f + 4.0f, startAngle, endAngle, 36, ColorAlpha(BLACK, 0.65f));
+
+                    char cdBuf[16];
+                    float cd = PlayerInstance.PotionCategoryCooldowns[cat];
+                    if (cd >= 1.0f)
+                        snprintf(cdBuf, sizeof(cdBuf), "%d", (int)cd);
+                    else
+                        snprintf(cdBuf, sizeof(cdBuf), "%.1f", cd);
+                    int cdFontSize = 26;
+                    Vector2 cdSz = MeasureTextEx(GetOrLoad(FontId::LOADING_TITLE), cdBuf, cdFontSize, 0);
+                    DrawTextEx(GetOrLoad(FontId::LOADING_TITLE), cdBuf, Vector2{slotRect.x + (slotRect.width - cdSz.x) / 2.0f, slotRect.y + (slotRect.height - cdSz.y) / 2.0f}, cdFontSize, 0, WHITE);
+                }
             }
         }
 
         if (isHovered && mousePressed && dragSlot == -1 && !isDragSplit && item.definitionId != -1)
         {
-            if (InputInstance.IsCtrlDown()) HandleMergeStack(globalIdx);
-            else { dragSlot = globalIdx; dragItem = item; }
+            if (InputInstance.IsCtrlDown())
+                HandleMergeStack(globalIdx);
+            else
+            {
+                dragSlot = globalIdx;
+                dragItem = item;
+            }
         }
         if (isHovered && mouseReleased && dragSlot != -1 && dragSlot != globalIdx && !isDragSplit)
-        { HandleDrop(globalIdx); dragHandled = true; }
+        {
+            HandleDrop(globalIdx);
+            dragHandled = true;
+        }
         if (isHovered && mouseReleased && dragSlot == globalIdx)
-        { dragSlot = -1; dragItem = {-1, 0}; dragHandled = true; }
+        {
+            dragSlot = -1;
+            dragItem = {-1, 0};
+            dragHandled = true;
+        }
         HandleSplitDragSlot(globalIdx, slotRect, mousePos);
     }
 
@@ -520,10 +564,18 @@ void DrawInventory()
         Vector2 facingDir = {0, 0};
         switch (PlayerInstance.Anim.direction)
         {
-        case UP:    facingDir = {0, -1}; break;
-        case DOWN:  facingDir = {0, 1};  break;
-        case LEFT:  facingDir = {-1, 0}; break;
-        case RIGHT: facingDir = {1, 0};  break;
+        case UP:
+            facingDir = {0, -1};
+            break;
+        case DOWN:
+            facingDir = {0, 1};
+            break;
+        case LEFT:
+            facingDir = {-1, 0};
+            break;
+        case RIGHT:
+            facingDir = {1, 0};
+            break;
         }
         float dot = Vector2DotProduct(facingDir, aimDir);
         Vector2 dropDir = aimDir;
@@ -548,13 +600,13 @@ void DrawInventory()
 
     // "Press 'I' to Close" di-center pake MeasureTextEx
     {
-        Vector2 closeSz = MeasureTextEx(fontLoadingTitle, "Press 'I' to Close", 20, 0);
+        Vector2 closeSz = MeasureTextEx(GetOrLoad(FontId::LOADING_TITLE), "Press 'I' to Close", 20, 0);
         DrawTextHUD("Press 'I' to Close", (int)(GScreenWidth / 2.0f - closeSz.x / 2.0f), (int)(bgY + bgH + 15), 20, GRAY);
     }
 
-    // keybind hints (Merge, Split, Arrange, Drop) di kanan atas pakai fontLoadingTitle
+    // keybind hints (Merge, Split, Arrange, Drop) di kanan atas pakai GetOrLoad(FontId::LOADING_TITLE)
     {
-        const char* hints[] = {"[Left-Click Drag] Arrange", "[Ctrl+Click] Merge", "[Right-Click Drag] Split", "[Drop Outside Menu] Drop"};
+        const char *hints[] = {"[Left-Click Drag] Arrange", "[Ctrl+Click] Merge", "[Right-Click Drag] Split", "[Drop Outside Menu] Drop"};
         int hintCount = sizeof(hints) / sizeof(hints[0]);
         int hintFontSize = 25;
         float rightX = (float)GScreenWidth - 20.0f;
@@ -563,12 +615,12 @@ void DrawInventory()
 
         for (int i = 0; i < hintCount; i++)
         {
-            Vector2 hintSz = MeasureTextEx(fontLoadingTitle, hints[i], hintFontSize, 0);
+            Vector2 hintSz = MeasureTextEx(GetOrLoad(FontId::LOADING_TITLE), hints[i], hintFontSize, 0);
             float hintX = rightX - hintSz.x;
             DrawRectangleRounded(
                 (Rectangle){hintX - 4, hintY - 4, hintSz.x + 8, hintSz.y + 8},
                 0.3f, 8, ColorAlpha(BLACK, 0.8f));
-            DrawTextEx(fontLoadingTitle, hints[i], Vector2{hintX, hintY}, hintFontSize, 0, WHITE);
+            DrawTextEx(GetOrLoad(FontId::LOADING_TITLE), hints[i], Vector2{hintX, hintY}, hintFontSize, 0, WHITE);
             hintY += lineGap;
         }
     }
@@ -599,14 +651,14 @@ void DrawInventory()
         }
         if (hoveredId != -1)
         {
-            const char* itemName = itemDefs.GetById(hoveredId).name.c_str();
-            Vector2 nameSz = MeasureTextEx(fontLoadingTitle, itemName, 22, 0);
+            const char *itemName = itemDefs.GetById(hoveredId).name.c_str();
+            Vector2 nameSz = MeasureTextEx(GetOrLoad(FontId::LOADING_TITLE), itemName, 22, 0);
             float nameX = mousePos.x - nameSz.x / 2.0f;
             float nameY = mousePos.y - 40.0f;
             DrawRectangleRounded(
                 (Rectangle){nameX - 6, nameY - 4, nameSz.x + 12, nameSz.y + 8},
                 0.3f, 8, ColorAlpha(BLACK, 0.85f));
-            DrawTextEx(fontLoadingTitle, itemName, Vector2{nameX, nameY}, 22, 0, WHITE);
+            DrawTextEx(GetOrLoad(FontId::LOADING_TITLE), itemName, Vector2{nameX, nameY}, 22, 0, WHITE);
         }
     }
 }
@@ -634,11 +686,12 @@ static void DrawStatBar(Vector2 pos, float width, float height, float ratio, Col
     DrawRectangleRoundedLines((Rectangle){pos.x, pos.y, width, height}, 0.4f, 8, ColorAlpha(WHITE, 0.2f));
 
     char buffer[32];
-    sprintf(buffer, "%d", current);
-    int fontSize = 18;
-    int textX = (int)(pos.x + width + 15);
-    int textY = (int)(pos.y + (height - fontSize) / 2.0f);
-    DrawTextHUD(buffer, textX, textY, fontSize, WHITE);
+    int percent = (int)(ratio * 100.0f);
+    sprintf(buffer, "%d%%", percent);
+    int fontSize = 22;
+    float textX = pos.x + width + 15.0f;
+    float textY = pos.y + (height - (float)fontSize) / 2.0f;
+    DrawTextEx(GetOrLoad(FontId::LOADING_TITLE), buffer, Vector2{textX, textY}, fontSize, 0, WHITE);
 }
 
 /**
@@ -647,7 +700,8 @@ static void DrawStatBar(Vector2 pos, float width, float height, float ratio, Col
  */
 void DrawHotbar()
 {
-    if (InputInstance.IsInventoryOpen()) return;
+    if (InputInstance.IsInventoryOpen())
+        return;
 
     const float slotSize = 55.0f;
     const float padding = 10.0f;
@@ -691,27 +745,42 @@ void DrawHotbar()
                 iconDrawSize, iconDrawSize};
             DrawItemIcon(item, dest);
 
-            // stack amount hotbar (tertutup): fontLoadingTitle 16px
+            // stack amount hotbar (tertutup): GetOrLoad(FontId::LOADING_TITLE) 16px
             if (item.amount > 0)
             {
                 char amtBuf[12];
                 sprintf(amtBuf, "%d", item.amount);
                 int fontSize = 16;
-                Vector2 textSz = MeasureTextEx(fontLoadingTitle, amtBuf, fontSize, 0);
+                Vector2 textSz = MeasureTextEx(GetOrLoad(FontId::LOADING_TITLE), amtBuf, fontSize, 0);
                 DrawTextHUD(amtBuf, (int)(slotRect.x + slotRect.width - textSz.x - 4), (int)(slotRect.y + slotRect.height - textSz.y - 2), fontSize, WHITE);
             }
 
             const ItemDefinition &def = itemDefs.GetById(item.definitionId);
-            if (def.category == ITEM_POTION && PlayerInstance.PotionCooldown > 0.0f && PlayerInstance.PotionCooldownMax > 0.0f)
+            if (def.category == ITEM_POTION || def.category == ITEM_POISON)
             {
-                float ratio = PlayerInstance.PotionCooldown / PlayerInstance.PotionCooldownMax;
-                float startAngle = 270.0f;
-                float endAngle = 270.0f + (360.0f * ratio);
-                Vector2 center = {
-                    slotRect.x + slotRect.width / 2.0f,
-                    slotRect.y + slotRect.height / 2.0f
-                };
-                DrawCircleSector(center, iconDrawSize / 2.0f + 4.0f, startAngle, endAngle, 36, ColorAlpha(BLACK, 0.65f));
+                const PotionData &potion = std::get<PotionData>(def.data);
+                PotionCategory cat = potion.potionCategory;
+                if (PlayerInstance.PotionCategoryCooldowns[cat] > 0.0f && PlayerInstance.PotionCategoryCooldownMax[cat] > 0.0f)
+                {
+                    float ratio = PlayerInstance.PotionCategoryCooldowns[cat] / PlayerInstance.PotionCategoryCooldownMax[cat];
+                    float startAngle = 270.0f;
+                    float endAngle = 270.0f + (360.0f * ratio);
+                    Vector2 center = {
+                        slotRect.x + slotRect.width / 2.0f,
+                        slotRect.y + slotRect.height / 2.0f};
+                    DrawCircleSector(center, iconDrawSize / 2.0f + 4.0f, startAngle, endAngle, 36, ColorAlpha(BLACK, 0.65f));
+
+                    // Teks sisa cooldown
+                    char cdBuf[16];
+                    float cd = PlayerInstance.PotionCategoryCooldowns[cat];
+                    if (cd >= 1.0f)
+                        snprintf(cdBuf, sizeof(cdBuf), "%d", (int)cd);
+                    else
+                        snprintf(cdBuf, sizeof(cdBuf), "%.1f", cd);
+                    int cdFontSize = 22;
+                    Vector2 cdSz = MeasureTextEx(GetOrLoad(FontId::LOADING_TITLE), cdBuf, cdFontSize, 0);
+                    DrawTextEx(GetOrLoad(FontId::LOADING_TITLE), cdBuf, Vector2{slotRect.x + (slotRect.width - cdSz.x) / 2.0f, slotRect.y + (slotRect.height - cdSz.y) / 2.0f}, cdFontSize, 0, WHITE);
+                }
             }
         }
 
@@ -736,6 +805,106 @@ void DrawHotbar()
 
             HandleSplitDragSlot(globalIdx, slotRect, mousePos);
         }
+    }
+}
+
+/*==============================================================================
+ * DrawBuffIndicators — Menampilkan indikator buff aktif (progress bar + sprite)
+ *==============================================================================*/
+
+// Stacked progress bars di atas health bar
+// Format per entry: [sprite 18px] ▓▓▓▓▓▓▓▓▓▓░░░  5s
+static void DrawBuffIndicators()
+{
+    const float barsX = 30.0f;
+    const float barHeight = 22.0f;
+    const float padding = 30.0f;
+    const float gap = 8.0f;
+    const float dashBarHeight = 6.0f;
+
+    float dashPosY = (float)GameScreenHeight - padding - dashBarHeight;
+    float manaPosY = dashPosY - gap - barHeight;
+    float healthPosY = manaPosY - gap - barHeight;
+
+    struct
+    {
+        const char *spriteKey;
+        float *timer;
+        float *maxTimer;
+        Color barColor;
+    } buffs[] = {
+        {"damagePotionMedium", &PlayerInstance.BuffDamageTimer, &PlayerInstance.BuffDamageTimerMax, Color{255, 106, 0, 255}},
+        {"speedPotionMedium", &PlayerInstance.BuffSpeedTimer, &PlayerInstance.BuffSpeedTimerMax, Color{0, 255, 233, 255}},
+        {"invincibilityPotionMedium", &PlayerInstance.InvincibilityTimer, &PlayerInstance.InvincibilityTimerMax, Color{142, 167, 178, 255}},
+    };
+
+    // Hitung jumlah buff aktif
+    int activeCount = 0;
+    for (int i = 0; i < 3; i++)
+    {
+        if (*buffs[i].timer > 0.0f)
+            activeCount++;
+    }
+    if (activeCount == 0)
+        return;
+
+    // Ukuran entry
+    const float buffBarWidth = 150.0f;
+    const float buffBarHeight = 18.0f;
+    const float buffGap = 4.0f;
+    const float spriteSize = 30.0f;
+    const float entryHeight = buffBarHeight + buffGap;
+    const float totalHeight = activeCount * entryHeight - buffGap;
+
+    float y = healthPosY - gap - totalHeight;
+
+    for (int i = 0; i < 3; i++)
+    {
+        if (*buffs[i].timer <= 0.0f)
+            continue;
+
+        float x = barsX;
+
+        // Sprite
+        const Frame &frame = GetFrame(buffs[i].spriteKey);
+        Rectangle src = {
+            (float)(frame.positionX * (FRAME_SIZE + FRAME_GAP)),
+            (float)(frame.positionY * (FRAME_SIZE + FRAME_GAP)),
+            (float)(frame.width * FRAME_SIZE),
+            (float)(frame.height * FRAME_SIZE)};
+        int maxDim = (src.width > src.height) ? (int)src.width : (int)src.height;
+        float scale = spriteSize / maxDim;
+        float rw = src.width * scale;
+        float rh = src.height * scale;
+        Rectangle dest = {
+            x + (spriteSize - rw) / 2.0f,
+            y + (buffBarHeight - rh) / 2.0f, rw, rh};
+        DrawTexturePro(textures[frame.texture], src, dest, {0, 0}, 0, WHITE);
+
+        float barX = x + spriteSize + 6.0f;
+
+        // Bar background
+        DrawRectangleRounded((Rectangle){barX, y, buffBarWidth, buffBarHeight}, 0.5f, 8, DARKGRAY);
+
+        // Bar fill
+        float ratio = (*buffs[i].maxTimer > 0.0f) ? *buffs[i].timer / *buffs[i].maxTimer : 0.0f;
+        if (ratio > 0.0f)
+        {
+            DrawRectangleRounded((Rectangle){barX, y, buffBarWidth * ratio, buffBarHeight}, 0.5f, 8, buffs[i].barColor);
+            DrawRectangleRounded((Rectangle){barX, y, buffBarWidth * ratio, buffBarHeight * 0.4f}, 0.5f, 8, ColorAlpha(WHITE, 0.15f));
+        }
+
+        // Timer text di samping bar
+        char cdBuf[16];
+        if (*buffs[i].timer >= 1.0f)
+            snprintf(cdBuf, sizeof(cdBuf), "%ds", (int)*buffs[i].timer);
+        else
+            snprintf(cdBuf, sizeof(cdBuf), "%.1fs", *buffs[i].timer);
+        int fontSize = 22;
+        Vector2 cdSz = MeasureTextEx(GetOrLoad(FontId::LOADING_TITLE), cdBuf, fontSize, 0);
+        DrawTextEx(GetOrLoad(FontId::LOADING_TITLE), cdBuf, Vector2{barX + buffBarWidth + 8.0f, y + (buffBarHeight - cdSz.y) / 2.0f}, fontSize, 0, WHITE);
+
+        y += entryHeight;
     }
 }
 
@@ -783,7 +952,7 @@ void DrawPlayerHUD()
 
     float barsX = padding;
     const float dashBarHeight = 6.0f;
-    
+
     Vector2 dashPos = {barsX, (float)GScreenHeight - padding - dashBarHeight};
     Vector2 manaPos = {barsX, dashPos.y - gap - barHeight};
     Vector2 healthPos = {barsX, manaPos.y - gap - barHeight};
@@ -793,53 +962,68 @@ void DrawPlayerHUD()
     DrawStatBar(manaPos, barWidth, barHeight, manaRatio, GOLD, (int)mana);
 
     float dashCooldownRatio = 1.0f;
-    if (PlayerInstance.DashCooldownMax > 0.0f) {
+    if (PlayerInstance.DashCooldownMax > 0.0f)
+    {
         float currentCd = PlayerInstance.DashCooldown < 0.0f ? 0.0f : PlayerInstance.DashCooldown;
         dashCooldownRatio = 1.0f - (currentCd / PlayerInstance.DashCooldownMax);
     }
-    
+
     DrawRectangleRounded((Rectangle){dashPos.x, dashPos.y, barWidth, dashBarHeight}, 0.5f, 8, DARKGRAY);
     if (dashCooldownRatio > 0.0f)
         DrawRectangleRounded((Rectangle){dashPos.x, dashPos.y, barWidth * dashCooldownRatio, dashBarHeight}, 0.5f, 8, SKYBLUE);
 
+    DrawBuffIndicators();
     DrawHotbar();
     DrawInventory();
     if (InputInstance.IsInventoryOpen())
         DrawDragGhost(GetVirtualMousePosition(gState));
 
-    if (!InputInstance.IsInventoryOpen()) {
-        struct Hint { Action action; const char* keyName; const char* label; bool isCustom; };
+    if (!InputInstance.IsInventoryOpen())
+    {
+        struct Hint
+        {
+            Action action;
+            const char *keyName;
+            const char *label;
+            bool isCustom;
+        };
         Hint hints[] = {
-            {INTERACT,         nullptr, "Interact",      false},
-            {TOGGLE_INVENTORY, nullptr, "Inventory",     false},
-            {DROP_ITEM,        nullptr, "Drop Item",     false},
-            {DROP_ALL,         nullptr, "Drop All",      false},
-            {PAUSE_MENU,       nullptr, "Pause",         false},
-            {ACTION_COUNT,     "Scroll", "Switch Item",  true},
+            {INTERACT, nullptr, "Interact", false},
+            {TOGGLE_INVENTORY, nullptr, "Inventory", false},
+            {DROP_ITEM, nullptr, "Drop Item", false},
+            {DROP_ALL, nullptr, "Drop All", false},
+            {PAUSE_MENU, nullptr, "Pause", false},
+            {ACTION_COUNT, "Scroll", "Switch Item", true},
         };
         int hintFontSize = 22;
         float rightX = (float)GScreenWidth - 20.0f;
         float hintY = 20.0f;
         float lineGap = 28.0f;
 
-        for (const auto& h : hints) {
+        for (const auto &h : hints)
+        {
             std::string text;
-            if (h.isCustom) {
+            if (h.isCustom)
+            {
                 text = std::string("[") + h.keyName + "] " + h.label;
-            } else if (h.action == DROP_ALL) {
-                const char* mod = keybindManager.GetKeyDisplayName(DROP_ALL);
-                const char* key = keybindManager.GetKeyDisplayName(DROP_ITEM);
+            }
+            else if (h.action == DROP_ALL)
+            {
+                const char *mod = keybindManager.GetKeyDisplayName(DROP_ALL);
+                const char *key = keybindManager.GetKeyDisplayName(DROP_ITEM);
                 text = std::string("[") + mod + "+" + key + "] " + h.label;
-            } else {
-                const char* keyName = keybindManager.GetKeyDisplayName(h.action);
+            }
+            else
+            {
+                const char *keyName = keybindManager.GetKeyDisplayName(h.action);
                 text = std::string("[") + keyName + "] " + h.label;
             }
-            Vector2 sz = MeasureTextEx(fontLoadingTitle, text.c_str(), hintFontSize, 0);
+            Vector2 sz = MeasureTextEx(GetOrLoad(FontId::LOADING_TITLE), text.c_str(), hintFontSize, 0);
             float hintX = rightX - sz.x;
             DrawRectangleRounded(
                 (Rectangle){hintX - 4, hintY - 4, sz.x + 8, sz.y + 8},
                 0.3f, 8, ColorAlpha(BLACK, 0.8f));
-            DrawTextEx(fontLoadingTitle, text.c_str(), Vector2{hintX, hintY}, hintFontSize, 0, WHITE);
+            DrawTextEx(GetOrLoad(FontId::LOADING_TITLE), text.c_str(), Vector2{hintX, hintY}, hintFontSize, 0, WHITE);
             hintY += lineGap;
         }
     }
@@ -871,8 +1055,7 @@ void DrawSignDialog()
         GScreenWidth * 0.1f,
         GScreenHeight * 0.6f,
         GScreenWidth * 0.8f,
-        GScreenHeight * 0.3f
-    };
+        GScreenHeight * 0.3f};
     DrawRectangleRounded(box, 0.15f, 8, ColorAlpha(DARKGRAY, 0.95f));
     DrawRectangleRoundedLines(box, 0.15f, 8, WHITE);
 
@@ -880,9 +1063,145 @@ void DrawSignDialog()
     float lineY = box.y + 16;
     for (const auto &line : lines)
     {
-        DrawText(line.c_str(), (int)box.x + 16, (int)lineY, 16, WHITE);
+        DrawDefaultText(line.c_str(), (int)box.x + 16, (int)lineY, 16, WHITE);
         lineY += 22;
     }
 
-    DrawText("[Klik kiri] untuk tutup", (int)box.x + (int)box.width - 140, (int)box.y + (int)box.height - 20, 10, GRAY);
+    DrawDefaultText("[Klik kiri] untuk tutup", (int)box.x + (int)box.width - 140, (int)box.y + (int)box.height - 20, 10, GRAY);
+}
+
+/*==============================================================================
+ * Boss Music (Ambient)
+ *==============================================================================*/
+
+void UpdateBossMusic()
+{
+    static bool s_BossMusicActive = false;
+
+    // Player mati — clear flag, biar AudioManager::Update() handle auto-switch screen
+    if (PlayerInstance.Anim.isDead)
+    {
+        s_BossMusicActive = false;
+        return;
+    }
+
+    // Clear block kalo combat udah selesai — biar auto-switch normal kembali
+    if (!TurnCombat::IsActive())
+        AudioManager::UnblockAutoSwitch();
+
+    auto &enemyReg = Entities::GetEnemyRegistry();
+    Enemy *boss = nullptr;
+    for (auto *enemy : enemyReg)
+    {
+        if (enemy->IsActive && enemy->rank == ENEMY_BOSS && enemy->Health > 0)
+        {
+            boss = enemy;
+            break;
+        }
+    }
+
+    if (!boss)
+    {
+        if (s_BossMusicActive)
+        {
+            // Jangan reset kalo lagi VICTORY phase — biar WinTheme jalan
+            bool inVictory = TurnCombat::IsActive() && TurnCombat::GetPhase() == TurnPhase::VICTORY;
+            if (inVictory)
+            {
+                AudioManager::BlockAutoSwitch();
+            }
+            else
+            {
+                AudioManager::ResetToScreenTrack();
+            }
+            s_BossMusicActive = false;
+        }
+        return;
+    }
+
+    bool inRange = Vector2Distance(boss->GetCenter(), PlayerInstance.GetCenter()) <= boss->DetectionRange;
+    bool inPrefab = IsCellTypeAtWorldPos(PlayerInstance.GetCenter(), CELL_BOSS);
+    bool inCombat = TurnCombat::IsActive();
+    bool shouldPlay = inRange || inPrefab || inCombat;
+
+    if (shouldPlay && !s_BossMusicActive)
+    {
+        AudioManager::PlayTrack("Boss");
+        s_BossMusicActive = true;
+    }
+    else if (!shouldPlay && s_BossMusicActive)
+    {
+        AudioManager::ResetToScreenTrack();
+        s_BossMusicActive = false;
+    }
+}
+
+/*==============================================================================
+ * Boss HP Bar
+ *==============================================================================*/
+
+/**
+ * @brief Render boss HP bar di tengah bawah layar.
+ * Cari enemy aktif dengan rank ENEMY_BOSS, tampilkan nama + bar + HP%.
+ */
+void DrawBossHPBar()
+{
+    auto &enemyReg = Entities::GetEnemyRegistry();
+    Enemy *boss = nullptr;
+    for (auto *enemy : enemyReg)
+    {
+        if (enemy->IsActive && enemy->rank == ENEMY_BOSS && enemy->Health > 0)
+        {
+            boss = enemy;
+            break;
+        }
+    }
+    if (!boss)
+        return;
+
+    // Trigger: nongol kalo player dalam detection range ATAU di prefab room boss
+    bool inDetectionRange = Vector2Distance(boss->GetCenter(), PlayerInstance.GetCenter()) <= boss->DetectionRange;
+    bool inBossPrefab = IsCellTypeAtWorldPos(PlayerInstance.GetCenter(), CELL_BOSS);
+    if (!inDetectionRange && !inBossPrefab)
+        return;
+
+    const float barWidth = 400.0f;
+    const float barHeight = 18.0f;
+    const float centerX = (float)GameScreenWidth / 2.0f;
+    const float barY = 75.0f;
+
+    float maxHealth = boss->MaxHealth;
+    float ratio = (maxHealth > 0) ? boss->Health / maxHealth : 0;
+
+    // Nama boss di atas bar
+    const char *bossName = boss->Name.c_str();
+    int nameFontSize = 28;
+    Vector2 nameSz = MeasureTextEx(GetOrLoad(FontId::LOADING_TITLE), bossName, nameFontSize, 0);
+    DrawTextEx(GetOrLoad(FontId::LOADING_TITLE), bossName,
+               Vector2{centerX - nameSz.x / 2.0f, barY - nameSz.y - 6.0f},
+               nameFontSize, 0, WHITE);
+
+    // Background bar
+    Rectangle barBg = {centerX - barWidth / 2.0f, barY, barWidth, barHeight};
+    DrawRectangleRounded(barBg, 0.4f, 8, DARKGRAY);
+
+    // Fill bar (dark red)
+    if (ratio > 0)
+    {
+        Rectangle barFill = {centerX - barWidth / 2.0f, barY, barWidth * ratio, barHeight};
+        DrawRectangleRounded(barFill, 0.4f, 8, (Color){125, 15, 15, 255});
+        DrawRectangleRounded((Rectangle){centerX - barWidth / 2.0f, barY, barWidth * ratio, barHeight * 0.4f},
+                             0.4f, 8, ColorAlpha(WHITE, 0.1f));
+    }
+    DrawRectangleRoundedLines(barBg, 0.4f, 8, ColorAlpha(WHITE, 0.2f));
+
+    // HP% counter di kanan bar
+    char hpBuf[16];
+    int percent = (int)(ratio * 100.0f);
+    snprintf(hpBuf, sizeof(hpBuf), "%d%%", percent);
+    int hpFontSize = 24;
+    Vector2 hpSz = MeasureTextEx(GetOrLoad(FontId::LOADING_TITLE), hpBuf, hpFontSize, 0);
+    DrawTextEx(GetOrLoad(FontId::LOADING_TITLE), hpBuf,
+               Vector2{centerX + barWidth / 2.0f + 12.0f, barY + (barHeight - (float)hpFontSize) / 2.0f},
+               hpFontSize, 0, WHITE);
 }

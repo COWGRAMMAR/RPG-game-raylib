@@ -59,8 +59,9 @@ public:
 
     /**
      * @brief Menampilkan layar options
+     * @param state Pointer ke GameState (untuk sync variabel)
      */
-    void Show();
+    void Show(GameState* state);
 
     /**
      * @brief Menyembunyikan layar options

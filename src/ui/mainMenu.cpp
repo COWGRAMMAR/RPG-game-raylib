@@ -71,6 +71,7 @@ void InitMainMenu(GameState *state)
     logoTexture = LoadTextureFromImage(logoImg);
     UnloadImage(logoImg);
 
+    // Konfigurasi individu untuk setiap tombol (path, scale, yOffset)
     int startY = (GScreenHeight / 2) + BTN_START_OFFSET;
     for (int i = 0; i < 4; i++)
     {
@@ -111,33 +112,36 @@ void UpdateMainMenu(GameState *state)
     Vector2 mousePosition = GetVirtualMousePosition(state);
     bool mouseClicked = IsMouseButtonPressed(MOUSE_LEFT_BUTTON);
 
-    for (int i = 0; i < 4; i++) {
-        if (buttons[i].isClicked(mousePosition, mouseClicked)) {
-            switch (i) {
-                case 0:  // Start Game - langsung mulai baru tanpa popup
-                    SetActiveSlot(0);
-                    ResetMemoryState();
-                    ResetWorldseed(0);
-                    Entities::ClearDeadEntities();
-                    std::filesystem::remove_all("saves/slot_0/enemies");
-                    std::filesystem::remove_all("saves/slot_0/items");
-                    state->enteredLoading = false;
-                    state->currentScreen = LOADING;
-                    break;
-                case 1:  // Load Game — buka SaveLoadScreen dalam mode load
-                    state->previousScreen = MAIN_MENU;
-                    saveLoadScreen.SetMode(SaveLoadMode::LOAD_MODE);
-                    state->currentScreen = SAVE_LOAD;
-                    break;
-                case 2:  // Options
-                    state->previousScreen = MAIN_MENU;
-                    state->currentScreen = OPTIONS;
-                    break;
-                case 3:  // Quit
-                    CloseWindow();
-                    break;
-                default:
-                    break;
+    for (int i = 0; i < 4; i++)
+    {
+        if (buttons[i].isClicked(mousePosition, mouseClicked))
+        {
+            switch (i)
+            {
+            case 0: // Start Game - langsung mulai baru tanpa popup
+                SetActiveSlot(0);
+                ResetMemoryState();
+                ResetWorldseed(0);
+                Entities::ClearDeadEntities();
+                std::filesystem::remove_all("saves/slot_0/enemies");
+                std::filesystem::remove_all("saves/slot_0/items");
+                state->enteredLoading = false;
+                state->currentScreen = LOADING;
+                break;
+            case 1: // Load Game — buka SaveLoadScreen dalam mode load
+                state->previousScreen = MAIN_MENU;
+                saveLoadScreen.SetMode(SaveLoadMode::LOAD_MODE);
+                state->currentScreen = SAVE_LOAD;
+                break;
+            case 2: // Options
+                state->previousScreen = MAIN_MENU;
+                state->currentScreen = OPTIONS;
+                break;
+            case 3: // Quit
+                CloseWindow();
+                break;
+            default:
+                break;
             }
         }
     }
@@ -179,9 +183,12 @@ void UpdateMainMenu(GameState *state)
     // tetap aktif dan muncul kembali saat player kembali ke main menu.
     if (state->currentScreen != MAIN_MENU)
     {
-        if (loadPopup.IsActive()) loadPopup.Hide();
-        if (mainNoSavePopup.IsActive()) mainNoSavePopup.Hide();
-        if (mainCorruptPopup.IsActive()) mainCorruptPopup.Hide();
+        if (loadPopup.IsActive())
+            loadPopup.Hide();
+        if (mainNoSavePopup.IsActive())
+            mainNoSavePopup.Hide();
+        if (mainCorruptPopup.IsActive())
+            mainCorruptPopup.Hide();
     }
 }
 
@@ -209,13 +216,16 @@ void RenderMainMenuToVirtualScreen(GameState *state)
     }
 
     // Render popups
-    if (loadPopup.IsActive()) {
+    if (loadPopup.IsActive())
+    {
         loadPopup.Draw(virtualMouse);
     }
-    if (mainNoSavePopup.IsActive()) {
+    if (mainNoSavePopup.IsActive())
+    {
         mainNoSavePopup.Draw(virtualMouse);
     }
-    if (mainCorruptPopup.IsActive()) {
+    if (mainCorruptPopup.IsActive())
+    {
         mainCorruptPopup.Draw(virtualMouse);
     }
 

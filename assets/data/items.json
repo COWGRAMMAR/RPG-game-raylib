@@ -10,7 +10,7 @@
       "isStackable": false,
       "maxStack": 1,
       "weapon": {
-        "damage": 25.0,
+        "damage": 45.0,
         "reach": 36.0,
         "breadth": 54.0,
         "duration": 0.3,
@@ -32,7 +32,7 @@
       "isStackable": false,
       "maxStack": 1,
       "weapon": {
-        "damage": 35.0,
+        "damage": 50.0,
         "reach": 48.0,
         "breadth": 70.0,
         "duration": 0.4,
@@ -56,7 +56,8 @@
       "potion": {
         "healValue": 20,
         "isMana": false,
-        "cooldown": 1.0
+        "cooldown": 1.0,
+        "potionCategory": "health"
       }
     },
     "staminaPotionSmall": {
@@ -71,7 +72,8 @@
       "potion": {
         "healValue": 15,
         "isMana": true,
-        "cooldown": 1.0
+        "cooldown": 1.0,
+        "potionCategory": "stamina"
       }
     },
     "bow": {
@@ -84,7 +86,7 @@
       "isStackable": false,
       "maxStack": 1,
       "weapon": {
-        "damage": 20.0,
+        "damage": 55.0,
         "reach": 225.0,
         "breadth": 8.0,
         "duration": 0.4,
@@ -108,7 +110,8 @@
       "potion": {
         "healValue": 50,
         "isMana": false,
-        "cooldown": 5.0
+        "cooldown": 5.0,
+        "potionCategory": "health"
       }
     },
     "staminaPotionMedium": {
@@ -123,7 +126,8 @@
       "potion": {
         "healValue": 40,
         "isMana": true,
-        "cooldown": 5.0
+        "cooldown": 5.0,
+        "potionCategory": "stamina"
       }
     },
     "healthPotionLarge": {
@@ -138,7 +142,8 @@
       "potion": {
         "healValue": 100,
         "isMana": false,
-        "cooldown": 10.0
+        "cooldown": 10.0,
+        "potionCategory": "health"
       }
     },
     "staminaPotionLarge": {
@@ -153,7 +158,8 @@
       "potion": {
         "healValue": 80,
         "isMana": true,
-        "cooldown": 10.0
+        "cooldown": 10.0,
+        "potionCategory": "stamina"
       }
     },
     "damagePotionSmall": {
@@ -170,7 +176,8 @@
         "isMana": false,
         "damageMultiplier": 1.25,
         "duration": 30.0,
-        "cooldown": 5.0
+        "cooldown": 5.0,
+        "potionCategory": "damage"
       }
     },
     "damagePotionMedium": {
@@ -187,7 +194,8 @@
         "isMana": false,
         "damageMultiplier": 1.5,
         "duration": 45.0,
-        "cooldown": 10.0
+        "cooldown": 10.0,
+        "potionCategory": "damage"
       }
     },
     "speedPotionSmall": {
@@ -204,7 +212,8 @@
         "isMana": false,
         "speedMultiplier": 1.125,
         "duration": 20.0,
-        "cooldown": 5.0
+        "cooldown": 5.0,
+        "potionCategory": "speed"
       }
     },
     "speedPotionMedium": {
@@ -221,7 +230,8 @@
         "isMana": false,
         "speedMultiplier": 1.25,
         "duration": 35.0,
-        "cooldown": 10.0
+        "cooldown": 10.0,
+        "potionCategory": "speed"
       }
     },
     "invincibilityPotionSmall": {
@@ -238,7 +248,8 @@
         "isMana": false,
         "invincibilityDuration": 5.0,
         "duration": 5.0,
-        "cooldown": 5.0
+        "cooldown": 5.0,
+        "potionCategory": "invincibility"
       }
     },
     "invincibilityPotionMedium": {
@@ -255,7 +266,8 @@
         "isMana": false,
         "invincibilityDuration": 10.0,
         "duration": 10.0,
-        "cooldown": 10.0
+        "cooldown": 10.0,
+        "potionCategory": "invincibility"
       }
     },
     "ak47": {
@@ -268,7 +280,7 @@
       "isStackable": false,
       "maxStack": 1,
       "weapon": {
-        "damage": 20.0,
+        "damage": 70.0,
         "reach": 300.0,
         "breadth": 10.0,
         "duration": 0.2,
@@ -290,7 +302,7 @@
       "isStackable": false,
       "maxStack": 1,
       "weapon": {
-        "damage": 35.0,
+        "damage": 55.0,
         "reach": 80.0,
         "breadth": 20.0,
         "duration": 0.35,
@@ -312,7 +324,7 @@
       "isStackable": false,
       "maxStack": 1,
       "weapon": {
-        "damage": 40.0,
+        "damage": 55.0,
         "reach": 48.0,
         "breadth": 70.0,
         "duration": 0.4,
@@ -334,7 +346,7 @@
       "isStackable": false,
       "maxStack": 1,
       "weapon": {
-        "damage": 60.0,
+        "damage": 65.0,
         "reach": 64.0,
         "breadth": 64.0,
         "duration": 0.5,

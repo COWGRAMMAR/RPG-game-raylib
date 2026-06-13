@@ -26,8 +26,8 @@ enum Action {
     TOGGLE_MAP,
     DROP_ITEM,
     DROP_ALL,
-    PRIMARY_ATTACK,
-    DASH_DRINK,
+    ATTACK_DRINK,
+    DASH,
     // Hotbar selection
     HOTBAR_SLOT_1,
     HOTBAR_SLOT_2,
@@ -93,6 +93,12 @@ public:
 
     /** @brief Get human-readable display name of the bound key (e.g. "E", "Left Ctrl") */
     const char* GetKeyDisplayName(Action action) const;
+
+    /** @brief Find which action uses a given keycode/mouse combination */
+    Action FindActionByKeycode(int keyCode, bool isMouse) const;
+
+    /** @brief Get human-readable name for a raw input (keycode + mouse flag) */
+    static const char* GetInputDisplayName(int keyCode, bool isMouse);
 
     /** @brief Get human-readable action name (e.g. "Interact", "Move Up") */
     const char* GetActionName(Action action) const;

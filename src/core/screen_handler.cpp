@@ -132,7 +132,6 @@ static std::string ToLower(std::string str)
     return str;
 }
 
-
 /**
  * @brief Inisialisasi window, audio, dan render texture seukuran window
  *
@@ -240,7 +239,7 @@ void UpdateLogicAll()
     if (TurnCombat::IsActive())
     {
         TurnCombat::Update();
-        Effects::Update(GetFrameTime());
+        Effects::Update(Time::DELTA_TIME);
     }
     else
     {
@@ -368,7 +367,7 @@ void UpdateLogicAll()
                 TraceLog(LOG_INFO, "PICKUP: added to inventory");
                 item.isAdded = true;
                 AudioManager::PlaySFX("pickup-item");
-                
+
                 const ItemDefinition &def = itemDefs.GetById(item.definitionId);
                 std::string logMsg = def.name;
                 if (item.amount > 1)
@@ -379,7 +378,7 @@ void UpdateLogicAll()
             }
             else
             {
-                TraceLog(LOG_INFO, "PICKUP: inventory full");
+                TraceLog(LOG_INFO, "PICKUP: Inventory full");
                 item.isPickedUp = false; // balik ke world
 
                 static float lastInventoryFullTime = 0.0f;
@@ -441,6 +440,7 @@ void DrawRenderTexture(GameState *state)
 void DrawUIOverlay(GameState *state)
 {
     DrawPlayerHUD();
+    DrawBossHPBar();
 
     // 2. FPS Counter (if enabled)
     if (state->showFPS)
@@ -448,7 +448,7 @@ void DrawUIOverlay(GameState *state)
         int fps = GetFPS();
         char fpsText[16];
         snprintf(fpsText, sizeof(fpsText), "FPS: %d", fps);
-        DrawText(fpsText, 10, 10, 20, GREEN);
+        DrawDefaultText(fpsText, 10, 10, 20, GREEN);
     }
 
     // 3. Sign dialog overlay (placeholder UI)

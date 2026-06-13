@@ -27,6 +27,7 @@
 #include "core/utils.h"
 #include "audioManager.h"
 #include <map>
+#include <random>
 #include "core/game_state_saver.h"
 #include <cmath>
 #include <fstream>
@@ -117,6 +118,8 @@ void EnemyDataManager::Load(const std::string &path)
         def.hitbox.offset = ParseVector2(h.at("offset"));
 
         def.Scale = SafeGet<float>(data, "scale", 1.0f);
+        def.potionWeight = SafeGet<int>(data, "potionWeight", 5);
+        def.weaponWeight = SafeGet<int>(data, "weaponWeight", 5);
         def.animSet = ResolveAnimSet(name);
 
         definitions_[name] = std::move(def);
@@ -193,6 +196,8 @@ void Enemy::Init(Vector2 pos, const char *name, int mapId, const EnemyDefinition
     DetectionRange = def.stats.baseDetectionRange;
     HealthRegenTimer = 0.0f;
     PatrolTimer = 0.0f;
+    PatrolFailCount = 0;
+    PatrolStuckTimer = 0;
     AttackCooldownTimer = 0.0f;
     HitFlashTimer = 0.0f;
     KnockbackVelocity = {0, 0};
@@ -219,6 +224,8 @@ void Enemy::Update()
 
     if (Health <= 0)
     {
+        HealthBarTimer = 0.0f; // Langsung matikan health bar sebelum death anim
+
         if (Anim.state != DEAD)
         {
             PlayAnimation(Anim, DEAD, Anim.direction);
@@ -226,13 +233,48 @@ void Enemy::Update()
             DetectionRange = Def->stats.baseDetectionRange;
             Entities::RegisterDeathByUUID(GetCurrentMapPath(), GetUUID());
 
-            if (!Def->stats.canTriggerTurnBased) {
-                if (rank == ENEMY_ELITE) {
-                    static const std::map<ItemRarity, int> eliteWeights = {{RARITY_UNCOMMON, 70}, {RARITY_RARE, 30}};
-                    itemData.SpawnItemAtLocation(Position, eliteWeights);
-                } else {
-                    static const std::map<ItemRarity, int> normalWeights = {{RARITY_COMMON, 80}, {RARITY_UNCOMMON, 20}};
-                    itemData.SpawnItemAtLocation(Position, normalWeights);
+            if (!Def->stats.canTriggerTurnBased)
+            {
+                // Loot pipeline: dropChance → rollCategory → rollRarity → spawn
+                static std::mt19937 lootRng(std::random_device{}());
+
+                // Drop chance per rank
+                float dropChance = (rank == ENEMY_ELITE) ? LOOT_DROP_CHANCE_ELITE : LOOT_DROP_CHANCE_NORMAL;
+                std::uniform_real_distribution<float> chanceDist(0.0f, 1.0f);
+                bool shouldDrop = chanceDist(lootRng) <= dropChance;
+
+                if (shouldDrop)
+                {
+                    // Roll kategori (potion vs weapon)
+                    int totalWeight = Def->potionWeight + Def->weaponWeight;
+                    if (totalWeight <= 0)
+                        totalWeight = 1;
+                    std::uniform_int_distribution<int> catDist(0, totalWeight - 1);
+                    ItemCategory category = (catDist(lootRng) < Def->potionWeight) ? ITEM_POTION : ITEM_WEAPON;
+
+                    // Roll rarity per rank
+                    static const std::map<ItemRarity, int> normalRarity = {{RARITY_COMMON, LOOT_RARITY_COMMON}, {RARITY_UNCOMMON, LOOT_RARITY_UNCOMMON}};
+                    static const std::map<ItemRarity, int> eliteRarity = {{RARITY_UNCOMMON, LOOT_RARITY_ELITE_UNCOMMON}, {RARITY_RARE, LOOT_RARITY_ELITE_RARE}};
+                    const auto &rarityWeights = (rank == ENEMY_ELITE) ? eliteRarity : normalRarity;
+
+                    Vector2 spawnPos = Position;
+                    Vector2 itemHS = itemDefs.GetMaxHitboxForCategory(category);
+                    float halfW = itemHS.x * 0.5f;
+                    float halfH = itemHS.y * 0.5f;
+                    float spread = 40.0f;
+                    for (int retry = 0; retry < 15; retry++)
+                    {
+                        Vector2 candidate = {
+                            Position.x + (float)GetRandomValue(-(int)spread, (int)spread),
+                            Position.y + (float)GetRandomValue(-(int)spread, (int)spread)};
+                        Vector2 topLeft = {candidate.x - halfW, candidate.y - halfH};
+                        if (IsPositionSafe(topLeft, itemHS.x, itemHS.y, 0, 0))
+                        {
+                            spawnPos = candidate;
+                            break;
+                        }
+                    }
+                    itemData.SpawnItemAtLocation(spawnPos, rarityWeights, category);
                 }
             }
         }
@@ -248,6 +290,8 @@ void Enemy::Update()
 
     if (HitFlashTimer > 0)
         HitFlashTimer -= Time::DELTA_TIME;
+    if (HealthBarTimer > 0)
+        HealthBarTimer -= Time::DELTA_TIME;
     if (AttackCooldownTimer > 0)
         AttackCooldownTimer -= Time::DELTA_TIME;
 
@@ -296,16 +340,10 @@ void Enemy::Update()
 void Enemy::UpdateAI()
 {
     // Turn-based trigger: boss dengan HP ≤ 50% memicu combat turn-based
-    if (Def->stats.canTriggerTurnBased) {
-        bool belowHalf = (Health <= MaxHealth * 0.5f);
-        if (belowHalf && !bossMusicPlaying) {
-            AudioManager::PlayTrack("Boss");
-            bossMusicPlaying = true;
-        } else if (!belowHalf && bossMusicPlaying) {
-            AudioManager::StopMusic();
-            bossMusicPlaying = false;
-        }
-        isTurnBasedMode = belowHalf;
+    // Catatan: boss music ambient di-handle oleh UpdateBossMusic() di hud.cpp
+    if (Def->stats.canTriggerTurnBased)
+    {
+        isTurnBasedMode = (Health <= MaxHealth * 0.5f);
     }
 
     // Jika player mati, paksa idle agar enemy tidak terus mengejar posisi terakhir
@@ -393,19 +431,38 @@ void Enemy::HandleIdle()
         return;
     }
 
+    float maxDistPatrol = 6.0f * FRAME_SIZE;
+    bool tooFarFromSpawn = (SpawnRect.width > 0)
+        ? !CheckCollisionPointRec(GetCenter(), SpawnRect)
+        : Vector2Distance(GetCenter(), SpawnPoint) > maxDistPatrol;
+
+    if (tooFarFromSpawn)
+    {
+        AIState = ENEMY_RETURN;
+        PatrolTarget = SpawnPoint;
+        PlayAnimation(Anim, WALK, Anim.direction);
+        return;
+    }
+
     PatrolTimer += Time::DELTA_TIME;
-    if (PatrolTimer >= PatrolWaitTime)
+
+    // Progressive backoff: makin sering gagal nyari target, makin lama jedanya
+    float effectiveWait = PatrolWaitTime;
+    if (PatrolFailCount >= 2)
+        effectiveWait *= (float)PatrolFailCount;
+
+    if (PatrolTimer >= effectiveWait)
     {
         PatrolTimer = 0;
-        PatrolTarget = SpawnPoint; // fallback jika tidak ada posisi valid
+        PatrolTarget = Position; // fallback: diam di tempat, coba lagi nanti
 
-        // Coba hingga beberapa kali agar patrol target tidak di dalam dinding
-        int patrolRetryLimit = 10;
+        // Cari target patrol relatif dari posisi saat ini (bukan SpawnPoint)
+        constexpr int patrolRetryLimit = 10;
         for (int i = 0; i < patrolRetryLimit; i++)
         {
             float angle = (float)GetRandomValue(0, 360) * DEG2RAD;
             float r = (float)GetRandomValue(FRAME_SIZE, (int)Def->stats.patrolRadius);
-            Vector2 potentialTarget = Vector2Add(SpawnPoint, {cosf(angle) * r, sinf(angle) * r});
+            Vector2 potentialTarget = Vector2Add(Position, {cosf(angle) * r, sinf(angle) * r});
 
             if (IsPositionSafe(potentialTarget, HitboxWidth, HitboxHeight, HitboxOffsetX, HitboxOffsetY))
             {
@@ -414,6 +471,32 @@ void Enemy::HandleIdle()
             }
         }
 
+        if (PatrolTarget == Position)
+        {
+            constexpr int smallRetryLimit = 5;
+            constexpr float smallRadiusMin = 32.0f;
+            constexpr float smallRadiusMax = 64.0f;
+            for (int i = 0; i < smallRetryLimit; i++)
+            {
+                float angle = (float)GetRandomValue(0, 360) * DEG2RAD;
+                float r = (float)GetRandomValue((int)smallRadiusMin, (int)smallRadiusMax);
+                Vector2 potentialTarget = Vector2Add(Position, {cosf(angle) * r, sinf(angle) * r});
+
+                if (IsPositionSafe(potentialTarget, HitboxWidth, HitboxHeight, HitboxOffsetX, HitboxOffsetY))
+                {
+                    PatrolTarget = potentialTarget;
+                    break;
+                }
+            }
+        }
+
+        // Update fail counter: reset kalo dapet target, increment kalo gagal total
+        if (PatrolTarget == Position)
+            PatrolFailCount++;
+        else if (PatrolFailCount > 0)
+            PatrolFailCount = 0;
+
+        PatrolStuckTimer = 0;
         AIState = ENEMY_PATROL;
         PlayAnimation(Anim, WALK, Anim.direction);
     }
@@ -434,6 +517,18 @@ void Enemy::HandlePatrol()
     float dist = Vector2Distance(Position, PatrolTarget);
     if (dist < patrolArrivalDist)
     {
+        PatrolStuckTimer = 0;
+        AIState = ENEMY_IDLE;
+        PlayAnimation(Anim, IDLE, Anim.direction);
+        return;
+    }
+
+    // Abandon kalo stuck terlalu lama (target terhalang obstacle)
+    constexpr float PATROL_STUCK_TIMEOUT = 3.0f;
+    PatrolStuckTimer += Time::DELTA_TIME;
+    if (PatrolStuckTimer >= PATROL_STUCK_TIMEOUT)
+    {
+        PatrolStuckTimer = 0;
         AIState = ENEMY_IDLE;
         PlayAnimation(Anim, IDLE, Anim.direction);
         return;
@@ -638,6 +733,7 @@ void Enemy::TakeDamage(float amount, Vector2 knockback)
     Entity::TakeDamage(amount, knockback);
     AudioManager::PlaySFX("attack");
     HitFlashTimer = 0.15f;
+    HealthBarTimer = HealthBarDuration;
     KnockbackVelocity = Vector2Scale(knockback, 5.0f);
     HealthRegenTimer = Def->stats.healthRegenDelay;
 }
@@ -670,12 +766,13 @@ void Enemy::Render()
     if (shouldDraw)
     {
         Color tint = WHITE;
-        if (HitFlashTimer > 0) tint = RED;
+        if (HitFlashTimer > 0)
+            tint = RED;
         DrawAnimation(Anim, tint, Def->Scale);
     }
 
-    // Health bar hanya tampil saat agresif
-    if (AIState == ENEMY_CHASE || AIState == ENEMY_ATTACK)
+    // Health bar tampil saat agresif atau setelah kena damage (boss pake bar sendiri)
+    if (rank != ENEMY_BOSS && (HealthBarTimer > 0 || AIState == ENEMY_CHASE || AIState == ENEMY_ATTACK))
     {
         int hpBarX = 4, hpBarY = 38, hpBarW = 24, hpBarH = 4;
         DrawRectangle((int)Position.x + hpBarX, (int)Position.y + hpBarY, hpBarW, hpBarH, BLACK);
@@ -710,27 +807,13 @@ void InitEnemy()
     enemyData.Load("assets/data/enemies.json");
 }
 
-
-
-
-
 /**
  * @brief Hapus semua enemy aktif dari entity manager.
  */
 
 void ClearEnemies()
 {
-    // Stop boss music jika ada boss dengan music aktif sebelum entity dihapus
-    for (Entity *entity : Entities::GetRegistry())
-    {
-        Enemy *enemy = dynamic_cast<Enemy *>(entity);
-        if (enemy && enemy->bossMusicPlaying)
-        {
-            AudioManager::StopMusic();
-            AudioManager::ResetToScreenTrack();
-            break;
-        }
-    }
+    // Boss music di-handle otomatis oleh UpdateBossMusic() tiap frame
     Entities::Clear();
 }
 
@@ -800,7 +883,8 @@ const AnimationSet *ResolveAnimSet(const std::string &name)
  */
 static void PushOutOfWalls(Enemy *enemy)
 {
-    if (!enemy) return;
+    if (!enemy)
+        return;
     Vector2 pos = enemy->Position;
     if (IsPositionSafe(pos, enemy->HitboxWidth, enemy->HitboxHeight, enemy->HitboxOffsetX, enemy->HitboxOffsetY))
         return;

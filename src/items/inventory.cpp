@@ -53,9 +53,10 @@ namespace Inventory
     /** @brief Handle left-click action untuk potion/equip */
     void HandleInventoryActions(Player &player)
     {
-        // Cooldown timer tick
-        if (player.PotionCooldown > 0.0f)
-            player.PotionCooldown -= Time::DELTA_TIME;
+        // Cooldown timer tick semua kategori potion
+        for (int i = 0; i < POTION_CATEGORY_COUNT; i++)
+            if (player.PotionCategoryCooldowns[i] > 0.0f)
+                player.PotionCategoryCooldowns[i] -= Time::DELTA_TIME;
 
         // Inventory terbuka = block semua aksi shortcut
         if (InputInstance.IsInventoryOpen())
@@ -91,7 +92,7 @@ namespace Inventory
         InventoryItem &slot = player.GetHotbarItem(slotIndex);
         if (slot.definitionId == -1 || slot.amount <= 0)
         {
-            Effects::AddLog("Potion telah habis!");
+            Effects::AddLog("Potion Telah Habis!");
             return;
         }
 
@@ -101,6 +102,14 @@ namespace Inventory
 
         const PotionData &potion = std::get<PotionData>(def.data);
 
+        // Per-kategori cooldown check (SEBELUM apply efek)
+        PotionCategory cat = potion.potionCategory;
+        if (player.PotionCategoryCooldowns[cat] > 0.0f)
+        {
+            Effects::AddLog("Potion Sedang Cooldown!");
+            return;
+        }
+
         bool isBuff = potion.damageMultiplier > 1.0f || potion.speedMultiplier > 1.0f || potion.invincibilityDuration > 0.0f;
 
         // Jika hanya heal dan stat sudah penuh, blokir
@@ -108,12 +117,12 @@ namespace Inventory
         {
             if (potion.isMana && player.Mana >= player.MaxMana)
             {
-                Effects::AddLog("Mana sudah penuh!");
+                Effects::AddLog("Mana Sudah Penuh!");
                 return;
             }
             if (!potion.isMana && player.Health >= player.MaxHealth)
             {
-                Effects::AddLog("Health sudah penuh!");
+                Effects::AddLog("Health Sudah Penuh!");
                 return;
             }
         }
@@ -122,12 +131,14 @@ namespace Inventory
         {
             if (potion.isMana)
             {
-                if (player.Mana < player.MaxMana) Effects::AddLog("Mana Pulih!");
+                if (player.Mana < player.MaxMana)
+                    Effects::AddLog("Mana Pulih!");
                 player.Mana = std::min(player.Mana + (float)potion.healValue, player.MaxMana);
             }
             else
             {
-                if (player.Health < player.MaxHealth) Effects::AddLog("Health Pulih!");
+                if (player.Health < player.MaxHealth)
+                    Effects::AddLog("Health Pulih!");
                 player.Health = std::min(player.Health + (float)potion.healValue, player.MaxHealth);
             }
         }
@@ -136,6 +147,7 @@ namespace Inventory
         {
             player.BuffDamageMultiplier = potion.damageMultiplier;
             player.BuffDamageTimer = potion.duration;
+            player.BuffDamageTimerMax = potion.duration;
             Effects::AddLog("Damage Meningkat!");
         }
 
@@ -143,24 +155,19 @@ namespace Inventory
         {
             player.BuffSpeedMultiplier = potion.speedMultiplier;
             player.BuffSpeedTimer = potion.duration;
+            player.BuffSpeedTimerMax = potion.duration;
             Effects::AddLog("Speed Meningkat!");
         }
 
         if (potion.invincibilityDuration > 0.0f)
         {
             player.InvincibilityTimer = potion.invincibilityDuration;
+            player.InvincibilityTimerMax = potion.invincibilityDuration;
             Effects::AddLog("Kebal Aktif!");
         }
-        if (player.PotionCooldown > 0.0f)
-        {
-            Effects::AddLog("Potion sedang cooldown!");
-            return;
-        }
-
-        if (potion.isMana)
-            player.Mana = std::min(player.Mana + (float)potion.healValue, player.MaxMana);
-        else
-            player.Health = std::min(player.Health + (float)potion.healValue, player.MaxHealth);
+        // Set cooldown per-kategori
+        player.PotionCategoryCooldownMax[cat] = potion.cooldown;
+        player.PotionCategoryCooldowns[cat] = player.PotionCategoryCooldownMax[cat];
 
         slot.amount--;
         if (slot.amount <= 0)
@@ -168,9 +175,6 @@ namespace Inventory
             BstRemove(g_BstRoot, slotIndex, player);
             slot = {-1, 0};
         }
-
-        player.PotionCooldownMax = potion.cooldown;
-        player.PotionCooldown = player.PotionCooldownMax;
     }
 
     /*==============================================================================

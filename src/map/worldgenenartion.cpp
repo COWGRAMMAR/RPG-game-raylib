@@ -893,43 +893,63 @@ void WorldGenCanvas::StampCorridor(const MapObject &exitObj, int slotCol, int sl
     else if (exitObj.type == "exit_west")
         exitTypeHash = 4;
 
-    // Ambil corridor prefab dari pool — cuma 1 yang dipake sesuai arah exit
-    CorridorPool &cp = pools->GetCorridorPool();
-    bool isHorizontal = (exitObj.type == "exit_east" || exitObj.type == "exit_west");
-    TilesonMapData *corridor = pools->GetRandomCorridor(
-        isHorizontal ? cp.horizontal : cp.vertical,
-        exitTileX, exitTileY, exitTypeHash);
-    if (!corridor)
-        return;
-
     // Expand layer kalo perlu
     if (tilesonMap->layerCount < WG_CORRIDOR_LAYER_START + CORRIDOR_LAYER_COUNT)
         ExpandLayers((WG_CORRIDOR_LAYER_START + CORRIDOR_LAYER_COUNT) - tilesonMap->layerCount);
 
-    // Stamp corridor sesuai arah exit
+    // Stamp corridor sesuai arah exit — hash per-posisi biar tiap segmen bisa beda prefab
+    CorridorPool &cp = pools->GetCorridorPool();
     if (exitObj.type == "exit_north")
     {
         int border = slotRow * WG_CELL_TILES;
         for (int i = 1; i <= exitTileY - border; i++)
-            Stamp(corridor, exitTileX - CORRIDOR_CENTER_OFFSET, exitTileY - i, WG_CORRIDOR_LAYER_START);
+        {
+            int curX = exitTileX - CORRIDOR_CENTER_OFFSET;
+            int curY = exitTileY - i;
+            TilesonMapData *corridor = pools->GetRandomCorridor(cp.vertical, curX, curY, exitTypeHash);
+            if (!corridor)
+                continue;
+            Stamp(corridor, curX, curY, WG_CORRIDOR_LAYER_START);
+        }
     }
     else if (exitObj.type == "exit_south")
     {
         int border = slotRow * WG_CELL_TILES + WG_CELL_TILES - 1;
         for (int i = 1; i <= border - exitTileY; i++)
-            Stamp(corridor, exitTileX - CORRIDOR_CENTER_OFFSET, exitTileY + i, WG_CORRIDOR_LAYER_START);
+        {
+            int curX = exitTileX - CORRIDOR_CENTER_OFFSET;
+            int curY = exitTileY + i;
+            TilesonMapData *corridor = pools->GetRandomCorridor(cp.vertical, curX, curY, exitTypeHash);
+            if (!corridor)
+                continue;
+            Stamp(corridor, curX, curY, WG_CORRIDOR_LAYER_START);
+        }
     }
     else if (exitObj.type == "exit_east")
     {
         int border = slotCol * WG_CELL_TILES + WG_CELL_TILES - 1;
         for (int i = 1; i <= border - exitTileX; i++)
-            Stamp(corridor, exitTileX + i, exitTileY - CORRIDOR_CENTER_OFFSET, WG_CORRIDOR_LAYER_START);
+        {
+            int curX = exitTileX + i;
+            int curY = exitTileY - CORRIDOR_CENTER_OFFSET;
+            TilesonMapData *corridor = pools->GetRandomCorridor(cp.horizontal, curX, curY, exitTypeHash);
+            if (!corridor)
+                continue;
+            Stamp(corridor, curX, curY, WG_CORRIDOR_LAYER_START);
+        }
     }
     else if (exitObj.type == "exit_west")
     {
         int border = slotCol * WG_CELL_TILES;
         for (int i = 1; i <= exitTileX - border; i++)
-            Stamp(corridor, exitTileX - i, exitTileY - CORRIDOR_CENTER_OFFSET, WG_CORRIDOR_LAYER_START);
+        {
+            int curX = exitTileX - i;
+            int curY = exitTileY - CORRIDOR_CENTER_OFFSET;
+            TilesonMapData *corridor = pools->GetRandomCorridor(cp.horizontal, curX, curY, exitTypeHash);
+            if (!corridor)
+                continue;
+            Stamp(corridor, curX, curY, WG_CORRIDOR_LAYER_START);
+        }
     }
 }
 

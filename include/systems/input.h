@@ -124,6 +124,9 @@ public:
     /** @brief Cek apakah map terbuka */
     bool IsMapOpen() const { return MapOpen; }
 
+    /** @brief Reset InventoryOpen dan MapOpen ke false (dipanggil saat transisi ke MAIN_MENU) */
+    void ResetMenuFlags();
+
     /**
      * @brief Menentukan aksi tingkat tinggi mana yang harus dipicu pada frame ini.
      */

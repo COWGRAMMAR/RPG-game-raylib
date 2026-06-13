@@ -206,7 +206,7 @@ void OptionsScreen::CalculateDimensions()
         valueX,
         contentStartY + 75,
         labelFontSize,
-        showFPS ? GREEN : GRAY,
+        showFPS ? GREEN : RED,
         0.7F,
         GetOrLoad(FontId::LOADING_TITLE));
 
@@ -368,7 +368,7 @@ void OptionsScreen::Draw(Vector2 mousePosition)
         fpsButton = buttonTxt(
             showFPS ? "ON" : "OFF",
             valueX, contentStartY + 75, 24,
-            showFPS ? GREEN : GRAY, 0.7F, GetOrLoad(FontId::LOADING_TITLE));
+            showFPS ? GREEN : RED, 0.7F, GetOrLoad(FontId::LOADING_TITLE));
 
         resetTabButton.SetPosition(Vector2{static_cast<float>(startX + 60),
                                            static_cast<float>(startY + height - 70)});

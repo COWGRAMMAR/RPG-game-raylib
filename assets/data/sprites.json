@@ -321,6 +321,41 @@
         "width": 1,
         "height": 1
     },
+    "slam0101": {
+        "texture": "SPRITESHEET_EFFECTS",
+        "column": 15,
+        "row": 3,
+        "width": 2,
+        "height": 2
+    },
+    "slam0102": {
+        "texture": "SPRITESHEET_EFFECTS",
+        "column": 17,
+        "row": 3,
+        "width": 2,
+        "height": 2
+    },
+    "slam0103": {
+        "texture": "SPRITESHEET_EFFECTS",
+        "column": 13,
+        "row": 5,
+        "width": 2,
+        "height": 2
+    },
+    "slam0104": {
+        "texture": "SPRITESHEET_EFFECTS",
+        "column": 15,
+        "row": 5,
+        "width": 2,
+        "height": 2
+    },
+    "slam0105": {
+        "texture": "SPRITESHEET_EFFECTS",
+        "column": 17,
+        "row": 5,
+        "width": 2,
+        "height": 2
+    },
     "collision1": {
         "texture": "SPRITESHEET_EFFECTS",
         "column": 19,

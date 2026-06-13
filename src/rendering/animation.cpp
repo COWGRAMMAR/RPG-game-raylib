@@ -421,6 +421,30 @@ void Collision(Vector2 centerPosition, float progress, float scaleTiles)
     DrawFrame(frameName, display);
 }
 
+void GroundSlam(Vector2 centerPosition, float progress, float scaleTiles)
+{
+    std::string frameName;
+    int frameIndex = (int)(progress * 5.0f);
+    if (frameIndex < 0)
+        frameIndex = 0;
+    if (frameIndex > 4)
+        frameIndex = 4;
+    frameName = "slam010" + std::to_string(frameIndex + 1);
+
+    const Frame &frame = GetFrame(frameName);
+
+    Display display;
+    display.position = centerPosition;
+    display.size = (int)(32.0f * scaleTiles);
+    display.offset = {0, -8.0f}; // Menaikkan posisi animasi 8 pixel
+    display.origin = { (float)frame.width * display.size / 2.0f, (float)frame.height * display.size / 2.0f };
+    display.tint = WHITE;
+    display.rotation = 0.0f;
+    display.flip = false;
+
+    DrawFrame(frame, display);
+}
+
 /*
 ====================
 Procedural Animation

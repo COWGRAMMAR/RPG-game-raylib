@@ -122,6 +122,8 @@ void DrawAnimation(const Animation &anim, Color tint = WHITE, float scale = 1.0f
 void Explosion(Vector2 centerPosition, float radius, float progress);
 /** @brief Draw efek collision terpusat dengan skala kustom */
 void Collision(Vector2 centerPosition, float progress, float scaleTiles = 1.0f);
+/** @brief Draw efek ground slam terpusat dengan skala kustom */
+void GroundSlam(Vector2 centerPosition, float progress, float scaleTiles = 1.0f);
 
 /** @brief Cache global animation set per entity type */
 extern std::unordered_map<std::string, AnimationSet> loadedAnimationSets;

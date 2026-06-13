@@ -662,9 +662,9 @@ namespace Combat
             {
                 float progress = player.attack.timer / player.attack.weapon->duration;
                 float reach = player.attack.weapon->reach;
-                float scaleTiles = (reach * 2.0f) / 32.0f;
+                float scaleTiles = (reach * 2.0f) / 64.0f;
 
-                Collision(player.attack.startCenter, progress, scaleTiles);
+                GroundSlam(player.attack.startCenter, progress, scaleTiles);
             }
         }
     }

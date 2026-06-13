@@ -1,0 +1,29 @@
+src/ui/keybindsTab.cpp
+  s_50377f47fc0825::t_7bff1899872e00 324
+src/rendering/hud.cpp
+  s_a0102547e8e7da::t_c577e41b897ecf 1170
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "df1fdbcabc41d722bc0463be9db118a427571c08",
+  "prompts": {},
+  "sessions": {
+    "s_50377f47fc0825": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_140b9301bffendmYy8Qiw8c4rd",
+        "model": "unknown"
+      },
+      "human_author": "NiskoDT <65821447+NiskoDT@users.noreply.github.com>"
+    },
+    "s_a0102547e8e7da": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_140b92617ffeTOwU0ipbLaLlwf",
+        "model": "unknown"
+      },
+      "human_author": "NiskoDT <65821447+NiskoDT@users.noreply.github.com>"
+    }
+  }
+}

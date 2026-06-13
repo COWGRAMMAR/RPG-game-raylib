@@ -59,8 +59,6 @@ void VideoScreen::Unload()
     m_loaded = false;
 }
 
-/**@}*/
-
 /** @name Setters / Getters */
 /**@{*/
 
@@ -85,14 +83,12 @@ void VideoScreen::SetVolume(float vol)
 
 bool VideoScreen::Update(float deltaTime)
 {
-    // Cek input skip -- dilakukan SEBELUM guard !m_loaded agar
-    // user tetap bisa skip meskipun video gagal dimuat.
+    // Poll skip BEFORE !m_loaded guard so user can skip a failed-to-load video
     if (IsKeyPressed(KEY_SPACE) || IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_ESCAPE))
     {
         m_skipRequested = true;
     }
 
-    // Jika video belum dimuat, jangan lanjut ke update player
     if (!m_loaded)
     {
         return m_skipRequested;
@@ -100,7 +96,6 @@ bool VideoScreen::Update(float deltaTime)
 
     m_player.Update(deltaTime);
 
-    // Transisi jika video selesai atau di-skip
     if (m_player.IsFinished())
     {
         TraceLog(LOG_INFO, "VIDEO: Playback finished (%.1fs)", m_player.GetPosition());
@@ -122,17 +117,15 @@ void VideoScreen::Draw()
 
     if (m_player.IsValid())
     {
-        // Hitung posisi dan ukuran agar video fit di window dengan aspek rasio terjaga
         const int videoW = m_player.GetWidth();
         const int videoH = m_player.GetHeight();
         const int screenW = GetScreenWidth();
         const int screenH = GetScreenHeight();
 
-        // Hindari division-by-zero bila texture video belum siap
+        // Guard division-by-zero if video texture isn't ready yet
         if (videoW == 0 || videoH == 0)
             return;
 
-        // Skala proporisional
         const float scaleX = static_cast<float>(screenW) / static_cast<float>(videoW);
         const float scaleY = static_cast<float>(screenH) / static_cast<float>(videoH);
         const float scale = (scaleX < scaleY) ? scaleX : scaleY;
@@ -146,7 +139,6 @@ void VideoScreen::Draw()
     }
     else if (!m_loaded)
     {
-        // Tampilkan teks "Memuat video..." jika belum dimuat
         const char *loadingText = "Memuat video...";
         const int fontSize = 20;
         const int textW = MeasureText(loadingText, fontSize);
@@ -161,7 +153,6 @@ void VideoScreen::Draw()
             WHITE);
     }
 
-    // Teks hint skip di pojok kanan bawah
     {
         const char *skipText = "Tekan SPACE untuk skip";
         const int fontSize = 20;
@@ -178,3 +169,5 @@ void VideoScreen::Draw()
             hintColor);
     }
 }
+
+/**@}*/

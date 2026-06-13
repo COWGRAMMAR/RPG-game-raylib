@@ -1,0 +1,27 @@
+src/ui/pauseMenu.cpp
+  s_20c8e07ec9ffad::t_8a4a70c04e4e45 52
+  s_20c8e07ec9ffad::t_a932682ae0a8db 368,370-371,374-375,377-378,382,386,389-392
+  s_20c8e07ec9ffad::t_d42294e5fb2c5c 183,191-192
+  s_20c8e07ec9ffad::t_3e0d416dc5e1ac 415-418
+  s_20c8e07ec9ffad::t_9a7eee75509cc4 282
+  s_20c8e07ec9ffad::t_30f097a56a530e 438
+  s_20c8e07ec9ffad::t_a19e4b5e473e82 198-199,207-208,214-215,223-224
+  s_20c8e07ec9ffad::t_ed3d3266d1c0c8 51,53-69
+  s_20c8e07ec9ffad::t_d83dbb8e67a04e 232-234,241-243
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "2dfce2d9220c40c24413097b531ef130881816f3",
+  "prompts": {},
+  "sessions": {
+    "s_20c8e07ec9ffad": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_14931db1affe7pYqWlC73Jr9SV",
+        "model": "unknown"
+      },
+      "human_author": "NiskoDT <65821447+NiskoDT@users.noreply.github.com>"
+    }
+  }
+}

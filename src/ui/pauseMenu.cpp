@@ -497,50 +497,11 @@ void PauseMenu::LoadTextures()
 
     width = bgTexture.width;
     height = bgTexture.height;
-    position.x = (GScreenWidth - width) / 2.0F;
-    position.y = (GScreenHeight - height) / 2.0F;
-    backgroundRect = {position.x, position.y, static_cast<float>(width), static_cast<float>(height)};
 
-    float centerX = position.x + width / 2.0F;
-    // jarak vertikal antar baris tombol diperlebar dari 17 → 28
-    float gap = 28.0F;
-    float btnHeight = 56.0F;
-    float pairGap = 105.0F;
-    float totalBtnHeight = 5.0F * btnHeight + 4.0F * gap;
-    // startY ditambah 40px agar tombol pause lebih ke bawah (25 → 65)
-    float startY = position.y + (height - totalBtnHeight) / 2.0F + 65.0F;
+    for (uint8_t i = 0; i < 7; i++)
+        buttons[i] = buttonImage(BUTTON_PATHS[i], Vector2{0, 0}, 1.0F, 0.6F);
 
-    // Row 0: Resume (wide, centered)
-    {
-        float btnY = startY + btnHeight / 2.0F;
-        buttons[0] = buttonImage(BUTTON_PATHS[0], Vector2{centerX, btnY}, 1.0F, 0.6F);
-    }
-
-    // Row 1: Save (left) / Load (right)
-    {
-        float btnY = startY + 1.0F * (btnHeight + gap) + btnHeight / 2.0F;
-        buttons[1] = buttonImage(BUTTON_PATHS[1], Vector2{centerX - pairGap, btnY}, 1.0F, 0.6F);
-        buttons[2] = buttonImage(BUTTON_PATHS[2], Vector2{centerX + pairGap, btnY}, 1.0F, 0.6F);
-    }
-
-    // Row 2: Settings (wide, centered)
-    {
-        float btnY = startY + 2.0F * (btnHeight + gap) + btnHeight / 2.0F;
-        buttons[3] = buttonImage(BUTTON_PATHS[3], Vector2{centerX, btnY}, 1.0F, 0.6F);
-    }
-
-    // Row 3: Restart (left) / To Main (right)
-    {
-        float btnY = startY + 3.0F * (btnHeight + gap) + btnHeight / 2.0F;
-        buttons[4] = buttonImage(BUTTON_PATHS[4], Vector2{centerX - pairGap, btnY}, 1.0F, 0.6F);
-        buttons[5] = buttonImage(BUTTON_PATHS[5], Vector2{centerX + pairGap, btnY}, 1.0F, 0.6F);
-    }
-
-    // Row 4: Exit (wide, centered)
-    {
-        float btnY = startY + 4.0F * (btnHeight + gap) + btnHeight / 2.0F;
-        buttons[6] = buttonImage(BUTTON_PATHS[6], Vector2{centerX, btnY}, 1.0F, 0.6F);
-    }
+    CalculateDimensions();
 }
 
 /**
@@ -569,12 +530,50 @@ bool PauseMenu::IsActive() const
     return active;
 }
 
-/**
- * @brief Menghitung ulang dimensi (dummy — ukuran PauseMenu mengikuti window)
- */
 void PauseMenu::CalculateDimensions()
 {
-    // Ukuran dan posisi dihitung otomatis per Draw(); texture di-load sekali di LoadTextures()
+    position.x = (GScreenWidth - width) / 2.0F;
+    position.y = (GScreenHeight - height) / 2.0F;
+    backgroundRect = {position.x, position.y, static_cast<float>(width), static_cast<float>(height)};
+
+    float centerX = position.x + width / 2.0F;
+    float gap = 28.0F;
+    float btnHeight = 56.0F;
+    float pairGap = 105.0F;
+    float totalBtnHeight = 5.0F * btnHeight + 4.0F * gap;
+    float startY = position.y + (height - totalBtnHeight) / 2.0F + 65.0F;
+
+    // Row 0: Resume (wide, centered)
+    {
+        float btnY = startY + btnHeight / 2.0F;
+        buttons[0].SetPosition(Vector2{centerX, btnY});
+    }
+
+    // Row 1: Save (left) / Load (right)
+    {
+        float btnY = startY + 1.0F * (btnHeight + gap) + btnHeight / 2.0F;
+        buttons[1].SetPosition(Vector2{centerX - pairGap, btnY});
+        buttons[2].SetPosition(Vector2{centerX + pairGap, btnY});
+    }
+
+    // Row 2: Settings (wide, centered)
+    {
+        float btnY = startY + 2.0F * (btnHeight + gap) + btnHeight / 2.0F;
+        buttons[3].SetPosition(Vector2{centerX, btnY});
+    }
+
+    // Row 3: Restart (left) / To Main (right)
+    {
+        float btnY = startY + 3.0F * (btnHeight + gap) + btnHeight / 2.0F;
+        buttons[4].SetPosition(Vector2{centerX - pairGap, btnY});
+        buttons[5].SetPosition(Vector2{centerX + pairGap, btnY});
+    }
+
+    // Row 4: Exit (wide, centered)
+    {
+        float btnY = startY + 4.0F * (btnHeight + gap) + btnHeight / 2.0F;
+        buttons[6].SetPosition(Vector2{centerX, btnY});
+    }
 }
 
 /**
@@ -794,6 +793,12 @@ void PauseMenu::Draw(Vector2 mousePosition)
     if (!active)
     {
         return;
+    }
+
+    int expectedX = (GScreenWidth - width) / 2;
+    if (expectedX != static_cast<int>(position.x))
+    {
+        CalculateDimensions();
     }
 
     Rectangle fullScreen = {0, 0, static_cast<float>(GScreenWidth), static_cast<float>(GScreenHeight)};

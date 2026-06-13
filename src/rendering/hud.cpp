@@ -822,7 +822,7 @@ static void DrawBuffIndicators()
     const float gap = 8.0f;
     const float dashBarHeight = 6.0f;
 
-    float dashPosY = (float)GameScreenHeight - padding - dashBarHeight;
+    float dashPosY = (float)GScreenHeight - padding - dashBarHeight;
     float manaPosY = dashPosY - gap - barHeight;
     float healthPosY = manaPosY - gap - barHeight;
 
@@ -1167,7 +1167,7 @@ void DrawBossHPBar()
 
     const float barWidth = 400.0f;
     const float barHeight = 18.0f;
-    const float centerX = (float)GameScreenWidth / 2.0f;
+    const float centerX = (float)GScreenWidth / 2.0f;
     const float barY = 75.0f;
 
     float maxHealth = boss->MaxHealth;

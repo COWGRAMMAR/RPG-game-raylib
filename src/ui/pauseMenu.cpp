@@ -310,7 +310,7 @@ void OptionsScreen::Update(GameState *state, Vector2 mousePosition, bool mouseCl
     if (resetOptionsButton.isClicked(mousePosition, mouseClicked))
     {
         const char *allPaths[] = {
-            "saves/settings/videoTab.json",
+            VIDEO_SETTINGS_PATH,
             "saves/settings/audioTab.json",
             "saves/settings/keybindsTab.json"};
         std::error_code ec;

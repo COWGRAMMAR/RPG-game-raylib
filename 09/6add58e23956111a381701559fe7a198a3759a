@@ -1,0 +1,67 @@
+src/ui/audioTab.cpp
+  s_f9c1efef0fd20c::t_f5a9ee968fe7df 46-47,49,80,87,132,141
+src/ui/gameOverScreen.cpp
+  s_f9c1efef0fd20c::t_f5a9ee968fe7df 28,33,37,41,104,106
+src/ui/keybindsTab.cpp
+  s_f9c1efef0fd20c::t_f5a9ee968fe7df 324
+.agents/video-playback.md
+  s_f9c1efef0fd20c::t_f5a9ee968fe7df 1-151
+src/core/screen_handler.cpp
+  s_f9c1efef0fd20c::t_f5a9ee968fe7df 9-12,37,45,72-73,102,104,136,141-143,152-153,164-170,190-193,203-218,464-481,484-487,491,497-498,515,517-520,553,555-557,561-566,568-569,617-619
+src/systems/combatTurn.cpp
+  s_f9c1efef0fd20c::t_f5a9ee968fe7df 16-17,559,584,615,655,659,667,671,682,688-689,709,716,721,755
+src/systems/keybindManager.cpp
+  s_f9c1efef0fd20c::t_f5a9ee968fe7df 45,69,97
+src/ui/mainMenu.cpp
+  s_f9c1efef0fd20c::t_f5a9ee968fe7df 25-29,33-39,61,68-69,75-76,78-84,86-94,98-101,202,209
+src/core/loading_screen.cpp
+  s_f9c1efef0fd20c::t_f5a9ee968fe7df 225,518-519,538-539,555-556,564-565
+src/systems/movement.cpp
+  s_f9c1efef0fd20c::t_f5a9ee968fe7df 166,180-181
+src/ui/popup.cpp
+  s_f9c1efef0fd20c::t_f5a9ee968fe7df 160,185-186,206-207,242
+include/config/game_constants.h
+  s_f9c1efef0fd20c::t_f5a9ee968fe7df 28-33
+.agents/save-system/enemy-persistence-bug-fix-plan.md
+  s_f9c1efef0fd20c::t_f5a9ee968fe7df 1-152
+.agents/sign-system.md
+  s_f9c1efef0fd20c::t_f5a9ee968fe7df 1-112
+src/ui/pauseMenu.cpp
+  s_f9c1efef0fd20c::t_f5a9ee968fe7df 51-71,180-181,185,193-194,200-201,209-210,216-217,225-227,234-236,243-245,284,315,348,363-396,416-419,425,428,431,439,517-553,566,572-573,579,585-586,592,774,815-821
+src/ui/saveLoadScreen.cpp
+  s_f9c1efef0fd20c::t_f5a9ee968fe7df 355-356
+include/ui/button.h
+  s_f9c1efef0fd20c::t_f5a9ee968fe7df 46-52,123-124,202-209
+include/systems/keybindManager.h
+  s_f9c1efef0fd20c::t_f5a9ee968fe7df 44-45
+.agents/save-system/save-system-context.md
+  s_f9c1efef0fd20c::t_f5a9ee968fe7df 1-762
+docs/save-system.md
+  s_f9c1efef0fd20c::t_f5a9ee968fe7df 554
+include/core/screen.h
+  s_f9c1efef0fd20c::t_f5a9ee968fe7df 29-30,61,64-65
+include/ui/pauseMenu.h
+  s_f9c1efef0fd20c::t_f5a9ee968fe7df 222
+src/rendering/hud.cpp
+  s_f9c1efef0fd20c::t_f5a9ee968fe7df 22-23,400-401,406,604,612,710-711,825,933,956,999,1052,1055-1058,1170
+src/ui/videoTab.cpp
+  s_f9c1efef0fd20c::t_f5a9ee968fe7df 18-24,32-33,36-37,39-40,57,104-107,141
+src/map/map.cpp
+  s_f9c1efef0fd20c::t_f5a9ee968fe7df 424,451
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "096add58e23956111a381701559fe7a198a3759a",
+  "prompts": {},
+  "sessions": {
+    "s_f9c1efef0fd20c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_148a838eaffey946nQmaQvhaP4",
+        "model": "unknown"
+      },
+      "human_author": "NiskoDT <65821447+NiskoDT@users.noreply.github.com>"
+    }
+  }
+}

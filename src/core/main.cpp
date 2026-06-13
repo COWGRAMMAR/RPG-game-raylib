@@ -166,8 +166,6 @@ int main()
         if (IsKeyPressed(keybindManager.GetKeycode(TOGGLE_FULLSCREEN)))
         {
             ToggleFullscreenMode();
-            GScreenWidth = GetScreenWidth();
-            GScreenHeight = GetScreenHeight();
         }
 
         // ===== State: VIDEO (intro saat startup) =====

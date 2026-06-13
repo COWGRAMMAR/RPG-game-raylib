@@ -560,14 +560,20 @@ void ToggleFullscreenMode(void)
         // Exit fullscreen: toggle first, then set windowed size
         ToggleFullscreen();
         SetWindowSize(gState->WindowedWidth, gState->WindowedHeight);
+        GScreenWidth = gState->WindowedWidth;
+        GScreenHeight = gState->WindowedHeight;
     }
     else
     {
         // Enter fullscreen: save current size, resize to monitor, then toggle
         gState->WindowedWidth = GetScreenWidth();
         gState->WindowedHeight = GetScreenHeight();
-        SetWindowSize(GetMonitorWidth(0), GetMonitorHeight(0));
+        int mw = GetMonitorWidth(0);
+        int mh = GetMonitorHeight(0);
+        SetWindowSize(mw, mh);
         ToggleFullscreen();
+        GScreenWidth = mw;
+        GScreenHeight = mh;
     }
 }
 

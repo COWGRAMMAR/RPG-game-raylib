@@ -321,8 +321,6 @@ void OptionsScreen::Update(GameState *state, Vector2 mousePosition, bool mouseCl
         if (UpdateVideoTab(fullscreenButton, fpsButton, state, mousePosition, mouseClicked))
         {
             showFPS = state->showFPS;
-            GScreenWidth = GetScreenWidth();
-            GScreenHeight = GetScreenHeight();
             CalculateDimensions();
         }
     }

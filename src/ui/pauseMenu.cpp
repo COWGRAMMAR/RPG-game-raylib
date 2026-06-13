@@ -345,7 +345,7 @@ void OptionsScreen::Update(GameState *state, Vector2 mousePosition, bool mouseCl
 
     if (selectedTab == 1)
     {
-        UpdateAudioTab(g_sliders, mousePosition, mouseClicked, startX + 89, startY + 121);
+        UpdateAudioTab(g_sliders, mousePosition, mouseClicked, startX + CONTENT_OX, startY + CONTENT_OY);
     }
 }
 

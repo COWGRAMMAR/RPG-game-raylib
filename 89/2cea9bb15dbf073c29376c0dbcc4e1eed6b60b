@@ -1,0 +1,20 @@
+src/ui/pauseMenu.cpp
+  s_20c8e07ec9ffad::t_9ac6e2b5c51882 371
+  s_20c8e07ec9ffad::t_f6217f7e2cc43a 209
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "892cea9bb15dbf073c29376c0dbcc4e1eed6b60b",
+  "prompts": {},
+  "sessions": {
+    "s_20c8e07ec9ffad": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_14931db1affe7pYqWlC73Jr9SV",
+        "model": "unknown"
+      },
+      "human_author": "NiskoDT <65821447+NiskoDT@users.noreply.github.com>"
+    }
+  }
+}

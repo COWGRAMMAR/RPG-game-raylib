@@ -1,0 +1,19 @@
+docs/save-system.md
+  s_20c8e07ec9ffad::t_1764e46f738d6b 554
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "a7d3bc18ec04b8098344ea2bdcfd29eceb7ed55c",
+  "prompts": {},
+  "sessions": {
+    "s_20c8e07ec9ffad": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_14931db1affe7pYqWlC73Jr9SV",
+        "model": "unknown"
+      },
+      "human_author": "NiskoDT <65821447+NiskoDT@users.noreply.github.com>"
+    }
+  }
+}

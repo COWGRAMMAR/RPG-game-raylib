@@ -35,6 +35,11 @@
 #include <filesystem>
 
 /**
+ * @brief Batas atas delta time per frame untuk mencegah lompatan besar
+ */
+static const float MAX_DELTA_TIME = 0.05f;
+
+/**
  * @brief Global instances for menu systems
  */
 PauseMenu pauseMenu;
@@ -185,8 +190,8 @@ int main()
             }
 
             float deltaTime = GetFrameTime();
-            if (deltaTime > 0.05f)
-                deltaTime = 0.05f;
+            if (deltaTime > MAX_DELTA_TIME)
+                deltaTime = MAX_DELTA_TIME;
 
             videoScreen.SetVolume(AudioManager::GetVideoVolume());
 

@@ -255,47 +255,47 @@ void AudioManager::SetVideoVolume(float vol)
 
 int AudioManager::GetMasterVolumePct()
 {
-    return static_cast<int>(_masterVolume * 100.0f + 0.5f);
+    return static_cast<int>(_masterVolume * VOLUME_PCT_MAX_F + VOLUME_ROUND);
 }
 
 int AudioManager::GetMusicVolumePct()
 {
-    return static_cast<int>(_musicVolume * 100.0f + 0.5f);
+    return static_cast<int>(_musicVolume * VOLUME_PCT_MAX_F + VOLUME_ROUND);
 }
 
 int AudioManager::GetSfxVolumePct()
 {
-    return static_cast<int>(_sfxVolume * 100.0f + 0.5f);
+    return static_cast<int>(_sfxVolume * VOLUME_PCT_MAX_F + VOLUME_ROUND);
 }
 
 int AudioManager::GetVideoVolumePct()
 {
-    return static_cast<int>(_videoVolume * 100.0f + 0.5f);
+    return static_cast<int>(_videoVolume * VOLUME_PCT_MAX_F + VOLUME_ROUND);
 }
 
 void AudioManager::SetVolumesFromPct(int masterPct, int musicPct, int sfxPct, int videoPct)
 {
     if (masterPct < 0)
         masterPct = 0;
-    if (masterPct > 100)
-        masterPct = 100;
+    if (masterPct > VOLUME_PCT_MAX)
+        masterPct = VOLUME_PCT_MAX;
     if (musicPct < 0)
         musicPct = 0;
-    if (musicPct > 100)
-        musicPct = 100;
+    if (musicPct > VOLUME_PCT_MAX)
+        musicPct = VOLUME_PCT_MAX;
     if (sfxPct < 0)
         sfxPct = 0;
-    if (sfxPct > 100)
-        sfxPct = 100;
+    if (sfxPct > VOLUME_PCT_MAX)
+        sfxPct = VOLUME_PCT_MAX;
     if (videoPct < 0)
         videoPct = 0;
-    if (videoPct > 100)
-        videoPct = 100;
+    if (videoPct > VOLUME_PCT_MAX)
+        videoPct = VOLUME_PCT_MAX;
 
-    SetMasterVolume(static_cast<float>(masterPct) / 100.0f);
-    SetMusicVolume(static_cast<float>(musicPct) / 100.0f);
-    SetSfxVolume(static_cast<float>(sfxPct) / 100.0f);
-    SetVideoVolume(static_cast<float>(videoPct) / 100.0f);
+    SetMasterVolume(static_cast<float>(masterPct) / VOLUME_PCT_MAX_F);
+    SetMusicVolume(static_cast<float>(musicPct) / VOLUME_PCT_MAX_F);
+    SetSfxVolume(static_cast<float>(sfxPct) / VOLUME_PCT_MAX_F);
+    SetVideoVolume(static_cast<float>(videoPct) / VOLUME_PCT_MAX_F);
 }
 
 /**@}*/

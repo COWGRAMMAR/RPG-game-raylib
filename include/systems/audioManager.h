@@ -22,6 +22,19 @@
  * - Music track otomatis berganti sesuai ScreenState
  * - LOADING dan OPTIONS tidak memicu switch track (lanjut track sebelumnya)
  */
+/*------------------------------------------------------------------------------
+ * Volume Constants
+ *------------------------------------------------------------------------------*/
+
+/** @brief Persen maksimum volume */
+const int VOLUME_PCT_MAX = 100;
+
+/** @brief Persen maksimum volume (float) */
+const float VOLUME_PCT_MAX_F = 100.0f;
+
+/** @brief Pembulatan untuk konversi float ke persen */
+const float VOLUME_ROUND = 0.5f;
+
 namespace AudioManager {
 
 /*------------------------------------------------------------------------------

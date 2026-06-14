@@ -421,7 +421,7 @@ TileRange GetVisibleTileRange(void)
 {
     // Pojok kiri-atas dan kanan-bawah layar dalam world space
     Vector2 worldMin = GetScreenToWorld2D({0.0f, 0.0f}, camera);
-    Vector2 worldMax = GetScreenToWorld2D({(float)GScreenWidth, (float)GScreenHeight}, camera);
+    Vector2 worldMax = GetScreenToWorld2D({(float)GameScreenWidth, (float)GameScreenHeight}, camera);
 
     TileRange range;
 
@@ -448,7 +448,7 @@ TileRange GetVisibleTileRange(void)
 Rectangle GetVisibleWorldRect(void)
 {
     Vector2 worldMin = GetScreenToWorld2D({0.0f, 0.0f}, camera);
-    Vector2 worldMax = GetScreenToWorld2D({(float)GScreenWidth, (float)GScreenHeight}, camera);
+    Vector2 worldMax = GetScreenToWorld2D({(float)GameScreenWidth, (float)GameScreenHeight}, camera);
     return {worldMin.x, worldMin.y, worldMax.x - worldMin.x, worldMax.y - worldMin.y};
 }
 

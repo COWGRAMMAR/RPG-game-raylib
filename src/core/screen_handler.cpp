@@ -50,6 +50,7 @@
 #include "game_state_saver.h"
 #include "worldgenio.h"
 #include "worldgenenartion.h"
+#include "../../include/media/videoPlayer.h"
 
 /*==============================================================================
  * External Variables & Macros
@@ -59,6 +60,11 @@
 GameState *gState;
 
 extern PauseMenu pauseMenu;
+
+static video::VideoPlayer bgVideoPlayer;
+static bool bgVideoLoaded = false;
+
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
 
 /*==============================================================================
  * Constants
@@ -152,6 +158,14 @@ GameState InitScreen()
     InitWindow(VIRTUAL_WIDTH, VIRTUAL_HEIGHT, "Dungeon Game");
     SetExitKey(0);  // ESC handled by keybindManager (pause toggle), not by raylib quit
     InitAudioDevice();
+
+    bgVideoLoaded = bgVideoPlayer.Load("assets/video/bg-main-menu.mp4");
+    if (bgVideoLoaded)
+    {
+        bgVideoPlayer.SetLooping(true);
+        bgVideoPlayer.SetVolume(0.0f); // Mute background video so it doesn't overlap with music
+        bgVideoPlayer.Play();
+    }
 
     state.WindowScreenWidth = (int)(GetMonitorWidth(0) * ScaleMultiplierMonitor);
     state.WindowScreenHeight = (int)(GetMonitorHeight(0) * ScaleMultiplierMonitor);
@@ -537,6 +551,11 @@ void GameShutDown(GameState *state)
     UnloadMap();
     UnloadRenderTexture(state->Dungeon);
 
+    if (bgVideoLoaded)
+    {
+        bgVideoPlayer.Unload();
+    }
+
     CloseAudioDevice();
     CloseWindow();
 }
@@ -612,10 +631,19 @@ bool IsFullscreen(void)
  */
 void DrawMenuBackground(void)
 {
-    DrawRectangleGradientV(
-        0, 0,
-        GScreenWidth, GScreenHeight,
-        {36, 28, 58, 255},   // top: muted dark purple-blue
-        {5, 5, 15, 255}      // bottom: near-black
-    );
+    if (bgVideoLoaded)
+    {
+        bgVideoPlayer.Update(GetFrameTime());
+        // Skala proporsional ke resolusi virtual screen
+        bgVideoPlayer.Draw(0, 0, GScreenWidth, GScreenHeight, WHITE);
+    }
+    else
+    {
+        DrawRectangleGradientV(
+            0, 0,
+            GScreenWidth, GScreenHeight,
+            {36, 28, 58, 255}, // top: muted dark purple-blue
+            {5, 5, 15, 255}    // bottom: near-black
+        );
+    }
 }

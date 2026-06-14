@@ -142,15 +142,13 @@ void Debug::DrawAttackOverlay(void)
 
     if (PlayerInstance.attack.weapon->attackType == ATTACK_SLAM)
     {
-        float tX = std::floor(PlayerInstance.attack.startCenter.x / 32.0f);
-        float tY = std::floor(PlayerInstance.attack.startCenter.y / 32.0f);
-        float radiusTiles = std::floor(reach / 32.0f);
-        float gridSize = 2.0f * radiusTiles + 1.0f;
+        float size = reach * 2.0f;
         Rectangle slamAABB = {
-            (tX - radiusTiles) * 32.0f,
-            (tY - radiusTiles) * 32.0f,
-            gridSize * 32.0f,
-            gridSize * 32.0f};
+            PlayerInstance.attack.startCenter.x - reach,
+            PlayerInstance.attack.startCenter.y - reach,
+            size,
+            size
+        };
         DrawRectangleRec(slamAABB, Fade(RED, 0.3f));
         DrawRectangleLinesEx(slamAABB, 2.0f, RED);
 

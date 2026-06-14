@@ -19,15 +19,15 @@
  */
 
 /** @brief Spawn count range constants */
-constexpr int SPAWN_PINPOINT_NORMAL_MIN = 9;
-constexpr int SPAWN_PINPOINT_NORMAL_MAX = 13;
-constexpr int SPAWN_PINPOINT_ELITE_MIN = 3;
-constexpr int SPAWN_PINPOINT_ELITE_MAX = 7;
-constexpr int SPAWN_RECT_NORMAL_MIN = 20;
-constexpr int SPAWN_RECT_NORMAL_MAX = 25;
-constexpr int SPAWN_RECT_ELITE_MIN = 10;
-constexpr int SPAWN_RECT_ELITE_MAX = 15;
-constexpr int SPAWN_RETRY_LIMIT = 200;
+constexpr int SPAWN_PINPOINT_NORMAL_MIN = 1;  // [debug] default 9
+constexpr int SPAWN_PINPOINT_NORMAL_MAX = 1;  // [debug] default 13
+constexpr int SPAWN_PINPOINT_ELITE_MIN = 1;   // [debug] default 3
+constexpr int SPAWN_PINPOINT_ELITE_MAX = 1;   // [debug] default 7
+constexpr int SPAWN_RECT_NORMAL_MIN = 1;      // [debug] default 20
+constexpr int SPAWN_RECT_NORMAL_MAX = 1;      // [debug] default 25
+constexpr int SPAWN_RECT_ELITE_MIN = 1;       // [debug] default 10
+constexpr int SPAWN_RECT_ELITE_MAX = 1;       // [debug] default 15
+constexpr int SPAWN_RETRY_LIMIT = 1;          // [debug] default 200
 
 // --- Loot drop tunable constants ---
 constexpr float LOOT_DROP_CHANCE_NORMAL = 0.25f;

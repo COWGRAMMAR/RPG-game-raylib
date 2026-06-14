@@ -1385,7 +1385,66 @@ void BarrierManager::Update()
             if (bossAlive == 0)
             {
                 RemoveAllBarriers();
+                pendingReLock = false;
                 TraceLog(LOG_INFO, "BarrierManager: boss barrier unlocked (boss defeated)");
+            }
+        }
+
+        // Step 4 — retry barrier yang di-skip karena overlap player
+        // All-or-nothing: kalo masih ada 1 aja yang overlap → jangan lock satupun
+        if (hasReLocked && pendingReLock)
+        {
+            bool stillOverlap = false;
+            for (auto &b : barriers)
+            {
+                if (b.isActive)
+                    continue;
+                if (CheckCollisionRecs(playerBounds, b.tile.bounds))
+                {
+                    stillOverlap = true;
+                    break;
+                }
+            }
+
+            if (!stillOverlap)
+            {
+                for (auto &b : barriers)
+                {
+                    if (b.isActive)
+                        continue;
+                    b.isActive = true;
+                    DynamicObstacles.push_back(b.tile.bounds);
+                }
+                pendingReLock = false;
+                RebuildObstacleCache();
+                TraceLog(LOG_INFO, "BarrierManager: all pending barriers locked");
+            }
+        }
+
+        // Step 5 — player keluar area boss room → unlock barrier
+        // Guard: kalo player mati/respawn di luar, barrier gak bakal stuck lock
+        if (hasReLocked && !cleared)
+        {
+            if (!CheckCollisionRecs(playerBounds, bossStageBounds))
+            {
+                for (auto &b : barriers)
+                {
+                    if (!b.isActive)
+                        continue;
+                    b.isActive = false;
+                    DynamicObstacles.erase(
+                        std::remove_if(DynamicObstacles.begin(), DynamicObstacles.end(),
+                                       [&](const Rectangle &r)
+                                       {
+                                           return r.x == b.tile.bounds.x && r.y == b.tile.bounds.y;
+                                       }),
+                        DynamicObstacles.end());
+                }
+                hasReLocked = false;
+                cleared = true;
+                pendingReLock = false;
+                RebuildObstacleCache();
+                TraceLog(LOG_INFO, "BarrierManager: boss barrier unlocked (player left boss room)");
             }
         }
     }
@@ -1486,6 +1545,24 @@ void BarrierManager::RemoveAllBarriers()
  */
 void BarrierManager::ReLockBarriers()
 {
+    Rectangle playerBounds = PlayerInstance.GetHitbox();
+
+    // Cek apakah ADA barrier yang overlap dengan player
+    for (auto &b : barriers)
+    {
+        if (b.isActive)
+            continue;
+        if (CheckCollisionRecs(playerBounds, b.tile.bounds))
+        {
+            // Ada overlap → jangan lock satupun — tunggu sampe player keluar
+            pendingReLock = true;
+            cleared = false;
+            TraceLog(LOG_INFO, "BarrierManager: barriers deferred (player overlap barrier)");
+            return;
+        }
+    }
+
+    // Gak ada overlap sama sekali → lock semua barrier
     for (auto &b : barriers)
     {
         if (b.isActive)
@@ -1494,7 +1571,9 @@ void BarrierManager::ReLockBarriers()
         DynamicObstacles.push_back(b.tile.bounds);
     }
     cleared = false;
+    pendingReLock = false;
     RebuildObstacleCache();
+    TraceLog(LOG_INFO, "BarrierManager: all barriers locked");
 }
 
 /**
@@ -1506,6 +1585,7 @@ void BarrierManager::Clear()
     cleared = false; // Default: barrier belum di-clear — di-set ulang sama LoadRuntimeState kalo ada save
     isBossMap = false;
     hasReLocked = false;
+    pendingReLock = false;
     bossStageBounds = {0};
     totalEnemyCount = 0;
     prevDeadCount = 0;

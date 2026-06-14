@@ -463,7 +463,7 @@ public:
     /** @brief Set state hasReLocked */
     void SetHasReLocked(bool v) { hasReLocked = v; }
 
-    static constexpr float KILL_THRESHOLD = 0.9f;
+    static constexpr float KILL_THRESHOLD = 0.01f; // [debug] default 0.9f
 
 private:
     /** @brief Data internal satu barrier */
@@ -477,6 +477,7 @@ private:
     std::vector<BarrierData> barriers; // Daftar barrier yang sedang dikelola
     bool isBossMap = false;            // True kalo map ini punya boss spawn
     bool hasReLocked = false;          // True setelah player masuk room boss dan barrier re-lock
+    bool pendingReLock = false;        // True kalo ada barrier yang di-skip karena overlap player — retry tiap frame
     bool cleared = false;              // True kalo barrier udah pernah di-clear
     int totalEnemyCount = 0;           // Total enemy di EnemyRegistry pas spawn
     int prevDeadCount = 0;             // DeadCount sebelumnya — buat deteksi perubahan

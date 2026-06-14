@@ -26,8 +26,8 @@ namespace Time
  *==============================================================================*/
 
 /** @brief Ukuran layar virtual yang dipakai seluruh proses rendering */
-extern int GScreenWidth;
-extern int GScreenHeight;
+extern const int GameScreenWidth;
+extern const int GameScreenHeight;
 
 /*==============================================================================
  * ScreenState Enum
@@ -58,11 +58,10 @@ enum ScreenState : std::uint8_t
  */
 struct GameState
 {
-    RenderTexture2D Dungeon;    // Render texture at window size — target rendering semua game
+    RenderTexture2D Dungeon;    // Render texture virtual (1280x720) — target rendering semua game
+    float ScaleMultiplier;      // Rasio scale layar virtual ke window asli (dihitung tiap frame)
     int WindowScreenWidth;      // Ukuran window asli saat ini (bisa berubah kalo resize)
     int WindowScreenHeight;     // Ukuran window asli saat ini (bisa berubah kalo resize)
-    int WindowedWidth;          // Window size before entering fullscreen — saved at FS entry
-    int WindowedHeight;         // Window size before entering fullscreen — saved at FS entry
     ScreenState currentScreen;  // State game yang aktif (MAIN_MENU / PLAY / OPTIONS)
     ScreenState previousScreen; // Screen sebelum OPTIONS — buat return button
     bool showFPS;               // Tampilkan FPS counter di HUD

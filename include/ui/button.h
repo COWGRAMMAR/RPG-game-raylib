@@ -43,13 +43,6 @@ struct TextPolicy
         textWidth = MeasureText(text, fontSize);
     }
 
-    void SetPosition(int x, int y)
-    {
-        posX = x;
-        posY = y;
-        textWidth = MeasureText(text, fontSize);
-    }
-
     /** @brief Dapatkan bounds button text */
     [[nodiscard]] Rectangle GetBounds() const
     {
@@ -119,8 +112,6 @@ struct ImagePolicy
             texture = {0};
         }
     }
-
-    void SetPosition(Vector2 pos) { position = pos; }
 
     /** @brief Dapatkan bounds button image */
     [[nodiscard]] Rectangle GetBounds() const
@@ -197,14 +188,6 @@ public:
     [[nodiscard]] Rectangle GetBounds() const
     {
         return policy.GetBounds();
-    }
-
-    void SetPosition(Vector2 pos)
-    {
-        if constexpr (std::is_same_v<PolicyType, ImagePolicy>)
-            policy.SetPosition(pos);
-        else
-            policy.SetPosition(static_cast<int>(pos.x), static_cast<int>(pos.y));
     }
 
     /** @brief Perbandingan bounds */

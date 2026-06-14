@@ -42,7 +42,6 @@ const Keybind KeybindManager::defaultBindings[ACTION_COUNT] = {
     /* DEBUG_TOGGLE        */ {KEY_TAB, false},
     /* DEBUG_TOGGLE_ENEMY  */ {KEY_BACKSLASH, false},
     /* DEBUG_TOGGLE_PLAYER */ {KEY_RIGHT_BRACKET, false},
-    /* TOGGLE_FULLSCREEN    */ {KEY_F11,           false},
 };
 
 const char *KeybindManager::actionNames[ACTION_COUNT] = {
@@ -66,7 +65,6 @@ const char *KeybindManager::actionNames[ACTION_COUNT] = {
     "DEBUG_TOGGLE",
     "DEBUG_TOGGLE_ENEMY",
     "DEBUG_TOGGLE_PLAYER",
-    "TOGGLE_FULLSCREEN",
 };
 
 /*==============================================================================
@@ -94,7 +92,6 @@ static const char *actionDisplayNames[ACTION_COUNT] = {
     "Debug Overlay",
     "Debug Enemies",
     "Debug Player",
-    "Toggle Fullscreen",
 };
 
 /*==============================================================================

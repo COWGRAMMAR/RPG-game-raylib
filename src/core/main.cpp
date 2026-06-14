@@ -162,12 +162,6 @@ int main()
         // Boss music ambient — deteksi proximity, play/stop boss track
         UpdateBossMusic();
 
-        // Toggle fullscreen global dari screen mana pun
-        if (IsKeyPressed(keybindManager.GetKeycode(TOGGLE_FULLSCREEN)))
-        {
-            ToggleFullscreenMode();
-        }
-
         // ===== State: VIDEO (intro saat startup) =====
         if (state.currentScreen == VIDEO)
         {

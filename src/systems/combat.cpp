@@ -122,6 +122,13 @@ namespace Combat
 
                     Inventory::SetupAttackStats(player, attackFaceDir);
 
+                    if (player.attack.weapon && player.attack.weapon->attackType == ATTACK_SLAM)
+                    {
+                        float rad = angle * (PI / 180.0f);
+                        player.attack.startCenter.x += cosf(rad) * player.attack.weapon->reach;
+                        player.attack.startCenter.y += sinf(rad) * player.attack.weapon->reach;
+                    }
+
                     if (player.attack.weapon && player.attack.weapon->attackType == ATTACK_THRUST)
                     {
                         player.IsDashing = true;
@@ -664,7 +671,10 @@ namespace Combat
                 float reach = player.attack.weapon->reach;
                 float scaleTiles = (reach * 2.0f) / 64.0f;
 
-                GroundSlam(player.attack.startCenter, progress, scaleTiles);
+                Vector2 effectPos = player.attack.startCenter;
+                effectPos.y -= 2.0f;
+
+                GroundSlam(effectPos, progress, scaleTiles);
             }
         }
     }

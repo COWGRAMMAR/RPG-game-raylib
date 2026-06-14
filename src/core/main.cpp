@@ -168,17 +168,15 @@ int main()
         // State: VIDEO (intro saat startup)
         if (state.currentScreen == VIDEO)
         {
-            enum class VPhase : uint8_t { COUNTDOWN, INTRODUCTION, DONE };
-            static VPhase videoPhase = VPhase::COUNTDOWN;
+            enum class VPhase : uint8_t { INTRODUCTION, DONE };
+            static VPhase videoPhase = VPhase::INTRODUCTION;
             static bool videoStarted = false;
 
             if (!videoStarted)
             {
-                if (videoPhase == VPhase::COUNTDOWN)
-                    videoScreen.SetVideoPath("assets/video/dolby-countdown.mkv");
-                else if (videoPhase == VPhase::INTRODUCTION)
+                if (videoPhase == VPhase::INTRODUCTION)
                 {
-                    videoScreen.SetVideoPath("assets/video/Intro-Introductions.mkv");
+                    videoScreen.SetVideoPath("assets/video/intro/IntroIntroductions.mkv");
                     AudioManager::PlayTrack("MainMenu");
                 }
                 videoScreen.SetVolume(AudioManager::GetVideoVolume());
@@ -195,18 +193,9 @@ int main()
             if (videoScreen.Update(deltaTime))
             {
                 videoScreen.Unload();
-
-                if (videoPhase == VPhase::COUNTDOWN)
-                {
-                    videoPhase = VPhase::INTRODUCTION;
-                    videoStarted = false;
-                }
-                else
-                {
-                    videoPhase = VPhase::DONE;
-                    state.currentScreen = MAIN_MENU;
-                    videoStarted = false;
-                }
+                videoPhase = VPhase::DONE;
+                state.currentScreen = MAIN_MENU;
+                videoStarted = false;
             }
 
             if (WindowShouldClose())

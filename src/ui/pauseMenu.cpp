@@ -558,7 +558,7 @@ void PauseMenu::CalculateDimensions()
     float btnHeight = 56.0F;
     float pairGap = 105.0F;
     float totalBtnHeight = 5.0F * btnHeight + 4.0F * gap;
-    float startY = position.y + (height - totalBtnHeight) / 2.0F + 65.0F;
+    float startY = position.y + (height - totalBtnHeight) / 2.0F + 35.0F;
 
     // Row 0: Resume (wide, centered)
     {

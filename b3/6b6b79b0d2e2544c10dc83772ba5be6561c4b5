@@ -1,0 +1,23 @@
+src/core/main.cpp
+  s_f9c1efef0fd20c::t_7eb291903f4f13 177,179
+  s_f9c1efef0fd20c::t_d842d82fc614c6 171-172
+  s_f9c1efef0fd20c::t_cbdcac76c23ef0 196-198
+src/ui/videoScreen.cpp
+  s_f9c1efef0fd20c::t_7b3b2adf84080c 8
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "b36b6b79b0d2e2544c10dc83772ba5be6561c4b5",
+  "prompts": {},
+  "sessions": {
+    "s_f9c1efef0fd20c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_148a838eaffey946nQmaQvhaP4",
+        "model": "unknown"
+      },
+      "human_author": "NiskoDT <65821447+NiskoDT@users.noreply.github.com>"
+    }
+  }
+}

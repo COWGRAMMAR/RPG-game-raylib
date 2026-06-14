@@ -1,0 +1,25 @@
+src/systems/audioManager.cpp
+  s_f9c1efef0fd20c::t_f6c476822fefb0 280-281,284-285,288-289,292-293,295-298
+  s_f9c1efef0fd20c::t_ceadbb81ba9b17 258,263,268,273
+src/core/main.cpp
+  s_f9c1efef0fd20c::t_2c6a8e025ba86e 38-41
+  s_f9c1efef0fd20c::t_fd7ee97f57e388 37,193-194
+include/systems/audioManager.h
+  s_f9c1efef0fd20c::t_7d10e2fb71439e 25-37
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "122c35bec1149768d906657846015e7ee404cb3f",
+  "prompts": {},
+  "sessions": {
+    "s_f9c1efef0fd20c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_148a838eaffey946nQmaQvhaP4",
+        "model": "unknown"
+      },
+      "human_author": "NiskoDT <65821447+NiskoDT@users.noreply.github.com>"
+    }
+  }
+}

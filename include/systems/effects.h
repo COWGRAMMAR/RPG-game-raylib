@@ -53,6 +53,11 @@ namespace Effects {
     void AddLog(const char* message);
 
     /**
+     * @brief Add a projectile collision effect (1x1 slam-style animation) at a specific position.
+     */
+    void AddCollision(Vector2 pos);
+
+    /**
      * @brief Clear all active effects.
      */
     void Clear();

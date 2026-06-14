@@ -352,8 +352,8 @@ void SaveLoadScreen::CalculateDimensions()
 {
     width = 850;
     height = 500;
-    startX = (GameScreenWidth - width) / 2;
-    startY = (GameScreenHeight - height) / 2;
+    startX = (GScreenWidth - width) / 2;
+    startY = (GScreenHeight - height) / 2;
 
     backgroundRect = {
         static_cast<float>(startX),

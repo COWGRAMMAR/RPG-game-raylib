@@ -551,5 +551,5 @@ Perubahan terakhir pada dokumentasi:
 | File | Perubahan |
 |---|---|
 | `docs/save-system.md` | Restrukturasi: SNAPSHOT_VERSION=1, koreksi API, hapus percakapan informal; tambah dokumentasi bugfix enemy persistence per-instance UUID |
-| `.agent/save-system-context.md` | Baru — konteks AI agent berbahasa Inggris |
+| `.agents/save-system/save-system-context.md` | Baru — konteks AI agent berbahasa Inggris |
 | `docs/save-system-changelog.md` | Digabung ke sini (Section 9) |

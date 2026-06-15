@@ -35,6 +35,11 @@
 #include <filesystem>
 
 /**
+ * @brief Batas atas delta time per frame untuk mencegah lompatan besar
+ */
+static const float MAX_DELTA_TIME = 0.05f;
+
+/**
  * @brief Global instances for menu systems
  */
 PauseMenu pauseMenu;
@@ -154,34 +159,46 @@ int main()
 
     float accumulator = 0.0f;
 
-    // Main Game Loop
     while (!WindowShouldClose())
     {
-        // Update audio system setiap frame (UpdateMusicStream + auto-switch track)
         AudioManager::Update(state.currentScreen);
         // Boss music ambient — deteksi proximity, play/stop boss track
         UpdateBossMusic();
 
-        // ===== State: VIDEO (intro saat startup) =====
+        if (IsKeyPressed(keybindManager.GetKeycode(TOGGLE_FULLSCREEN)))
+        {
+            ToggleFullscreenMode();
+        }
+
+        // State: VIDEO (intro saat startup)
         if (state.currentScreen == VIDEO)
         {
-            // Muat dan putar video hanya sekali saat pertama masuk
+            enum class VPhase : uint8_t { INTRODUCTION, DONE };
+            static VPhase videoPhase = VPhase::INTRODUCTION;
             static bool videoStarted = false;
+
             if (!videoStarted)
             {
+                if (videoPhase == VPhase::INTRODUCTION)
+                {
+                    videoScreen.SetVideoPath("assets/video/intro/IntroIntroductions.mkv");
+                    AudioManager::PlayTrack("MainMenu");
+                }
+                videoScreen.SetVolume(AudioManager::GetVideoVolume());
                 videoScreen.LoadAndPlay();
                 videoStarted = true;
             }
 
-            // Delta time, cap maks 1/20 detik biar ga loncat jauh
             float deltaTime = GetFrameTime();
-            if (deltaTime > 0.05f)
-                deltaTime = 0.05f;
+            if (deltaTime > MAX_DELTA_TIME)
+                deltaTime = MAX_DELTA_TIME;
 
-            // Update video; jika selesai/skip -> pindah ke MAIN_MENU
+            videoScreen.SetVolume(AudioManager::GetVideoVolume());
+
             if (videoScreen.Update(deltaTime))
             {
                 videoScreen.Unload();
+                videoPhase = VPhase::DONE;
                 state.currentScreen = MAIN_MENU;
                 videoStarted = false;
             }
@@ -189,13 +206,11 @@ int main()
             if (WindowShouldClose())
                 break;
 
-            // Render video fullscreen (tanpa virtual screen biar ga distretch)
             BeginDrawing();
             ClearBackground(BLACK);
             videoScreen.Draw();
             EndDrawing();
         }
-        // ===== State: MAIN_MENU =====
         else if (state.currentScreen == MAIN_MENU)
         {
             UpdateGame(&state);
@@ -205,7 +220,6 @@ int main()
             RenderMainMenuToVirtualScreen(&state);
             DrawRenderWindows(&state);
         }
-        // ===== State: LOADING =====
         else if (state.currentScreen == LOADING)
         {
             // Initialize loading screen on first entry or after returning from MAIN_MENU

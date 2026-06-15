@@ -50,6 +50,7 @@ saves/
 .tmp/
 tmp/
 *temp/
+Testing/
 
 # Junk
 **nul**

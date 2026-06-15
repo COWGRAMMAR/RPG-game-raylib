@@ -37,6 +37,7 @@ enum Action {
     GO_BACK,
     // Menu
     PAUSE_MENU,
+    TOGGLE_FULLSCREEN,
     // Debug overlay
     DEBUG_TOGGLE,
     DEBUG_TOGGLE_ENEMY,

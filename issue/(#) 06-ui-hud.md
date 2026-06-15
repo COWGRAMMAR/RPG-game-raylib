@@ -66,61 +66,99 @@ Bisa pake `CheckPlayerLoS()` atau cukup `CheckCollisionCircleRec(player, Detecti
 ## #9 — HUD Player — Redesain Legend & Icon System
 
 ### Masalah
-Legend keybind di pojok kanan atas (`hud.cpp:808-843`) masih pake text doang:
+Legend keybind di pojok kanan atas (`hud.cpp:981-1028`) masih pake text doang:
 - `[E] Interact`, `[I] Inventory`, `[Q] Drop Item`, `[Shift+Q] Drop All`, `[Esc] Pause`, `[Scroll] Switch Item`
 - Gak ada icon visual
 - Interact nempel permanen, gak kontekstual
 - Keybind text hardcoded, gak dinamis
+- Scroll hint gak perlu (hotbar numbers udah cukup)
 
-### Rencana Baru
+### Rencana Final (2026-06-14)
 
-#### Layout Final
+#### Layout
 
 ```
-┌─────────┐                                    ┌─────────┐
-│ [Esc]   │                                    │  ║ HP  ║  │
-│  Pause  │                                    └─────────┘
-└─────────┘
-                  ┌──────────┐
-                  │ [E] Buka │   ← Interact (kontekstual — cuma muncul kalo ada yg bisa di-interact)
-                  └──────────┘
+┌──────────┐  FPS: 60              [Kill: 3/10]
+│ [Esc]    │
+│  Pause   │
+└──────────┘
 
+                    ┌──────────┐
+                    │ [E] Buka │    ← conditional (PlayerInstance.canInteract)
+                    └──────────┘
 
-               ┌─┐ ┌─┐ ┌─┐ ┌─┐ ┌─┐
-     [I]  ─────│1│ │2│ │3│ │4│ │5│───── [Q] Drop
-     Inven     └─┘ └─┘ └─┘ └─┘ └─┘       [Shift+Q] All
+┌────┐  ┌────┐ ┌────┐ ┌────┐ ┌────┐  ┌──────────┐
+│[I] │  │    │ │    │ │    │ │    │  │ [Q] Drop  │
+│Inv │  └────┘ └────┘ └────┘ └────┘  │ [S+Q] All │
+└────┘    1      2      3      4      └──────────┘
 ```
 
 #### Detail per Elemen
 
-| Posisi | Konten | Tipe | Perilaku |
+| Posisi | Elemen | Font | Perilaku |
 |--------|--------|------|----------|
-| **Kiri atas** | Icon Pause + text keybind | Icon + text dinamis | Selalu muncul |
-| **Tengah layar** (area boss HP bar) | Interact prompt | Text kontekstual | Muncul pas player nyentuh hitbox door/chest/sign |
-| **Bottom-center** (sejajar hotbar) | Drop Item + Drop All | Text dinamis | Selalu muncul |
-| **Bottom-center** | Inventory icon + text keybind | Icon + text dinamis | Sejajar hotbar, di kiri hotbar |
-| **Hotbar** | Slot diperbesar + keybind number per slot | Slot + text dinamis | Keybind number di bawah tiap slot |
+| **Pojok kiri atas** (x=10, y=30) | [Esc] Pause — text-based box | FontId::HUD_HINT | Selalu muncul. Keybind dinamis |
+| **Kanan [Esc]** (x=~100, y=30) | FPS counter | font system existing (FPS=14) | Tetap pake yang existing |
+| **Pojok kanan atas** | `Kill: X/Y` — kill counter | FontId::HUD_HINT | X = enemies mati, Y = total di current map. Hitung dari `Entities::EnemyRegistry` (count !IsActive). **Zero save data changes.** |
+| **Tengah layar** (y=~130) | `[E] Buka` — interact prompt | FontId::HUD_HINT | Hanya render kalo `PlayerInstance.canInteract == true`. Keybind dinamis. |
+| **Bottom-center kiri hotbar** (y=~265) | `[I]` text-based placeholder | FontId::HUD_HINT | Placeholder kotak persegi, nanti diganti icon. Keybind dinamis. |
+| **Bottom-center kanan hotbar** (y=~265) | `[Q] Drop` + `[Shift+Q] All` stacked | FontId::HUD_HINT | Dua baris, keybind dinamis. DropAll pake combo display. |
+| **Bawah tiap slot hotbar** (y=~335) | Angka `1` `2` `3` `4` | FontId::HUD_HINT | Tengah-tengah bawah slot masing-masing. |
 
-#### Yang Didrop
-- **Interact** dari legend (pindah ke tengah layar kontekstual)
-- **Drop Item / Drop All** dari top-right (pindah ke bawah sejajar hotbar)
-- **Switch Item / Scroll** — dropped entirely (anggap obvious + hotbar numbers udah cukup)
+#### Yang Didrop dari Legend Lama
+- `[E] Interact` → pindah ke tengah layar (kontekstual)
+- `[I] Inventory` → pindah ke bottom-center kiri hotbar
+- `[Q] Drop Item` / `[Shift+Q] Drop All` → pindah ke bottom-center kanan hotbar
+- `[Esc] Pause` → pindah ke kiri atas
+- `[Scroll] Switch Item` / Scroll hint → dropped entirely
+- Semua teks legend lama (lines ~981-1028)
+
+#### Kill Counter — Data Source
+- **Tidak** make variable baru / save data field
+- Hitung langsung dari `Entities::GetEnemyRegistry()`:
+  - Total = `registry.size()`
+  - Dead = count `!enemy->IsActive`
+- Zero perubahan di save system. Reset otomatis tiap ganti map.
+
+#### Font System
+- 1 font baru: `FontId::HUD_HINT` → Quicksand-SemiBold.ttf, AtlasRes::RES_256
+- Daftar di `fonts.h` enum + `fonts.cpp` FontDef array
 
 #### Keybind Dinamis
-Semua text keybind terikat ke sistem keybind (#12):
-- Pas user ganti keybind, text otomatis update
-- Contoh: Interact dari E → F, prompt `[E] Buka` jadi `[F] Buka`
+- SEMUA text keybind pake `keybindManager.GetKeyDisplayName(Action)`
+- Otomatis update pas user ganti keybind di settings
+- DropAll: combo display `[Shift] + [Q]` (modifier + main key)
 
-#### File yang Diubah
+#### Asset / Icon
+- **Belum ada icon PNG** — semua pake text-based placeholder
+- Inventory: kotak doang, nanti ganti icon
+- Pause: text box `[Esc] Pause`, nanti ganti icon
+
+### Execution Plan
+
+#### Step 1: Font + Kill Counter Infrastructure
+1. `include/core/fonts.h` — tambah `HUD_HINT` ke enum FontId
+2. `src/core/fonts.cpp` — tambah entry FontDef untuk HUD_HINT (Quicksand-SemiBold.ttf, RES_256, "mainHUDPlayer")
+3. No save data changes — kill count computed from EnemyRegistry
+
+#### Step 2: HUD Render Ulang (hud.cpp)
+1. Hapus legend block (lines ~981-1028)
+2. Render 5 elemen baru:
+   - Pause icon + keybind di (10, 30)
+   - Interact prompt di tengah (conditional)
+   - Inventory placeholder di bottom-left of hotbar
+   - Drop / DropAll di bottom-right of hotbar
+   - Kill counter di top-right
+3. Hotbar: render angka 1-4 di bawah tiap slot
+4. FPS counter tetap di posisi existing (kanan [Esc])
+
+### File yang Diubah
 | File | Perubahan |
 |------|-----------|
-| `src/rendering/hud.cpp` | Drop legend lama (line 808-843), render ulang layout baru |
-| `include/rendering/hud.h` | Kalo perlu fungsi baru |
-| `src/rendering/hud.cpp` (DrawPlayerHUD) | Render Pause icon di kiri atas |
-| `src/rendering/hud.cpp` (DrawPlayerHUD) | Render Inventory icon sejajar hotbar |
-| `src/rendering/hud.cpp` (DrawPlayerHUD) | Render Drop/DropAll di bottom-center |
-| `src/rendering/hud.cpp` | Render Interact kontekstual (deteksi prop hitbox) |
-| `src/rendering/hud.cpp` (DrawHotbar) | Perbesar slot + render keybind di bawah |
+| `include/core/fonts.h` | Tambah `HUD_HINT` ke enum FontId |
+| `src/core/fonts.cpp` | Tambah FontDef entry (Quicksand-SemiBold, RES_256) |
+| `src/rendering/hud.cpp` | Hapus legend lama, render 5 elemen + kill counter + hotbar numbers |
+| `include/rendering/hud.h` | Tidak ada perubahan (fungsi existing cukup) |
 
 ---
 
@@ -325,7 +363,7 @@ Ganti jadi visual scrollbar — vertical slider tipis di pojok kanan yang nunjuk
 | --- | ------- |
 | 1   | Fixed di commit sebelumnya — HealthBarTimer 2s, muncul pas kena damage |
 | —   | Fixed di commit a860500 — HealthBarTimer=0 langsung pas Health<=0 sebelum death anim, biar health bar gak nongol selama death animasi |
-| 9   | Pending — nunggu asset icon |
+| 9   | Fixed — redesain layout + 3 PNG icon (bagIcon, settingsIcon, killCount) |
 | 14  | Fixed di commit sebelumnya — sections, font, hover, refactor 6 sub-functions |
 | 15  | Pending — butuh implementasi |
 | 17  | Fixed di commit sebelumnya — sync showFPS dari state di Show() |

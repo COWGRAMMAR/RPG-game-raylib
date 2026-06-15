@@ -549,19 +549,16 @@ void ItemRenderManager::Render(ItemSpawn &item)
 
     DrawFrame(def.spriteKey, display);
 
-    // stack amount item di-drop: GetOrLoad(FontId::LOADING_TITLE) 14px, bg rounded hitam, di bawah sprite
+    // stack amount item di-drop: FontId::HUD_PLAYER 12px, tanpa background, di bawah sprite
     if (item.amount > 1)
     {
         std::string amountText = std::to_string(item.amount);
-        int fontSize = 14;
-        Vector2 textSz = MeasureTextEx(GetOrLoad(FontId::LOADING_TITLE), amountText.c_str(), fontSize, 0);
+        int fontSize = 12;
+        Vector2 textSz = MeasureTextEx(GetOrLoad(FontId::HUD_PLAYER), amountText.c_str(), fontSize, 0);
         Vector2 textPos = {
             center.x - textSz.x / 2.0f,
-            center.y + 16.0f + 2.0f};
-        DrawRectangleRounded(
-            (Rectangle){textPos.x - 4, textPos.y - 4, textSz.x + 8, textSz.y + 8},
-            0.3f, 8, ColorAlpha(BLACK, 0.8f));
-        DrawTextEx(GetOrLoad(FontId::LOADING_TITLE), amountText.c_str(), textPos, fontSize, 0, WHITE);
+            center.y + 16.0f - 2.0f};
+        DrawTextEx(GetOrLoad(FontId::HUD_PLAYER), amountText.c_str(), textPos, fontSize, 0, WHITE);
     }
 }
 

@@ -2,7 +2,6 @@
 #include "config/game_constants.h"
 #include "../../include/systems/audioManager.h"
 #include "keybindManager.h"
-// include fonts.h untuk GetOrLoad(FontId::LOADING_TITLE)
 #include "fonts.h"
 #include "player.h"
 #include "animation.h"
@@ -21,6 +20,7 @@
 
 extern const int GameScreenWidth;
 extern const int GameScreenHeight;
+extern Camera2D camera;
 
 // Drag & Drop State
 /** @brief Slot asal drag */
@@ -40,6 +40,12 @@ static std::vector<int> splitVisitedSlots;
 static Texture2D invBgTex = {0};
 static Texture2D invSlotGridTex = {0};
 static bool invTexLoaded = false;
+
+// HUD player textures (loaded once from assets/textures/hudPlayer/)
+static Texture2D hudBagIcon = {0};
+static Texture2D hudSettingsIcon = {0};
+static Texture2D hudKillCount = {0};
+static bool hudTexLoaded = false;
 
 /*==============================================================================
  * Internal Helpers
@@ -111,15 +117,15 @@ static void DrawItemIcon(const InventoryItem &item, Rectangle dest)
  * @param fontSize Ukuran font.
  * @param color Warna teks.
  */
-// DrawTextHUD pakai GetOrLoad(FontId::LOADING_TITLE) dengan padding tetap 4px
+// DrawTextHUD pakai GetOrLoad(FontId::HUD_PLAYER) dengan padding tetap 4px
 static void DrawTextHUD(const char *text, int x, int y, int fontSize, Color color)
 {
-    Vector2 textSize = MeasureTextEx(GetOrLoad(FontId::LOADING_TITLE), text, fontSize, 0);
+    Vector2 textSize = MeasureTextEx(GetOrLoad(FontId::HUD_PLAYER), text, fontSize, 0);
     float pad = 4.0f;
     DrawRectangleRounded(
         (Rectangle){(float)x - pad, (float)y - pad, textSize.x + pad * 2, (float)fontSize + pad * 2},
         0.3f, 8, ColorAlpha(BLACK, 0.8f));
-    DrawTextEx(GetOrLoad(FontId::LOADING_TITLE), text, Vector2{(float)x, (float)y}, fontSize, 0, color);
+    DrawTextEx(GetOrLoad(FontId::HUD_PLAYER), text, Vector2{(float)x, (float)y}, fontSize, 0, color);
 }
 
 /**
@@ -433,16 +439,16 @@ void DrawInventory()
             float iconSize = 50.0f;
             Rectangle dest = {slotRect.x + (slotSize - iconSize) / 2.0f, slotRect.y + (slotSize - iconSize) / 2.0f, iconSize, iconSize};
             DrawItemIcon(item, dest);
-            // stack amount bag: GetOrLoad(FontId::LOADING_TITLE) 18px dengan background rounded hitam
+            // stack amount bag: GetOrLoad(FontId::HUD_PLAYER) 18px dengan background rounded hitam
             if (item.amount > 1)
             {
                 char buf[12];
                 sprintf(buf, "%d", item.amount);
-                Vector2 sz = MeasureTextEx(GetOrLoad(FontId::LOADING_TITLE), buf, 18, 0);
+                Vector2 sz = MeasureTextEx(GetOrLoad(FontId::HUD_PLAYER), buf, 18, 0);
                 float bx = slotRect.x + slotSize - 34;
                 float by = slotRect.y + slotSize - 24;
                 DrawRectangleRounded((Rectangle){bx - 4, by - 4, sz.x + 8, 18 + 8}, 0.3f, 8, ColorAlpha(BLACK, 0.8f));
-                DrawTextEx(GetOrLoad(FontId::LOADING_TITLE), buf, Vector2{bx, by}, 18, 0, WHITE);
+                DrawTextEx(GetOrLoad(FontId::HUD_PLAYER), buf, Vector2{bx, by}, 18, 0, WHITE);
             }
         }
 
@@ -489,16 +495,16 @@ void DrawInventory()
             float iconSize = 50.0f;
             Rectangle dest = {slotRect.x + (slotSize - iconSize) / 2.0f, slotRect.y + (slotSize - iconSize) / 2.0f, iconSize, iconSize};
             DrawItemIcon(item, dest);
-            // stack amount hotbar (inventory open): GetOrLoad(FontId::LOADING_TITLE) 18px
+            // stack amount hotbar (inventory open): GetOrLoad(FontId::HUD_PLAYER) 18px
             if (item.amount > 1)
             {
                 char buf[12];
                 sprintf(buf, "%d", item.amount);
-                Vector2 sz = MeasureTextEx(GetOrLoad(FontId::LOADING_TITLE), buf, 18, 0);
+                Vector2 sz = MeasureTextEx(GetOrLoad(FontId::HUD_PLAYER), buf, 18, 0);
                 float bx = slotRect.x + slotSize - 34;
                 float by = slotRect.y + slotSize - 24;
                 DrawRectangleRounded((Rectangle){bx - 4, by - 4, sz.x + 8, 18 + 8}, 0.3f, 8, ColorAlpha(BLACK, 0.8f));
-                DrawTextEx(GetOrLoad(FontId::LOADING_TITLE), buf, Vector2{bx, by}, 18, 0, WHITE);
+                DrawTextEx(GetOrLoad(FontId::HUD_PLAYER), buf, Vector2{bx, by}, 18, 0, WHITE);
             }
 
             const ItemDefinition &def = itemDefs.GetById(item.definitionId);
@@ -523,8 +529,8 @@ void DrawInventory()
                     else
                         snprintf(cdBuf, sizeof(cdBuf), "%.1f", cd);
                     int cdFontSize = 26;
-                    Vector2 cdSz = MeasureTextEx(GetOrLoad(FontId::LOADING_TITLE), cdBuf, cdFontSize, 0);
-                    DrawTextEx(GetOrLoad(FontId::LOADING_TITLE), cdBuf, Vector2{slotRect.x + (slotRect.width - cdSz.x) / 2.0f, slotRect.y + (slotRect.height - cdSz.y) / 2.0f}, cdFontSize, 0, WHITE);
+                    Vector2 cdSz = MeasureTextEx(GetOrLoad(FontId::HUD_PLAYER), cdBuf, cdFontSize, 0);
+                    DrawTextEx(GetOrLoad(FontId::HUD_PLAYER), cdBuf, Vector2{slotRect.x + (slotRect.width - cdSz.x) / 2.0f, slotRect.y + (slotRect.height - cdSz.y) / 2.0f}, cdFontSize, 0, WHITE);
                 }
             }
         }
@@ -600,11 +606,11 @@ void DrawInventory()
 
     // "Press 'I' to Close" di-center pake MeasureTextEx
     {
-        Vector2 closeSz = MeasureTextEx(GetOrLoad(FontId::LOADING_TITLE), "Press 'I' to Close", 20, 0);
+        Vector2 closeSz = MeasureTextEx(GetOrLoad(FontId::HUD_PLAYER), "Press 'I' to Close", 20, 0);
         DrawTextHUD("Press 'I' to Close", (int)(GameScreenWidth / 2.0f - closeSz.x / 2.0f), (int)(bgY + bgH + 15), 20, GRAY);
     }
 
-    // keybind hints (Merge, Split, Arrange, Drop) di kanan atas pakai GetOrLoad(FontId::LOADING_TITLE)
+    // keybind hints (Merge, Split, Arrange, Drop) di kanan atas pakai GetOrLoad(FontId::HUD_PLAYER)
     {
         const char *hints[] = {"[Left-Click Drag] Arrange", "[Ctrl+Click] Merge", "[Right-Click Drag] Split", "[Drop Outside Menu] Drop"};
         int hintCount = sizeof(hints) / sizeof(hints[0]);
@@ -615,12 +621,12 @@ void DrawInventory()
 
         for (int i = 0; i < hintCount; i++)
         {
-            Vector2 hintSz = MeasureTextEx(GetOrLoad(FontId::LOADING_TITLE), hints[i], hintFontSize, 0);
+            Vector2 hintSz = MeasureTextEx(GetOrLoad(FontId::HUD_PLAYER), hints[i], hintFontSize, 0);
             float hintX = rightX - hintSz.x;
             DrawRectangleRounded(
                 (Rectangle){hintX - 4, hintY - 4, hintSz.x + 8, hintSz.y + 8},
                 0.3f, 8, ColorAlpha(BLACK, 0.8f));
-            DrawTextEx(GetOrLoad(FontId::LOADING_TITLE), hints[i], Vector2{hintX, hintY}, hintFontSize, 0, WHITE);
+            DrawTextEx(GetOrLoad(FontId::HUD_PLAYER), hints[i], Vector2{hintX, hintY}, hintFontSize, 0, WHITE);
             hintY += lineGap;
         }
     }
@@ -652,13 +658,13 @@ void DrawInventory()
         if (hoveredId != -1)
         {
             const char *itemName = itemDefs.GetById(hoveredId).name.c_str();
-            Vector2 nameSz = MeasureTextEx(GetOrLoad(FontId::LOADING_TITLE), itemName, 22, 0);
+            Vector2 nameSz = MeasureTextEx(GetOrLoad(FontId::HUD_PLAYER), itemName, 22, 0);
             float nameX = mousePos.x - nameSz.x / 2.0f;
             float nameY = mousePos.y - 40.0f;
             DrawRectangleRounded(
                 (Rectangle){nameX - 6, nameY - 4, nameSz.x + 12, nameSz.y + 8},
                 0.3f, 8, ColorAlpha(BLACK, 0.85f));
-            DrawTextEx(GetOrLoad(FontId::LOADING_TITLE), itemName, Vector2{nameX, nameY}, 22, 0, WHITE);
+            DrawTextEx(GetOrLoad(FontId::HUD_PLAYER), itemName, Vector2{nameX, nameY}, 22, 0, WHITE);
         }
     }
 }
@@ -691,7 +697,7 @@ static void DrawStatBar(Vector2 pos, float width, float height, float ratio, Col
     int fontSize = 22;
     float textX = pos.x + width + 15.0f;
     float textY = pos.y + (height - (float)fontSize) / 2.0f;
-    DrawTextEx(GetOrLoad(FontId::LOADING_TITLE), buffer, Vector2{textX, textY}, fontSize, 0, WHITE);
+    DrawTextEx(GetOrLoad(FontId::HUD_PLAYER), buffer, Vector2{textX, textY}, fontSize, 0, WHITE);
 }
 
 /**
@@ -704,11 +710,11 @@ void DrawHotbar()
         return;
 
     const float slotSize = 55.0f;
-    const float padding = 10.0f;
-    const float screenPadding = 30.0f;
-    const float totalWidth = (slotSize * 4) + (padding * 3);
-    const float startX = (float)GameScreenWidth - screenPadding - totalWidth;
-    const float startY = (float)GameScreenHeight - 30.0f - slotSize;
+    const float padding = 8.0f;
+    // 5 box layout (inv + 4 hotbar) centered
+    const float total5W = (slotSize * 5) + (padding * 4);
+    const float startX = ((float)GameScreenWidth - total5W) / 2.0f;
+    const float startY = (float)GameScreenHeight - 44.0f - slotSize;
 
     int activeSlot = (int)InputInstance.GetActiveSlot();
     bool isInventoryOpen = InputInstance.IsInventoryOpen();
@@ -717,9 +723,39 @@ void DrawHotbar()
     bool mousePressed = InputInstance.IsLeftClickPressed();
     bool mouseReleased = InputInstance.IsLeftClickReleased();
 
+    int globalFontsize = 17;
+    float globalPadding = 12.0f;
+
+    // Inv box (bag icon) — first of 5 boxes
+    {
+        Rectangle r = {startX, startY, slotSize, slotSize};
+        DrawRectangleRounded((Rectangle){r.x + 2, r.y + 2, r.width, r.height}, 0.2f, 8, ColorAlpha(BLACK, 0.4f));
+        DrawRectangleRounded(r, 0.4f, 8, ColorAlpha(DARKGRAY, 0.6f));
+        DrawRectangleRoundedLines(r, 0.4f, 8, ColorAlpha(WHITE, 0.3f));
+        if (hudTexLoaded)
+        {
+            float iconDraw = 50.0f;
+            float dx = r.x + (r.width - iconDraw) / 2.0f;
+            float dy = r.y + (r.height - iconDraw) / 2.0f;
+            DrawTexturePro(hudBagIcon, (Rectangle){0, 0, (float)hudBagIcon.width, (float)hudBagIcon.height},
+                (Rectangle){dx, dy, iconDraw, iconDraw}, {0, 0}, 0, WHITE);
+        }
+
+        const char *invKey = keybindManager.GetKeyDisplayName(TOGGLE_INVENTORY);
+        int ikFontSize = globalFontsize;
+        Font ikFont = GetOrLoad(FontId::HUD_PLAYER);
+        Vector2 ikSz = MeasureTextEx(ikFont, invKey, ikFontSize, 0);
+        float ikX = r.x + (r.width - ikSz.x) / 2.0f;
+        float ikY = r.y + r.height + globalPadding;
+        DrawRectangleRounded(
+            (Rectangle){ikX - 4, ikY - 2, ikSz.x + 8, ikSz.y + 4},
+            0.3f, 8, ColorAlpha(BLACK, 0.8f));
+        DrawTextEx(ikFont, invKey, Vector2{ikX, ikY}, ikFontSize, 0, WHITE);
+    }
+
     for (int i = 0; i < PlayerInstance.GetMaxHotbar(); i++)
     {
-        Rectangle slotRect = {startX + (i * (slotSize + padding)), startY, slotSize, slotSize};
+        Rectangle slotRect = {startX + (i + 1) * (slotSize + padding), startY, slotSize, slotSize};
         bool isActive = (activeSlot == (int)(i + 1));
         int globalIdx = PlayerInstance.GetMaxBag() + i;
         bool isHovered = isInventoryOpen && CheckCollisionPointRec(mousePos, slotRect);
@@ -738,21 +774,23 @@ void DrawHotbar()
         InventoryItem item = PlayerInstance.GetHotbarItem(i);
         if (item.definitionId != -1 && !isDragSource)
         {
-            float iconDrawSize = 42.0f;
+            float iconDrawSize = 44.0f;
             Rectangle dest = {
                 slotRect.x + (slotRect.width - iconDrawSize) / 2.0f,
                 slotRect.y + (slotRect.height - iconDrawSize) / 2.0f,
                 iconDrawSize, iconDrawSize};
             DrawItemIcon(item, dest);
 
-            // stack amount hotbar (tertutup): GetOrLoad(FontId::LOADING_TITLE) 16px
-            if (item.amount > 0)
+            // stack amount hotbar, cuma kalo >1 (non-stackable gak muncul)
+            if (item.amount > 1)
             {
                 char amtBuf[12];
                 sprintf(amtBuf, "%d", item.amount);
-                int fontSize = 16;
-                Vector2 textSz = MeasureTextEx(GetOrLoad(FontId::LOADING_TITLE), amtBuf, fontSize, 0);
-                DrawTextHUD(amtBuf, (int)(slotRect.x + slotRect.width - textSz.x - 4), (int)(slotRect.y + slotRect.height - textSz.y - 2), fontSize, WHITE);
+                int fontSize = 20;
+                Vector2 textSz = MeasureTextEx(GetOrLoad(FontId::HUD_PLAYER), amtBuf, fontSize, 0);
+                float sx = slotRect.x + slotRect.width - textSz.x - 4;
+                float sy = slotRect.y + slotRect.height - textSz.y - 2;
+                DrawTextEx(GetOrLoad(FontId::HUD_PLAYER), amtBuf, Vector2{sx, sy}, fontSize, 0, WHITE);
             }
 
             const ItemDefinition &def = itemDefs.GetById(item.definitionId);
@@ -778,10 +816,24 @@ void DrawHotbar()
                     else
                         snprintf(cdBuf, sizeof(cdBuf), "%.1f", cd);
                     int cdFontSize = 22;
-                    Vector2 cdSz = MeasureTextEx(GetOrLoad(FontId::LOADING_TITLE), cdBuf, cdFontSize, 0);
-                    DrawTextEx(GetOrLoad(FontId::LOADING_TITLE), cdBuf, Vector2{slotRect.x + (slotRect.width - cdSz.x) / 2.0f, slotRect.y + (slotRect.height - cdSz.y) / 2.0f}, cdFontSize, 0, WHITE);
+                    Vector2 cdSz = MeasureTextEx(GetOrLoad(FontId::HUD_PLAYER), cdBuf, cdFontSize, 0);
+                    DrawTextEx(GetOrLoad(FontId::HUD_PLAYER), cdBuf, Vector2{slotRect.x + (slotRect.width - cdSz.x) / 2.0f, slotRect.y + (slotRect.height - cdSz.y) / 2.0f}, cdFontSize, 0, WHITE);
                 }
             }
+        }
+
+        // Keybind number below each hotbar slot
+        {
+            const char *slotKey = keybindManager.GetKeyDisplayName((Action)(HOTBAR_SLOT_1 + i));
+            int snFontSize = globalFontsize;
+            Font font = GetOrLoad(FontId::HUD_PLAYER);
+            Vector2 snSz = MeasureTextEx(font, slotKey, snFontSize, 0);
+            float snX = slotRect.x + (slotRect.width - snSz.x) / 2.0f;
+            float snY = slotRect.y + slotRect.height + globalPadding;
+            DrawRectangleRounded(
+                (Rectangle){snX - 4, snY - 2, snSz.x + 8, snSz.y + 4},
+                0.3f, 8, ColorAlpha(BLACK, 0.8f));
+            DrawTextEx(font, slotKey, Vector2{snX, snY}, snFontSize, 0, WHITE);
         }
 
         if (isInventoryOpen)
@@ -901,20 +953,138 @@ static void DrawBuffIndicators()
         else
             snprintf(cdBuf, sizeof(cdBuf), "%.1fs", *buffs[i].timer);
         int fontSize = 22;
-        Vector2 cdSz = MeasureTextEx(GetOrLoad(FontId::LOADING_TITLE), cdBuf, fontSize, 0);
-        DrawTextEx(GetOrLoad(FontId::LOADING_TITLE), cdBuf, Vector2{barX + buffBarWidth + 8.0f, y + (buffBarHeight - cdSz.y) / 2.0f}, fontSize, 0, WHITE);
+        Vector2 cdSz = MeasureTextEx(GetOrLoad(FontId::HUD_PLAYER), cdBuf, fontSize, 0);
+        DrawTextEx(GetOrLoad(FontId::HUD_PLAYER), cdBuf, Vector2{barX + buffBarWidth + 8.0f, y + (buffBarHeight - cdSz.y) / 2.0f}, fontSize, 0, WHITE);
 
         y += entryHeight;
     }
 }
 
-/**
- * @brief Entry point render semua elemen HUD player (stat bar, hotbar, inventory).
- */
-void DrawPlayerHUD()
-{
-    int initialDragSlot = dragSlot;
+/*==============================================================================
+ * Extracted HUD legend helpers
+ *==============================================================================*/
 
+/**
+ * @brief Render keycap Pause di pojok kiri atas.
+ */
+static void DrawPauseKeycap()
+{
+    const float bx = 15.0f, by = 15.0f;
+    const float iconSize =55.0f;   // ukuran settingsIcon.png
+
+    if (hudTexLoaded)
+        DrawTexturePro(hudSettingsIcon, (Rectangle){0, 0, (float)hudSettingsIcon.width, (float)hudSettingsIcon.height},
+            (Rectangle){bx, by, iconSize, iconSize}, {0, 0}, 0, WHITE);
+
+    const int lfSize = 18;
+    Font font = GetOrLoad(FontId::HUD_PLAYER);
+    std::string t = "[Esc]";
+    Vector2 sz = MeasureTextEx(font, t.c_str(), lfSize, 0);
+    float iconCenterX = bx + iconSize / 2.0f;
+    float tx = iconCenterX - sz.x / 2.0f;
+    float ty = by + iconSize + 4.0f;
+    DrawRectangleRounded(
+        (Rectangle){tx - 4, ty - 4, sz.x + 8, sz.y + 8},
+        0.3f, 8, ColorAlpha(BLACK, 0.8f));
+    DrawTextEx(font, t.c_str(), Vector2{tx, ty}, lfSize, 0, WHITE);
+}
+
+/**
+ * @brief Render keycap Interact di tengah layar, hanya jika bisa interaksi.
+ */
+static void DrawInteractKeycap()
+{
+    if (!PlayerInstance.canInteract)
+        return;
+    const int lfSize = 20;
+    Font font = GetOrLoad(FontId::HUD_PLAYER);
+    const char *k = keybindManager.GetKeyDisplayName(INTERACT);
+    std::string t = std::string(k) + " Interaksi";
+    Vector2 sz = MeasureTextEx(font, t.c_str(), lfSize, 0);
+
+
+    // Posisi berdasarkan hitbox player, offsetY bisa disesuaikan
+    const float interactOffsetY = -55.0f;
+    Vector2 playerRef = {
+        PlayerInstance.GetPosition().x + PlayerInstance.GetHitboxOffsetX() + PlayerInstance.GetHitboxWidth() / 2.0f,
+        PlayerInstance.GetPosition().y + PlayerInstance.GetHitboxOffsetY()
+    };
+    Vector2 screenPos = GetWorldToScreen2D(playerRef, camera);
+    float bx = screenPos.x - sz.x / 2.0f;
+    float by = screenPos.y + interactOffsetY;
+
+    DrawRectangleRounded(
+        (Rectangle){bx - 4, by - 4, sz.x + 8, sz.y + 8},
+        0.3f, 8, ColorAlpha(BLACK, 0.8f));
+    DrawTextEx(font, t.c_str(), Vector2{bx, by}, lfSize, 0, WHITE);
+}
+
+/**
+ * @brief Render keycap Inv + Drop/DropAll di area bawah, align kiri hotbar.
+ */
+static void DrawInvDropKeycaps()
+{
+    const int lfSize = 18;
+    Font font = GetOrLoad(FontId::HUD_PLAYER);
+
+    const char *dropKey = keybindManager.GetKeyDisplayName(DROP_ITEM);
+    const char *dropAllMod = keybindManager.GetKeyDisplayName(DROP_ALL);
+    std::string dropT = std::string("[") + dropKey + "] Drop";
+    std::string dropAllT = std::string("[") + dropAllMod + "+" + dropKey + "] All";
+    Vector2 dropSz = MeasureTextEx(font, dropT.c_str(), lfSize, 0);
+    Vector2 dropAllSz = MeasureTextEx(font, dropAllT.c_str(), lfSize, 0);
+
+    const float dropRightPad = 12.0f;
+    float rightEdge = (float)GameScreenWidth - dropRightPad;
+    float baseY = (float)GameScreenHeight - 30.0f;
+    float dropAllX = rightEdge - dropAllSz.x;
+    float dropAllY = baseY - dropAllSz.y;
+    float dropX = rightEdge - dropSz.x;
+    float dropY = dropAllY - 4.0f - dropSz.y;
+
+    DrawRectangleRounded(
+        (Rectangle){dropX - 4, dropY - 4, dropSz.x + 8, dropSz.y + 8},
+        0.3f, 8, ColorAlpha(BLACK, 0.8f));
+    DrawTextEx(font, dropT.c_str(), Vector2{dropX, dropY}, lfSize, 0, WHITE);
+    DrawRectangleRounded(
+        (Rectangle){dropAllX - 4, dropAllY - 4, dropAllSz.x + 8, dropAllSz.y + 8},
+        0.3f, 8, ColorAlpha(BLACK, 0.8f));
+    DrawTextEx(font, dropAllT.c_str(), Vector2{dropAllX, dropAllY}, lfSize, 0, WHITE);
+}
+
+/**
+ * @brief Render kill count di pojok kanan atas dari EnemyRegistry.
+ */
+static void DrawKillCount()
+{
+    if (hudTexLoaded)
+    {
+        const float iconSize = 50.0f;        // ukuran icon (resize di sini)
+        const float offsetX = 470.0f;          // geser icon kiri (-)/kanan (+) dari tengah
+        const float by = 15.0f;
+        float ix = ((float)GameScreenWidth - iconSize) / 2.0f + offsetX;
+        DrawTexturePro(hudKillCount, (Rectangle){0, 0, (float)hudKillCount.width, (float)hudKillCount.height},
+            (Rectangle){ix, by, iconSize, iconSize}, {0, 0}, 0, WHITE);
+
+        const int lfSize = 22;
+        Font font = GetOrLoad(FontId::HUD_PLAYER);
+        int totalEnemies = (int)Entities::EnemyRegistry.size();
+        int deadEnemies = 0;
+        for (auto *e : Entities::EnemyRegistry)
+            if (!e->IsActive) deadEnemies++;
+        char killBuf[16];
+        snprintf(killBuf, sizeof(killBuf), "%d/%d", deadEnemies, totalEnemies);
+        float tx = ix + iconSize + 6.0f;
+        float ty = by + (iconSize - (float)lfSize) / 2.0f;
+        DrawTextEx(font, killBuf, Vector2{tx, ty}, lfSize, 0, ColorAlpha(WHITE, 0.9f));
+    }
+}
+
+/**
+ * @brief Render stat bars (health, mana, dash cooldown) di kiri bawah.
+ */
+static void DrawStatBars()
+{
     float health = PlayerInstance.GetHealth();
     float maxHealth = PlayerInstance.GetMaxHealth();
     float healthRatio = (maxHealth > 0) ? health / maxHealth : 0;
@@ -927,28 +1097,6 @@ void DrawPlayerHUD()
     const float barHeight = 22.0f;
     const float padding = 30.0f;
     const float gap = 8.0f;
-    const float avatarSize = 80.0f;
-    const float avatarPadding = 18.0f;
-
-    Vector2 avatarPos = {padding + avatarSize / 2.0f, (float)GameScreenHeight - padding - avatarSize / 2.0f};
-    float radius = avatarSize / 2.0f;
-
-    // DrawCircleV({avatarPos.x + 2, avatarPos.y + 2}, radius + 2, ColorAlpha(BLACK, 0.4f));
-    // DrawCircleV(avatarPos, radius, DARKGRAY);
-
-    // float spriteSize = avatarSize - 10.0f;
-    // Rectangle knightDest = {
-    //     (avatarPos.x - spriteSize / 2.0f) + 1.0f,
-    //     avatarPos.y - spriteSize / 2.0f,
-    //     spriteSize, spriteSize};
-    // Frame avatarFrame = { SPRITESHEET_KNIGHT, 0, 2, 1, 1 };
-    // Display avatarDisplay;
-    // avatarDisplay.position = {knightDest.x, knightDest.y};
-    // avatarDisplay.size = (int)knightDest.width;
-    // DrawFrame(avatarFrame, avatarDisplay);
-
-    // DrawCircleLinesV(avatarPos, radius, ColorAlpha(GOLD, 0.6f));
-    // DrawCircleLinesV(avatarPos, radius + 1, ColorAlpha(GOLD, 0.3f));
 
     float barsX = padding;
     const float dashBarHeight = 6.0f;
@@ -957,7 +1105,6 @@ void DrawPlayerHUD()
     Vector2 manaPos = {barsX, dashPos.y - gap - barHeight};
     Vector2 healthPos = {barsX, manaPos.y - gap - barHeight};
 
-    // DrawTextHUD(PlayerInstance.GetName(), (int)healthPos.x + 7, (int)healthPos.y - 35, 20, WHITE);
     DrawStatBar(healthPos, barWidth, barHeight, healthRatio, RED, (int)health);
     DrawStatBar(manaPos, barWidth, barHeight, manaRatio, GOLD, (int)mana);
 
@@ -971,71 +1118,59 @@ void DrawPlayerHUD()
     DrawRectangleRounded((Rectangle){dashPos.x, dashPos.y, barWidth, dashBarHeight}, 0.5f, 8, DARKGRAY);
     if (dashCooldownRatio > 0.0f)
         DrawRectangleRounded((Rectangle){dashPos.x, dashPos.y, barWidth * dashCooldownRatio, dashBarHeight}, 0.5f, 8, SKYBLUE);
+}
 
+/**
+ * @brief Entry point render semua elemen HUD player.
+ * Orchestrates: stat bars → buff indicators → hotbar → legend → inventory.
+ */
+void DrawPlayerHUD()
+{
+    int initialDragSlot = dragSlot;
+
+    // 0. Load HUD textures once
+    if (!hudTexLoaded)
+    {
+        Image img = LoadImage("assets/textures/hudPlayer/bagIcon.png");
+        hudBagIcon = LoadTextureFromImage(img);
+        UnloadImage(img);
+        img = LoadImage("assets/textures/hudPlayer/settingsIcon.png");
+        hudSettingsIcon = LoadTextureFromImage(img);
+        UnloadImage(img);
+        img = LoadImage("assets/textures/hudPlayer/killCount.png");
+        hudKillCount = LoadTextureFromImage(img);
+        UnloadImage(img);
+        hudTexLoaded = true;
+    }
+
+    // 1. Stat bars
+    DrawStatBars();
+
+    // 2. Buff indicators
     DrawBuffIndicators();
+
+    // 3. Hotbar + slot numbers
     DrawHotbar();
+
+    // 4-7. Legend elements (only when inventory closed)
+    if (!InputInstance.IsInventoryOpen())
+    {
+        DrawInvDropKeycaps();
+        DrawInteractKeycap();
+        DrawPauseKeycap();
+        DrawKillCount();
+    }
+
+    // 8. Inventory overlay
     DrawInventory();
     if (InputInstance.IsInventoryOpen())
         DrawDragGhost(GetVirtualMousePosition(gState));
 
-    if (!InputInstance.IsInventoryOpen())
-    {
-        struct Hint
-        {
-            Action action;
-            const char *keyName;
-            const char *label;
-            bool isCustom;
-        };
-        Hint hints[] = {
-            {INTERACT, nullptr, "Interact", false},
-            {TOGGLE_INVENTORY, nullptr, "Inventory", false},
-            {DROP_ITEM, nullptr, "Drop Item", false},
-            {DROP_ALL, nullptr, "Drop All", false},
-            {PAUSE_MENU, nullptr, "Pause", false},
-            {ACTION_COUNT, "Scroll", "Switch Item", true},
-        };
-        int hintFontSize = 22;
-        float rightX = (float)GameScreenWidth - 20.0f;
-        float hintY = 20.0f;
-        float lineGap = 28.0f;
-
-        for (const auto &h : hints)
-        {
-            std::string text;
-            if (h.isCustom)
-            {
-                text = std::string("[") + h.keyName + "] " + h.label;
-            }
-            else if (h.action == DROP_ALL)
-            {
-                const char *mod = keybindManager.GetKeyDisplayName(DROP_ALL);
-                const char *key = keybindManager.GetKeyDisplayName(DROP_ITEM);
-                text = std::string("[") + mod + "+" + key + "] " + h.label;
-            }
-            else
-            {
-                const char *keyName = keybindManager.GetKeyDisplayName(h.action);
-                text = std::string("[") + keyName + "] " + h.label;
-            }
-            Vector2 sz = MeasureTextEx(GetOrLoad(FontId::LOADING_TITLE), text.c_str(), hintFontSize, 0);
-            float hintX = rightX - sz.x;
-            DrawRectangleRounded(
-                (Rectangle){hintX - 4, hintY - 4, sz.x + 8, sz.y + 8},
-                0.3f, 8, ColorAlpha(BLACK, 0.8f));
-            DrawTextEx(GetOrLoad(FontId::LOADING_TITLE), text.c_str(), Vector2{hintX, hintY}, hintFontSize, 0, WHITE);
-            hintY += lineGap;
-        }
-    }
-
+    // 9. Audio SFX for drag
     if (initialDragSlot == -1 && dragSlot != -1)
-    {
         AudioManager::PlaySFX("inventori");
-    }
     else if (initialDragSlot != -1 && dragSlot == -1)
-    {
         AudioManager::PlaySFX("inventori");
-    }
 }
 
 /**
@@ -1199,8 +1334,8 @@ void DrawBossHPBar()
     // Nama boss di atas bar
     const char *bossName = boss->Name.c_str();
     int nameFontSize = 28;
-    Vector2 nameSz = MeasureTextEx(GetOrLoad(FontId::LOADING_TITLE), bossName, nameFontSize, 0);
-    DrawTextEx(GetOrLoad(FontId::LOADING_TITLE), bossName,
+    Vector2 nameSz = MeasureTextEx(GetOrLoad(FontId::HUD_PLAYER), bossName, nameFontSize, 0);
+    DrawTextEx(GetOrLoad(FontId::HUD_PLAYER), bossName,
                Vector2{centerX - nameSz.x / 2.0f, barY - nameSz.y - 6.0f},
                nameFontSize, 0, WHITE);
 
@@ -1223,8 +1358,8 @@ void DrawBossHPBar()
     int percent = (int)(ratio * 100.0f);
     snprintf(hpBuf, sizeof(hpBuf), "%d%%", percent);
     int hpFontSize = 24;
-    Vector2 hpSz = MeasureTextEx(GetOrLoad(FontId::LOADING_TITLE), hpBuf, hpFontSize, 0);
-    DrawTextEx(GetOrLoad(FontId::LOADING_TITLE), hpBuf,
+    Vector2 hpSz = MeasureTextEx(GetOrLoad(FontId::HUD_PLAYER), hpBuf, hpFontSize, 0);
+    DrawTextEx(GetOrLoad(FontId::HUD_PLAYER), hpBuf,
                Vector2{centerX + barWidth / 2.0f + 12.0f, barY + (barHeight - (float)hpFontSize) / 2.0f},
                hpFontSize, 0, WHITE);
 }

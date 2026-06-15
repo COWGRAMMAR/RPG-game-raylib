@@ -13,6 +13,7 @@ enum class FontId : int {
     KEYBIND_HEADER,  // NewDawn.ttf — header keybinds
     KEYBIND_ENTRY,   // Poppins-Regular.ttf — entry keybinds
     LOADING_TITLE,   // Poppins-Bold.ttf — alias DEFAULT
+    HUD_PLAYER,      // Poppins-Bold.ttf — font HUD player
 
     MEDIEVAL_SHARP,  // MedievalSharp-Regular.ttf
     QUICKSAND_BOLD,  // Quicksand-Bold.ttf
@@ -22,6 +23,10 @@ enum class FontId : int {
     QUICKSAND_LIGHT,    // Quicksand-Light.ttf
     NORSE_BOLD,     // Norsebold.otf
     NORSE,           // Norse.otf
+
+    // Audio Settings tab
+    AUDIOSETTS_HEADER,  // NewDawn.ttf, RES_512 — label slider
+    AUDIOSETTS_VALUE,   // Poppins-Regular.ttf, RES_256 — value text
 
     COUNT
 };

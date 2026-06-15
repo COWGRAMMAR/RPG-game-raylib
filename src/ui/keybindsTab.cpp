@@ -321,7 +321,7 @@ static void DrawToastNotification(const char toastLine1[128], const char toastLi
     Vector2 sz2 = MeasureTextEx(GetOrLoad(FontId::LOADING_TITLE), toastLine2, KEYB_TOAST_SZ, 0);
     int toastW = std::max((int)sz1.x, (int)sz2.x) + 40;
     int toastH = (sz1.y > 0 ? (int)sz1.y + 10 : 0) + (sz2.y > 0 ? (int)sz2.y : 0) + 30;
-    int toastX = GScreenWidth - toastW - 20;
+    int toastX = GameScreenWidth - toastW - 20;
     int toastY = 15;
 
     float alpha = std::min(toastTimer, 1.0f) * 0.85f + 0.15f;

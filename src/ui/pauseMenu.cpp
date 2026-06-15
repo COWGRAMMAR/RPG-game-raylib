@@ -48,27 +48,6 @@ static Popup pauseCorruptPopup("Save file corrupted or unreadable.", "OK", 0.7f)
 static Popup returnConfirmPopup("Return to main menu?", "Continue", "Cancel", 0.7f);
 static Popup restartConfirmPopup("Restart Run?", "Restart", "Cancel", 0.7f);
 
-static constexpr int TAB_HEIGHT = 56;
-static constexpr int TAB_TOP_OFFSET = 135;
-static constexpr int TAB_SPACING = 302;
-static constexpr int BACK_BTN_RIGHT_OFFSET = 133;
-static constexpr int BACK_BTN_BOTTOM_OFFSET = 53;
-static constexpr int OPT_LABEL_FONT_SIZE = 24;
-static constexpr int VALUE_RIGHT_OFFSET = 339;
-static constexpr int CONTENT_TOP_OFFSET = 221;
-static constexpr int ROW1_TOP = 15;
-static constexpr int ROW2_TOP = 75;
-static constexpr int RESET_TAB_LEFT = 60;
-static constexpr int RESET_ALL_LEFT = 220;
-static constexpr int RESET_BOTTOM_OFFSET = 70;
-static constexpr int RESET_FONT_SIZE = 20;
-static constexpr int CONTENT_INNER_PAD = 20;
-static constexpr int CONTENT_BOX_Y = 200;
-static constexpr int CONTENT_BOX_BOTTOM_TRIM = 323;
-static constexpr int BTN_BG_PAD = 6;
-static constexpr int CONTENT_OX = 89;
-static constexpr int CONTENT_OY = 121;
-
 /*==============================================================================
  * OptionsScreen Implementation
  *==============================================================================*/
@@ -175,14 +154,16 @@ std::vector<ResOption> GetAvailableResolutions()
  */
 void OptionsScreen::CalculateDimensions()
 {
+    const int tabHeight = 56;
+
     width = bgTexture.width > 0 ? bgTexture.width : 800;
     height = bgTexture.height > 0 ? bgTexture.height : 600;
-    startX = (GScreenWidth - width) / 2;
-    startY = (GScreenHeight - height) / 2;
+    startX = (GameScreenWidth - width) / 2;
+    startY = (GameScreenHeight - height) / 2;
 
     backgroundRect = {static_cast<float>(startX), static_cast<float>(startY), static_cast<float>(width), static_cast<float>(height)};
 
-    int tabY = startY + TAB_TOP_OFFSET;
+    int tabY = startY + 15 + 120;
 
     const char *tabFiles[3] = {
         "assets/textures/settingsButt/settingsVideo.png",
@@ -190,15 +171,15 @@ void OptionsScreen::CalculateDimensions()
         "assets/textures/settingsButt/settingsKeybinds.png"};
     for (int i = 0; i < 3; i++)
     {
-        float cx = static_cast<float>(startX + width / 2 + (i - 1) * TAB_SPACING);
-        float cy = static_cast<float>(tabY + TAB_HEIGHT / 2);
+        float cx = static_cast<float>(startX + width / 2 + (i - 1) * 302);
+        float cy = static_cast<float>(tabY + tabHeight / 2);
         tabButtons[i] = buttonImage(tabFiles[i], Vector2{cx, cy}, 1.0F, 0.7F);
     }
 
     backButton = buttonImage(
         "assets/textures/settingsButt/settingsBack.png",
-        Vector2{static_cast<float>(startX + width - BACK_BTN_RIGHT_OFFSET),
-                static_cast<float>(startY + height - BACK_BTN_BOTTOM_OFFSET)},
+        Vector2{static_cast<float>(startX + width - 133),
+                static_cast<float>(startY + height - 53)},
         1.0F, 0.7F);
 
     if (resolutionOptions.empty())
@@ -206,15 +187,16 @@ void OptionsScreen::CalculateDimensions()
         resolutionOptions = GetAvailableResolutions();
     }
 
-    int valueX = startX + VALUE_RIGHT_OFFSET;
-    int contentStartY = startY + CONTENT_TOP_OFFSET;
+    const int labelFontSize = 24;
+    int valueX = startX + 339;
+    int contentStartY = startY + 221;
 
     bool isFullscreen = IsWindowFullscreen();
     fullscreenButton = buttonTxt(
         isFullscreen ? "ON" : "OFF",
         valueX,
-        contentStartY + ROW1_TOP,
-        OPT_LABEL_FONT_SIZE,
+        contentStartY + 15,
+        labelFontSize,
         isFullscreen ? GREEN : RED,
         0.7F,
         GetOrLoad(FontId::LOADING_TITLE));
@@ -222,27 +204,27 @@ void OptionsScreen::CalculateDimensions()
     fpsButton = buttonTxt(
         showFPS ? "ON" : "OFF",
         valueX,
-        contentStartY + ROW2_TOP,
-        OPT_LABEL_FONT_SIZE,
-        showFPS ? GREEN : RED,
+        contentStartY + 75,
+        labelFontSize,
+        showFPS ? GREEN : GRAY,
         0.7F,
         GetOrLoad(FontId::LOADING_TITLE));
 
     // tombol Reset Tab / Reset All pakai GetOrLoad(FontId::LOADING_TITLE) (bold)
     resetTabButton = buttonTxt(
         "Reset Tab",
-        startX + RESET_TAB_LEFT,
-        startY + height - RESET_BOTTOM_OFFSET,
-        RESET_FONT_SIZE,
+        startX + 60,
+        startY + height - 70,
+        20,
         ORANGE,
         0.7F,
         GetOrLoad(FontId::LOADING_TITLE));
 
     resetOptionsButton = buttonTxt(
         "Reset All",
-        startX + RESET_ALL_LEFT,
-        startY + height - RESET_BOTTOM_OFFSET,
-        RESET_FONT_SIZE,
+        startX + 220,
+        startY + height - 70,
+        20,
         ORANGE,
         0.7F,
         GetOrLoad(FontId::LOADING_TITLE));
@@ -281,7 +263,7 @@ void OptionsScreen::Update(GameState *state, Vector2 mousePosition, bool mouseCl
     if (resetTabButton.isClicked(mousePosition, mouseClicked))
     {
         const char *paths[] = {
-            VIDEO_SETTINGS_PATH,
+            "saves/settings/videoTab.json",
             "saves/settings/audioTab.json",
             "saves/settings/keybindsTab.json"};
         std::error_code ec;
@@ -312,7 +294,7 @@ void OptionsScreen::Update(GameState *state, Vector2 mousePosition, bool mouseCl
     if (resetOptionsButton.isClicked(mousePosition, mouseClicked))
     {
         const char *allPaths[] = {
-            VIDEO_SETTINGS_PATH,
+            "saves/settings/videoTab.json",
             "saves/settings/audioTab.json",
             "saves/settings/keybindsTab.json"};
         std::error_code ec;
@@ -345,7 +327,7 @@ void OptionsScreen::Update(GameState *state, Vector2 mousePosition, bool mouseCl
 
     if (selectedTab == 1)
     {
-        UpdateAudioTab(g_sliders, mousePosition, mouseClicked, startX + CONTENT_OX, startY + CONTENT_OY);
+        UpdateAudioTab(g_sliders, mousePosition, mouseClicked, startX + 89, startY + 121);
     }
 }
 
@@ -358,40 +340,6 @@ void OptionsScreen::Draw(Vector2 mousePosition)
     if (!active)
     {
         return;
-    }
-
-    int newStartX = (GScreenWidth - width) / 2;
-    int newStartY = (GScreenHeight - height) / 2;
-    if (newStartX != startX || newStartY != startY) {
-        startX = newStartX;
-        startY = newStartY;
-        backgroundRect = {static_cast<float>(startX), static_cast<float>(startY), static_cast<float>(width), static_cast<float>(height)};
-
-        int tabY = startY + TAB_TOP_OFFSET;
-        for (int i = 0; i < 3; i++) {
-            float cx = static_cast<float>(startX + width / 2 + (i - 1) * TAB_SPACING);
-            float cy = static_cast<float>(tabY + TAB_HEIGHT / 2);
-            tabButtons[i].SetPosition(Vector2{cx, cy});
-        }
-        backButton.SetPosition(Vector2{static_cast<float>(startX + width - BACK_BTN_RIGHT_OFFSET),
-                                       static_cast<float>(startY + height - BACK_BTN_BOTTOM_OFFSET)});
-
-        int valueX = startX + VALUE_RIGHT_OFFSET;
-        int contentStartY = startY + CONTENT_TOP_OFFSET;
-        bool isFullscreen = IsWindowFullscreen();
-        fullscreenButton = buttonTxt(
-            isFullscreen ? "ON" : "OFF",
-            valueX, contentStartY + ROW1_TOP, OPT_LABEL_FONT_SIZE,
-            isFullscreen ? GREEN : RED, 0.7F, GetOrLoad(FontId::LOADING_TITLE));
-        fpsButton = buttonTxt(
-            showFPS ? "ON" : "OFF",
-            valueX, contentStartY + ROW2_TOP, OPT_LABEL_FONT_SIZE,
-            showFPS ? GREEN : RED, 0.7F, GetOrLoad(FontId::LOADING_TITLE));
-
-        resetTabButton.SetPosition(Vector2{static_cast<float>(startX + RESET_TAB_LEFT),
-                                           static_cast<float>(startY + height - RESET_BOTTOM_OFFSET)});
-        resetOptionsButton.SetPosition(Vector2{static_cast<float>(startX + RESET_ALL_LEFT),
-                                               static_cast<float>(startY + height - RESET_BOTTOM_OFFSET)});
     }
 
     if (bgTexture.id != 0)
@@ -412,23 +360,24 @@ void OptionsScreen::Draw(Vector2 mousePosition)
 
     backButton.Draw(mousePosition);
 
+    int contentOX = 89, contentOY = 121;
     Rectangle contentRect = {
-        static_cast<float>(startX + CONTENT_OX + CONTENT_INNER_PAD),
-        static_cast<float>(startY + CONTENT_BOX_Y),
-        static_cast<float>(width - 2 * (CONTENT_OX + CONTENT_INNER_PAD)),
-        static_cast<float>(height - CONTENT_BOX_BOTTOM_TRIM)};
+        static_cast<float>(startX + contentOX + 20),
+        static_cast<float>(startY + 200),
+        static_cast<float>(width - 2 * (contentOX + 20)),
+        static_cast<float>(height - 323)};
     DrawRectangleRec(contentRect, {0, 0, 0, 51});
 
     switch (selectedTab)
     {
     case 0:
-        DrawVideoTab(fullscreenButton, fpsButton, mousePosition, startX + CONTENT_OX, startY + CONTENT_OY);
+        DrawVideoTab(fullscreenButton, fpsButton, mousePosition, startX + contentOX, startY + contentOY);
         break;
     case 1:
-        DrawAudioTab(mousePosition, startX + CONTENT_OX, startY + CONTENT_OY);
+        DrawAudioTab(mousePosition, startX + contentOX, startY + contentOY);
         break;
     case 2:
-        DrawKeybindsTab(mousePosition, startX + CONTENT_OX, startY + CONTENT_OY, (int)contentRect.width);
+        DrawKeybindsTab(mousePosition, startX + contentOX, startY + contentOY, (int)contentRect.width);
         break;
     }
 
@@ -436,7 +385,7 @@ void OptionsScreen::Draw(Vector2 mousePosition)
     {
         Rectangle tabRect = resetTabButton.GetBounds();
         Rectangle resetAllRect = resetOptionsButton.GetBounds();
-        int pad = BTN_BG_PAD;
+        int pad = 6;
         DrawRectangle(
             static_cast<int>(tabRect.x) - pad,
             static_cast<int>(tabRect.y) - pad,
@@ -514,11 +463,50 @@ void PauseMenu::LoadTextures()
 
     width = bgTexture.width;
     height = bgTexture.height;
+    position.x = (GameScreenWidth - width) / 2.0F;
+    position.y = (GameScreenHeight - height) / 2.0F;
+    backgroundRect = {position.x, position.y, static_cast<float>(width), static_cast<float>(height)};
 
-    for (uint8_t i = 0; i < 7; i++)
-        buttons[i] = buttonImage(BUTTON_PATHS[i], Vector2{0, 0}, 1.0F, 0.6F);
+    float centerX = position.x + width / 2.0F;
+    // jarak vertikal antar baris tombol diperlebar dari 17 → 28
+    float gap = 28.0F;
+    float btnHeight = 56.0F;
+    float pairGap = 105.0F;
+    float totalBtnHeight = 5.0F * btnHeight + 4.0F * gap;
+    // startY ditambah 40px agar tombol pause lebih ke bawah (25 → 65)
+    float startY = position.y + (height - totalBtnHeight) / 2.0F + 65.0F;
 
-    CalculateDimensions();
+    // Row 0: Resume (wide, centered)
+    {
+        float btnY = startY + btnHeight / 2.0F;
+        buttons[0] = buttonImage(BUTTON_PATHS[0], Vector2{centerX, btnY}, 1.0F, 0.6F);
+    }
+
+    // Row 1: Save (left) / Load (right)
+    {
+        float btnY = startY + 1.0F * (btnHeight + gap) + btnHeight / 2.0F;
+        buttons[1] = buttonImage(BUTTON_PATHS[1], Vector2{centerX - pairGap, btnY}, 1.0F, 0.6F);
+        buttons[2] = buttonImage(BUTTON_PATHS[2], Vector2{centerX + pairGap, btnY}, 1.0F, 0.6F);
+    }
+
+    // Row 2: Settings (wide, centered)
+    {
+        float btnY = startY + 2.0F * (btnHeight + gap) + btnHeight / 2.0F;
+        buttons[3] = buttonImage(BUTTON_PATHS[3], Vector2{centerX, btnY}, 1.0F, 0.6F);
+    }
+
+    // Row 3: Restart (left) / To Main (right)
+    {
+        float btnY = startY + 3.0F * (btnHeight + gap) + btnHeight / 2.0F;
+        buttons[4] = buttonImage(BUTTON_PATHS[4], Vector2{centerX - pairGap, btnY}, 1.0F, 0.6F);
+        buttons[5] = buttonImage(BUTTON_PATHS[5], Vector2{centerX + pairGap, btnY}, 1.0F, 0.6F);
+    }
+
+    // Row 4: Exit (wide, centered)
+    {
+        float btnY = startY + 4.0F * (btnHeight + gap) + btnHeight / 2.0F;
+        buttons[6] = buttonImage(BUTTON_PATHS[6], Vector2{centerX, btnY}, 1.0F, 0.6F);
+    }
 }
 
 /**
@@ -547,50 +535,12 @@ bool PauseMenu::IsActive() const
     return active;
 }
 
+/**
+ * @brief Menghitung ulang dimensi (dummy — virtual screen fixed, tidak perlu)
+ */
 void PauseMenu::CalculateDimensions()
 {
-    position.x = (GScreenWidth - width) / 2.0F;
-    position.y = (GScreenHeight - height) / 2.0F;
-    backgroundRect = {position.x, position.y, static_cast<float>(width), static_cast<float>(height)};
-
-    float centerX = position.x + width / 2.0F;
-    float gap = 28.0F;
-    float btnHeight = 56.0F;
-    float pairGap = 105.0F;
-    float totalBtnHeight = 5.0F * btnHeight + 4.0F * gap;
-    float startY = position.y + (height - totalBtnHeight) / 2.0F + 65.0F;
-
-    // Row 0: Resume (wide, centered)
-    {
-        float btnY = startY + btnHeight / 2.0F;
-        buttons[0].SetPosition(Vector2{centerX, btnY});
-    }
-
-    // Row 1: Save (left) / Load (right)
-    {
-        float btnY = startY + 1.0F * (btnHeight + gap) + btnHeight / 2.0F;
-        buttons[1].SetPosition(Vector2{centerX - pairGap, btnY});
-        buttons[2].SetPosition(Vector2{centerX + pairGap, btnY});
-    }
-
-    // Row 2: Settings (wide, centered)
-    {
-        float btnY = startY + 2.0F * (btnHeight + gap) + btnHeight / 2.0F;
-        buttons[3].SetPosition(Vector2{centerX, btnY});
-    }
-
-    // Row 3: Restart (left) / To Main (right)
-    {
-        float btnY = startY + 3.0F * (btnHeight + gap) + btnHeight / 2.0F;
-        buttons[4].SetPosition(Vector2{centerX - pairGap, btnY});
-        buttons[5].SetPosition(Vector2{centerX + pairGap, btnY});
-    }
-
-    // Row 4: Exit (wide, centered)
-    {
-        float btnY = startY + 4.0F * (btnHeight + gap) + btnHeight / 2.0F;
-        buttons[6].SetPosition(Vector2{centerX, btnY});
-    }
+    // Virtual screen 1280x720 is fixed; textures loaded once in LoadTextures()
 }
 
 /**
@@ -771,7 +721,7 @@ void PauseMenu::Update(GameState *state, Vector2 mousePosition, bool mouseClicke
             // Reset camera ke posisi player
             Vector2 spawnPos = PlayerInstance.GetPosition();
             camera.target = {spawnPos.x + (FRAME_SIZE / 2.0F), spawnPos.y + (FRAME_SIZE / 2.0F)};
-            camera.offset = {(float)(GScreenWidth / 2), (float)(GScreenHeight / 2)};
+            camera.offset = {(float)(GameScreenWidth / 2), (float)(GameScreenHeight / 2)};
             camera.rotation = 0;
             camera.zoom = 1.0F;
 
@@ -812,13 +762,7 @@ void PauseMenu::Draw(Vector2 mousePosition)
         return;
     }
 
-    int expectedX = (GScreenWidth - width) / 2;
-    if (expectedX != static_cast<int>(position.x))
-    {
-        CalculateDimensions();
-    }
-
-    Rectangle fullScreen = {0, 0, static_cast<float>(GScreenWidth), static_cast<float>(GScreenHeight)};
+    Rectangle fullScreen = {0, 0, static_cast<float>(GameScreenWidth), static_cast<float>(GameScreenHeight)};
     Color dimColor = {0, 0, 0, static_cast<unsigned char>(255 * 0.2F)};
     DrawRectangleRec(fullScreen, dimColor);
 

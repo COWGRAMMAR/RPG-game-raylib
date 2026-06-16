@@ -327,21 +327,18 @@ Font udah siap:
 
 ---
 
-## New: Keybinds Scroll Indicator — Teks ke Visual
+## (FIXED) Keybinds Scroll Indicator — Teks ke Visual
 
-### Masalah
-Scroll indicator di keybinds tab masih pake teks `^^^` / `vvv` buat nandain bisa di-scroll.
-
-```cpp
-// keybindsTab.cpp :182-192 (kira-kira)
-DrawText("^^^", ...);
-```
-
-### Expected
-Ganti jadi visual scrollbar — vertical slider tipis di pojok kanan yang nunjukin posisi scroll.
-
-### File yang mungkin diubah
-- `src/ui/keybindsTab.cpp` — bagian scroll indicator
+### Status:  Fixed 2026-06-16
+- GenImageColor procedural thumb → scrollBar.png asset + SetTextureFilter POINT
+- scrollBG.png buat background scroll (gray rect)
+- Thumb idle tint {110,110,110}, hover/drag WHITE
+- Font: KEYBIND_ENTRY → Quicksand-Bold, dark brown KEYB_LABEL_COLOR
+- Toast + popup font → KEYBIND_ENTRY (Quicksand-Bold)
+- Hover selection: rounded rect 0.25f, alpha {138,135,128,100}
+- Popup centered relatif content area (contentW, CONTENT_TOP, CONTENT_H)
+- Listening green bg tetep, key color selalu dark brown
+- SAVESLOT_TEXT font untuk saveLoadScreen
 
 ---
 
@@ -355,7 +352,7 @@ Ganti jadi visual scrollbar — vertical slider tipis di pojok kanan yang nunjuk
 | 15 | Revisi | UI inventory | `ui/inventoryScreen.cpp` |
 | 17 | Bug | FPS counter gak mati | `optionsScreen.cpp`, `hudRenderer.cpp` |
 | - | Revisi | Reset buttons look | `keybindsTab.cpp` |
-| - | Revisi | Scroll indicator visual | `keybindsTab.cpp` |
+| - | (V) | Scroll indicator visual | `keybindsTab.cpp` |
 
 ## Status
 
@@ -365,8 +362,9 @@ Ganti jadi visual scrollbar — vertical slider tipis di pojok kanan yang nunjuk
 | —   | Fixed di commit a860500 — HealthBarTimer=0 langsung pas Health<=0 sebelum death anim, biar health bar gak nongol selama death animasi |
 | 9   | Fixed — redesain layout + 3 PNG icon (bagIcon, settingsIcon, killCount) |
 | 14  | Fixed di commit sebelumnya — sections, font, hover, refactor 6 sub-functions |
-| 15  | Pending — butuh implementasi |
+| 15  | Fixed — INVENTORY_UI font, rounded corners, stack color #999, legend reposition, ghost feedback, extracted DrawInventory helpers |
 | 17  | Fixed di commit sebelumnya — sync showFPS dari state di Show() |
 | Boss HP bar | Fixed — DrawBossHPBar() di hud.cpp, trigger detection range / CELL_BOSS prefab, barY=30 |
 | Reset buttons | Pending — styling font/warna |
-| Scroll indicator | Pending — ganti teks ke visual scrollbar |
+| Scroll indicator | Fixed — scrollbar visual (scrollBar.png), scroll BG gray rect, drag interaction |
+| #08 Inventory UI | Fixed — semua item di issue #08 sudah diimplementasi lewat #15 |

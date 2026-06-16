@@ -27,6 +27,7 @@
 #include "../lib/json/include/nlohmann/json.hpp"
 #include "raymath.h"
 #include "core/utils.h"
+#include "core/seedmanager.h"
 #include "core/game_state_saver.h"
 #include <iostream>
 #include <vector>
@@ -847,6 +848,10 @@ void ItemSpawnManager::SpawnAll(std::vector<ItemSpawn> &activeItems)
 {
     activeItems.clear();
 
+    uint64_t dSeed = g_SeedManager.IsRunActive()
+        ? (uint64_t)g_SeedManager.GetSeed(g_SeedManager.GetCurrentStage()) : 0;
+
+    int areaIndex = 0;
     for (auto &area : spawnAreas)
     {
         if (!area.isActive)
@@ -863,8 +868,12 @@ void ItemSpawnManager::SpawnAll(std::vector<ItemSpawn> &activeItems)
             int defId = PickRandomDefinitionId(rng);
             const ItemDefinition &def = itemDefs.GetById(defId);
             Vector2 pos = GetRandomPosInArea(area, def.hitboxSize);
-            activeItems.push_back(itemData.CreateItem(pos, defId));
+            ItemSpawn item = itemData.CreateItem(pos, defId);
+            item.uuid = GenerateDeterministicUUID(dSeed, areaIndex, std::to_string(defId), i);
+            activeItems.push_back(item);
         }
+
+        areaIndex++;
     }
 
     TraceLog(LOG_INFO, "ITEM: total spawned = %d", (int)activeItems.size());

@@ -509,9 +509,13 @@ bool SaveManager::HasSnapshot(const std::string &path)
  * Convenience
  *==============================================================================*/
 
+/*=== Manual Save ===*/
+
 bool SaveManager::SaveManual(const GameSnapshot &snap, int slot)
 {
+    if (slot < 0) return false;
     EnsureDirs(slot);
+    CaptureInitialSnapshot(-1); // update runtime workspace
     return WriteSnapshot(snap, GetManualPath(slot));
 }
 
@@ -566,6 +570,7 @@ bool SaveManager::SaveAutosave(int slot)
             fs::remove(files[i]);
     }
 
+    CaptureInitialSnapshot(-1); // update runtime workspace
     return true;
 }
 
@@ -576,6 +581,7 @@ bool SaveManager::SaveAutosave(int slot)
 bool SaveManager::SaveCheckpoint(const GameSnapshot &snap, const std::string &mapPath, int slot)
 {
     EnsureDirs(slot);
+    CaptureInitialSnapshot(-1); // update runtime workspace
     return WriteSnapshot(snap, GetCheckpointPath(mapPath, slot));
 }
 
@@ -705,7 +711,7 @@ GameSnapshot SaveManager::CaptureSnapshot()
 
     // Map
     const char *mapPath = GetCurrentMapPath();
-    snap.mapPath = (mapPath && mapPath[0] != '\0') ? std::string(mapPath) : "assets/maps/tutorial.json";
+    snap.mapPath = (mapPath && mapPath[0] != '\0') ? std::string(mapPath) : "assets/maps/main_hub.json";
     snap.mapDisplayName = GetMapDisplayName(snap.mapPath);
     snap.cameraTarget = camera.target;
     snap.cameraZoom = camera.zoom;

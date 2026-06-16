@@ -132,10 +132,13 @@ static bool LoadWorldgenForSave(const std::string &mapPath, int worldgenSlot)
 static void HandleMapSwitch(GameState *state)
 {
     bool isBack = state->isGoingBack;
+    static bool s_OldMapHasInitialSnapshot = false;
 
     switch (state->loadingStage)
     {
     case 0:
+        s_OldMapHasInitialSnapshot = !TilesonGetObjectsByType("initial_snapshot").empty();
+
         TraceLog(LOG_INFO, "LOADING: [stage 1/4] %s", isBack ? "Returning to previous map" : "Unloading current map");
         state->loadingText = isBack ? "Returning to previous map..." : "Unloading current map...";
         UnloadMap();
@@ -210,6 +213,11 @@ static void HandleMapSwitch(GameState *state)
         {
             GameSnapshot initial = SaveManager::CaptureSnapshot();
             SaveManager::SaveInitial(initial, g_ActiveSaveSlot);
+        }
+
+        if (s_OldMapHasInitialSnapshot)
+        {
+            SaveManager::CaptureInitialSnapshot(-1);
         }
 
         state->loadingStage++;
@@ -311,10 +319,11 @@ static void HandleFastPath(GameState *state)
 
     Entities::PruneDeadEntities();
 
-    // Save initial state untuk restart
+    // Save initial state untuk restart (slot aktif + runtime workspace)
     {
         GameSnapshot initial = SaveManager::CaptureSnapshot();
         SaveManager::SaveInitial(initial, g_ActiveSaveSlot);
+        SaveManager::CaptureInitialSnapshot(-1);
     }
 
     InitMainMenu(state);
@@ -415,10 +424,11 @@ static void HandleInitialLoad(GameState *state)
 
         Entities::PruneDeadEntities();
 
-        // Save initial state untuk restart
+        // Save initial state untuk restart (slot aktif + runtime workspace)
         {
             GameSnapshot initial = SaveManager::CaptureSnapshot();
             SaveManager::SaveInitial(initial, g_ActiveSaveSlot);
+            SaveManager::CaptureInitialSnapshot(-1);
         }
 
         InitMainMenu(state);

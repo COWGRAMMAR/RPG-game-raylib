@@ -11,9 +11,10 @@
 enum class FontId : int {
     DEFAULT,         // Poppins-Bold.ttf — font default UI
     KEYBIND_HEADER,  // NewDawn.ttf — header keybinds
-    KEYBIND_ENTRY,   // Poppins-Regular.ttf — entry keybinds
+    KEYBIND_ENTRY,   // Quicksand-SemiBold.ttf — entry keybinds
     LOADING_TITLE,   // Poppins-Bold.ttf — alias DEFAULT
     HUD_PLAYER,      // Poppins-Bold.ttf — font HUD player
+    INVENTORY_UI,    // Poppins-Bold.ttf — font inventory UI
 
     MEDIEVAL_SHARP,  // MedievalSharp-Regular.ttf
     QUICKSAND_BOLD,  // Quicksand-Bold.ttf
@@ -27,6 +28,8 @@ enum class FontId : int {
     // Audio Settings tab
     AUDIOSETTS_HEADER,  // NewDawn.ttf, RES_512 — label slider
     AUDIOSETTS_VALUE,   // Poppins-Regular.ttf, RES_256 — value text
+
+    SAVESLOT_TEXT,   // Poppins-Regular.ttf — font save slot text
 
     COUNT
 };

@@ -47,6 +47,10 @@ static Texture2D hudSettingsIcon = {0};
 static Texture2D hudKillCount = {0};
 static bool hudTexLoaded = false;
 
+// Grid bounds untuk deteksi drop zone (di-set per frame di DrawInventory)
+static Rectangle g_gridBagRect = {0};
+static Rectangle g_gridHotbarRect = {0};
+
 /*==============================================================================
  * Internal Helpers
  *==============================================================================*/
@@ -340,6 +344,16 @@ static void HandleDrop(int toSlot)
     dragItem = {-1, 0};
 }
 
+/** @brief Cek apakah posisi ada di dalam area grid bag atau hotbar (drop zone). */
+static bool IsPointInsideGrid(Vector2 pos)
+{
+    if (CheckCollisionPointRec(pos, g_gridBagRect))
+        return true;
+    if (CheckCollisionPointRec(pos, g_gridHotbarRect))
+        return true;
+    return false;
+}
+
 /**
  * @brief Render ghost icon item yang sedang di-drag mengikuti cursor.
  * @param mousePos Posisi mouse saat ini.
@@ -353,6 +367,14 @@ static void DrawDragGhost(Vector2 mousePos)
         mousePos.x - ghostSize / 2.0f,
         mousePos.y - ghostSize / 2.0f,
         ghostSize, ghostSize};
+
+    bool isOutsideGrid = !IsPointInsideGrid(mousePos);
+    if (isOutsideGrid)
+    {
+        DrawRectangleRounded(dest, 0.4f, 8, ColorAlpha(RED, 0.25f)); // red bg
+        DrawRectangleRoundedLinesEx(dest, 0.4f, 8, 2.0f, RED);       // red outline
+    }
+
     DrawItemIcon(dragItem, dest);
 }
 
@@ -360,63 +382,26 @@ static void DrawDragGhost(Vector2 mousePos)
  * Inventory & Hotbar Rendering
  *==============================================================================*/
 
-/**
- * @brief Render layar inventory beserta logika drag & drop, split, dan merge.
- * @note Hanya aktif saat inventory terbuka. Drop item ke luar area inventory
- *       akan spawn item di dunia arah mouse sejauh GetInteractRange.
- */
-void DrawInventory()
+static void DrawMergeSplitLegend();
+
+// ——— Extracted helper functions ———
+
+static void EnsureInventoryTextures()
 {
-    static bool wasOpen = false;
-    bool isOpen = InputInstance.IsInventoryOpen();
-
-    if (isOpen && !wasOpen)
-    {
-        Inventory::SortBagWithBst(PlayerInstance);
-    }
-    wasOpen = isOpen;
-
-    if (!isOpen)
-    {
-        if (dragSlot != -1)
-        {
-            dragSlot = -1;
-            dragItem = {-1, 0};
-            isDragSplit = false;
-            splitVisitedSlots.clear();
-        }
+    if (invTexLoaded)
         return;
-    }
+    Image img = LoadImage("assets/textures/inventory/inv-bg.png");
+    invBgTex = LoadTextureFromImage(img);
+    UnloadImage(img);
+    img = LoadImage("assets/textures/inventory/inv-slot-fullgrid.png");
+    invSlotGridTex = LoadTextureFromImage(img);
+    UnloadImage(img);
+    invTexLoaded = true;
+}
 
-    if (!invTexLoaded)
-    {
-        Image img = LoadImage("assets/textures/inventory/inv-bg.png");
-        invBgTex = LoadTextureFromImage(img);
-        UnloadImage(img);
-        img = LoadImage("assets/textures/inventory/inv-slot-fullgrid.png");
-        invSlotGridTex = LoadTextureFromImage(img);
-        UnloadImage(img);
-        invTexLoaded = true;
-    }
-
-    const float bgW = 581.0f, bgH = 607.0f;
-    const float gridW = 356.0f;
-    const float slotSize = 77.0f, gap = 16.0f;
-
-    const int bgX = (GameScreenWidth - (int)bgW) / 2;
-    const int bgY = (GameScreenHeight - (int)bgH) / 2;
-    const float gridX = (float)bgX + (bgW - gridW) / 2.0f;
-    const float gridYOffset = 140.0f;
-    const float gridY = (float)bgY + gridYOffset;
-
-    DrawRectangle(0, 0, GameScreenWidth, GameScreenHeight, ColorAlpha(BLACK, 0.7f));
-    DrawTextureV(invBgTex, {(float)bgX, (float)bgY}, WHITE);
-    DrawTextureV(invSlotGridTex, {gridX, gridY}, WHITE);
-
-    Vector2 mousePos = GetVirtualMousePosition(gState);
-    bool mousePressed = InputInstance.IsLeftClickPressed();
-    bool mouseReleased = InputInstance.IsLeftClickReleased();
-    bool dragHandled = false;
+static void DrawInventorySlots(float gridX, float gridY, float slotSize, float gap,
+                               Vector2 mousePos, bool mousePressed, bool mouseReleased, bool &dragHandled)
+{
     const int bagCols = 4;
 
     // === Bag grid (4x3) ===
@@ -429,9 +414,15 @@ void DrawInventory()
         bool isDragSource = (dragSlot == i);
 
         if (isHovered && !isDragSource)
-            DrawRectangleRec(slotRect, ColorAlpha(WHITE, 0.15f));
+            DrawRectangleRounded(slotRect, 0.4f, 8, ColorAlpha(WHITE, 0.15f));
         if (isDragSource)
-            DrawRectangleRec(slotRect, ColorAlpha(GOLD, 0.25f));
+        {
+            bool isOutside = !IsPointInsideGrid(mousePos);
+            Color tint = isOutside ? ColorAlpha(RED, 0.25f) : ColorAlpha(GOLD, 0.25f);
+            DrawRectangleRounded(slotRect, 0.4f, 8, tint);
+            if (isOutside)
+                DrawRectangleRoundedLinesEx(slotRect, 0.4f, 8, 2.0f, RED);
+        }
 
         InventoryItem &item = PlayerInstance.GetBagItem(i);
         if (item.definitionId != -1 && !isDragSource)
@@ -439,16 +430,17 @@ void DrawInventory()
             float iconSize = 50.0f;
             Rectangle dest = {slotRect.x + (slotSize - iconSize) / 2.0f, slotRect.y + (slotSize - iconSize) / 2.0f, iconSize, iconSize};
             DrawItemIcon(item, dest);
-            // stack amount bag: GetOrLoad(FontId::HUD_PLAYER) 18px dengan background rounded hitam
+            // stack amount bag: INVENTORY_UI 20px bottom-right, no black bg
             if (item.amount > 1)
             {
+                Font invFont = GetOrLoad(FontId::INVENTORY_UI);
                 char buf[12];
                 sprintf(buf, "%d", item.amount);
-                Vector2 sz = MeasureTextEx(GetOrLoad(FontId::HUD_PLAYER), buf, 18, 0);
-                float bx = slotRect.x + slotSize - 34;
-                float by = slotRect.y + slotSize - 24;
-                DrawRectangleRounded((Rectangle){bx - 4, by - 4, sz.x + 8, 18 + 8}, 0.3f, 8, ColorAlpha(BLACK, 0.8f));
-                DrawTextEx(GetOrLoad(FontId::HUD_PLAYER), buf, Vector2{bx, by}, 18, 0, WHITE);
+                int fontSize = 24;
+                Vector2 sz = MeasureTextEx(invFont, buf, fontSize, 0);
+                float sx = slotRect.x + slotRect.width - sz.x - 10;
+                float sy = slotRect.y + slotRect.height - sz.y - 4;
+                DrawTextEx(invFont, buf, Vector2{sx, sy}, fontSize, 0, (Color){122, 79, 45, 255});
             }
         }
 
@@ -485,9 +477,13 @@ void DrawInventory()
         bool isDragSource = (dragSlot == globalIdx);
 
         if (isHovered && !isDragSource)
-            DrawRectangleRec(slotRect, ColorAlpha(WHITE, 0.15f));
+            DrawRectangleRounded(slotRect, 0.4f, 8, ColorAlpha(WHITE, 0.15f));
         if (isDragSource)
-            DrawRectangleRec(slotRect, ColorAlpha(GOLD, 0.25f));
+        {
+            bool isOutside = !IsPointInsideGrid(mousePos);
+            Color tint = isOutside ? ColorAlpha(RED, 0.25f) : ColorAlpha(GOLD, 0.25f);
+            DrawRectangleRounded(slotRect, 0.4f, 8, tint);
+        }
 
         InventoryItem &item = PlayerInstance.GetHotbarItem(i);
         if (item.definitionId != -1 && !isDragSource)
@@ -495,16 +491,17 @@ void DrawInventory()
             float iconSize = 50.0f;
             Rectangle dest = {slotRect.x + (slotSize - iconSize) / 2.0f, slotRect.y + (slotSize - iconSize) / 2.0f, iconSize, iconSize};
             DrawItemIcon(item, dest);
-            // stack amount hotbar (inventory open): GetOrLoad(FontId::HUD_PLAYER) 18px
+            // stack amount hotbar (inventory open): INVENTORY_UI 20px bottom-right, no black bg
             if (item.amount > 1)
             {
+                Font invFont = GetOrLoad(FontId::INVENTORY_UI);
                 char buf[12];
                 sprintf(buf, "%d", item.amount);
-                Vector2 sz = MeasureTextEx(GetOrLoad(FontId::HUD_PLAYER), buf, 18, 0);
-                float bx = slotRect.x + slotSize - 34;
-                float by = slotRect.y + slotSize - 24;
-                DrawRectangleRounded((Rectangle){bx - 4, by - 4, sz.x + 8, 18 + 8}, 0.3f, 8, ColorAlpha(BLACK, 0.8f));
-                DrawTextEx(GetOrLoad(FontId::HUD_PLAYER), buf, Vector2{bx, by}, 18, 0, WHITE);
+                int fontSize = 24;
+                Vector2 sz = MeasureTextEx(invFont, buf, fontSize, 0);
+                float sx = slotRect.x + slotRect.width - sz.x - 10;
+                float sy = slotRect.y + slotRect.height - sz.y - 4;
+                DrawTextEx(invFont, buf, Vector2{sx, sy}, fontSize, 0, (Color){122, 79, 45, 255});
             }
 
             const ItemDefinition &def = itemDefs.GetById(item.definitionId);
@@ -529,8 +526,9 @@ void DrawInventory()
                     else
                         snprintf(cdBuf, sizeof(cdBuf), "%.1f", cd);
                     int cdFontSize = 26;
-                    Vector2 cdSz = MeasureTextEx(GetOrLoad(FontId::HUD_PLAYER), cdBuf, cdFontSize, 0);
-                    DrawTextEx(GetOrLoad(FontId::HUD_PLAYER), cdBuf, Vector2{slotRect.x + (slotRect.width - cdSz.x) / 2.0f, slotRect.y + (slotRect.height - cdSz.y) / 2.0f}, cdFontSize, 0, WHITE);
+                    Font cdFont = GetOrLoad(FontId::INVENTORY_UI);
+                    Vector2 cdSz = MeasureTextEx(cdFont, cdBuf, cdFontSize, 0);
+                    DrawTextEx(cdFont, cdBuf, Vector2{slotRect.x + (slotRect.width - cdSz.x) / 2.0f, slotRect.y + (slotRect.height - cdSz.y) / 2.0f}, cdFontSize, 0, WHITE);
                 }
             }
         }
@@ -560,7 +558,10 @@ void DrawInventory()
     }
 
     HandleSplitRelease();
+}
 
+static void HandleInventoryDropOutside(Vector2 mousePos, bool mouseReleased, bool dragHandled)
+{
     if (mouseReleased && dragSlot != -1 && !isDragSplit && !dragHandled)
     {
         InventoryItem &src = GetItemBySlotIndex(dragSlot);
@@ -603,70 +604,116 @@ void DrawInventory()
         dragSlot = -1;
         dragItem = {-1, 0};
     }
+}
 
-    // "Press 'I' to Close" di-center pake MeasureTextEx
+static void DrawInventoryHoverName(Vector2 mousePos, float gridX, float gridY, float slotSize, float gap)
+{
+    const int bagCols = 4;
+    int hoveredId = -1;
+    for (int i = 0; i < PlayerInstance.GetMaxBag(); i++)
     {
-        Vector2 closeSz = MeasureTextEx(GetOrLoad(FontId::HUD_PLAYER), "Press 'I' to Close", 20, 0);
-        DrawTextHUD("Press 'I' to Close", (int)(GameScreenWidth / 2.0f - closeSz.x / 2.0f), (int)(bgY + bgH + 15), 20, GRAY);
-    }
-
-    // keybind hints (Merge, Split, Arrange, Drop) di kanan atas pakai GetOrLoad(FontId::HUD_PLAYER)
-    {
-        const char *hints[] = {"[Left-Click Drag] Arrange", "[Ctrl+Click] Merge", "[Right-Click Drag] Split", "[Drop Outside Menu] Drop"};
-        int hintCount = sizeof(hints) / sizeof(hints[0]);
-        int hintFontSize = 25;
-        float rightX = (float)GameScreenWidth - 20.0f;
-        float hintY = 20.0f;
-        float lineGap = 32.0f;
-
-        for (int i = 0; i < hintCount; i++)
+        Rectangle slotRect = {gridX + (i % bagCols) * (slotSize + gap), gridY + (i / bagCols) * (slotSize + gap), slotSize, slotSize};
+        if (CheckCollisionPointRec(mousePos, slotRect) && PlayerInstance.GetBagItem(i).definitionId != -1)
         {
-            Vector2 hintSz = MeasureTextEx(GetOrLoad(FontId::HUD_PLAYER), hints[i], hintFontSize, 0);
-            float hintX = rightX - hintSz.x;
-            DrawRectangleRounded(
-                (Rectangle){hintX - 4, hintY - 4, hintSz.x + 8, hintSz.y + 8},
-                0.3f, 8, ColorAlpha(BLACK, 0.8f));
-            DrawTextEx(GetOrLoad(FontId::HUD_PLAYER), hints[i], Vector2{hintX, hintY}, hintFontSize, 0, WHITE);
-            hintY += lineGap;
+            hoveredId = PlayerInstance.GetBagItem(i).definitionId;
+            break;
         }
     }
-
-    // nama item yang sedang di-hover
+    if (hoveredId == -1)
     {
-        int hoveredId = -1;
-        for (int i = 0; i < PlayerInstance.GetMaxBag(); i++)
+        for (int i = 0; i < PlayerInstance.GetMaxHotbar(); i++)
         {
-            Rectangle slotRect = {gridX + (i % bagCols) * (slotSize + gap), gridY + (i / bagCols) * (slotSize + gap), slotSize, slotSize};
-            if (CheckCollisionPointRec(mousePos, slotRect) && PlayerInstance.GetBagItem(i).definitionId != -1)
+            Rectangle slotRect = {gridX + i * (slotSize + gap), gridY + 373.0f, slotSize, slotSize};
+            if (CheckCollisionPointRec(mousePos, slotRect) && PlayerInstance.GetHotbarItem(i).definitionId != -1)
             {
-                hoveredId = PlayerInstance.GetBagItem(i).definitionId;
+                hoveredId = PlayerInstance.GetHotbarItem(i).definitionId;
                 break;
             }
         }
-        if (hoveredId == -1)
-        {
-            for (int i = 0; i < PlayerInstance.GetMaxHotbar(); i++)
-            {
-                Rectangle slotRect = {gridX + i * (slotSize + gap), gridY + 373.0f, slotSize, slotSize};
-                if (CheckCollisionPointRec(mousePos, slotRect) && PlayerInstance.GetHotbarItem(i).definitionId != -1)
-                {
-                    hoveredId = PlayerInstance.GetHotbarItem(i).definitionId;
-                    break;
-                }
-            }
-        }
-        if (hoveredId != -1)
-        {
-            const char *itemName = itemDefs.GetById(hoveredId).name.c_str();
-            Vector2 nameSz = MeasureTextEx(GetOrLoad(FontId::HUD_PLAYER), itemName, 22, 0);
-            float nameX = mousePos.x - nameSz.x / 2.0f;
-            float nameY = mousePos.y - 40.0f;
-            DrawRectangleRounded(
-                (Rectangle){nameX - 6, nameY - 4, nameSz.x + 12, nameSz.y + 8},
-                0.3f, 8, ColorAlpha(BLACK, 0.85f));
-            DrawTextEx(GetOrLoad(FontId::HUD_PLAYER), itemName, Vector2{nameX, nameY}, 22, 0, WHITE);
-        }
     }
+    if (hoveredId != -1)
+    {
+        const char *itemName = itemDefs.GetById(hoveredId).name.c_str();
+        Vector2 nameSz = MeasureTextEx(GetOrLoad(FontId::INVENTORY_UI), itemName, 22, 0);
+        float nameX = mousePos.x - nameSz.x / 2.0f;
+        float nameY = mousePos.y - 40.0f;
+        DrawRectangleRounded(
+            (Rectangle){nameX - 6, nameY - 4, nameSz.x + 12, nameSz.y + 8},
+            0.4f, 8, ColorAlpha(BLACK, 0.85f));
+        DrawTextEx(GetOrLoad(FontId::INVENTORY_UI), itemName, Vector2{nameX, nameY}, 22, 0, WHITE);
+    }
+}
+
+/**
+ * @brief Render inventory overlay (bag grid + hotbar + drag handling).
+ * @note Hanya aktif saat inventory terbuka. Drop item ke luar area inventory
+ *       akan spawn item di dunia arah mouse sejauh GetInteractRange.
+ */
+void DrawInventory()
+{
+    static bool wasOpen = false;
+    bool isOpen = InputInstance.IsInventoryOpen();
+
+    if (isOpen && !wasOpen)
+    {
+        Inventory::SortBagWithBst(PlayerInstance);
+    }
+    wasOpen = isOpen;
+
+    if (!isOpen)
+    {
+        if (dragSlot != -1)
+        {
+            dragSlot = -1;
+            dragItem = {-1, 0};
+            isDragSplit = false;
+            splitVisitedSlots.clear();
+        }
+        return;
+    }
+
+    EnsureInventoryTextures();
+
+    const float bgW = 581.0f, bgH = 607.0f;
+    const float gridW = 356.0f;
+    const float slotSize = 77.0f, gap = 16.0f;
+
+    const int bgX = (GameScreenWidth - (int)bgW) / 2;
+    const int bgY = (GameScreenHeight - (int)bgH) / 2;
+    const float gridX = (float)bgX + (bgW - gridW) / 2.0f;
+    const float gridYOffset = 140.0f;
+    const float gridY = (float)bgY + gridYOffset;
+
+    DrawRectangle(0, 0, GameScreenWidth, GameScreenHeight, ColorAlpha(BLACK, 0.7f));
+    DrawTextureV(invBgTex, {(float)bgX, (float)bgY}, WHITE);
+    DrawTextureV(invSlotGridTex, {gridX, gridY}, WHITE);
+
+    // Update grid bounds untuk drop zone detection
+    g_gridBagRect = {gridX, gridY, gridW, 263.0f};
+    g_gridHotbarRect = {gridX, gridY + 373.0f, gridW, 77.0f};
+
+    Vector2 mousePos = GetVirtualMousePosition(gState);
+    bool mousePressed = InputInstance.IsLeftClickPressed();
+    bool mouseReleased = InputInstance.IsLeftClickReleased();
+    bool dragHandled = false;
+
+    DrawInventorySlots(gridX, gridY, slotSize, gap, mousePos, mousePressed, mouseReleased, dragHandled);
+    HandleInventoryDropOutside(mousePos, mouseReleased, dragHandled);
+
+    // "Press 'I' to Close" — dynamic keybind, INVENTORY_UI
+    {
+        const char *closeKey = keybindManager.GetKeyDisplayName(TOGGLE_INVENTORY);
+        char closeBuf[64];
+        snprintf(closeBuf, sizeof(closeBuf), "Press '%s' to Close", closeKey);
+        int closeFontSize = 24;
+        Vector2 closeSz = MeasureTextEx(GetOrLoad(FontId::INVENTORY_UI), closeBuf, closeFontSize, 0);
+        DrawTextEx(GetOrLoad(FontId::INVENTORY_UI), closeBuf,
+                   Vector2{(GameScreenWidth / 2.0f - closeSz.x / 2.0f), (float)(bgY + bgH + 15)},
+                   closeFontSize, 0, WHITE);
+    }
+
+    DrawInventoryHoverName(mousePos, gridX, gridY, slotSize, gap);
+    DrawMergeSplitLegend();
 }
 
 /**
@@ -738,7 +785,7 @@ void DrawHotbar()
             float dx = r.x + (r.width - iconDraw) / 2.0f;
             float dy = r.y + (r.height - iconDraw) / 2.0f;
             DrawTexturePro(hudBagIcon, (Rectangle){0, 0, (float)hudBagIcon.width, (float)hudBagIcon.height},
-                (Rectangle){dx, dy, iconDraw, iconDraw}, {0, 0}, 0, WHITE);
+                           (Rectangle){dx, dy, iconDraw, iconDraw}, {0, 0}, 0, WHITE);
         }
 
         const char *invKey = keybindManager.GetKeyDisplayName(TOGGLE_INVENTORY);
@@ -970,11 +1017,11 @@ static void DrawBuffIndicators()
 static void DrawPauseKeycap()
 {
     const float bx = 15.0f, by = 15.0f;
-    const float iconSize =55.0f;   // ukuran settingsIcon.png
+    const float iconSize = 55.0f; // ukuran settingsIcon.png
 
     if (hudTexLoaded)
         DrawTexturePro(hudSettingsIcon, (Rectangle){0, 0, (float)hudSettingsIcon.width, (float)hudSettingsIcon.height},
-            (Rectangle){bx, by, iconSize, iconSize}, {0, 0}, 0, WHITE);
+                       (Rectangle){bx, by, iconSize, iconSize}, {0, 0}, 0, WHITE);
 
     const int lfSize = 18;
     Font font = GetOrLoad(FontId::HUD_PLAYER);
@@ -1002,13 +1049,11 @@ static void DrawInteractKeycap()
     std::string t = std::string(k) + " Interaksi";
     Vector2 sz = MeasureTextEx(font, t.c_str(), lfSize, 0);
 
-
     // Posisi berdasarkan hitbox player, offsetY bisa disesuaikan
     const float interactOffsetY = -55.0f;
     Vector2 playerRef = {
         PlayerInstance.GetPosition().x + PlayerInstance.GetHitboxOffsetX() + PlayerInstance.GetHitboxWidth() / 2.0f,
-        PlayerInstance.GetPosition().y + PlayerInstance.GetHitboxOffsetY()
-    };
+        PlayerInstance.GetPosition().y + PlayerInstance.GetHitboxOffsetY()};
     Vector2 screenPos = GetWorldToScreen2D(playerRef, camera);
     float bx = screenPos.x - sz.x / 2.0f;
     float by = screenPos.y + interactOffsetY;
@@ -1053,25 +1098,65 @@ static void DrawInvDropKeycaps()
 }
 
 /**
+ * @brief Render Merge/Split legend di pojok kanan bawah layar.
+ * Dipanggil saat inventory terbuka — sebagai petunjuk operasi merge & split stack.
+ */
+static void DrawMergeSplitLegend()
+{
+    const int hintSize = 18;
+    Font font = GetOrLoad(FontId::INVENTORY_UI);
+
+    const char *mergeHint = "[Ctrl+Left-Click] Merge";
+    const char *splitHint = "[Right-Click Drag] Split";
+    Vector2 mergeSz = MeasureTextEx(font, mergeHint, hintSize, 0);
+    Vector2 splitSz = MeasureTextEx(font, splitHint, hintSize, 0);
+
+    const float rightPad = 12.0f;
+    float rightEdge = (float)GameScreenWidth - rightPad;
+    float baseY = (float)GameScreenHeight - 30.0f;
+
+    float mergeX = rightEdge - mergeSz.x;
+    float mergeY = baseY - mergeSz.y;
+    float splitX = rightEdge - splitSz.x;
+    float splitY = mergeY - 4.0f - splitSz.y;
+
+    float legendY = splitY;
+    float legendH = (mergeY + mergeSz.y) - splitY;
+    float legendW = 0;
+    if (mergeSz.x > splitSz.x)
+        legendW = mergeSz.x;
+    else
+        legendW = splitSz.x;
+
+    DrawRectangleRounded(
+        (Rectangle){rightEdge - legendW - 8, legendY - 4, legendW + 16, legendH + 8},
+        0.4f, 8, ColorAlpha(BLACK, 0.8f));
+
+    DrawTextEx(font, splitHint, Vector2{splitX, splitY}, hintSize, 0, WHITE);
+    DrawTextEx(font, mergeHint, Vector2{mergeX, mergeY}, hintSize, 0, WHITE);
+}
+
+/**
  * @brief Render kill count di pojok kanan atas dari EnemyRegistry.
  */
 static void DrawKillCount()
 {
     if (hudTexLoaded)
     {
-        const float iconSize = 50.0f;        // ukuran icon (resize di sini)
-        const float offsetX = 470.0f;          // geser icon kiri (-)/kanan (+) dari tengah
+        const float iconSize = 50.0f; // ukuran icon (resize di sini)
+        const float offsetX = 470.0f; // geser icon kiri (-)/kanan (+) dari tengah
         const float by = 15.0f;
         float ix = ((float)GameScreenWidth - iconSize) / 2.0f + offsetX;
         DrawTexturePro(hudKillCount, (Rectangle){0, 0, (float)hudKillCount.width, (float)hudKillCount.height},
-            (Rectangle){ix, by, iconSize, iconSize}, {0, 0}, 0, WHITE);
+                       (Rectangle){ix, by, iconSize, iconSize}, {0, 0}, 0, WHITE);
 
         const int lfSize = 22;
         Font font = GetOrLoad(FontId::HUD_PLAYER);
         int totalEnemies = (int)Entities::EnemyRegistry.size();
         int deadEnemies = 0;
         for (auto *e : Entities::EnemyRegistry)
-            if (!e->IsActive) deadEnemies++;
+            if (!e->IsActive)
+                deadEnemies++;
         char killBuf[16];
         snprintf(killBuf, sizeof(killBuf), "%d/%d", deadEnemies, totalEnemies);
         float tx = ix + iconSize + 6.0f;

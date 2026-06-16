@@ -50,25 +50,13 @@ void Player::Init(GameState *state, const char *spawnObjectName)
         ManaRegenTimer = 0.0f;
 
         // Inisialisasi hotbar + bag dengan semua item dari items.json (id 0-18)
-        Hotbar[0] = {4, 1};   // Wooden Bow
-        Hotbar[1] = {1, 1};   // Steel Sword
-        Hotbar[2] = {17, 1};  // Battle Axe
-        Hotbar[3] = {18, 1};  // War Hammer
+        Hotbar[0] = {1, 1}; // Steel Sword
+        Hotbar[1] = {4, 1}; // Wooden Bow
+        Hotbar[2] = {2, 4}; // Health
+        Hotbar[3] = {3, 4}; // Mana
 
         for (int i = 0; i < PlayerInstance.MaxBag; i++)
             Bag[i] = {EMPTY_ITEM_ID, 0};
-        Bag[0]  = {0, 1};     // Iron Sword
-        Bag[1]  = {2, 8};     // Small Health Potion
-        Bag[2]  = {3, 8};     // Small Stamina Potion
-        Bag[3]  = {5, 8};     // Medium Health Potion
-        Bag[4]  = {6, 8};     // Medium Stamina Potion
-        Bag[5]  = {7, 8};     // Large Health Potion
-        Bag[6]  = {8, 8};     // Large Stamina Potion
-        Bag[7]  = {9, 8};     // Small Damage Potion
-        Bag[8]  = {10, 8};    // Medium Damage Potion
-        Bag[9]  = {11, 8};    // Small Speed Potion
-        Bag[10] = {12, 8};    // Medium Speed Potion
-        Bag[11] = {13, 3};    // Small Invincibility Potion
 
         // Reset buff timers & multipliers
         BuffDamageTimer = 0.0f;
@@ -138,25 +126,13 @@ void Player::ResetForNewGame()
     Health = MaxHealth = 100.0f;
     Mana = MaxMana = 100.0f;
     ManaRegenTimer = 0.0f;
-    Hotbar[0] = {4, 1};   // Wooden Bow
-    Hotbar[1] = {1, 1};   // Steel Sword
-    Hotbar[2] = {17, 1};  // Battle Axe
-    Hotbar[3] = {18, 1};  // War Hammer
+    Hotbar[0] = {1, 1}; // Steel Sword
+    Hotbar[1] = {4, 1}; // Wooden Bow
+    Hotbar[2] = {2, 4}; // Health
+    Hotbar[3] = {3, 4}; // Mana
 
     for (int i = 0; i < MaxBag; i++)
         Bag[i] = {EMPTY_ITEM_ID, 0};
-    Bag[0]  = {0, 1};     // Iron Sword
-    Bag[1]  = {2, 8};     // Small Health Potion
-    Bag[2]  = {3, 8};     // Small Stamina Potion
-    Bag[3]  = {5, 8};     // Medium Health Potion
-    Bag[4]  = {6, 8};     // Medium Stamina Potion
-    Bag[5]  = {7, 8};     // Large Health Potion
-    Bag[6]  = {8, 8};     // Large Stamina Potion
-    Bag[7]  = {9, 8};     // Small Damage Potion
-    Bag[8]  = {10, 8};    // Medium Damage Potion
-    Bag[9]  = {11, 8};    // Small Speed Potion
-    Bag[10] = {12, 8};    // Medium Speed Potion
-    Bag[11] = {13, 3};    // Small Invincibility Potion
     Anim.isDead = false;
     Anim.isAttacking = false;
     HitFlashTimer = 0.0f;

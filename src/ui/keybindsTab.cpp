@@ -5,6 +5,8 @@
 #include "raylib.h"
 #include <algorithm>
 
+static const Color KEYB_LABEL_COLOR = {31, 31, 28, 255};
+
 static const char *SAVE_PATH = "saves/settings/keybindsTab.json";
 
 const char *GetKeybindsSettingsPath()
@@ -44,9 +46,9 @@ static const int actionIndices[] = {9, 10, 4, 7, 8, 6};    // ATTACK_DRINK, DASH
 static const int inventoryIndices[] = {5, 11, 12, 13, 14}; // TOGGLE_INVENTORY, HOTBAR_SLOT_1,2,3,4
 
 static const SectionInfo sections[] = {
-    {"MOVEMENT", WHITE, movementIndices, 4, nullptr, 0},
-    {"ACTION", WHITE, actionIndices, 6, nullptr, 0},
-    {"INVENTORY", WHITE, inventoryIndices, 5, inventoryInfo, 3},
+    {"MOVEMENT", KEYB_LABEL_COLOR, movementIndices, 4, nullptr, 0},
+    {"ACTION", KEYB_LABEL_COLOR, actionIndices, 6, nullptr, 0},
+    {"INVENTORY", KEYB_LABEL_COLOR, inventoryIndices, 5, inventoryInfo, 3},
 };
 
 static const int SECTION_COUNT = sizeof(sections) / sizeof(sections[0]);
@@ -58,14 +60,14 @@ static constexpr int COL_X = 40;              // padding kiri konten dari tepi p
 static constexpr int HITBOX_PAD = 2;          // padding ekstra hitbox hover
 static constexpr int CONTENT_TOP = 90;        // posisi Y awal konten dari startY
 static constexpr int CONTENT_H = 292;         // tinggi area konten terlihat (scissor)
-static constexpr int KEYB_FONT_SZ = 28;       // font entry (Poppins-Regular)
-static constexpr int KEYB_HEADER_SZ = 32;     // font header (NewDawn)
+static constexpr int KEYB_FONT_SZ = 30;       // font entry (Poppins-Regular)
+static constexpr int KEYB_HEADER_SZ = 34;     // font header (NewDawn)
 static constexpr int KEYB_TOAST_SZ = 30;      // font toast notifikasi
 static constexpr int NAME_PAD = 10;           // padding action name -> separator
 static constexpr int SEP_GAP = 40;            // jarak separator -> key name
 static constexpr float TOAST_DURATION = 3.5f; // durasi toast (detik)
 static constexpr int SCROLLBAR_W = 14;        // lebar scrollbar vertikal
-static constexpr int POPUP_W = 420;           // lebar popup listening
+static constexpr int POPUP_W = 460;           // lebar popup listening
 static constexpr int POPUP_H = 80;            // tinggi popup listening
 
 static bool IsInside(int mx, int my, int x, int y, int w, int h)
@@ -128,9 +130,9 @@ static bool TryRebind(int listeningAction, int keyCode, bool isMouse,
 
         const char *cName = keybindManager.GetActionName(conflictAction);
         const char *lName = keybindManager.GetActionName(curAction);
-        snprintf(toastLine1, 128, "%s: %s \xE2\x86\x92 %s", inputName, cName, lName);
+        snprintf(toastLine1, 128, "%s: %s => %s", inputName, cName, lName);
         const char *oldKeyName = KeybindManager::GetInputDisplayName(oldKey.keyCode, oldKey.isMouse);
-        snprintf(toastLine2, 128, "%s: \xE2\x86\x92 %s", oldKeyName, cName);
+        snprintf(toastLine2, 128, "%s: => %s", oldKeyName, cName);
         toastTimer = TOAST_DURATION;
     }
     else
@@ -245,7 +247,7 @@ static void RenderSection(const SectionInfo &sec, int startX, int &currentLocalY
         }
 
         bool isListening = (listeningAction == static_cast<int>(action));
-        Color keyColor = isListening ? GREEN : WHITE;
+        Color keyColor = KEYB_LABEL_COLOR;
 
         // Hover background (±1 spasi kiri/kanan)
         Vector2 keySz = MeasureTextEx(GetOrLoad(FontId::KEYBIND_ENTRY), keyName, KEYB_FONT_SZ, 0);
@@ -259,14 +261,15 @@ static void RenderSection(const SectionInfo &sec, int startX, int &currentLocalY
                                 rowW + HITBOX_PAD * 2, ROW_HEIGHT + HITBOX_PAD * 2);
 
         Color bgColor = isListening ? Color{40, 80, 40, 255}
-                        : hovered   ? Color{50, 50, 50, 255}
+                        : hovered   ? Color{138, 135, 128, 100}
                                     : BLANK;
         if (bgColor.a > 0)
-            DrawRectangle(rowStartX, keyBoxY, rowW, ROW_HEIGHT, bgColor);
+            DrawRectangleRounded(Rectangle{(float)rowStartX, (float)keyBoxY, (float)rowW, (float)ROW_HEIGHT},
+                                 0.25f, 8, bgColor);
 
         // Format: "Action Name =>  [Key]" (tab-stop alignment)
         DrawTextEx(GetOrLoad(FontId::KEYBIND_ENTRY), actionName,
-                   Vector2{(float)keyBoxX, (float)y}, KEYB_FONT_SZ, 0, WHITE);
+                   Vector2{(float)keyBoxX, (float)y}, KEYB_FONT_SZ, 0, KEYB_LABEL_COLOR);
         DrawTextEx(GetOrLoad(FontId::KEYBIND_ENTRY), " =>  ",
                    Vector2{(float)nameColEndX, (float)y}, KEYB_FONT_SZ, 0, BLACK);
         DrawTextEx(GetOrLoad(FontId::KEYBIND_ENTRY), keyName,
@@ -297,11 +300,11 @@ static void RenderSection(const SectionInfo &sec, int startX, int &currentLocalY
 
         // "Action Name =>  [Combo]" (tab-stop alignment, warna entry biasa)
         DrawTextEx(GetOrLoad(FontId::KEYBIND_ENTRY), info.actionName,
-                   Vector2{(float)keyBoxX, (float)y}, KEYB_FONT_SZ, 0, WHITE);
+                   Vector2{(float)keyBoxX, (float)y}, KEYB_FONT_SZ, 0, KEYB_LABEL_COLOR);
         DrawTextEx(GetOrLoad(FontId::KEYBIND_ENTRY), " =>  ",
                    Vector2{(float)nameColEndX, (float)y}, KEYB_FONT_SZ, 0, BLACK);
         DrawTextEx(GetOrLoad(FontId::KEYBIND_ENTRY), info.comboDisplay,
-                   Vector2{(float)keyColX, (float)y}, KEYB_FONT_SZ, 0, WHITE);
+                   Vector2{(float)keyColX, (float)y}, KEYB_FONT_SZ, 0, KEYB_LABEL_COLOR);
 
         currentLocalY += ROW_HEIGHT;
     }
@@ -317,8 +320,8 @@ static void DrawToastNotification(const char toastLine1[128], const char toastLi
     if (toastTimer <= 0 || !toastLine1[0])
         return;
 
-    Vector2 sz1 = MeasureTextEx(GetOrLoad(FontId::LOADING_TITLE), toastLine1, KEYB_TOAST_SZ, 0);
-    Vector2 sz2 = MeasureTextEx(GetOrLoad(FontId::LOADING_TITLE), toastLine2, KEYB_TOAST_SZ, 0);
+    Vector2 sz1 = MeasureTextEx(GetOrLoad(FontId::KEYBIND_ENTRY), toastLine1, KEYB_TOAST_SZ, 0);
+    Vector2 sz2 = MeasureTextEx(GetOrLoad(FontId::KEYBIND_ENTRY), toastLine2, KEYB_TOAST_SZ, 0);
     int toastW = std::max((int)sz1.x, (int)sz2.x) + 40;
     int toastH = (sz1.y > 0 ? (int)sz1.y + 10 : 0) + (sz2.y > 0 ? (int)sz2.y : 0) + 30;
     int toastX = GameScreenWidth - toastW - 20;
@@ -331,10 +334,10 @@ static void DrawToastNotification(const char toastLine1[128], const char toastLi
                          Color{255, 165, 0, a});
 
     float textY = toastY + 15.0f;
-    DrawTextEx(GetOrLoad(FontId::LOADING_TITLE), toastLine1,
+    DrawTextEx(GetOrLoad(FontId::KEYBIND_ENTRY), toastLine1,
                Vector2{(float)(toastX + 20), textY}, KEYB_TOAST_SZ, 0, Color{255, 255, 255, a});
     textY += sz1.y + 10.0f;
-    DrawTextEx(GetOrLoad(FontId::LOADING_TITLE), toastLine2,
+    DrawTextEx(GetOrLoad(FontId::KEYBIND_ENTRY), toastLine2,
                Vector2{(float)(toastX + 20), textY}, KEYB_TOAST_SZ, 0, Color{255, 255, 255, a});
 }
 
@@ -343,21 +346,22 @@ static void DrawToastNotification(const char toastLine1[128], const char toastLi
  */
 static void DrawListeningPopup(int startX, int startY, int contentW)
 {
-    const int popupX = startX + (800 - POPUP_W) / 2;
-    const int popupY = startY + (600 - POPUP_H) / 2 - 30;
+    const int popupX = startX + (contentW - POPUP_W) / 2;
+    const int popupY = startY + CONTENT_TOP + (CONTENT_H - POPUP_H) / 2 - 30;
 
     DrawRectangle(popupX, popupY, POPUP_W, POPUP_H, Color{20, 20, 30, 235});
     DrawRectangleLinesEx(Rectangle{(float)popupX, (float)popupY, (float)POPUP_W, (float)POPUP_H}, 2, GREEN);
 
-    const char *line1 = "Press a key or click a mouse button.";
-    const char *line2 = "ESC to cancel.";
-    Vector2 sz1 = MeasureTextEx(GetOrLoad(FontId::LOADING_TITLE), line1, KEYB_TOAST_SZ, 0);
-    Vector2 sz2 = MeasureTextEx(GetOrLoad(FontId::LOADING_TITLE), line2, KEYB_TOAST_SZ, 0);
-    DrawTextEx(GetOrLoad(FontId::LOADING_TITLE), line1,
-               Vector2{(float)(popupX + (POPUP_W - sz1.x) / 2), (float)(popupY + 8)},
+    const int pad = 20;
+    const char *line1 = "Press A Key Or Click A Mouse Button";
+    const char *line2 = "ESC To Cancel";
+    Vector2 sz1 = MeasureTextEx(GetOrLoad(FontId::KEYBIND_ENTRY), line1, KEYB_TOAST_SZ, 0);
+    Vector2 sz2 = MeasureTextEx(GetOrLoad(FontId::KEYBIND_ENTRY), line2, KEYB_TOAST_SZ, 0);
+    DrawTextEx(GetOrLoad(FontId::KEYBIND_ENTRY), line1,
+               Vector2{(float)(popupX + (POPUP_W - (int)sz1.x) / 2), (float)(popupY + 8)},
                KEYB_TOAST_SZ, 0, WHITE);
-    DrawTextEx(GetOrLoad(FontId::LOADING_TITLE), line2,
-               Vector2{(float)(popupX + (POPUP_W - sz2.x) / 2), (float)(popupY + 44)},
+    DrawTextEx(GetOrLoad(FontId::KEYBIND_ENTRY), line2,
+               Vector2{(float)(popupX + (POPUP_W - (int)sz2.x) / 2), (float)(popupY + 44)},
                KEYB_TOAST_SZ, 0, GREEN);
 }
 
@@ -367,15 +371,16 @@ static void DrawScrollbar(int &scrollY, int maxScroll, int contentStartY, int st
     if (maxScroll <= 0)
         return;
 
-    // Generate thumb texture sekali (white 8x8, di-tint pas render)
     static Texture2D thumbTex = {0};
-    static bool texLoaded = false;
-    if (!texLoaded)
+    if (thumbTex.id == 0)
     {
-        Image img = GenImageColor(8, 8, WHITE);
-        thumbTex = LoadTextureFromImage(img);
-        UnloadImage(img);
-        texLoaded = true;
+        Image img = LoadImage("assets/textures/settingsButt/scrollBar.png");
+        if (img.data != nullptr)
+        {
+            thumbTex = LoadTextureFromImage(img);
+            UnloadImage(img);
+            SetTextureFilter(thumbTex, TEXTURE_FILTER_POINT);
+        }
     }
 
     int barX = startX + 20 + contentW - SCROLLBAR_W;
@@ -418,10 +423,8 @@ static void DrawScrollbar(int &scrollY, int maxScroll, int contentStartY, int st
         }
     }
 
-    bool active = dragging || (thumbHovered && IsMouseButtonDown(MOUSE_BUTTON_LEFT));
-    Color thumbColor = active         ? Color{180, 180, 180, 255}
-                       : thumbHovered ? Color{150, 150, 150, 255}
-                                      : Color{110, 110, 110, 255};
+    bool hovering = thumbHovered || dragging;
+    Color thumbColor = hovering ? WHITE : Color{110, 110, 110, 255};
 
     DrawTexturePro(thumbTex,
                    Rectangle{0, 0, (float)thumbTex.width, (float)thumbTex.height},

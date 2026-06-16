@@ -55,6 +55,46 @@ Implementasi:
 - `src/entities/player/player.cpp` — ResetForNewGame, Init
 - `src/map/mapTransition.cpp` — HandleMapSwitch (autosave trigger)
 
-## Status
-- Root cause:  Found (terkonfirmasi via code tracing)
-- Fix approach:  Dicatat (menunggu implementasi)
+## Status — RESOLVED  (2026-06-16)
+
+### Final Implementation: slot_-1 Runtime Workspace
+
+**Masalah lapisan 1** — Stale manual save di restart:
+- `HasManual(0)` tetap true dari sesi lama → restart pake stale manual, bukan fresh initial snapshot
+- Fix: slot_-1 sebagai runtime workspace yang selalu di-overwrite
+
+**Masalah lapisan 2** — Initial snapshot keburu di-capture di tutorial:
+- `CaptureInitialSnapshot(-1)` dipanggil di loading_screen (sebelum player masuk map beneran)
+- Fix: old-map flag approach — cek source map untuk `initial_snapshot` object di Tiled, capture pas HandleMapSwitch stage 2
+
+**Masalah lapisan 3** — Restart gak reload map:
+- Restart handler set currentScreen = PLAY langsung, tanpa loading screen
+- Fix: gak perlu reload map — slot_-1 selalu isi snapshot map terakhir yang dimasukin player
+
+### Flow sekarang:
+| Event | slot_-1 |
+|---|---|
+| Start Game (HandleFastPath) | CaptureInitialSnapshot(-1) |
+| Load Game (HandleFastPath) | CaptureInitialSnapshot(-1) |
+| Load Game (HandleInitialLoad) | CaptureInitialSnapshot(-1) |
+| Door transition (HandleMapSwitch) | CaptureInitialSnapshot(-1) |
+| SaveManual | CaptureInitialSnapshot(-1) setelah write |
+| SaveAutosave | CaptureInitialSnapshot(-1) setelah write |
+| SaveCheckpoint | CaptureInitialSnapshot(-1) setelah write |
+
+### Restart priority:
+```
+HasInitial(-1)  // pure runtime workspace — no fallback chain
+```
+
+### Files changed:
+- `src/core/loading_screen.cpp` — HandleFastPath + HandleInitialLoad + HandleMapSwitch (old-map flag trigger)
+- `src/core/savemanager.cpp` — SaveManual + SaveAutosave + SaveCheckpoint tambah CaptureInitialSnapshot(-1)
+- `src/ui/pauseMenu.cpp` — restart priority simplified ke pure HasInitial(-1)
+- `src/core/map.cpp` — InitMap: tutorial.json → main_hub.json
+- `src/core/game_state_saver.cpp` — fallback defaults: tutorial → main_hub
+- `assets/maps/main_hub.json` — tambah initial_snapshot objects (type-based)
+
+### Related plan files (deleted)
+- `plans/restart-overhaul.md`
+- `plans/09-restart-overhaul.md`

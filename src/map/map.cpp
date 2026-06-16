@@ -279,7 +279,7 @@ void UnloadMap(void)
  */
 void InitMap(void)
 {
-    currentMapPath = "assets/maps/tutorial.json";
+    currentMapPath = "assets/maps/main_hub.json";
     LoadMap(currentMapPath.c_str());
     BuildMapObjectIndex();
 }

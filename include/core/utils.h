@@ -36,3 +36,32 @@ inline std::string GenerateUUID()
         ss << std::setw(2) << dist(gen);
     return ss.str();
 }
+
+/**
+ * @brief Generate deterministic UUID dari seed + context.
+ *
+ * Berbeda dengan GenerateUUID() yang random, fungsi ini menghasilkan UUID
+ * deterministic dari kombinasi seed, mapObjectID, name, dan instanceIndex.
+ * Dipakai untuk entity matching di save/load dan restart — spawn selalu
+ * produce UUID yang sama kalo inputnya sama.
+ *
+ * @param seed Seed dari SeedManager (0 kalo non-worldgen)
+ * @param mapObjectID ID object spawn dari Tiled
+ * @param name Nama entity/item
+ * @param instanceIndex Index instance dalam satu spawn point (default 0)
+ * @return std::string Hex string deterministic
+ */
+inline std::string GenerateDeterministicUUID(uint64_t seed, int mapObjectID,
+                                              const std::string &name,
+                                              int instanceIndex = 0)
+{
+    std::hash<std::string> hasher;
+    std::string input = std::to_string(seed) + "_"
+                      + std::to_string(mapObjectID) + "_"
+                      + name + "_"
+                      + std::to_string(instanceIndex);
+    std::size_t hash = hasher(input);
+    std::stringstream ss;
+    ss << std::hex << hash;
+    return ss.str();
+}

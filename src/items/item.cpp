@@ -27,6 +27,7 @@
 #include "../lib/json/include/nlohmann/json.hpp"
 #include "raymath.h"
 #include "core/utils.h"
+#include "core/seedmanager.h"
 #include "core/game_state_saver.h"
 #include <iostream>
 #include <vector>
@@ -549,19 +550,16 @@ void ItemRenderManager::Render(ItemSpawn &item)
 
     DrawFrame(def.spriteKey, display);
 
-    // stack amount item di-drop: GetOrLoad(FontId::LOADING_TITLE) 14px, bg rounded hitam, di bawah sprite
+    // stack amount item di-drop: FontId::HUD_PLAYER 12px, tanpa background, di bawah sprite
     if (item.amount > 1)
     {
         std::string amountText = std::to_string(item.amount);
-        int fontSize = 14;
-        Vector2 textSz = MeasureTextEx(GetOrLoad(FontId::LOADING_TITLE), amountText.c_str(), fontSize, 0);
+        int fontSize = 12;
+        Vector2 textSz = MeasureTextEx(GetOrLoad(FontId::HUD_PLAYER), amountText.c_str(), fontSize, 0);
         Vector2 textPos = {
             center.x - textSz.x / 2.0f,
-            center.y + 16.0f + 2.0f};
-        DrawRectangleRounded(
-            (Rectangle){textPos.x - 4, textPos.y - 4, textSz.x + 8, textSz.y + 8},
-            0.3f, 8, ColorAlpha(BLACK, 0.8f));
-        DrawTextEx(GetOrLoad(FontId::LOADING_TITLE), amountText.c_str(), textPos, fontSize, 0, WHITE);
+            center.y + 16.0f - 2.0f};
+        DrawTextEx(GetOrLoad(FontId::HUD_PLAYER), amountText.c_str(), textPos, fontSize, 0, WHITE);
     }
 }
 
@@ -850,6 +848,10 @@ void ItemSpawnManager::SpawnAll(std::vector<ItemSpawn> &activeItems)
 {
     activeItems.clear();
 
+    uint64_t dSeed = g_SeedManager.IsRunActive()
+        ? (uint64_t)g_SeedManager.GetSeed(g_SeedManager.GetCurrentStage()) : 0;
+
+    int areaIndex = 0;
     for (auto &area : spawnAreas)
     {
         if (!area.isActive)
@@ -866,8 +868,12 @@ void ItemSpawnManager::SpawnAll(std::vector<ItemSpawn> &activeItems)
             int defId = PickRandomDefinitionId(rng);
             const ItemDefinition &def = itemDefs.GetById(defId);
             Vector2 pos = GetRandomPosInArea(area, def.hitboxSize);
-            activeItems.push_back(itemData.CreateItem(pos, defId));
+            ItemSpawn item = itemData.CreateItem(pos, defId);
+            item.uuid = GenerateDeterministicUUID(dSeed, areaIndex, std::to_string(defId), i);
+            activeItems.push_back(item);
         }
+
+        areaIndex++;
     }
 
     TraceLog(LOG_INFO, "ITEM: total spawned = %d", (int)activeItems.size());

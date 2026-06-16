@@ -2,7 +2,7 @@
 
 **Tipe**: Bug  
 **Komponen**: Combat  
-**Status**: Belum diperbaiki  
+**Status**: Selesai diperbaiki  
 
 ## Deskripsi
 
@@ -50,30 +50,46 @@ if (CheckCollisionAgainstRects(hitbox, DynamicObstacles))
 - `CheckRadialCollision()` di `combat.cpp:264-288` — collision radial tanpa obstacle check
 - `HitPropsByAttack()` — fungsi buat nge-damage props, dipanggil SETELAH entity loop
 
-## Saran Fix
+## Fix Implementasi
 
-Di `PerformHitDetection()` — sebelum `ApplyHitToEntity()`:
+### Final Approach: Per-Entity LOS Step-based
 
-1. Dapetin attack AABB / ray dari origin ke target
-2. Cek apakah ada obstacle di `DynamicObstacles` yang meng overlap garis serangan
-3. Kalau ada obstacle blocking → skip entity (gak kena damage)
+**File**: `src/systems/combat.cpp` — `PerformHitDetection()`
 
-Pattern yang bisa ditiru dari `Arrow::Update()`:
+**Konsep**: Tiap entity di-cek line-of-sight secara individu. Step dari `attackCenter` menuju `entityCenter` per FRAME_SIZE (32px). Setiap step: cek rect kecil (8x8) terhadap `solidObstacles`. Kena → skip entity itu aja.
 
+**Solid Obstacles filter**:
+- `gCollisionCache.rects` — static collision tiles dari Tiled (walls, etc.)
+- `DynamicObstacles` minus crate + bomb (crate/bomb = destructible, gak nge-block attack)
+- SLAM tetap pakai full `DynamicObstacles` (corridor hitbox)
+
+**Perubahan** (dari tile tracing → per-entity LOS):
+1. Hapus `effectiveReach` dan tile tracing loop (sebelumnya menghitung reach truncation)
+2. Hapus binary guard (return early kena solid — false positive di stair walls)
+3. Ganti dengan per-entity step-based LOS
+4. `HitPropsByAttack()` tetap jalan normal tanpa LOS check — crate/bomb hancur walau ada barrier
+
+**Kode** (PerformHitDetection, bagian entity loop):
 ```cpp
-// Pseudocode
+// Build solid obstacles
+std::vector<Rectangle> solidObstacles = gCollisionCache.rects;
+for (const auto &obs : DynamicObstacles)
+{
+    if (!crateManager.IsCratePos(obs) && !bombManager.IsBombPos(obs))
+        solidObstacles.push_back(obs);
+}
+
+// ... entity loop ...
 if (hit)
 {
-    // Cek obstacle blocking
-    Rectangle lineToTarget = BuildRayToTarget(attackCenter, entity->GetCenter());
-    if (CheckCollisionAgainstRects(lineToTarget, DynamicObstacles))
-        continue;  // skip — ada obstacle ngeblock
-
-    ApplyHitToEntity(player, entity, attackCenter);
+    // SLAM: corridor hitbox vs full DynamicObstacles
+    // Non-SLAM: step-based LOS dari attackCenter ke entityCenter vs solidObstacles
+    Vector2 entityCenter = {entity->Position.x + FRAME_SIZE/2, ...};
+    Vector2 losDir = Vector2Subtract(entityCenter, attackCenter);
+    // step per FRAME_SIZE, checkRect 8x8
+    // kena solid → blocked, skip entity
 }
 ```
-
-Atau bisa juga pake tile-based check — trace tile antara player dan target, kalau ada tile collision → block damage.
 
 ## File Terkait
 

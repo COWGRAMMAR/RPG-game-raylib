@@ -130,8 +130,8 @@ namespace WorldgenIO
     bool InitRun(int saveSlot)
     {
         ClearCache();
+
         g_SeedManager.InitRun(saveSlot);
-        CleanupOrphanedSlots();
 
         std::string slotDir = GetSlotDir(saveSlot);
         std::string mapsDir = slotDir + "/maps";
@@ -239,7 +239,7 @@ namespace WorldgenIO
 
     void CleanupOrphanedSlots()
     {
-        const int TOTAL_SAVE_SLOTS = 12; // 6 manual + 6 autosave
+        const int TOTAL_SAVE_SLOTS = 6; // Hanya manual saves (slot 0-5)
         std::unordered_set<int> activeSlots;
 
         // Current active run
@@ -258,38 +258,6 @@ namespace WorldgenIO
             ws = ReadWorldgenSlotFromFile(SaveManager::GetManualPath(i));
             if (ws >= 0)
                 activeSlots.insert(ws);
-        }
-
-        // Scan autosave files — both old (saves/slot_N/autosave/) and new (saves/slot_N/autosave/snapshot_*.json)
-        for (int i = 0; i < TOTAL_SAVE_SLOTS; i++)
-        {
-            // Old format autosave dir
-            std::string oldDir = GetSlotPath(i, "autosave");
-            if (fs::exists(oldDir))
-            {
-                for (auto &entry : fs::directory_iterator(oldDir))
-                {
-                    if (entry.path().extension() != ".json")
-                        continue;
-                    int ws = ReadWorldgenSlotFromFile(entry.path().string());
-                    if (ws >= 0)
-                        activeSlots.insert(ws);
-                }
-            }
-
-            // New format autosave dir
-            std::string newDir = SaveManager::GetAutosaveDir(i);
-            if (fs::exists(newDir))
-            {
-                for (auto &entry : fs::directory_iterator(newDir))
-                {
-                    if (entry.path().extension() != ".json")
-                        continue;
-                    int ws = ReadWorldgenSlotFromFile(entry.path().string());
-                    if (ws >= 0)
-                        activeSlots.insert(ws);
-                }
-            }
         }
 
         // Delete orphaned worldseed save directories

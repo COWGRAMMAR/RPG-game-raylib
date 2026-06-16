@@ -61,7 +61,7 @@ namespace WorldgenIO
     /**
      * @brief Hapus folder worldseed/save_N/ yang gak dipake save manapun
      *
-     * Scan semua manual dan autosave file, baca worldgenSlot dari tiap file.
+     * Scan semua manual save file (manual.json + snapshot.json), baca worldgenSlot.
      * Hapus worldseed/save_N/ kalo N gak ada di referensi save manapun.
      */
     void CleanupOrphanedSlots();

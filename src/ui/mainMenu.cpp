@@ -9,6 +9,7 @@
 #include "../../include/ui/mainMenu.h"
 #include "../../include/core/screen.h"
 #include "../../include/core/seedmanager.h"
+#include "../../include/core/savemanager.h"
 #include "../../include/map/worldgenio.h"
 #include "raylib.h"
 #include <array>
@@ -104,7 +105,8 @@ void UpdateMainMenu(GameState *state)
             case 0: // Start Game - langsung mulai baru tanpa popup
                 SetActiveSlot(0);
                 ResetMemoryState();
-                ResetWorldseed(0);
+                // GC worldseed: hapus save_N/ yang gak dipake save manapun
+                WorldgenIO::CleanupOrphanedSlots();
                 Entities::ClearDeadEntities();
                 std::filesystem::remove_all("saves/slot_0/enemies");
                 std::filesystem::remove_all("saves/slot_0/items");

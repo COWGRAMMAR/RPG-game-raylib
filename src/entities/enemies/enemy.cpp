@@ -25,6 +25,7 @@
 #include "animation.h"
 #include "item.h"
 #include "core/utils.h"
+#include "core/seedmanager.h"
 #include "audioManager.h"
 #include <map>
 #include <random>
@@ -949,6 +950,9 @@ void SpawnAtPoint(const MapObject *obj, EnemyRank rank)
     if (spawnFlowFields.find(obj->id) == spawnFlowFields.end())
         BuildSpawnFlowFields(center, obj->id, tilesonMap->width, tilesonMap->height);
 
+    uint64_t dSeed = g_SeedManager.IsRunActive()
+        ? (uint64_t)g_SeedManager.GetSeed(g_SeedManager.GetCurrentStage()) : 0;
+
     for (int i = 0; i < count; i++)
     {
         std::string picked = pool[pickDist(rng)];
@@ -958,7 +962,7 @@ void SpawnAtPoint(const MapObject *obj, EnemyRank rank)
 
         Enemy *enemy = new Enemy();
         enemy->Init(spawnPos, picked.c_str(), obj->id, def);
-        enemy->SetUUID(GenerateUUID());
+        enemy->SetUUID(GenerateDeterministicUUID(dSeed, obj->id, picked, i));
         PushOutOfWalls(enemy);
         enemy->SetReturnFlowField(&spawnFlowFields[obj->id].field);
         Entities::AddDynamic(enemy);
@@ -993,6 +997,9 @@ void SpawnInRect(const MapObject *obj, const std::string &enemyName, float ratio
     if (spawnFlowFields.find(obj->id) == spawnFlowFields.end())
         BuildSpawnFlowFields(rectCenter, obj->id, tilesonMap->width, tilesonMap->height);
 
+    uint64_t dSeed = g_SeedManager.IsRunActive()
+        ? (uint64_t)g_SeedManager.GetSeed(g_SeedManager.GetCurrentStage()) : 0;
+
     for (int i = 0; i < count; i++)
     {
         Vector2 spawnPos;
@@ -1003,9 +1010,9 @@ void SpawnInRect(const MapObject *obj, const std::string &enemyName, float ratio
             spawnPos = {xDist(rng), yDist(rng)};
             // Convert center (Enemy::Init expectation) ke Entity::Position (IsPositionSafe expectation)
             Vector2 entityPos = {spawnPos.x - def.hitbox.size.x / 2.0f - def.hitbox.offset.x,
-                                 spawnPos.y - def.hitbox.size.y / 2.0f - def.hitbox.offset.y};
+                                  spawnPos.y - def.hitbox.size.y / 2.0f - def.hitbox.offset.y};
             if (IsPositionSafe(entityPos, def.hitbox.size.x, def.hitbox.size.y,
-                               def.hitbox.offset.x, def.hitbox.offset.y))
+                                def.hitbox.offset.x, def.hitbox.offset.y))
             {
                 valid = true;
                 break;
@@ -1017,7 +1024,7 @@ void SpawnInRect(const MapObject *obj, const std::string &enemyName, float ratio
 
         Enemy *enemy = new Enemy();
         enemy->Init(spawnPos, enemyName.c_str(), obj->id, def);
-        enemy->SetUUID(GenerateUUID());
+        enemy->SetUUID(GenerateDeterministicUUID(dSeed, obj->id, enemyName, i));
         enemy->SpawnRect = obj->bounds;
         enemy->SetReturnFlowField(&spawnFlowFields[obj->id].field);
         Entities::AddDynamic(enemy);
@@ -1050,9 +1057,12 @@ void SpawnBoss(const MapObject *obj)
     if (spawnFlowFields.find(obj->id) == spawnFlowFields.end())
         BuildSpawnFlowFields(spawnPos, obj->id, tilesonMap->width, tilesonMap->height);
 
+    uint64_t dSeed = g_SeedManager.IsRunActive()
+        ? (uint64_t)g_SeedManager.GetSeed(g_SeedManager.GetCurrentStage()) : 0;
+
     Enemy *enemy = new Enemy();
     enemy->Init(spawnPos, picked.c_str(), obj->id, def);
-    enemy->SetUUID(GenerateUUID());
+    enemy->SetUUID(GenerateDeterministicUUID(dSeed, obj->id, picked, 0));
     PushOutOfWalls(enemy);
     enemy->SetReturnFlowField(&spawnFlowFields[obj->id].field);
     Entities::AddDynamic(enemy);

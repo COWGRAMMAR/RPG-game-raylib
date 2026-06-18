@@ -21,6 +21,8 @@
 #include <random>
 #include <unordered_set>
 #include <string>
+#include <queue>
+#include <functional>
 
 /*==============================================================================
  * ObjectState Enum
@@ -50,6 +52,61 @@ struct TileObject
 };
 
 /*==============================================================================
+ * Vector2 Hash
+ *==============================================================================*/
+
+/** @brief Hash functor untuk Vector2 (digunakan di unordered_set) */
+struct Vector2Hash
+{
+    std::size_t operator()(const Vector2 &v) const
+    {
+        return std::hash<float>{}(v.x) ^ (std::hash<float>{}(v.y) << 1);
+    }
+};
+
+/*==============================================================================
+ * ExplosionUtils — Explosion Obstacle Check Utilities
+ *==============================================================================*/
+
+/**
+ * @brief Utility namespace untuk explosion obstacle-aware check
+ *
+ * Menangani cluster grouping untuk multiple bomb dan
+ * tile-based DDA line-of-sight untuk blast occlusion.
+ */
+namespace ExplosionUtils
+{
+    /**
+     * @brief Cluster bomb positions berdasarkan jarak
+     * @param bombPositions Daftar center position semua bomb
+     * @param clusterRadius Threshold jarak maksimal antar bomb dalam 1 cluster (biasanya BOMB_EXPLOSION_RADIUS * 2)
+     * @return Vector of clusters, tiap cluster berisi Vector2 posisi bomb
+     */
+    std::vector<std::vector<Vector2>> ClusterByDistance(
+        const std::vector<Vector2> &bombPositions,
+        float clusterRadius);
+
+    /**
+     * @brief Unified radius + tile DDA line-of-sight check
+     *
+     * Step 1: nearest-point pada target dalam radius
+     * Step 2: tile DDA (Bresenham) dari tile bomb ke tile target
+     *         — skip start tile, check obstacle di tiap tile intermediate
+     *
+     * @param bombCenter Posisi center bomb
+     * @param radius Radius explosion
+     * @param targetHitbox Hitbox entity target
+     * @param obstacles Daftar rectangle obstacle
+     * @return true jika target dalam radius dan line-of-sight clear
+     */
+    bool CheckExplosionCircle(
+        const Vector2 &bombCenter,
+        float radius,
+        const Rectangle &targetHitbox,
+        const std::vector<Rectangle> &obstacles);
+}
+
+/*==============================================================================
  * SpawnObject
  *==============================================================================*/
 
@@ -77,6 +134,32 @@ inline std::string EncodePos(Vector2 pos)
 {
     return std::to_string((int)pos.x) + "_" + std::to_string((int)pos.y);
 }
+
+/**
+ * @brief Cek apakah tile tertentu di-block oleh obstacle.
+ * @param tileX Posisi tile X (grid, bukan pixel)
+ * @param tileY Posisi tile Y (grid, bukan pixel)
+ * @param obstacles Daftar bounding box obstacle dalam pixel
+ * @return true jika tile tersebut bertumbukan dengan salah satu obstacle
+ */
+bool IsTileBlocked(int tileX, int tileY, const std::vector<Rectangle> &obstacles);
+
+/**
+ * @brief Bresenham tile DDA line-of-sight check dengan diagonal cross-check.
+ *
+ * Step tiap tile dari startTile ke endTile, cek obstacle di setiap tile
+ * intermediate (skip start tile). Diagonal step cross-check untuk mencegah
+ * garis nyusup lewat celah diagonal (stair pattern).
+ *
+ * @param startTile Posisi awal LOS (pixel)
+ * @param endTile Posisi akhir LOS (pixel)
+ * @param obstacles Daftar bounding box obstacle
+ * @return true jika ada obstacle yang memblokir garis
+ */
+bool IsLineBlockedByObstacles(
+    const Vector2 &startTile,
+    const Vector2 &endTile,
+    const std::vector<Rectangle> &obstacles);
 
 /*==============================================================================
  * ChestManager
@@ -215,7 +298,8 @@ public:
      * @param playerBounds Bounding box player
      * @param player Pointer ke player
      */
-    void HitByAttack(Rectangle attackHitbox, Rectangle playerBounds, Player *player);
+    void HitByAttack(Rectangle attackHitbox, Rectangle playerBounds, Player *player,
+                     const std::vector<Rectangle> &solidObstacles = {});
 
     /**
      * @brief Update state semua bomb tiap frame
@@ -234,6 +318,9 @@ public:
     /** @brief Reset posisi bomb yang sudah meledak (untuk new game) */
     void ResetConsumed();
 
+    /** @brief Cek apakah suatu Rectangle adalah posisi bomb yang masih aktif */
+    bool IsBombPos(const Rectangle &bounds) const;
+
     /** @brief Ambil jumlah bomb yang sedang dikelola */
     size_t GetCount() const { return bombs.size(); }
 
@@ -248,17 +335,6 @@ public:
      * @param positions Set posisi yang sudah dikonsumsi
      */
     void SetConsumedPositions(const std::unordered_set<std::string>& positions) { consumedPositions = positions; }
-
-    /**
-     * @brief Cek apakah target berada dalam radius ledakan
-     *
-     * Pakai nearest-point check, bukan center-to-center.
-     *
-     * @param bombPos Posisi center bomb
-     * @param target Bounding box target
-     * @return true jika jarak nearest point <= BOMB_EXPLOSION_RADIUS
-     */
-    bool IsInExplosionRadius(Vector2 bombPos, Rectangle target);
 
     // Konstanta bomb (public untuk unit test)
     static constexpr float BOMB_EXPLOSION_RADIUS = 80.0f;  // Radius area ledakan (pixel)
@@ -301,11 +377,17 @@ public:
     /** @brief Spawn semua crate dari object layer Tiled */
     void SpawnCrates(const std::vector<MapObject *> &crateObjects);
     /** @brief Hancurkan crate yang terkena hitbox serangan player */
-    void HitByAttack(Rectangle attackHitbox);
+    void HitByAttack(Rectangle attackHitbox, Rectangle playerBounds,
+                     const std::vector<Rectangle> &solidObstacles = {});
     /** @brief Hapus crate yang sudah tidak aktif dari daftar runtime */
     void Update();
-    /** @brief Hancurkan crate yang terkena radius ledakan bomb */
-    void HitByExplosion(Vector2 bombPos, BombManager *bomber);
+    /**
+     * @brief Hancurkan crate yang kena ledakan bomb (radius + shadow terhadap solid obstacles)
+     * @param bombCenter Posisi center bomb
+     * @param radius Radius ledakan
+     * @param solidObstacles Daftar obstacle solid (barrier, wall — tanpa crate/bomb)
+     */
+    void HitByExplosion(const Vector2 &bombCenter, float radius, const std::vector<Rectangle> &solidObstacles);
     /** @brief Render crate yang terlihat dalam view */
     int Render(Rectangle viewRect);
     /** @brief Bersihkan semua data crate */
@@ -315,6 +397,9 @@ public:
     const std::unordered_set<std::string> &GetConsumedPositions() const { return consumedPositions; }
     /** @brief Set posisi crate yang sudah hancur (buat load) */
     void SetConsumedPositions(const std::unordered_set<std::string> &positions) { consumedPositions = positions; }
+
+    /** @brief Cek apakah suatu Rectangle adalah posisi crate yang masih aktif */
+    bool IsCratePos(const Rectangle &bounds) const;
 
     /** @brief Reset posisi crate yang sudah hancur (untuk new game) */
     void ResetConsumed();
@@ -392,12 +477,12 @@ private:
     std::vector<BarrierData> barriers; // Daftar barrier yang sedang dikelola
     bool isBossMap = false;            // True kalo map ini punya boss spawn
     bool hasReLocked = false;          // True setelah player masuk room boss dan barrier re-lock
+    bool pendingReLock = false;        // True kalo ada barrier yang di-skip karena overlap player — retry tiap frame
     bool cleared = false;              // True kalo barrier udah pernah di-clear
     int totalEnemyCount = 0;           // Total enemy di EnemyRegistry pas spawn
     int prevDeadCount = 0;             // DeadCount sebelumnya — buat deteksi perubahan
     bool hasCapturedCount = false;     // Flag biar initial capture hanya sekali
     Rectangle bossStageBounds = {0};   // Bounds object "boss_stage" untuk deteksi area boss
-
     void RemoveAllBarriers(); // Hapus semua barrier dari DynamicObstacles
     void ReLockBarriers();    // Pasang ulang barrier (re-lock) — khusus boss room
 };

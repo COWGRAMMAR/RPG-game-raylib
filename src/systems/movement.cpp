@@ -163,7 +163,7 @@ namespace Movement
 
         // Zoom Dinamis: Perkecil zoom sedikit untuk map yang sangat kecil agar muat di layar
         int minMapTileZoom = 15;
-        float autoZoom = (float)GScreenWidth / (minMapTileZoom * FRAME_SIZE);
+        float autoZoom = (float)GameScreenWidth / (minMapTileZoom * FRAME_SIZE);
         float fixedZoom = 2.0f;
         float cameraZoom = (tilesonMap->width <= minMapTileZoom || tilesonMap->height <= minMapTileZoom)
                                ? autoZoom
@@ -177,8 +177,8 @@ namespace Movement
         camera.target.y = player.Position.y + (FRAME_SIZE / 2.0f);
 
         // Ukuran viewport kamera dalam koordinat dunia
-        float halfW = (GScreenWidth / 2.0f) / camera.zoom;
-        float halfH = (GScreenHeight / 2.0f) / camera.zoom;
+        float halfW = (GameScreenWidth / 2.0f) / camera.zoom;
+        float halfH = (GameScreenHeight / 2.0f) / camera.zoom;
 
         // Membatasi target kamera pada tepi map
         if (mapW <= halfW * 2.0f)

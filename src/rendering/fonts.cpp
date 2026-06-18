@@ -13,8 +13,10 @@
 static const FontDef FONT_DEFS[(int)FontId::COUNT] = {
     {"Poppins-Bold.ttf", "Poppins-Bold", AtlasRes::RES_256},             // DEFAULT
     {"NewDawn.ttf", "NewDawn", AtlasRes::RES_256},                       // KEYBIND_HEADER
-    {"Poppins-Regular.ttf", "Poppins-Regular", AtlasRes::RES_256},       // KEYBIND_ENTRY
+    {"Quicksand-Bold.ttf", "Quicksand-Bold", AtlasRes::RES_256}, // KEYBIND_ENTRY
     {"Poppins-Bold.ttf", "Poppins-Bold", AtlasRes::RES_256},             // LOADING_TITLE
+    {"Poppins-Bold.ttf", "HUD_Player", AtlasRes::RES_256},               // HUD_PLAYER
+    {"Poppins-Bold.ttf", "InventoryUI", AtlasRes::RES_256},              // INVENTORY_UI
     {"MedievalSharp-Regular.ttf", "MedievalSharp", AtlasRes::RES_256},   // MEDIEVAL_SHARP
     {"Quicksand-Bold.ttf", "Quicksand-Bold", AtlasRes::RES_256},         // QUICKSAND_BOLD
     {"Quicksand-SemiBold.ttf", "Quicksand-SemiBold", AtlasRes::RES_256}, // QUICKSAND_SEMIBOLD
@@ -23,6 +25,9 @@ static const FontDef FONT_DEFS[(int)FontId::COUNT] = {
     {"Quicksand-Light.ttf", "Quicksand-Light", AtlasRes::RES_256},       // QUICKSAND_LIGHT
     {"Norsebold.otf", "Norsebold", AtlasRes::RES_256},                   // NORSE_BOLD
     {"Norse.otf", "Norse", AtlasRes::RES_256},                           // NORSE
+    {"NewDawn.ttf", "NewDawn", AtlasRes::RES_512},                       // AUDIOSETTS_HEADER
+    {"Poppins-Regular.ttf", "Poppins-Regular", AtlasRes::RES_256},       // AUDIOSETTS_VALUE
+    {"Poppins-Regular.ttf", "Poppins-Regular", AtlasRes::RES_256},       // SAVESLOT_TEXT
 };
 
 /*=== Cache System ===*/

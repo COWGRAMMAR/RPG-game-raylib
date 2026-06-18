@@ -105,7 +105,7 @@ namespace Interaction
                 // InitRun cuma sekali per run — kalau sudah aktif, lanjut ke stage terakhir
                 if (!g_SeedManager.IsRunActive())
                 {
-                    int slot = (g_ActiveSaveSlot >= 0) ? g_ActiveSaveSlot : WorldgenIO::GetNextAvailableSlot();
+                    int slot = WorldgenIO::GetNextAvailableSlot();
                     WorldgenIO::InitRun(slot);
                 }
 

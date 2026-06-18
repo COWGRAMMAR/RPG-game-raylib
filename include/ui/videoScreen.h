@@ -46,6 +46,11 @@ public:
     bool LoadAndPlay();
 
     /**
+     * @brief Set volume playback video (0.0f - 1.0f)
+     */
+    void SetVolume(float vol);
+
+    /**
      * @brief Hentikan dan bersihkan video
      */
     void Unload();

@@ -106,6 +106,7 @@ void UpdateMainMenu(GameState *state)
                 ResetMemoryState();
                 ResetWorldseed(0);
                 Entities::ClearDeadEntities();
+                std::filesystem::remove_all("saves/slot_0/checkpoints");
                 std::filesystem::remove_all("saves/slot_0/enemies");
                 std::filesystem::remove_all("saves/slot_0/items");
                 state->enteredLoading = false;

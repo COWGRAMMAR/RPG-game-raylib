@@ -49,6 +49,9 @@ static struct
     float targetZoom;
     Vector2 targetCameraTarget;
 
+    // Boss attack animation duration (for dynamic SHOW_RESULT timer)
+    float bossAnimDuration = 0.0f;
+
 } state;
 
 static float OUTLINE_THICK = 3.0f;
@@ -235,24 +238,39 @@ static void ExecuteBossTurn()
     float roll = (float)GetRandomValue(0, 99) / 100.0f;
     float damage = 0;
     const char *actionName = "";
+    State animState = ATTACK;
 
     if (roll < 0.15f)
     {
         state.lastBossAction = BossActionType::DASH;
         damage = state.player->Health * 0.5f;
-        actionName = "Dash";
+        actionName = "Trample";
+        animState = ABILITY2;
     }
     else if (roll < 0.50f)
     {
         state.lastBossAction = BossActionType::BITE;
         damage = (float)GetRandomValue(8, 20);
-        actionName = "Gigitan";
+        actionName = "Bantingan";
+        animState = ABILITY1;
     }
     else
     {
         state.lastBossAction = BossActionType::CLAW;
         damage = (float)GetRandomValue(3, 15);
-        actionName = "Cakaran";
+        actionName = "Pukulan";
+        animState = ATTACK;
+    }
+
+    // Play boss attack animation (boss faces left toward player in arena)
+    if (state.boss)
+    {
+        PlayAnimation(state.boss->Anim, animState, LEFT);
+        // Calculate total animation duration from config
+        if (state.boss->Anim.currentConfig && !state.boss->Anim.currentConfig->sprites.empty())
+            state.bossAnimDuration = (float)state.boss->Anim.currentConfig->sprites.size() * state.boss->Anim.currentConfig->speed;
+        else
+            state.bossAnimDuration = 1.0f;
     }
 
     if (state.playerDefending)
@@ -482,7 +500,8 @@ void TurnCombat::Update()
         {
             ExecuteBossTurn();
             state.keyProcessed = true;
-            state.timer = 1.0f;
+            // Use dynamic timer matching the boss attack animation duration
+            state.timer = state.bossAnimDuration;
         }
         state.timer -= Time::DELTA_TIME;
         if (state.timer <= 0.0f)
@@ -490,7 +509,12 @@ void TurnCombat::Update()
             if (state.player->Health <= 0)
                 TransitionTo(TurnPhase::DEFEAT);
             else
+            {
+                // Reset boss back to idle animation
+                if (state.boss)
+                    PlayAnimation(state.boss->Anim, IDLE, LEFT);
                 TransitionTo(TurnPhase::PLAYER_CHOICE);
+            }
         }
         break;
     }

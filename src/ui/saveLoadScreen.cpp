@@ -489,25 +489,25 @@ void SaveLoadScreen::DrawSlotBox(int slotIndex, int posX, int posY, bool occupie
 
     if (!enabled && slotIndex >= MANUAL_SLOT_COUNT && m_mode == SaveLoadMode::SAVE_MODE)
     {
-        DrawTextEx(GetOrLoad(FontId::KEYBIND_ENTRY), "Auto Save", Vector2{(float)(posX + 5), (float)(posY + 5)}, 16, 1, DARKGRAY);
+        DrawTextEx(GetOrLoad(FontId::SAVESLOT_TEXT), "Auto Save", Vector2{(float)(posX + 5), (float)(posY + 5)}, 16, 1, DARKGRAY);
     }
     else
     {
-        DrawTextEx(GetOrLoad(FontId::KEYBIND_ENTRY), TextFormat("Slot %d", slotIndex), Vector2{(float)(posX + 5), (float)(posY + 5)}, 16, 1, enabled ? LIGHTGRAY : DARKGRAY);
+        DrawTextEx(GetOrLoad(FontId::SAVESLOT_TEXT), TextFormat("Slot %d", slotIndex), Vector2{(float)(posX + 5), (float)(posY + 5)}, 16, 1, enabled ? LIGHTGRAY : DARKGRAY);
     }
 
     if (occupied)
     {
-        DrawTextEx(GetOrLoad(FontId::KEYBIND_ENTRY), mapName.c_str(), Vector2{(float)(posX + 5), (float)(posY + 24)}, 18, 1, enabled ? WHITE : GRAY);
-        DrawTextEx(GetOrLoad(FontId::KEYBIND_ENTRY), timestamp.c_str(), Vector2{(float)(posX + 5), (float)(posY + 48)}, 14, 1, enabled ? (Color){180, 180, 180, 255} : (Color){80, 80, 80, 255});
+        DrawTextEx(GetOrLoad(FontId::SAVESLOT_TEXT), mapName.c_str(), Vector2{(float)(posX + 5), (float)(posY + 24)}, 18, 1, enabled ? WHITE : GRAY);
+        DrawTextEx(GetOrLoad(FontId::SAVESLOT_TEXT), timestamp.c_str(), Vector2{(float)(posX + 5), (float)(posY + 48)}, 14, 1, enabled ? (Color){180, 180, 180, 255} : (Color){80, 80, 80, 255});
     }
     else
     {
         const char *emptyText = "Empty";
-        Vector2 emptyTextSize = MeasureTextEx(GetOrLoad(FontId::KEYBIND_ENTRY), emptyText, 20, 1);
+        Vector2 emptyTextSize = MeasureTextEx(GetOrLoad(FontId::SAVESLOT_TEXT), emptyText, 20, 1);
         int emptyX = posX + (SLOT_WIDTH - (int)emptyTextSize.x) / 2;
         int emptyY = posY + (SLOT_HEIGHT - 20) / 2;
-        DrawTextEx(GetOrLoad(FontId::KEYBIND_ENTRY), emptyText, Vector2{(float)emptyX, (float)emptyY}, 20, 1, enabled ? GRAY : DARKGRAY);
+        DrawTextEx(GetOrLoad(FontId::SAVESLOT_TEXT), emptyText, Vector2{(float)emptyX, (float)emptyY}, 20, 1, enabled ? GRAY : DARKGRAY);
     }
 }
 

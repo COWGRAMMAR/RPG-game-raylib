@@ -584,6 +584,7 @@ void PauseMenu::HandleButtonClick(int buttonIndex, GameState *state)
         break;
     case 6: // Exit Game
         SaveGameState(state);
+        WorldgenIO::CleanupOrphanedSlots();
         CloseWindow();
         break;
     default:
@@ -663,6 +664,7 @@ void PauseMenu::Update(GameState *state, Vector2 mousePosition, bool mouseClicke
             state->loadingStage = 0;
             state->loadingProgress = 0.0F;
             state->loadingComplete = false;
+            WorldgenIO::CleanupOrphanedSlots();
             state->currentScreen = MAIN_MENU;
             Hide();
         }
@@ -675,7 +677,8 @@ void PauseMenu::Update(GameState *state, Vector2 mousePosition, bool mouseClicke
         if (restartConfirmPopup.IsConfirmClicked())
         {
             restartConfirmPopup.Hide();
-            // Clear semua runtime state
+
+            // ── Clear runtime state ──
             TurnCombat::Shutdown();
             Entities::Clear();
             itemData.activeItems.clear();
@@ -688,53 +691,41 @@ void PauseMenu::Update(GameState *state, Vector2 mousePosition, bool mouseClicke
             barrierManager.Clear();
             mapHistoryStack.Clear();
 
-            // Load initial snapshot untuk restore state enemies & items
-            // ApplyPreSpawn HARUS sebelum SpawnEnemiesFromMap agar dead entities
-            // sudah terdaftar sebelum enemy spawn logic berjalan
+            // ── Load snapshot: pure runtime workspace (-1) ──
+            GameSnapshot snap;
+            bool hasSnap = false;
+            if (SaveManager::HasInitial(-1))
             {
-                GameSnapshot initialSnap;
-                bool hasInitial = SaveManager::HasInitial(g_ActiveSaveSlot);
-                if (hasInitial)
-                {
-                    initialSnap = SaveManager::LoadInitial(g_ActiveSaveSlot);
-                    SaveManager::ApplyPreSpawn(initialSnap);
-                }
-
-                // Spawn enemies — dead entities sudah diset oleh ApplyPreSpawn
-                SpawnEnemiesFromMap();
-
-                // Fallback: spawn item fresh
-                SpawnItemWave();
-
-                // Apply initial state on top
-                if (hasInitial)
-                    SaveManager::ApplyCheckpointData(initialSnap);
+                snap = SaveManager::LoadInitial(-1);
+                hasSnap = true;
             }
 
-            // Reset & reposition player
-            PlayerInstance.ResetForNewGame();
-            PlayerInstance.Init(state, SPAWN_OBJECT_NAME);
-            TiledHelperFunction.TryGetObjectPositionByName(SPAWN_OBJECT_NAME, state->startSpawnPos);
-            PlayerInstance.hasDroppedItems = false;
-            Entities::Add(&PlayerInstance);
+            // ── Apply unified pipeline ──
+            // 1. ApplyPreSpawn: dead entities + consumed props (SEBELUM spawn)
+            // 2. Spawn: enemies + items pake deterministic UUID (Phase 1)
+            // 3. ApplyPostSpawn: FULL restore — player, enemies, items, kamera, history
+            if (hasSnap)
+                SaveManager::ApplyPreSpawn(snap);
 
-            // Reset camera ke posisi player
-            Vector2 spawnPos = PlayerInstance.GetPosition();
-            camera.target = {spawnPos.x + (FRAME_SIZE / 2.0F), spawnPos.y + (FRAME_SIZE / 2.0F)};
-            camera.offset = {(float)(GameScreenWidth / 2), (float)(GameScreenHeight / 2)};
-            camera.rotation = 0;
-            camera.zoom = 1.0F;
+            SpawnEnemiesFromMap();
+            SpawnItemWave();
 
-            // Re-init world objects & collision
+            if (hasSnap)
+            {
+                Entities::Add(&PlayerInstance);
+                SaveManager::ApplyPostSpawn(snap);
+            }
+            else
+            {
+                Entities::Add(&PlayerInstance);
+            }
+
+            // ── Rebuild collision & flow field ──
             SpawnObject();
             RebuildObstacleCache();
             globalFlowField.Invalidate();
 
-            // Re-capture initial state untuk restart berikutnya
-            {
-                GameSnapshot freshInitial = SaveManager::CaptureSnapshot();
-                SaveManager::SaveInitial(freshInitial, g_ActiveSaveSlot);
-            }
+            // ── JANGAN CaptureSnapshot/SaveInitial — snapshot immutable ──
 
             state->currentScreen = PLAY;
             Hide();

@@ -8,6 +8,11 @@ Boss music (`BossMusic.mp3`) diputar saat player **masuk prefab boss room** atau
 
 ## Implementasi Final
 
+### Additional Fix (2026-06-13)
+- Trigger dari `IsCellTypeAtWorldPos(CELL_BOSS)` diganti ke **`TiledHelper::GetObjectsByType("boss_music")`** — object `boss_music` yang ditambah di prefab JSON
+- `DrawBossHPBar()` juga pake trigger yang sama: overlap Tiled object `boss_music` + detection range boss
+- `UpdateBossMusic()` dan `DrawBossHPBar()` konsisten pake `inRange || inBossArea`
+
 ### Ambient System (hud.cpp — UpdateBossMusic())
 ```cpp
 static bool s_BossMusicActive = false;

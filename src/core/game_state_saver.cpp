@@ -609,7 +609,7 @@ void SaveGameState(GameState *state)
      * Save Map State (map path, camera, chest opened status)
      *==============================================================================*/
     const char *mapPath = GetCurrentMapPath();
-    savedMapState.mapPath = (mapPath == nullptr || mapPath[0] == '\0') ? "assets/maps/tutorial.json" : std::string(mapPath);
+    savedMapState.mapPath = (mapPath == nullptr || mapPath[0] == '\0') ? "assets/maps/main_hub.json" : std::string(mapPath);
     savedPlayerState.mapDisplayName = GetMapDisplayName(savedMapState.mapPath);
     savedMapState.cameraTarget = camera.target;
     savedMapState.cameraZoom = camera.zoom;
@@ -881,11 +881,11 @@ void RestoreGameState(GameState *state)
         camera.target = savedMapState.cameraTarget;
         camera.zoom = savedMapState.cameraZoom;
 
-        // Fall back to tutorial map if saved map file is missing
+        // Fall back to main hub if saved map file is missing
         if (!std::filesystem::exists(savedMapState.mapPath))
         {
-            TraceLog(LOG_WARNING, "Saved map not found: %s, falling back to assets/maps/tutorial.json", savedMapState.mapPath.c_str());
-            savedMapState.mapPath = "assets/maps/tutorial.json";
+            TraceLog(LOG_WARNING, "Saved map not found: %s, falling back to assets/maps/main_hub.json", savedMapState.mapPath.c_str());
+            savedMapState.mapPath = "assets/maps/main_hub.json";
         }
 
         // Restore consumed chest positions

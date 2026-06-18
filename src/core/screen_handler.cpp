@@ -437,7 +437,7 @@ void DrawUIOverlay(GameState *state)
         int fps = GetFPS();
         char fpsText[16];
         snprintf(fpsText, sizeof(fpsText), "FPS: %d", fps);
-        DrawDefaultText(fpsText, 10, 10, 20, GREEN);
+        DrawDefaultText(fpsText, 190, 10, 20, GREEN);
     }
 
     // 3. Sign dialog overlay (placeholder UI)

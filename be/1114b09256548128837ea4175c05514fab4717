@@ -1,0 +1,36 @@
+docs/save-system.md
+  s_0ee2af2fc9ffe9::t_73625a082f7337 226
+  s_74f266df6f4755::t_f0c16dd60355a1 432
+  s_0ee2af2fc9ffe9::t_619284d0b2b80a 8,175,180,212,249,294,303,305,310,315,321,323,384,399,416,425,433,442,450,552,571
+  s_0ee2af2fc9ffe9::t_184722907e2d1a 551
+  s_0ee2af2fc9ffe9::t_c079789512d48a 441,449
+  s_0ee2af2fc9ffe9::t_8c98c6c6d7fa7f 398
+  s_0ee2af2fc9ffe9::t_501b024a8d0b9a 370
+  s_0ee2af2fc9ffe9::t_f321e9af20bfc5 383
+  s_0ee2af2fc9ffe9::t_5ab267c647da34 258
+  s_0ee2af2fc9ffe9::t_b9f32ee86a4f6e 415
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.8",
+  "base_commit_sha": "be1114b09256548128837ea4175c05514fab4717",
+  "prompts": {},
+  "sessions": {
+    "s_0ee2af2fc9ffe9": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_12174ed8dffeQT3WRIoy8BfpB3",
+        "model": "unknown"
+      },
+      "human_author": "NiskoDT <65821447+NiskoDT@users.noreply.github.com>"
+    },
+    "s_74f266df6f4755": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_12174ed8dffeQT3WRIoy8BfpB3",
+        "model": "unknown"
+      },
+      "human_author": "NiskoDT <65821447+NiskoDT@users.noreply.github.com>"
+    }
+  }
+}

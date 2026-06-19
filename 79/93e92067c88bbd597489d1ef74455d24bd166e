@@ -1,0 +1,56 @@
+docs/restart-pipeline.md
+  s_74f266df6f4755::t_16200c1c25e82b 97
+  s_0ee2af2fc9ffe9::t_59fb8b5dbb6ac5 56
+  s_0ee2af2fc9ffe9::t_253e060f9f7366 12
+  s_0ee2af2fc9ffe9::t_d6ce0facf2f898 216
+  s_0ee2af2fc9ffe9::t_1ffd11a4102d47 134
+  s_0ee2af2fc9ffe9::t_b69dc13fdf7c53 30
+  s_0ee2af2fc9ffe9::t_287a4f4154786a 36-37
+  s_0ee2af2fc9ffe9::t_bb024b28507cba 197
+docs/worldgeneration.md
+  s_0ee2af2fc9ffe9::t_d869e3edaf7387 181
+  s_0ee2af2fc9ffe9::t_df9e4eaa91715a 190
+  s_0ee2af2fc9ffe9::t_68e782c6b5b3fe 8
+  s_0ee2af2fc9ffe9::t_3dd02977f3eb5b 233
+  s_74f266df6f4755::t_8b25bdfbfe9997 296
+  s_0ee2af2fc9ffe9::t_40e99e1910ffac 74
+  s_0ee2af2fc9ffe9::t_1c4ae53985f578 137,148,162,172
+  s_0ee2af2fc9ffe9::t_321018ada23c63 15
+  s_0ee2af2fc9ffe9::t_9f6a39b97567be 44
+  s_0ee2af2fc9ffe9::t_80afe5f5209d3b 113
+  s_0ee2af2fc9ffe9::t_b786079424b7e0 87
+  s_0ee2af2fc9ffe9::t_45d5f257a5d976 213
+  s_0ee2af2fc9ffe9::t_156d5b1f0e4230 224
+  s_0ee2af2fc9ffe9::t_579af403660e88 248
+  s_0ee2af2fc9ffe9::t_d00f9a37ce9745 31
+  s_0ee2af2fc9ffe9::t_c081c5a566eab8 283
+  s_0ee2af2fc9ffe9::t_b3804e2eb5ab14 97
+  s_0ee2af2fc9ffe9::t_e954e93fbd6a10 199
+docs/build.md
+  s_0ee2af2fc9ffe9::t_9913f254a16e66 14
+  s_0ee2af2fc9ffe9::t_e1bf8d3e37a191 112
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.8",
+  "base_commit_sha": "7993e92067c88bbd597489d1ef74455d24bd166e",
+  "prompts": {},
+  "sessions": {
+    "s_0ee2af2fc9ffe9": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_12174ed8dffeQT3WRIoy8BfpB3",
+        "model": "unknown"
+      },
+      "human_author": "NiskoDT <65821447+NiskoDT@users.noreply.github.com>"
+    },
+    "s_74f266df6f4755": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_12174ed8dffeQT3WRIoy8BfpB3",
+        "model": "unknown"
+      },
+      "human_author": "NiskoDT <65821447+NiskoDT@users.noreply.github.com>"
+    }
+  }
+}

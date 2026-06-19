@@ -8,13 +8,13 @@ Folder ini berisi dokumentasi yang diperlukan untuk memahami struktur projek. Si
 
 Isi folder ini dapat berubah-ubah sepanjang waktu. Apabila menambahkan atau mengurangi, mohon sebaikanya `./README.md` ini juga diubah agar mempermudah navigasi.
 
-1. `./assets-structure.md` : Berisi panduan untuk meletakkan aset dan resource yang diperlukan untuk permainan.
-2. `./build.md` : Panduan untuk membangun projek agar bisa dijalankan dan dimainkan.
-3. `./save-system.md` : Dokumentasi arsitektur save/load system (SaveManager + GameSnapshot, per-slot isolation, UUID entity identity, loading flow)
-4. `./sign-system-ui.md` : Dokumentasi sign/UI system (belum diisi)
-5. `./source-structure.md` : Struktur direktori source code dan header
-6. `./worldgeneration.md` : Dokumentasi world generation system
-7. `./debug-keybinds.md` : Berisi dokumentasi keybind debug dan akses pengembang
-8. `./save-system-changelog.md` : Changelog sesi restart system, cache, bug fix save system (human readable)
-9. `./buff-indicator-system.md` : Dokumentasi indikator buff aktif (Damage/Speed/Invul) — pipeline, integrasi, design decisions untuk turn-based combat
-10. `./font-system.md` : Dokumentasi font system — pipeline atlas resolution cache, API reference, panduan pemakaian, daftar font, & best practices
+- `./assets-structure.md` : Berisi panduan untuk meletakkan aset dan resource yang diperlukan untuk permainan.
+- `./build.md` : Panduan untuk membangun projek agar bisa dijalankan dan dimainkan.
+- `./save-system.md` : Dokumentasi arsitektur save/load system (SaveManager + GameSnapshot, per-slot isolation, UUID entity identity, loading flow)
+- `./sign-system-ui.md` : Dokumentasi sign/UI system (belum diisi)
+- `./source-structure.md` : Struktur direktori source code dan header
+- `./worldgeneration.md` : Dokumentasi world generation system
+- `./debug-keybinds.md` : Berisi dokumentasi keybind debug dan akses pengembang
+- `./save-system-changelog.md` : Changelog sesi restart system, cache, bug fix save system (human readable)
+- `./buff-indicator-system.md` : Dokumentasi indikator buff aktif (Damage/Speed/Invul) — pipeline, integrasi, design decisions untuk turn-based combat
+- `./font-system.md` : Dokumentasi font system — pipeline atlas resolution cache, API reference, panduan pemakaian, daftar font, & best practices

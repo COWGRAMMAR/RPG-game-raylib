@@ -4,7 +4,8 @@
 
 Save system menggunakan **SaveManager** (static class) + **GameSnapshot** (struct) sebagai single source of truth untuk semua data persistensi game. Semua state runtime (player, enemies, items, props, map history, barrier) ditangkap dalam satu snapshot dan disimpan/load lewat API terpusat.
 
-**File utama:**
+### File utama
+
 - `include/core/savemanager.h` — deklarasi `GameSnapshot` + `SaveManager`
 - `src/core/savemanager.cpp` — implementasi (~1113 baris)
 - `include/core/game_state_saver.h` — old format backward compat + `RestoreGameState()`
@@ -171,10 +172,12 @@ item.uuid = GenerateUUID();
 ### Enemy Matching Order (di ApplyPostSpawn)
 
 #### Alive Enemies
+
 1. **UUID match** — cocokkan snapshot enemy dengan live enemy by UUID
 2. **MapObjectID + Name fallback** — jika UUID tidak cocok, fallback ke kombinasi `mapObjectID` + `enemyName`
 
 #### Dead Enemies (!isAlive)
+
 - Tidak menggunakan `RegisterDeath(MapObjectID)` (menghindari spawn point poisoning)
 - Langsung cari spawned enemy dengan `MapObjectID + Name` yang cocok, lalu **deactivate** (IsActive=false, Health=0)
 - Jika tidak ada yang cocok (misal spawn count berbeda), enemy baru tetap hidup — ini lebih baik dari kehilangan seluruh spawn point
@@ -206,6 +209,7 @@ Untuk checkpoint load, `ApplyCheckpointData()` melakukan partial restore: mencoc
 Sebelum bugfix (commit `fc58754`): `Entities::IsAlreadyDead(mapPath, objectId)` dicek di `SpawnEnemiesFromMap()` — jika MapObjectID ada di dead set, **seluruh spawn point** dilewati. Rectangle-spawned enemy (banyak enemy dengan MapObjectID sama) jadi ikut hilang walau hanya satu yang mati.
 
 **Sekarang**: `Enemy::Update()` menggunakan `Entities::RegisterDeathByUUID(mapPath, uuid)` — setiap enemy dicatat secara individual via UUID unik. `SpawnEnemiesFromMap()` selalu spawn dari semua spawn point. Kematian per-instance ditangani oleh `ApplyPostSpawn()` / `ApplyCheckpointData()`:
+
 1. Untuk `!isAlive` enemy: cocokkan dengan spawned enemy via `MapObjectID + Name`, lalu deactivate langsung
 2. Tidak memanggil `RegisterDeath(MapObjectID)` — ini yang menyebabkan spawn point poisoning
 
@@ -219,7 +223,7 @@ Safety net `PruneDeadEntities()` menggunakan `IsDeadByUUID()` (UUID-based) bukan
 
 Dipanggil saat loading dari main menu (save file ada, assets cached).
 
-```
+```txt
 1. UnloadMap()
 2. LoadMap(mapPath)
 3. LoadWorldgenForSave():
@@ -242,6 +246,7 @@ Dipanggil saat loading dari main menu (save file ada, assets cached).
 ### 6.2 HandleInitialLoad — boot pertama
 
 3-stage FSM:
+
 - **Case 0**: InitTextures
 - **Case 1**: LoadMap + LoadWorldgenForSave
 - **Default**: InitAll + RestoreGameState
@@ -250,7 +255,7 @@ Dipanggil saat loading dari main menu (save file ada, assets cached).
 
 Menggunakan checkpoint system:
 
-```
+```txt
 1. SaveCheckpoint(currentMap) → cache state sebelum pindah
 2. LoadMap(mapBaru)
 3. LoadCheckpoint(mapBaru) → ApplyPreSpawn
@@ -286,6 +291,7 @@ Menggunakan checkpoint system:
 ## 8. Konvensi & Catatan Penting
 
 ### `g_ActiveSaveSlot`
+
 - Variabel global yang menandai slot mana yang sedang aktif (`-1` = tidak aktif, `0-4` = slot manual)
 - Di-set di:
   - `saveLoadScreen.cpp` — saat LOAD atau SAVE selesai
@@ -294,21 +300,27 @@ Menggunakan checkpoint system:
 - `SetActiveSlot(-1)` dipanggil saat "Return to Menu" untuk menonaktifkan slot.
 
 ### Old Format Backward Compat
+
 `game_state_saver.cpp` masih menyimpan `RestoreGameState()` dual-path:
+
 1. **New path**: `LoadManual(g_ActiveSaveSlot)` + `ApplyPostSpawn` — digunakan jika snapshot.json ditemukan dan version match
 2. **Old path**: `ReadSaveFile(old manual.json)` + restore dari global state — fallback jika snapshot.json tidak ada
 
 ### Checkpoint vs Snapshot
+
 - **Checkpoint**: Per-map cache, hanya dipakai di `HandleMapSwitch` (door/prev stage). Partial restore — tidak restore player/camera/mapHistory.
 - **Manual Snapshot**: Source of truth untuk full save/load dari main menu. Full restore semua state.
 
 ### Save Format Version
+
 - **SAVE_VERSION = 3** — untuk old format manual.json (backward compat)
 - **SNAPSHOT_VERSION = 1** — untuk format baru via SaveManager/GameSnapshot
 - Kedua version dicek secara independen di masing-masing code path.
 
 ### Ordering Apply Methods
+
 Urutan pemanggilan kritis untuk correctness:
+
 1. `ApplyPreSpawn(snap)` — HARUS sebelum `InitAll()` / `SpawnEnemiesFromMap()` / `SpawnObject()`
 2. `InitAll()` — spawn enemies, items, props
 3. `ApplyPostSpawn(snap)` — HARUS setelah semua spawn selesai
@@ -355,7 +367,7 @@ Pause Menu → Tombol Restart
   └─ PLAY
 ```
 
-**Perbedaan Worldgen vs Non-Worldgen**
+#### Perbedaan Worldgen vs Non-Worldgen
 
 | Aspek | Worldgen | Non-worldgen |
 | --- | --- | --- |
@@ -368,7 +380,8 @@ Pause Menu → Tombol Restart
 
 ### Pipeline Save/Load (Legacy)
 
-**Save (Pause → Save / Return to Menu):**
+#### Save (Pause → Save / Return to Menu)
+
 ```txt
 SaveGameState()
   ├─ Baca player state → savedPlayerState
@@ -382,7 +395,8 @@ SaveGameState()
   └─ WriteSaveFile("saves/manual/slot0.json")
 ```
 
-**Load (Main Menu → Load Game) — legacy fast path:**
+#### Load (Main Menu → Load Game) — legacy fast path
+
 ```txt
 LoadMap(savedMapState.mapPath)
   ├─ Worldgen? → RunWorldgen(seed, isBoss) + LoadRuntimeState(stageIdx)
@@ -398,7 +412,8 @@ LoadMap(savedMapState.mapPath)
 
 ### Bugs Fixed (Legacy)
 
-**Bug #1 — ClearCache() Hapus Semua File**
+#### Bug #1 — ClearCache() Hapus Semua File
+
 | Item | Detail |
 | --- | --- |
 | **Lokasi** | `src/map/worldgenio.cpp:110-122` |
@@ -406,14 +421,16 @@ LoadMap(savedMapState.mapPath)
 | **Akibat** | Save state enemy/item per-map ilang |
 | **Fix** | Filter dengan `.cache` extension |
 
-**Bug #2 — Layout Prefab Hilang Pas Load Game Worldgen**
+#### Bug #2 — Layout Prefab Hilang Pas Load Game Worldgen
+
 | Item | Detail |
 | --- | --- |
 | **Lokasi** | `src/core/loading_screen.cpp` fast path |
 | **Gejala** | Load game mid-worldgen lewat fast path → layout prefab ilang |
 | **Fix** | Tambah `RunWorldgen()` + `LoadRuntimeState()` di fast path |
 
-**Bug #3 — Crash Worldgen Run Ke-2**
+#### Bug #3 — Crash Worldgen Run Ke-2
+
 | Item | Detail |
 | --- | --- |
 | **Lokasi** | `src/systems/interaction.cpp:102` + `src/core/game_state_saver.cpp:838` |
@@ -421,14 +438,16 @@ LoadMap(savedMapState.mapPath)
 | **Akar** | `ClearSavedState()` hapus worldseed folder tapi `SeedManager::isRunActive` masih true |
 | **Fix** | `g_SeedManager.ResetRun()` di `ClearSavedState()` |
 
-**Bug #4 — Cache Basi Setelah Load Game / Restart**
+#### Bug #4 — Cache Basi Setelah Load Game / Restart
+
 | Item | Detail |
 | --- | --- |
 | **Lokasi** | `src/core/loading_screen.cpp` fast path, `src/ui/pauseMenu.cpp` restart flow |
 | **Gejala** | Setelah load game atau restart, file `.cache` masih pake snapshot dari sesi sebelumnya |
 | **Fix** | Re-capture `.cache` di akhir fast path dan akhir restart flow |
 
-**Bug #5 — WinMain Infinite Loop (Unit Test)**
+#### Bug #5 — WinMain Infinite Loop (Unit Test)
+
 | Item | Detail |
 | --- | --- |
 | **Lokasi** | `tests/constants_test.cpp` |
@@ -529,7 +548,8 @@ Commit `fc58754`
 
 **Problem**: Rectangle-spawned enemy (banyak enemy dari satu rectangle spawn) menggunakan MapObjectID yang sama. Saat satu enemy mati, `RegisterDeath(MapObjectID)` menandai **seluruh spawn point** sebagai dead. `SpawnEnemiesFromMap` melewati spawn point tersebut, sehingga semua enemy dari rectangle itu hilang saat load (termasuk yang masih hidup).
 
-**Fix: Per-Instance UUID Death Tracking**
+#### Fix: Per-Instance UUID Death Tracking
+
 - `Entities::RegisterDeathByUUID(mapPath, uuid)` — tracking per-instance via UUID unik
 - `Entities::IsDeadByUUID(mapPath, uuid)` — pengecekan kematian per-instance
 - `Enemy::Update()` menggunakan UUID death, bukan MapObjectID death
@@ -548,6 +568,7 @@ Commit `fc58754`
 | `src/core/savemanager.cpp` | `ApplyPreSpawn` no SetDeadEntities; `ApplyPostSpawn`/`ApplyCheckpointData` deactivate matched enemies directly |
 
 Perubahan terakhir pada dokumentasi:
+
 | File | Perubahan |
 | --- | --- |
 | `docs/save-system.md` | Restrukturasi: SNAPSHOT_VERSION=1, koreksi API, hapus percakapan informal; tambah dokumentasi bugfix enemy persistence per-instance UUID |

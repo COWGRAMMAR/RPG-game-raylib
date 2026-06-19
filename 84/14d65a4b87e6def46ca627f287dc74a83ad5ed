@@ -1,0 +1,26 @@
+docs/build.md
+  s_0ee2af2fc9ffe9::t_3bd0e59baf40da 25,31
+  s_0ee2af2fc9ffe9::t_8e835e9729b0ec 43,49
+docs/buff-indicator-system.md
+  s_0ee2af2fc9ffe9::t_3007cf74e25c8c 9
+  s_0ee2af2fc9ffe9::t_a65bedc78bdd25 41
+  s_0ee2af2fc9ffe9::t_24bf58fe279089 82
+docs/worldgeneration.md
+  s_0ee2af2fc9ffe9::t_bfab66bcdaa54b 306
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.8",
+  "base_commit_sha": "8414d65a4b87e6def46ca627f287dc74a83ad5ed",
+  "prompts": {},
+  "sessions": {
+    "s_0ee2af2fc9ffe9": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_12174ed8dffeQT3WRIoy8BfpB3",
+        "model": "unknown"
+      },
+      "human_author": "NiskoDT <65821447+NiskoDT@users.noreply.github.com>"
+    }
+  }
+}

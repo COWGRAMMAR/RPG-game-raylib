@@ -40,9 +40,7 @@ const Keybind KeybindManager::defaultBindings[ACTION_COUNT] = {
     /* GO_BACK             */ {KEY_B, false},
     /* PAUSE_MENU          */ {KEY_ESCAPE, false},
     /* TOGGLE_FULLSCREEN   */ {KEY_F11, false},
-    /* DEBUG_TOGGLE        */ {KEY_TAB, false},
-    /* DEBUG_TOGGLE_ENEMY  */ {KEY_BACKSLASH, false},
-    /* DEBUG_TOGGLE_PLAYER */ {KEY_RIGHT_BRACKET, false},
+
 };
 
 const char *KeybindManager::actionNames[ACTION_COUNT] = {
@@ -64,9 +62,7 @@ const char *KeybindManager::actionNames[ACTION_COUNT] = {
     "GO_BACK",
     "PAUSE_MENU",
     "TOGGLE_FULLSCREEN",
-    "DEBUG_TOGGLE",
-    "DEBUG_TOGGLE_ENEMY",
-    "DEBUG_TOGGLE_PLAYER",
+
 };
 
 /*==============================================================================
@@ -92,9 +88,6 @@ static const char *actionDisplayNames[ACTION_COUNT] = {
     "Go Back",
     "Pause Menu",
     "Toggle Fullscreen",
-    "Debug Overlay",
-    "Debug Enemies",
-    "Debug Player",
 };
 
 /*==============================================================================

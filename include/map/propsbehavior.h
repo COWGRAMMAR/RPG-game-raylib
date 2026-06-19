@@ -16,6 +16,7 @@
 #include "mapLogic.h"
 #include "animation.h"
 #include "player.h"
+#include "item.h"
 #include "raylib.h"
 #include "raymath.h"
 #include <random>
@@ -23,6 +24,10 @@
 #include <string>
 #include <queue>
 #include <functional>
+
+/** @brief Bobot rarity default untuk world spawn (chest & crate) */
+inline const std::map<ItemRarity, int> WORLD_WEIGHTS = {
+    {RARITY_COMMON, 80}, {RARITY_UNCOMMON, 60}, {RARITY_RARE, 40}, {RARITY_EPIC, 35}};
 
 /*==============================================================================
  * ObjectState Enum
@@ -462,8 +467,10 @@ public:
     void SetCleared(bool v) { cleared = v; }
     /** @brief Set state hasReLocked */
     void SetHasReLocked(bool v) { hasReLocked = v; }
+    /** @brief Hapus semua barrier dari DynamicObstacles */
+    void RemoveAllBarriers();
 
-    static constexpr float KILL_THRESHOLD = 0.9f;
+    static constexpr float KILL_THRESHOLD = 0.01f; // DEBUG: 0.9f asli — 90% enemy mati baru barrier buka
 
 private:
     /** @brief Data internal satu barrier */
@@ -483,7 +490,6 @@ private:
     int prevDeadCount = 0;             // DeadCount sebelumnya — buat deteksi perubahan
     bool hasCapturedCount = false;     // Flag biar initial capture hanya sekali
     Rectangle bossStageBounds = {0};   // Bounds object "boss_stage" untuk deteksi area boss
-    void RemoveAllBarriers(); // Hapus semua barrier dari DynamicObstacles
     void ReLockBarriers();    // Pasang ulang barrier (re-lock) — khusus boss room
 };
 

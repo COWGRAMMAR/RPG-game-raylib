@@ -27,6 +27,8 @@ constexpr int SPAWN_RECT_NORMAL_MIN = 20;
 constexpr int SPAWN_RECT_NORMAL_MAX = 25;
 constexpr int SPAWN_RECT_ELITE_MIN = 10;
 constexpr int SPAWN_RECT_ELITE_MAX = 15;
+constexpr int SPAWN_PINPOINT_TUTORIAL_MIN = 2;
+constexpr int SPAWN_PINPOINT_TUTORIAL_MAX = 3;
 constexpr int SPAWN_RETRY_LIMIT = 200;
 
 // --- Loot drop tunable constants ---
@@ -207,6 +209,9 @@ public:
     }
 
     EnemySteering Steering; // helper steering untuk chase dan return pathfinding
+
+    /** @brief Hitung effective attack range edge-to-edge (attackRange + enemyRadius + playerRadius) */
+    float GetEffectiveAttackRange() const;
 
     /** @brief Ambil velocity enemy dari frame terakhir */
     Vector2 GetVelocity() { return Velocity; }

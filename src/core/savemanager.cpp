@@ -250,11 +250,11 @@ json SaveManager::Serialize(const GameSnapshot &snap)
     root["bombConsumedPositions"] = json(snap.bombConsumed);
     root["crateConsumedPositions"] = json(snap.crateConsumed);
 
-    // Props — barrier
-    json barrierJson;
-    barrierJson["cleared"] = snap.barrierCleared;
-    barrierJson["hasReLocked"] = snap.barrierHasReLocked;
-    root["barrier"] = barrierJson;
+    // Props — barrierMap (persistent truth per map)
+    json barrierJson = json::object();
+    for (const auto &[path, cleared] : snap.barrierMap)
+        barrierJson[path] = cleared;
+    root["barrierMap"] = barrierJson;
 
     // Dead Entities
     {
@@ -400,11 +400,11 @@ GameSnapshot SaveManager::Deserialize(const json &root)
             snap.crateConsumed.insert(c.get<std::string>());
     }
 
-    // Props — barrier
-    if (root.contains("barrier"))
+    // Props — barrierMap (persistent truth per map)
+    if (root.contains("barrierMap"))
     {
-        snap.barrierCleared = root["barrier"].value("cleared", false);
-        snap.barrierHasReLocked = root["barrier"].value("hasReLocked", false);
+        for (auto &[path, cleared] : root["barrierMap"].items())
+            snap.barrierMap[path] = cleared.get<bool>();
     }
 
     // Dead Entities
@@ -516,6 +516,12 @@ bool SaveManager::SaveManual(const GameSnapshot &snap, int slot)
     if (slot < 0) return false;
     EnsureDirs(slot);
     CaptureInitialSnapshot(-1); // update runtime workspace
+
+    // Generate checkpoint untuk current map biar folder checkpoints/
+    // gak kosong pas save di-load. Plan mode — source of truth.
+    if (!snap.mapPath.empty())
+        SaveCheckpoint(snap, snap.mapPath, slot);
+
     return WriteSnapshot(snap, GetManualPath(slot));
 }
 
@@ -570,7 +576,6 @@ bool SaveManager::SaveAutosave(int slot)
             fs::remove(files[i]);
     }
 
-    CaptureInitialSnapshot(-1); // update runtime workspace
     return true;
 }
 
@@ -581,7 +586,6 @@ bool SaveManager::SaveAutosave(int slot)
 bool SaveManager::SaveCheckpoint(const GameSnapshot &snap, const std::string &mapPath, int slot)
 {
     EnsureDirs(slot);
-    CaptureInitialSnapshot(-1); // update runtime workspace
     return WriteSnapshot(snap, GetCheckpointPath(mapPath, slot));
 }
 
@@ -613,6 +617,70 @@ GameSnapshot SaveManager::LoadInitial(int slot)
 bool SaveManager::HasInitial(int slot)
 {
     return HasSnapshot(GetInitialPath(slot));
+}
+
+bool SaveManager::MirrorToWorkspace(int sourceSlot)
+{
+    if (sourceSlot < 0) return false;
+    constexpr int WORKSPACE = -1;
+
+    EnsureDirs(WORKSPACE);
+
+    std::string srcDir = GetSlotDir(sourceSlot);
+    std::string dstDir = GetSlotDir(WORKSPACE);
+
+    try
+    {
+        // Bersihin dulu, baru copy — biar gak ada data basi dari slot lain
+        ClearWorkspaceCheckpoints();
+
+        std::string srcChk = srcDir + "/checkpoints";
+        if (fs::exists(srcChk) && fs::is_directory(srcChk))
+        {
+            for (const auto &entry : fs::directory_iterator(srcChk))
+            {
+                if (entry.path().extension() == ".json")
+                {
+                    fs::copy(entry.path(),
+                             fs::path(dstDir + "/checkpoints") / entry.path().filename(),
+                             fs::copy_options::overwrite_existing);
+                }
+            }
+        }
+
+        // snapshot.json manual & initial gak di-copy — gak ada yg baca dari -1/manual/
+
+        return true;
+    }
+    catch (const std::exception &e)
+    {
+        TraceLog(LOG_WARNING, "MirrorToWorkspace(%d) failed: %s", sourceSlot, e.what());
+        return false;
+    }
+}
+
+void SaveManager::ClearWorkspaceCheckpoints()
+{
+    constexpr int WORKSPACE = -1;
+    std::string chkDir = GetSlotDir(WORKSPACE) + "/checkpoints";
+
+    try
+    {
+        if (fs::exists(chkDir) && fs::is_directory(chkDir))
+        {
+            for (const auto &entry : fs::directory_iterator(chkDir))
+            {
+                if (entry.path().extension() == ".json")
+                {
+                    fs::remove(entry.path());
+                }
+            }
+        }
+    }
+    catch (const std::exception &e)
+    {
+        TraceLog(LOG_WARNING, "ClearWorkspaceCheckpoints: %s", e.what());
+    }
 }
 
 /*==============================================================================
@@ -699,9 +767,12 @@ GameSnapshot SaveManager::CaptureSnapshot()
     snap.bombConsumed = bombManager.GetConsumedPositions();
     snap.crateConsumed = crateManager.GetConsumedPositions();
 
-    // Props — barrier
-    snap.barrierCleared = barrierManager.IsCleared();
-    snap.barrierHasReLocked = barrierManager.HasReLocked();
+    // Props — barrierMap (simpan status clearance map saat ini)
+    {
+        const char *mapPath = GetCurrentMapPath();
+        if (mapPath && mapPath[0] != '\0')
+            snap.barrierMap[std::string(mapPath)] = barrierManager.IsCleared();
+    }
 
     // Dead Entities
     {
@@ -750,8 +821,17 @@ void SaveManager::ApplyPreSpawn(const GameSnapshot &snap)
         crateManager.SetConsumedPositions(snap.crateConsumed);
 
     /*--- Props: barrier state ---*/
-    barrierManager.SetCleared(snap.barrierCleared);
-    barrierManager.SetHasReLocked(snap.barrierHasReLocked);
+    {
+        bool barrierCleared = false;
+        const char *mapPath = GetCurrentMapPath();
+        if (mapPath && mapPath[0] != '\0')
+        {
+            auto it = snap.barrierMap.find(std::string(mapPath));
+            if (it != snap.barrierMap.end())
+                barrierCleared = it->second;
+        }
+        barrierManager.SetCleared(barrierCleared);
+    }
 }
 
 /*==============================================================================
@@ -936,8 +1016,20 @@ void SaveManager::ApplyPostSpawn(const GameSnapshot &snap)
         crateManager.SetConsumedPositions(snap.crateConsumed);
 
     /*--- Props: barrier state ---*/
-    barrierManager.SetCleared(snap.barrierCleared);
-    barrierManager.SetHasReLocked(snap.barrierHasReLocked);
+    {
+        bool barrierCleared = false;
+        const char *mapPath = GetCurrentMapPath();
+        if (mapPath && mapPath[0] != '\0')
+        {
+            auto it = snap.barrierMap.find(std::string(mapPath));
+            if (it != snap.barrierMap.end())
+                barrierCleared = it->second;
+        }
+        if (barrierCleared)
+            barrierManager.RemoveAllBarriers();
+        else
+            barrierManager.SetCleared(false);
+    }
 
     /*--- Map: camera ---*/
     camera.target = snap.cameraTarget;
@@ -1104,8 +1196,20 @@ void SaveManager::ApplyCheckpointData(const GameSnapshot &snap)
         crateManager.SetConsumedPositions(snap.crateConsumed);
 
     /*--- Props: barrier state ---*/
-    barrierManager.SetCleared(snap.barrierCleared);
-    barrierManager.SetHasReLocked(snap.barrierHasReLocked);
+    {
+        bool barrierCleared = false;
+        const char *mapPath = GetCurrentMapPath();
+        if (mapPath && mapPath[0] != '\0')
+        {
+            auto it = snap.barrierMap.find(std::string(mapPath));
+            if (it != snap.barrierMap.end())
+                barrierCleared = it->second;
+        }
+        if (barrierCleared)
+            barrierManager.RemoveAllBarriers();
+        else
+            barrierManager.SetCleared(false);
+    }
 
     TraceLog(LOG_INFO, "[SaveManager] Checkpoint restore complete (%zu enemies, %zu items)",
              snap.enemies.size(), snap.items.size());

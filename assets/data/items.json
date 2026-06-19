@@ -18,7 +18,7 @@
         "startAngleOffset": 0.0,
         "sweepAngle": 0.0,
         "centerOffset": { "x": 8.0, "y": 4.0 },
-        "manaCost": 10.0,
+        "manaCost": 4.0,
         "attackType": "slash"
       }
     },
@@ -40,7 +40,7 @@
         "startAngleOffset": 55.0,
         "sweepAngle": -95.0,
         "centerOffset": { "x": 20.0, "y": 20.0 },
-        "manaCost": 15.0,
+        "manaCost": 7.0,
         "attackType": "slash"
       }
     },
@@ -86,8 +86,8 @@
       "isStackable": false,
       "maxStack": 1,
       "weapon": {
-        "damage": 35.0,
-        "reach": 225.0,
+        "damage": 45.0,
+        "reach": 240.0,
         "breadth": 8.0,
         "duration": 0.4,
         "knockbackForce": 0.5,
@@ -174,7 +174,7 @@
       "potion": {
         "healValue": 0,
         "isMana": false,
-        "damageMultiplier": 1.25,
+        "damageMultiplier": 1.30,
         "duration": 30.0,
         "cooldown": 5.0,
         "potionCategory": "damage"
@@ -192,7 +192,7 @@
       "potion": {
         "healValue": 0,
         "isMana": false,
-        "damageMultiplier": 1.5,
+        "damageMultiplier": 1.65,
         "duration": 45.0,
         "cooldown": 10.0,
         "potionCategory": "damage"
@@ -210,7 +210,7 @@
       "potion": {
         "healValue": 0,
         "isMana": false,
-        "speedMultiplier": 1.125,
+        "speedMultiplier": 1.2,
         "duration": 20.0,
         "cooldown": 5.0,
         "potionCategory": "speed"
@@ -228,7 +228,7 @@
       "potion": {
         "healValue": 0,
         "isMana": false,
-        "speedMultiplier": 1.25,
+        "speedMultiplier": 1.35,
         "duration": 35.0,
         "cooldown": 10.0,
         "potionCategory": "speed"
@@ -280,15 +280,15 @@
       "isStackable": false,
       "maxStack": 1,
       "weapon": {
-        "damage": 35.0,
-        "reach": 300.0,
+        "damage": 1000.0,
+        "reach": 400.0,
         "breadth": 10.0,
         "duration": 0.2,
         "knockbackForce": 0.25,
         "startAngleOffset": 0.0,
         "sweepAngle": 0.0,
         "centerOffset": { "x": 10.0, "y": 5.0 },
-        "manaCost": 2.0,
+        "manaCost": 3.0,
         "attackType": "pierce"
       }
     },
@@ -310,7 +310,7 @@
         "startAngleOffset": 0.0,
         "sweepAngle": 0.0,
         "centerOffset": { "x": 10.0, "y": 20.0 },
-        "manaCost": 10.0,
+        "manaCost": 7.0,
         "attackType": "thrust"
       }
     },
@@ -332,7 +332,7 @@
         "startAngleOffset": 45.0,
         "sweepAngle": -90.0,
         "centerOffset": { "x": 10.0, "y": 20.0 },
-        "manaCost": 15.0,
+        "manaCost": 8.0,
         "attackType": "slash"
       }
     },
@@ -354,7 +354,7 @@
         "startAngleOffset": 0.0,
         "sweepAngle": 0.0,
         "centerOffset": { "x": 10.0, "y": 10.0 },
-        "manaCost": 20.0,
+        "manaCost": 10.0,
         "attackType": "slam"
       }
     }

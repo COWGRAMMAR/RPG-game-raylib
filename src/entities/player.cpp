@@ -12,7 +12,7 @@
 
 #include "player.h"
 #include "config/game_constants.h"
-#include "../../include/systems/audioManager.h"
+#include "systems/audioManager.h"
 #include "screen.h"
 #include "movement.h"
 #include "combat.h"
@@ -50,7 +50,7 @@ void Player::Init(GameState *state, const char *spawnObjectName)
         ManaRegenTimer = 0.0f;
 
         // Inisialisasi hotbar + bag dengan semua item dari items.json (id 0-18)
-        Hotbar[0] = {1, 1}; // Steel Sword
+        Hotbar[0] = {15, 1}; // Steel Sword (1)
         Hotbar[1] = {4, 1}; // Wooden Bow
         Hotbar[2] = {2, 4}; // Health
         Hotbar[3] = {3, 4}; // Mana

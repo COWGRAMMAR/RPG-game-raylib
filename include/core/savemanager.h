@@ -24,6 +24,7 @@
 #include "map.h"
 #include <vector>
 #include <string>
+#include <unordered_map>
 #include <unordered_set>
 #include <set>
 #include <nlohmann/json.hpp>
@@ -79,8 +80,9 @@ struct GameSnapshot {
     std::unordered_set<std::string> chestConsumed;
     std::unordered_set<std::string> bombConsumed;
     std::unordered_set<std::string> crateConsumed;
-    bool barrierCleared = false;
-    bool barrierHasReLocked = false;
+
+    /** @brief barrierMap[mapPath] = true kalo barrier udah di-clear */
+    std::unordered_map<std::string, bool> barrierMap;
 
     /*=== Dead Entities ===*/
     std::set<std::string> deadEntities;
@@ -289,6 +291,24 @@ public:
      * @return true jika ada
      */
     static bool HasInitial(int slot);
+
+    /**
+     * @brief Mirror checkpoint + manual dari slot sumber ke runtime workspace (-1)
+     * @param sourceSlot Slot sumber (misal 0, 1, dst)
+     * @return true jika sukses
+     *
+     * Plan mode: runtime workspace harus punya data lengkap kayak slot_N.
+     * Dipanggil pas loading save dari slot tertentu.
+     */
+    static bool MirrorToWorkspace(int sourceSlot);
+
+    /**
+     * @brief Hapus semua file checkpoint di slot_-1/checkpoints/
+     *
+     * Dipanggil pas new game biar folder checkpoint kosong,
+     * gak bawa sisa checkpoint dari sesi sebelumnya.
+     */
+    static void ClearWorkspaceCheckpoints();
 
     /*=== Serialization ===*/
 

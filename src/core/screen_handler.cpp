@@ -41,7 +41,7 @@
 #include <algorithm>
 #include <cctype>
 #include <filesystem>
-#include "../../include/systems/audioManager.h"
+#include "systems/audioManager.h"
 #include "hud.h"
 #include "propsbehavior.h"
 #include "combatTurn.h"
@@ -49,7 +49,7 @@
 #include "game_state_saver.h"
 #include "worldgenio.h"
 #include "worldgenenartion.h"
-#include "../../include/media/videoPlayer.h"
+#include "media/videoPlayer.h"
 
 /*==============================================================================
  * External Variables & Macros
@@ -119,10 +119,10 @@ void InitAll()
     // Capture spawn pos start room buat revive
     TiledHelperFunction.TryGetObjectPositionByName(SPAWN_OBJECT_NAME, gState->startSpawnPos);
 
-    // Cache initial state buat restart
+    // Cache initial state buat restart (runtime workspace only)
     {
         GameSnapshot initial = SaveManager::CaptureSnapshot();
-        SaveManager::SaveInitial(initial, g_ActiveSaveSlot);
+        SaveManager::SaveInitial(initial, -1);
     }
 }
 

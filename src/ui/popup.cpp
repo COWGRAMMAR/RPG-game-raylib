@@ -1,8 +1,8 @@
 #include <algorithm>
 
-#include "../../include/ui/popup.h"
-#include "../../include/core/screen.h"
-#include "../../include/rendering/fonts.h"
+#include "ui/popup.h"
+#include "core/screen.h"
+#include "rendering/fonts.h"
 
 /**
  * @brief Default constructor.

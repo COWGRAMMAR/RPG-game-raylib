@@ -470,7 +470,7 @@ void SwitchMap(const char *newMapPath, const char *targetDoorName)
     if (!currentMapPath.empty())
     {
         GameSnapshot chkSnap = SaveManager::CaptureSnapshot();
-        SaveManager::SaveCheckpoint(chkSnap, currentMapPath, g_ActiveSaveSlot);
+        SaveManager::SaveCheckpoint(chkSnap, currentMapPath, -1);
         mapHistoryStack.Push(currentMapPath, "");
     }
 
@@ -507,7 +507,7 @@ void GoBack(void)
     // Simpan state map sekarang
     {
         GameSnapshot chkSnap = SaveManager::CaptureSnapshot();
-        SaveManager::SaveCheckpoint(chkSnap, currentMapPath, g_ActiveSaveSlot);
+        SaveManager::SaveCheckpoint(chkSnap, currentMapPath, -1);
     }
 
     // Ambil history teratas dan pop dari stack

@@ -11,7 +11,7 @@
  */
 
 #include "enemy.h"
-#include "../../../include/systems/audioManager.h"
+#include "systems/audioManager.h"
 #include "screen.h"
 #include "enemy_ai.h"
 #include "combatTurn.h"
@@ -540,6 +540,14 @@ void Enemy::HandlePatrol()
         PlayAnimation(Anim, WALK, Anim.direction);
 }
 
+float Enemy::GetEffectiveAttackRange() const
+{
+    Rectangle playerHb = PlayerInstance.GetHitbox();
+    float playerRadius = (playerHb.width + playerHb.height) / 4.0f;
+    float enemyRadius = (HitboxWidth + HitboxHeight) / 4.0f;
+    return Def->stats.attackRange + enemyRadius + playerRadius;
+}
+
 /**
  * @brief Jalankan state chase enemy.
  */
@@ -558,7 +566,7 @@ void Enemy::HandleChase()
     Vector2 playerCenter = PlayerInstance.GetCenter();
     float dist = Vector2Distance(enemyCenter, playerCenter);
 
-    if (dist <= Def->stats.attackRange)
+    if (dist <= GetEffectiveAttackRange())
     {
         if (!PlayerWasInRange)
             PerformAttack();
@@ -675,8 +683,9 @@ void Enemy::HandleAttack()
     Vector2 enemyCenter = GetCenter();
     Vector2 playerCenter = PlayerInstance.GetCenter();
     float dist = Vector2Distance(enemyCenter, playerCenter);
+    float effectiveRange = GetEffectiveAttackRange();
 
-    if (dist <= Def->stats.attackRange)
+    if (dist <= effectiveRange)
     {
         if (!PlayerWasInRange || AttackCooldownTimer <= 0)
             PerformAttack();
@@ -687,7 +696,7 @@ void Enemy::HandleAttack()
         PlayerWasInRange = false;
         // Sedikit buffer agar enemy tidak langsung keluar ATTACK state saat player mundur tipis
         float attackExitBuffer = 1.2f;
-        if (dist > Def->stats.attackRange * attackExitBuffer)
+        if (dist > effectiveRange * attackExitBuffer)
         {
             AIState = ENEMY_CHASE;
             PlayAnimation(Anim, WALK, Anim.direction);
@@ -784,7 +793,8 @@ void Enemy::Render()
     {
         Vector2 enemyCenter = GetCenter();
         DrawCircleLinesV(enemyCenter, DetectionRange, Fade(GRAY, 0.6f));
-        DrawCircleLinesV(enemyCenter, Def->stats.attackRange, RED);
+        DrawCircleLinesV(enemyCenter, GetEffectiveAttackRange(), GREEN);
+        DrawCircleLinesV(enemyCenter, Def->stats.attackRange, Fade(RED, 0.3f));
         DrawRectangleLinesEx(GetHitbox(), 1.0f, VIOLET);
 
         if (AIState == ENEMY_CHASE || AIState == ENEMY_ATTACK)
@@ -1069,6 +1079,52 @@ void SpawnBoss(const MapObject *obj)
 }
 
 /**
+ * @brief Spawn 2-3 enemy tutorial di posisi object pinpoint.
+ * @param obj Object spawn tutorial dari Tiled
+ * @note Fungsi terpisah dari SpawnAtPoint agar tidak mengubah
+ *       logika spawn existing. Hanya dipakai di map tutorial.
+ */
+void SpawnTutorialEnemy(const MapObject *obj)
+{
+    if (!obj)
+        return;
+
+    auto pool = GetNamesByRank(ENEMY_NORMAL);
+    if (pool.empty())
+        return;
+
+    std::mt19937 rng(obj->id);
+    std::uniform_int_distribution<int> pickDist(0, (int)pool.size() - 1);
+    std::uniform_int_distribution<int> countDist(SPAWN_PINPOINT_TUTORIAL_MIN, SPAWN_PINPOINT_TUTORIAL_MAX);
+    std::uniform_real_distribution<float> offsetDist(-SEPARATION_RADIUS, SEPARATION_RADIUS);
+
+    int count = countDist(rng);
+
+    Vector2 center = {obj->bounds.x + obj->bounds.width / 2.0f,
+                      obj->bounds.y + obj->bounds.height / 2.0f};
+    if (spawnFlowFields.find(obj->id) == spawnFlowFields.end())
+        BuildSpawnFlowFields(center, obj->id, tilesonMap->width, tilesonMap->height);
+
+    uint64_t dSeed = g_SeedManager.IsRunActive()
+        ? (uint64_t)g_SeedManager.GetSeed(g_SeedManager.GetCurrentStage()) : 0;
+
+    for (int i = 0; i < count; i++)
+    {
+        std::string picked = pool[pickDist(rng)];
+        const EnemyDefinition &def = enemyData.Get(picked);
+
+        Vector2 spawnPos = {center.x + offsetDist(rng), center.y + offsetDist(rng)};
+
+        Enemy *enemy = new Enemy();
+        enemy->Init(spawnPos, picked.c_str(), obj->id, def);
+        enemy->SetUUID(GenerateDeterministicUUID(dSeed, obj->id, picked, i));
+        PushOutOfWalls(enemy);
+        enemy->SetReturnFlowField(&spawnFlowFields[obj->id].field);
+        Entities::AddDynamic(enemy);
+    }
+}
+
+/**
  * @brief Spawn semua enemy dari object spawn di map aktif.
  * @note Semua spawn point selalu di-spawn. Kematian per-instance enemy
  *       ditangani oleh ApplyPostSpawn/ApplyCheckpointData.
@@ -1112,6 +1168,10 @@ void SpawnEnemiesFromMap()
         else if (obj->name == ENEMY_SPAWN_BOSS_OBJECT_NAME)
         {
             SpawnBoss(obj);
+        }
+        else if (obj->name == ENEMY_SPAWN_TUTORIAL_PIN_OBJECT_NAME)
+        {
+            SpawnTutorialEnemy(obj);
         }
     }
 }

@@ -45,7 +45,20 @@
          "draworder":"topdown",
          "id":7,
          "name":"enemy",
-         "objects":[],
+         "objects":[
+                {
+                 "height":0,
+                 "id":61,
+                 "name":"enemy_spawn_tutorial_pinpoint",
+                 "opacity":1,
+                 "point":true,
+                 "rotation":0,
+                 "type":"spawn",
+                 "visible":true,
+                 "width":0,
+                 "x":527,
+                 "y":434
+                }],
          "opacity":1,
          "type":"objectgroup",
          "visible":true,
@@ -545,7 +558,7 @@
          "y":0
         }],
  "nextlayerid":12,
- "nextobjectid":61,
+ "nextobjectid":62,
  "orientation":"orthogonal",
  "renderorder":"right-down",
  "tiledversion":"1.12.1",

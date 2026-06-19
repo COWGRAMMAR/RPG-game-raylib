@@ -38,11 +38,6 @@ enum Action {
     // Menu
     PAUSE_MENU,
     TOGGLE_FULLSCREEN,
-    // Debug overlay
-    DEBUG_TOGGLE,
-    DEBUG_TOGGLE_ENEMY,
-    DEBUG_TOGGLE_PLAYER,
-
     ACTION_COUNT  ///< Sentinel — must be last
 };
 

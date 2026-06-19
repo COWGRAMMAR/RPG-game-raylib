@@ -46,9 +46,6 @@ struct InputState
 
     // Absorbed from rogues (were hardcoded in main.cpp / debugmode.cpp)
     bool pauseMenu;
-    bool debugToggle;
-    bool debugToggleEnemy;
-    bool debugTogglePlayer;
 
     float mouseWheel;
 };

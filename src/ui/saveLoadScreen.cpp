@@ -6,11 +6,11 @@
  * UI menu simpan dan muat game.
  */
 
-#include "../../include/ui/saveLoadScreen.h"
-#include "../../include/core/game_state_saver.h"
-#include "../../include/core/savemanager.h"
-#include "../../include/core/seedmanager.h"
-#include "../../include/map/worldgenio.h"
+#include "ui/saveLoadScreen.h"
+#include "core/game_state_saver.h"
+#include "core/savemanager.h"
+#include "core/seedmanager.h"
+#include "map/worldgenio.h"
 #include "fonts.h"
 #include "../lib/json/include/nlohmann/json.hpp"
 

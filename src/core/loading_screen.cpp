@@ -7,22 +7,22 @@
  * Juga menangani transisi map dengan loading screen yang sama.
  */
 
-#include "../../include/core/loading_screen.h"
-#include "../../include/map/map.h"
-#include "../../include/entities/player.h"
-#include "../../include/entities/enemy.h"
-#include "../../include/items/item.h"
-#include "../../include/ui/mainMenu.h"
-#include "../../include/core/game_state_saver.h"
-#include "../../include/core/screen.h"
-#include "../../include/entities/entities.h"
-#include "../../include/map/propsbehavior.h"
-#include "../../include/entities/enemy_ai.h"
-#include "../../include/core/seedmanager.h"
-#include "../../include/map/worldgenio.h"
-#include "../../include/core/savemanager.h"
-#include "../../include/rendering/fonts.h"
-#include "../../include/systems/audioManager.h"
+#include "core/loading_screen.h"
+#include "map/map.h"
+#include "entities/player.h"
+#include "entities/enemy.h"
+#include "items/item.h"
+#include "ui/mainMenu.h"
+#include "core/game_state_saver.h"
+#include "core/screen.h"
+#include "entities/entities.h"
+#include "map/propsbehavior.h"
+#include "entities/enemy_ai.h"
+#include "core/seedmanager.h"
+#include "map/worldgenio.h"
+#include "core/savemanager.h"
+#include "rendering/fonts.h"
+#include "systems/audioManager.h"
 #include <algorithm>
 #include <cstring>
 #include <cctype>
@@ -161,6 +161,9 @@ static void HandleMapSwitch(GameState *state)
             int stageIdx = g_SeedManager.GetCurrentStage();
             uint64_t seed = g_SeedManager.GetSeed(stageIdx);
             RunWorldgen(seed, stageIdx == SeedManager::SEED_COUNT - 1);
+            // Reset barrier state — jangan bawa stale state dari map sebelumnya
+            barrierManager.SetCleared(false);
+            barrierManager.SetHasReLocked(false);
         }
         else
         {
@@ -170,9 +173,9 @@ static void HandleMapSwitch(GameState *state)
             // SEBELUM SpawnObject agar chest/bomb/crate yang sudah dikonsumsi
             // tidak spawn ulang, dan enemy mati tidak di-respawn
             GameSnapshot chkSnap;
-            if (SaveManager::HasCheckpoint(state->pendingMapPath, g_ActiveSaveSlot))
+            if (SaveManager::HasCheckpoint(state->pendingMapPath, -1))
             {
-                chkSnap = SaveManager::LoadCheckpoint(state->pendingMapPath, g_ActiveSaveSlot);
+                chkSnap = SaveManager::LoadCheckpoint(state->pendingMapPath, -1);
                 SaveManager::ApplyPreSpawn(chkSnap);
             }
         }
@@ -194,10 +197,10 @@ static void HandleMapSwitch(GameState *state)
         // Coba load checkpoint & apply pre-spawn (dead entities)
         {
             GameSnapshot chkSnap;
-            bool hasCheckpoint = SaveManager::HasCheckpoint(state->pendingMapPath, g_ActiveSaveSlot);
+            bool hasCheckpoint = SaveManager::HasCheckpoint(state->pendingMapPath, -1);
             if (hasCheckpoint)
             {
-                chkSnap = SaveManager::LoadCheckpoint(state->pendingMapPath, g_ActiveSaveSlot);
+                chkSnap = SaveManager::LoadCheckpoint(state->pendingMapPath, -1);
                 SaveManager::ApplyPreSpawn(chkSnap);
             }
 
@@ -209,10 +212,10 @@ static void HandleMapSwitch(GameState *state)
                 SaveManager::ApplyCheckpointData(chkSnap);
         }
 
-        // Save initial state untuk restart
+        // Save initial state untuk restart (runtime workspace only)
         {
             GameSnapshot initial = SaveManager::CaptureSnapshot();
-            SaveManager::SaveInitial(initial, g_ActiveSaveSlot);
+            SaveManager::SaveInitial(initial, -1);
         }
 
         if (s_OldMapHasInitialSnapshot)
@@ -288,6 +291,7 @@ static void HandleFastPath(GameState *state)
     {
         PlayerInstance.ResetForNewGame();
         InitMap();
+        SaveManager::ClearWorkspaceCheckpoints();
     }
 
     // BUGFIX: Apply pre-spawn state (dead entities + consumed positions)
@@ -319,12 +323,15 @@ static void HandleFastPath(GameState *state)
 
     Entities::PruneDeadEntities();
 
-    // Save initial state untuk restart (slot aktif + runtime workspace)
+    // Save initial state untuk restart (runtime workspace only)
     {
         GameSnapshot initial = SaveManager::CaptureSnapshot();
-        SaveManager::SaveInitial(initial, g_ActiveSaveSlot);
+        SaveManager::SaveInitial(initial, -1);
         SaveManager::CaptureInitialSnapshot(-1);
     }
+
+    if (HasSavedState())
+        SaveManager::MirrorToWorkspace(g_ActiveSaveSlot);
 
     InitMainMenu(state);
 }
@@ -420,18 +427,24 @@ static void HandleInitialLoad(GameState *state)
         if (HasSavedState())
             RestoreGameState(state);
         else
+        {
             SaveManager::SaveAutosave(g_ActiveSaveSlot);
+            SaveManager::ClearWorkspaceCheckpoints();
+        }
 
         Entities::PruneDeadEntities();
 
-        // Save initial state untuk restart (slot aktif + runtime workspace)
-        {
-            GameSnapshot initial = SaveManager::CaptureSnapshot();
-            SaveManager::SaveInitial(initial, g_ActiveSaveSlot);
-            SaveManager::CaptureInitialSnapshot(-1);
-        }
+    // Save initial state untuk restart (runtime workspace only)
+    {
+        GameSnapshot initial = SaveManager::CaptureSnapshot();
+        SaveManager::SaveInitial(initial, -1);
+        SaveManager::CaptureInitialSnapshot(-1);
+    }
 
-        InitMainMenu(state);
+    if (HasSavedState())
+        SaveManager::MirrorToWorkspace(g_ActiveSaveSlot);
+
+    InitMainMenu(state);
         break;
     }
 }

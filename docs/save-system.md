@@ -19,7 +19,7 @@ Struct `GameSnapshot` merepresentasikan **seluruh state runtime game** pada satu
 ### Field
 
 | Field | Tipe | Deskripsi |
-|-------|------|-----------|
+| --- | --- | --- |
 | `version` | int | Versi format (`SNAPSHOT_VERSION = 1`) |
 | `playerPosition` | Vector2 | Posisi player di world |
 | `playerHealth` | float | HP saat ini |
@@ -96,14 +96,14 @@ static void CleanupTmpFiles();  // Hapus semua file .tmp di saves/
 ### Snapshot Apply Methods
 
 | Method | Use Case | Yang di-restore |
-|--------|----------|-----------------|
+| --- | --- | --- |
 | `ApplyPreSpawn(snap)` | Sebelum `InitAll` / `SpawnEnemiesFromMap` / `SpawnObject` | chest/bomb/crate consumed positions, barrier state (dead entities tidak direstore di sini — lihat per-instance UUID tracking) |
 | `ApplyPostSpawn(snap)` | Setelah `InitAll` (full state restore) | Player stats/inventory/position/animation/combat, enemies (by UUID then MapObjectID+Name), items (full replacement), consumed props, barrier, camera, mapHistory |
 | `ApplyCheckpointData(snap)` | Map transition (partial restore) | Enemies (by UUID then MapObjectID+Name), items (by UUID then index), consumed props |
 
 ### Path Structure
 
-```
+```txt
 saves/
 ├── settings/
 │   └── settings.json
@@ -325,7 +325,7 @@ Urutan pemanggilan kritis untuk correctness:
 
 ### Pipeline Restart
 
-```
+```txt
 Pause Menu → Tombol Restart
   │
   ├─ [1] Clear runtime state
@@ -358,7 +358,7 @@ Pause Menu → Tombol Restart
 **Perbedaan Worldgen vs Non-Worldgen**
 
 | Aspek | Worldgen | Non-worldgen |
-|---|---|---|
+| --- | --- | --- |
 | **Sumber spawn enemy** | RNG dari seed → bisa beda tiap spawn | JSON statis map → selalu sama |
 | **Urgensi cache** | Wajib — biar restart deterministik | Opsional — spawn dari JSON selalu sama |
 | **Map layout** | Tetap (worldseed hasil RunWorldgen) | Tetap (loaded dari Tiled JSON) |
@@ -369,7 +369,7 @@ Pause Menu → Tombol Restart
 ### Pipeline Save/Load (Legacy)
 
 **Save (Pause → Save / Return to Menu):**
-```
+```txt
 SaveGameState()
   ├─ Baca player state → savedPlayerState
   ├─ Baca enemy registry → savedEnemyStates
@@ -383,7 +383,7 @@ SaveGameState()
 ```
 
 **Load (Main Menu → Load Game) — legacy fast path:**
-```
+```txt
 LoadMap(savedMapState.mapPath)
   ├─ Worldgen? → RunWorldgen(seed, isBoss) + LoadRuntimeState(stageIdx)
   ├─ SetWorldgenPending()
@@ -400,7 +400,7 @@ LoadMap(savedMapState.mapPath)
 
 **Bug #1 — ClearCache() Hapus Semua File**
 | Item | Detail |
-|---|---|
+| --- | --- |
 | **Lokasi** | `src/map/worldgenio.cpp:110-122` |
 | **Gejala** | `ClearCache()` di `InitRun()` hapus SEMUA file di `saves/enemies/` dan `saves/items/` |
 | **Akibat** | Save state enemy/item per-map ilang |
@@ -408,14 +408,14 @@ LoadMap(savedMapState.mapPath)
 
 **Bug #2 — Layout Prefab Hilang Pas Load Game Worldgen**
 | Item | Detail |
-|---|---|
+| --- | --- |
 | **Lokasi** | `src/core/loading_screen.cpp` fast path |
 | **Gejala** | Load game mid-worldgen lewat fast path → layout prefab ilang |
 | **Fix** | Tambah `RunWorldgen()` + `LoadRuntimeState()` di fast path |
 
 **Bug #3 — Crash Worldgen Run Ke-2**
 | Item | Detail |
-|---|---|
+| --- | --- |
 | **Lokasi** | `src/systems/interaction.cpp:102` + `src/core/game_state_saver.cpp:838` |
 | **Gejala** | New Game → worldgen run 1 sukses → main menu → New Game crash |
 | **Akar** | `ClearSavedState()` hapus worldseed folder tapi `SeedManager::isRunActive` masih true |
@@ -423,14 +423,14 @@ LoadMap(savedMapState.mapPath)
 
 **Bug #4 — Cache Basi Setelah Load Game / Restart**
 | Item | Detail |
-|---|---|
+| --- | --- |
 | **Lokasi** | `src/core/loading_screen.cpp` fast path, `src/ui/pauseMenu.cpp` restart flow |
 | **Gejala** | Setelah load game atau restart, file `.cache` masih pake snapshot dari sesi sebelumnya |
 | **Fix** | Re-capture `.cache` di akhir fast path dan akhir restart flow |
 
 **Bug #5 — WinMain Infinite Loop (Unit Test)**
 | Item | Detail |
-|---|---|
+| --- | --- |
 | **Lokasi** | `tests/constants_test.cpp` |
 | **Gejala** | Stack overflow pas jalan `test_constants.exe` |
 | **Akar** | MinGW-UCRT CRT wrapper panggil `WinMain` → panggil `main` lagi → infinite loop |
@@ -459,7 +459,7 @@ LoadMap(savedMapState.mapPath)
 Commit `9617d40`
 
 | Perubahan | Detail |
-|---|---|
+| --- | --- |
 | Split `ClearSavedState()` → `ResetPlayer()` + `ResetCamera()` + `ResetMap()` | Setiap fungsi hanya reset satu aspek |
 | Pindah inisialisasi camera cache ke `screen_handler.cpp` | Tersedia sebelum restart/load flow |
 | Default `healthRegenTimer = 0.0f` | Cegah undefined behavior |
@@ -540,7 +540,7 @@ Commit `fc58754`
 - `ClearDeadEntities()` juga membersihkan `DeadEntitiesByUUID`
 
 | File | Perubahan |
-|---|---|
+| --- | --- |
 | `include/entities/entities.h` | + `RegisterDeathByUUID()` / `IsDeadByUUID()` |
 | `include/core/savemanager.h` | Update docstring `ApplyPreSpawn` |
 | `src/entities/entities.cpp` | + DeadEntitiesByUUID, implementasi UUID death, update `PruneDeadEntities` dan `ClearDeadEntities` |
@@ -549,7 +549,7 @@ Commit `fc58754`
 
 Perubahan terakhir pada dokumentasi:
 | File | Perubahan |
-|---|---|
+| --- | --- |
 | `docs/save-system.md` | Restrukturasi: SNAPSHOT_VERSION=1, koreksi API, hapus percakapan informal; tambah dokumentasi bugfix enemy persistence per-instance UUID |
 | `.agent/save-system-context.md` | Baru — konteks AI agent berbahasa Inggris |
 | `docs/save-system-changelog.md` | Digabung ke sini (Section 9) |

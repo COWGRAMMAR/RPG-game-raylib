@@ -11,7 +11,7 @@ Pasang alat-alat berikut untuk membangun proyek:
 - **Windows**: Untuk kemudahan menggunakan dan mengunduh alat-alat, gunakan [scoop](https://scoop.sh/), lalu ikuti perintah setup yang ada pada halaman. Selebihnya, mohon untuk menggunakan PowerShell (5.1+) untuk memaksimalkan kemudahan.
 
 | Alat | Windows (scoop) | macOS (brew) | Linux (apt) |
-| ------------ | ----------------- | -------------- | ------------- |
+| --- | --- | --- | --- |
 | **Compiler (gcc)** | `scoop install gcc` atau `scoop install mingw-mstorsjo-llvm-ucrt` (Clang) | `brew install gcc` | `apt install gcc` |
 | **CMake** | `scoop install cmake` | `brew install cmake` | `apt install cmake` |
 | **Ninja** | `scoop install ninja` | `brew install ninja` | `apt install ninja-build` |
@@ -41,11 +41,13 @@ Pasang alat-alat berikut untuk membangun proyek:
 ### Satu Perintah (One-Click Run)
 
 **Windows (PowerShell):**
+
 ```powershell
 .\run-windows.ps1
 ```
 
 **Linux/macOS (Bash):**
+
 ```bash
 bash run-linux.sh
 ```
@@ -79,7 +81,7 @@ Atau gunakan `.\run-windows.ps1` (Windows) atau `bash run-linux.sh` (Linux/macOS
 ### Preset Build
 
 | Preset | Deskripsi |
-| -------- | ----------- |
+| --- | --- |
 | `ninja` | Build release dengan optimasi (default) |
 | `ninja-debug` | Build debug dengan simbol |
 
@@ -107,7 +109,7 @@ cmake --build --preset ninja
 ### Referensi Perintah
 
 | Aksi | Linux/macOS | PowerShell |
-| ------ | ----------- | ------------ |
+| --- | --- | --- |
 | **Clean** | `rm -rf build` | `Remove-Item -Recurse -Force build` |
 
 ## Menambahkan File Sumber Baru

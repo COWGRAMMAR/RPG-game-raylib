@@ -9,7 +9,7 @@
 
 Restart system di Dungeon menggunakan **slot_-1 sebagai runtime workspace**. Konsepnya sederhana: setiap kali game state berubah (save, ganti map, start/load game), slot_-1 di-overwrite dengan snapshot terbaru. Restart tinggal ambil dari slot_-1 — selalu fresh, gak perlu fallback chain.
 
-```
+```txt
 Semua event → update slot_-1 → restart pure HasInitial(-1)
 ```
 
@@ -27,14 +27,14 @@ slot_-1 adalah slot virtual yang **tidak pernah ditampilkan di save/load screen*
 
 ### Lokasi file
 
-```
+```txt
 saves/slot_-1/manual/snapshot_initial.json
 ```
 
 ### Kapan slot_-1 di-update
 
-| Event                    | Calling function                              | Flow                                              |
-| ------------------------ | --------------------------------------------- | ------------------------------------------------- |
+| Event | Calling function | Flow |
+| --- | --- | --- |
 | Start Game               | `loading_screen.cpp` → `HandleFastPath`       | `SaveInitial(slot_N)` → `CaptureInitialSnapshot(-1)` |
 | Load Game (fast path)    | `loading_screen.cpp` → `HandleFastPath`       | `SaveInitial(slot_N)` → `CaptureInitialSnapshot(-1)` |
 | Load Game (initial load) | `loading_screen.cpp` → `HandleInitialLoad`    | `SaveInitial(slot_N)` → `CaptureInitialSnapshot(-1)` |
@@ -53,7 +53,7 @@ saves/slot_-1/manual/snapshot_initial.json
 
 ### Priority
 
-```
+```txt
 HasInitial(-1) → pure runtime workspace
 ```
 
@@ -94,7 +94,7 @@ Karena slot_-1 selalu berisi snapshot dari **map yang lagi dimainin**. Setiap ga
 
 Tiga mode loading screen, dipilih berdasarkan state:
 
-```
+```txt
 UpdateLoadingScreen()
 ├── isSwitchingMap || isGoingBack → HandleMapSwitch()
 ├── assetsLoaded (true)           → HandleFastPath()
@@ -131,7 +131,7 @@ Stages:
 - **Stage 2**: InitPlayer → SpawnEnemies → ApplyPostSpawn → kalo flag true, `CaptureInitialSnapshot(-1)`
 
 Trigger mechanism:
-```
+```txt
 Stage 0: TilesonGetObjectsByType(tilesonMap, "initial_snapshot") → set flag
 Stage 2: if (s_OldMapHasInitialSnapshot) → CaptureInitialSnapshot(-1) → reset flag
 ```
@@ -194,7 +194,7 @@ Ini memastikan ApplyPreSpawn/ApplyPostSpawn bisa match entity dengan benar antar
 
 ## SaveSystem Interaction
 
-```
+```txt
 SaveSystem (slot_N)
     │
     ├── manual / snapshot.json         ← SaveManual (eksplisit)
@@ -213,7 +213,7 @@ slot_-1 **independen** dari slot_N — isinya snapshot terkini yang cuma dipake 
 ## File References
 
 | File | Peran |
-|---|---|
+| --- | --- |
 | `src/core/loading_screen.cpp` | Dispatching + CaptureInitialSnapshot(-1) di semua entry point |
 | `src/core/savemanager.cpp` | SaveManual/SaveAutosave/SaveCheckpoint update slot_-1 |
 | `src/ui/pauseMenu.cpp` | Restart handler — pure HasInitial(-1) |

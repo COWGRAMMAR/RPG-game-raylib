@@ -34,7 +34,7 @@ Dulu kita panggil `LoadFontEx()` berkali-kali di tempat beda tanpa cache. Akibat
 
 ### Pipeline
 
-```
+```txt
 ┌──────────┐      ┌──────────────┐      ┌─────────────┐      ┌────────────┐
 │ FontId   │ ──→  │ FontDef      │ ──→  │ GetOrLoad() │ ──→  │ CachedFont │
 │ (enum)   │      │ (filename +  │      │ (lazy load) │      │ (cache)    │
@@ -49,7 +49,7 @@ FontHandle            AtlasRes          DrawTextCached()
 ### Komponen Utama
 
 | Komponen | File | Fungsi |
-|----------|------|--------|
+| --- | --- | --- |
 | `FontId` | `include/rendering/fonts.h` | Enum abstract role — gak nyentuh file path |
 | `AtlasRes` | `include/rendering/fonts.h` | Resolusi atlas font (128/256/512/1024) |
 | `FontDef` | `include/rendering/fonts.h` | Mapping dari FontId ke filename + default resolution |
@@ -61,7 +61,7 @@ FontHandle            AtlasRes          DrawTextCached()
 ### Cache Key
 
 Cache pake `std::unordered_map` dengan key `uint32_t`:
-```
+```txt
 key = (FontId << 16) | AtlasRes
 ```
 
@@ -219,7 +219,7 @@ Makin tinggi atlas resolution → makin tajam text ukuran besar, tapi makin bera
 ## 5. Daftar Font Tersedia
 
 | FontId | File | Default Res | Kegunaan |
-|--------|------|-------------|----------|
+| --- | --- | --- | --- |
 | `DEFAULT` | Poppins-Bold.ttf | RES_256 | Font default UI |
 | `KEYBIND_HEADER` | NewDawn.ttf | RES_256 | Header keybind list |
 | `KEYBIND_ENTRY` | Poppins-Regular.ttf | RES_256 | Entry keybind list |
@@ -300,7 +300,7 @@ void DrawCenteredText(const char* text, int y, int fontSize, Color color) {
 ## 7. Best Practices
 
 | Situasi | Pake |
-|----------|------|
+| --- | --- |
 | Text biasa (gak perlu font khusus) | `DrawDefaultText()` |
 | Satu screen pake font yang sama berulang | Simpen `Font font = GetOrLoad(FontId::X)` di awal fungsi |
 | Cuma 1-2 kali draw | `DrawTextCached()` langsung |

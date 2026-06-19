@@ -61,6 +61,7 @@ FontHandle            AtlasRes          DrawTextCached()
 ### Cache Key
 
 Cache pake `std::unordered_map` dengan key `uint32_t`:
+
 ```txt
 key = (FontId << 16) | AtlasRes
 ```
@@ -70,6 +71,7 @@ Jadi `FontId::KEYBIND_HEADER (1)` + `AtlasRes::RES_256 (256)` = key `0x00010100`
 ### Search Path
 
 Font file dicari di 2 path secara berurutan:
+
 1. `assets/fonts/` — path development
 2. `build/bin/assets/fonts/` — path setelah build
 
@@ -330,6 +332,7 @@ GetOrLoad(FontId::DEFAULT, AtlasRes::RES_512);
 ### Font gak muncul / ke load?
 
 Cek:
+
 1. File font ada di `assets/fonts/`? (cek list di section 5)
 2. Path `build/bin/assets/fonts/` juga perlu di-copy kalo build beda direktori
 3. TraceLog bakal nampilin `"FONTS: %s not found..."` kalo gagal
@@ -337,6 +340,7 @@ Cek:
 ### Font keliatan pecah?
 
 Naikin atlas resolution:
+
 ```cpp
 // Daripada RES_256, pake RES_512
 GetOrLoad(FontId::X, AtlasRes::RES_512);

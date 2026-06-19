@@ -126,11 +126,13 @@ Digunakan **first time loading** (fresh start program).
 Digunakan untuk **transisi antar map** (door, elevator, dll).
 
 Stages:
+
 - **Stage 0**: SEBELUM UnloadMap — cek old map untuk `initial_snapshot` objects → set `s_OldMapHasInitialSnapshot` flag
 - **Stage 1**: Load map baru + loading text
 - **Stage 2**: InitPlayer → SpawnEnemies → ApplyPostSpawn → kalo flag true, `CaptureInitialSnapshot(-1)`
 
 Trigger mechanism:
+
 ```txt
 Stage 0: TilesonGetObjectsByType(tilesonMap, "initial_snapshot") → set flag
 Stage 2: if (s_OldMapHasInitialSnapshot) → CaptureInitialSnapshot(-1) → reset flag
@@ -201,7 +203,7 @@ SaveSystem (slot_N)
     ├── autosaves / snapshot_*.json    ← SaveAutosave (otomatis per map)
     ├── checkpoints / *.json           ← SaveCheckpoint (per map entry)
     └── snapshot_initial.json          ← SaveInitial (restart baseline)
-    
+
 Runtime Workspace (slot_-1)
     └── manual / snapshot_initial.json ← CaptureInitialSnapshot(-1) (overwrite terus)
 ```

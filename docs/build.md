@@ -22,13 +22,13 @@ Pasang alat-alat berikut untuk membangun proyek:
 1. Pasang semua alat yang diperlukan (lihat tabel di atas)
 2. Jalankan skrip setup untuk mengunduh dependensi:
 
-   **Windows (PowerShell):**
+   #### Windows (PowerShell)
 
    ```powershell
    .\setup.ps1
    ```
 
-   **Linux/macOS (Bash):**
+   #### Linux/macOS (Bash)
 
    ```bash
    bash setup.sh
@@ -40,13 +40,13 @@ Pasang alat-alat berikut untuk membangun proyek:
 
 ### Satu Perintah (One-Click Run)
 
-**Windows (PowerShell):**
+#### Windows (PowerShell)
 
 ```powershell
 .\run-windows.ps1
 ```
 
-**Linux/macOS (Bash):**
+#### Linux/macOS (Bash)
 
 ```bash
 bash run-linux.sh

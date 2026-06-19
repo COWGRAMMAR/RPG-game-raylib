@@ -60,6 +60,7 @@ MAIN_MENU → "Load"  → LOADING → map-switch path (isSwitchingMap=true)
 Button index 0 di main menu:
 
 **`src/ui/mainMenu.cpp:76-78`**
+
 ```cpp
 case 0:  // Start Game
     state->currentScreen = LOADING;
@@ -84,6 +85,7 @@ Loading screen first-time path:
 Saat player masuk pintu di stage worldgen, dipanggil:
 
 **`src/map/worldgenio.cpp:311-334`** — `WorldgenIO::NextStage()`
+
 ```txt
 1. SaveRuntimeState(currentStage)         — simpan state stage lama
 2. g_SeedManager.NextStage()               — increment stage
@@ -94,6 +96,7 @@ Saat player masuk pintu di stage worldgen, dipanggil:
 ```
 
 `SwitchMap()` di **`src/map/map.cpp:457-489`**:
+
 ```txt
 1. SaveEnemiesForMap(), SaveItemsForMap()
 2. Push current map to history stack
@@ -117,6 +120,7 @@ Loading screen mendeteksi `isSwitchingMap == true`:
 | 3 | Camera setup + clear switch flags + `currentScreen = PLAY` | `loading_screen.cpp:152-172` |
 
 **Stage 1 — worldgen trigger** (`loading_screen.cpp:107-113`):
+
 ```cpp
 if (!isBack && path contains "worldseed/save_")
 {
@@ -221,6 +225,7 @@ Key per stage: `"stage_0"`, `"stage_1"`, dll.
 ### Save Flow (`SaveRuntimeState`)
 
 **`src/map/worldgenio.cpp:193-252`**
+
 ```txt
 1. Baca runtime.json yang sudah ada (atau bikin baru)
 2. Buat entry "stage_{index}" berisi state terkini
@@ -230,6 +235,7 @@ Key per stage: `"stage_0"`, `"stage_1"`, dll.
 ### Load Flow (`LoadRuntimeState`)
 
 **`src/map/worldgenio.cpp:258-304`**
+
 ```txt
 1. Buka runtime.json
 2. Cari entry "stage_{index}"
@@ -245,6 +251,7 @@ Key per stage: `"stage_0"`, `"stage_1"`, dll.
 ### Meta Save (`SaveMeta`)
 
 **`src/core/seedmanager.cpp:30-42`**
+
 ```json
 File: meta.json
 {
@@ -275,6 +282,7 @@ Saat "Load Game" diklik dari main menu:
 5. **`loading_screen.cpp:129`** — `PlayerInstance.Init()` → akses `loadedAnimationSets["knight"]` yang **belum ada** (textures never loaded)
 
 **Masalah:** Path `isSwitchingMap` (line 85) mengambil alih sebelum `assetsLoaded` check (line 180). `InitTextures()` yang hanya dipanggil di first-time path (line 212) **tidak pernah dijalankan**. Akibatnya:
+
 - `loadedAnimationSets["knight"]` default-constructed → pointer ke data kosong
 - Saat `Player::Render()` → `DrawAnimation(Anim, tint)` → akses animSet kosong → **CRASH**
 
@@ -295,7 +303,7 @@ loading_screen.cpp:129 → PlayerInstance.Init() → loadedAnimationSets["knight
 | File | Line | Fungsi |
 | --- | --- | --- |
 | `src/ui/mainMenu.cpp` | 86-101 | `Load Game` button handler |
-| `src/core/loading_screen.cpp` | 85 | `if (isSwitchingMap || isGoingBack)` — priority check |
+| `src/core/loading_screen.cpp` | 85 | `if (isSwitchingMap \|\| isGoingBack)` — priority check |
 | `src/core/loading_screen.cpp` | 212 | `InitTextures()` — hanya di first-time path |
 | `src/core/main.cpp` | 77-81 | LOADING state handler |
 | `src/entities/player.cpp` | 23-87 | `Player::Init()` — akses loadedAnimationSets |

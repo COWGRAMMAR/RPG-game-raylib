@@ -6,7 +6,7 @@ Sistem indikator buff menampilkan progress bar + sprite untuk efek aktif (Damage
 
 ## Pipeline Lengkap
 
-```
+```txt
 UsePotion() [inventory.cpp]
   ↓
   Set buff timers + multipliers di Player instance
@@ -38,7 +38,7 @@ Fungsi `UsePotion()` di-invoke pas player minum potion dari hotbar. Urutan:
 
 Dipanggil tiap frame di `Player::Update()`. Tiap buff:
 
-```
+```txt
 if (BuffDamageTimer > 0)
     BuffDamageTimer -= Time::DELTA_TIME;
     if (BuffDamageTimer <= 0)
@@ -69,6 +69,7 @@ Static function, dipanggil dari `DrawPlayerHUD()` (baris 935).
 ## Detail Implementasi DrawBuffIndicators()
 
 ### Lokasi
+
 - **File**: `src/rendering/hud.cpp`
 - **Fungsi**: `static void DrawBuffIndicators()` (static — cuma dipake di file ini)
 - **Dipanggil dari**: `DrawPlayerHUD()` baris 935 — SEBELUM `DrawHotbar()`
@@ -77,9 +78,11 @@ Static function, dipanggil dari `DrawPlayerHUD()` (baris 935).
 ### Struktur Visual
 
 Tiap entry buff terdiri dari:
-```
+
+```txt
 [sprite 30px] ▓▓▓▓▓▓▓▓▓▓▓▓▓▓░░░  5s
 ```
+
 - **Sprite**: `Frame` dari spritesheet (key: `damagePotionMedium`, `speedPotionMedium`, `invincibilityPotionMedium`)
 - **Bar background**: `DrawRectangleRounded` DARKGRAY, 150x18px
 - **Bar fill**: Warna khas tiap buff, ratio = timer / maxTimer
@@ -116,6 +119,7 @@ float InvincibilityTimerMax = 0.0f;  ///< Max durasi invincibility (untuk progre
 ```
 
 Juga:
+
 ```cpp
 float BuffDamageMultiplier = 1.0f;   // Dipakai di sistem damage
 float BuffSpeedMultiplier = 1.0f;    // Dipakai di sistem movement
@@ -124,6 +128,7 @@ float BuffSpeedMultiplier = 1.0f;    // Dipakai di sistem movement
 ### Cooldown Potion — terpisah dari buff timer
 
 Cooldown potion per-kategori disimpan di:
+
 ```cpp
 float PotionCategoryCooldowns[5];      // Current cooldown
 float PotionCategoryCooldownMax[5];    // Max cooldown (dari JSON)
@@ -134,6 +139,7 @@ Ini di-tick di `HandleInventoryActions()` tiap frame, dan di-render sebagai over
 ## Design Decisions (untuk temen yang mau handle turn-based)
 
 ### 1. DrawBuffIndicators() saat ini hardcoded untuk HUD real-time
+
 - Posisi Y dihitung relatif dari `GameScreenHeight - padding`
 - Kalo turn-based punya screen sendiri / layout sendiri, bisa:
   - **Panggil ulang** `DrawBuffIndicators()` di screen render function turn-based
@@ -141,23 +147,30 @@ Ini di-tick di `HandleInventoryActions()` tiap frame, dan di-render sebagai over
   - **Atau** matikan panggilan di `DrawPlayerHUD()` kalo lagi turn-based mode
 
 ### 2. Array buffs[] static — gampang ditambah
+
 Array `buffs[]` di baris 796-800 hardcoded 3 entries. Kalo ada buff baru (Stamina regen, Poison, etc.), tinggal tambah entry + variable di Player. Warna panggung sendiri.
 
 ### 3. Sprite key hardcoded
+
 Pake sprite `damagePotionMedium`, `speedPotionMedium`, `invincibilityPotionMedium`. Kalo mau ganti icon biar beda (misal icon sword buat damage buff), tinggal ganti string `spriteKey` di array.
 
 ### 4. Format timer
+
 - `>= 1s`: tampil `%ds` (misal: `5s`)
 - `< 1s`: tampil `%.1fs` (misal: `0.5s`)
 - Bisa diganti sesuai kebutuhan turn-based (misal pake turn counter instead of seconds)
 
 ### 5. Posisi turn-based
+
 Fungsi `DrawBuffIndicators()` saat ini nge-render di atas health bar (pojok kiri bawah). Kalo turn-based combat screen punya layout beda, recommend:
+
 - Copy approach: panggil `DrawBuffIndicators()` dengan posisi X/Y yang di-pass sebagai parameter
 - Atau buat version turn-based sendiri yang manggil loop entry yang sama
 
 ### 6. Reset buff antar mode
+
 Pas transisi dari real-time ke turn-based (atau sebaliknya), buff timers tetap berjalan. Kalo mau pause buff timer pas turn-based, bisa set `Time::DELTA_TIME = 0` atau skip tick di `Player::Update()`.
 
 ### 7. Gak ada dependency ke combat system
+
 `DrawBuffIndicators()` cuma baca variable Player dan render. Gak ada coupling ke sistem combat. Jadi temen bisa panggil kapan aja tanpa takut side effects.

@@ -1,0 +1,19 @@
+docs/assets-structure.md
+  s_2ee5d19a058cdd::t_b87e19ef2fb750 3,9-21,30-31,47-61,63-70,74-110,114-138,148-150,160,162,164-168,170,178-179
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.8",
+  "base_commit_sha": "b69014c285699fa7a25bec1496b7bd71154d20b4",
+  "prompts": {},
+  "sessions": {
+    "s_2ee5d19a058cdd": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_11b13d29bffexC2Ds1DiJ4Qana",
+        "model": "unknown"
+      },
+      "human_author": "NiskoDT <65821447+NiskoDT@users.noreply.github.com>"
+    }
+  }
+}

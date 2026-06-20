@@ -19,7 +19,7 @@
 class SeedManager
 {
 public:
-    static constexpr int SEED_COUNT = 3; // DEBUG: 5 asli — jumlah total stage per run
+    static constexpr int SEED_COUNT = 5; // jumlah total stage per run
 
     /**
      * @brief Inisialisasi run baru di slot tertentu

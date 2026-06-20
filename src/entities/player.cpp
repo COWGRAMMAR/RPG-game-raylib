@@ -126,7 +126,7 @@ void Player::ResetForNewGame()
     Health = MaxHealth = 100.0f;
     Mana = MaxMana = 100.0f;
     ManaRegenTimer = 0.0f;
-    Hotbar[0] = {15, 1}; // Steel Sword
+    Hotbar[0] = {1, 1}; // Steel Sword
     Hotbar[1] = {4, 1}; // Wooden Bow
     Hotbar[2] = {2, 4}; // Health
     Hotbar[3] = {3, 4}; // Mana

@@ -470,7 +470,7 @@ public:
     /** @brief Hapus semua barrier dari DynamicObstacles */
     void RemoveAllBarriers();
 
-    static constexpr float KILL_THRESHOLD = 0.01f; // DEBUG: 0.9f asli — 90% enemy mati baru barrier buka
+    static constexpr float KILL_THRESHOLD = 0.9f; // 90% enemy mati baru barrier buka
 
 private:
     /** @brief Data internal satu barrier */

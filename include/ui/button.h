@@ -40,7 +40,7 @@ struct TextPolicy
     TextPolicy(const char *text, int posX, int posY, int fontSize, Color color, float hover, Font font = GetOrLoad(FontId::DEFAULT))
         : text(text), posX(posX), posY(posY), fontSize(fontSize), textColor(color), hoverAmount(hover), font(font)
     {
-        textWidth = MeasureText(text, fontSize);
+        textWidth = static_cast<int>(MeasureTextEx(font, text, static_cast<float>(fontSize), 0).x);
     }
 
     /** @brief Dapatkan bounds button text */

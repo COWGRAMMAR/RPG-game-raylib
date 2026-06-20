@@ -55,47 +55,24 @@ Game RPG 2D bertema fantasi yang dibuat dengan Raylib (C++).
 - **Ninja**
 - **Git**
 
-## Setup Pertama Kali
+## Setup & Run (Satu Kali)
+
+Jalankan script sesuai OS kamu:
 
 ### Windows
 
 ```powershell
-# Jalankan skrip setup untuk mengunduh dependensi
-.\setup.ps1
-
-# Build project
-cmake --preset ninja && cmake --build --preset ninja
+.\run-windows.ps1
 ```
+
+Atau double-click `run-windows.bat`.
 
 ### Linux/macOS
 
 ```bash
-# Jalankan skrip setup untuk mengunduh dependensi
-bash setup.sh
-
-# Build project
-cmake --preset ninja && cmake --build --preset ninja
+bash run-linux.sh
 ```
 
-Ini akan:
+Script ini akan otomatis menjalankan setup dependensi, build project, dan langsung meluncurkan game.
 
-1. Download Raylib 6.0 ke direktori platform-specific (`lib/raylib-windows/` di Windows, `lib/raylib-linux/` di Linux, `lib/raylib-macos/` di macOS)
-2. Compile semua file .cpp (Unity build)
-3. Link dengan library
-4. Copy raylib.dll ke folder output (Windows)
-
-> **PERHATIAN**: Setup untuk Linux/macOS bersifat eksperimental dan memerlukan pengujian lebih lanjut.
-
-### Jalankan Game
-
-```bash
-# Linux/macOS
-./build/bin/main
-
-# Windows (Powershell)
-.\build\bin\main.exe   # Windows PowerShell
-```
-
-### Build
-
-Untuk instruksi build dan dokumentasi lainnya, lihat [Dokumentasi Projek](docs/README.md)
+> Untuk opsi build lanjutan, lihat [Panduan Build](docs/build.md). Untuk dokumentasi projek lainnya, lihat [Dokumentasi Projek](docs/README.md).

@@ -8,7 +8,7 @@
 
 #include "audioTab.h"
 #include "fonts.h"
-#include "../../include/systems/audioManager.h"
+#include "systems/audioManager.h"
 #include "raylib.h"
 #include "raymath.h"
 #include "../lib/json/include/nlohmann/json.hpp"

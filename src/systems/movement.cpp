@@ -4,7 +4,7 @@
 #include "screen.h"
 #include "input.h"
 #include "animation.h"
-#include "../../include/systems/audioManager.h"
+#include "systems/audioManager.h"
 #include "game_debug.h"
 #include "effects.h"
 #include "raymath.h"

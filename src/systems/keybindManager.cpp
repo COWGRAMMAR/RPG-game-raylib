@@ -37,12 +37,9 @@ const Keybind KeybindManager::defaultBindings[ACTION_COUNT] = {
     /* HOTBAR_SLOT_2       */ {KEY_TWO, false},
     /* HOTBAR_SLOT_3       */ {KEY_THREE, false},
     /* HOTBAR_SLOT_4       */ {KEY_FOUR, false},
-    /* GO_BACK             */ {KEY_B, false},
     /* PAUSE_MENU          */ {KEY_ESCAPE, false},
     /* TOGGLE_FULLSCREEN   */ {KEY_F11, false},
-    /* DEBUG_TOGGLE        */ {KEY_TAB, false},
-    /* DEBUG_TOGGLE_ENEMY  */ {KEY_BACKSLASH, false},
-    /* DEBUG_TOGGLE_PLAYER */ {KEY_RIGHT_BRACKET, false},
+
 };
 
 const char *KeybindManager::actionNames[ACTION_COUNT] = {
@@ -61,12 +58,9 @@ const char *KeybindManager::actionNames[ACTION_COUNT] = {
     "HOTBAR_SLOT_2",
     "HOTBAR_SLOT_3",
     "HOTBAR_SLOT_4",
-    "GO_BACK",
     "PAUSE_MENU",
     "TOGGLE_FULLSCREEN",
-    "DEBUG_TOGGLE",
-    "DEBUG_TOGGLE_ENEMY",
-    "DEBUG_TOGGLE_PLAYER",
+
 };
 
 /*==============================================================================
@@ -89,12 +83,8 @@ static const char *actionDisplayNames[ACTION_COUNT] = {
     "Hotbar Slot 2",
     "Hotbar Slot 3",
     "Hotbar Slot 4",
-    "Go Back",
     "Pause Menu",
     "Toggle Fullscreen",
-    "Debug Overlay",
-    "Debug Enemies",
-    "Debug Player",
 };
 
 /*==============================================================================

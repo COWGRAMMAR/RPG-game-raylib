@@ -9,18 +9,18 @@
 #include <filesystem>
 #include <system_error>
 
-#include "../../include/systems/keybindManager.h"
-#include "../../include/rendering/fonts.h"
-#include "../../include/ui/pauseMenu.h"
-#include "../../include/ui/popup.h"
-#include "../../include/ui/videoTab.h"
-#include "../../include/ui/audioTab.h"
-#include "../../include/ui/keybindsTab.h"
-#include "../../include/ui/saveLoadScreen.h"
-#include "../../include/core/game_state_saver.h"
-#include "../../include/core/savemanager.h"
-#include "../../include/map/worldgenio.h"
-#include "../../include/core/seedmanager.h"
+#include "systems/keybindManager.h"
+#include "rendering/fonts.h"
+#include "ui/pauseMenu.h"
+#include "ui/popup.h"
+#include "ui/videoTab.h"
+#include "ui/audioTab.h"
+#include "ui/keybindsTab.h"
+#include "ui/saveLoadScreen.h"
+#include "core/game_state_saver.h"
+#include "core/savemanager.h"
+#include "map/worldgenio.h"
+#include "core/seedmanager.h"
 #include "entities.h"
 #include "item.h"
 #include "propsbehavior.h"
@@ -28,7 +28,7 @@
 #include "enemy_ai.h"
 #include "map.h"
 #include "mapLogic.h"
-#include "../../include/systems/combatTurn.h"
+#include "systems/combatTurn.h"
 
 /*==============================================================================
  * External References
@@ -667,6 +667,9 @@ void PauseMenu::Update(GameState *state, Vector2 mousePosition, bool mouseClicke
             crateManager.ResetConsumed();
             barrierManager.Clear();
             mapHistoryStack.Clear();
+
+            // Bersihin checkpoint basi dari session sebelumnya
+            SaveManager::ClearWorkspaceCheckpoints();
 
             // ── Load snapshot: pure runtime workspace (-1) ──
             GameSnapshot snap;

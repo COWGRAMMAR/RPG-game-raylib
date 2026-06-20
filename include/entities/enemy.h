@@ -213,6 +213,9 @@ public:
 
     EnemySteering Steering; // helper steering untuk chase dan return pathfinding
 
+    /** @brief Hitung effective attack range edge-to-edge (attackRange + enemyRadius + playerRadius) */
+    float GetEffectiveAttackRange() const;
+
     /** @brief Ambil velocity enemy dari frame terakhir */
     Vector2 GetVelocity() { return Velocity; }
 

@@ -6,18 +6,18 @@
  * Handle inisialisasi tombol, update input, dan rendering menu utama.
  */
 
-#include "../../include/ui/mainMenu.h"
-#include "../../include/core/screen.h"
-#include "../../include/core/seedmanager.h"
-#include "../../include/core/savemanager.h"
-#include "../../include/map/worldgenio.h"
+#include "ui/mainMenu.h"
+#include "core/screen.h"
+#include "core/seedmanager.h"
+#include "core/savemanager.h"
+#include "map/worldgenio.h"
 #include "raylib.h"
 #include <array>
 #include <filesystem>
-#include "../../include/ui/popup.h"
-#include "../../include/core/game_state_saver.h"
-#include "../../include/entities/entities.h"
-#include "../../include/ui/saveLoadScreen.h"
+#include "ui/popup.h"
+#include "core/game_state_saver.h"
+#include "entities/entities.h"
+#include "ui/saveLoadScreen.h"
 
 /*==============================================================================
  * Static Variables
@@ -108,9 +108,6 @@ void UpdateMainMenu(GameState *state)
                 // GC worldseed: hapus save_N/ yang gak dipake save manapun
                 WorldgenIO::CleanupOrphanedSlots();
                 Entities::ClearDeadEntities();
-                std::filesystem::remove_all("saves/slot_0/checkpoints");
-                std::filesystem::remove_all("saves/slot_0/enemies");
-                std::filesystem::remove_all("saves/slot_0/items");
                 state->enteredLoading = false;
                 state->currentScreen = LOADING;
                 break;

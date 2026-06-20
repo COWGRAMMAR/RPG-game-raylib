@@ -1,0 +1,24 @@
+docs/build.md
+  s_2728a33ca708f6::t_634f9abb1e84e1 42
+  s_2728a33ca708f6::t_61617a1ec9ca3a 58-59
+  s_2728a33ca708f6::t_b6edbf79726966 19
+  s_2728a33ca708f6::t_6a71b20a9af1dd 95
+  s_2728a33ca708f6::t_43927a30f27472 23
+  s_2728a33ca708f6::t_f414b15bcdfdb8 145
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.9",
+  "base_commit_sha": "020e3735f63cde6917ac9d776b029471a2934d0e",
+  "prompts": {},
+  "sessions": {
+    "s_2728a33ca708f6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_11b06ccd1ffePZhy40ZXL58B6i",
+        "model": "unknown"
+      },
+      "human_author": "NiskoDT <65821447+NiskoDT@users.noreply.github.com>"
+    }
+  }
+}

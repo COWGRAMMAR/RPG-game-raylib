@@ -149,6 +149,7 @@ constexpr const char *ENEMY_SPAWN_NORMAL_REC_OBJECT_NAME = "enemy_spawn_normal_r
 constexpr const char *ENEMY_SPAWN_ELITE_PIN_OBJECT_NAME = "enemy_spawn_elite_pinpoint";   // Nama object pinpoint spawn elite
 constexpr const char *ENEMY_SPAWN_ELITE_REC_OBJECT_NAME = "enemy_spawn_elite_rect";       // Nama object rect spawn elite
 constexpr const char *ENEMY_SPAWN_BOSS_OBJECT_NAME = "enemy_spawn_boss";                  // Nama object spawn boss
+constexpr const char *ENEMY_SPAWN_TUTORIAL_PIN_OBJECT_NAME = "enemy_spawn_tutorial";     // Nama object pinpoint spawn tutorial
 constexpr const char *SPAWN_OBJECT_NAME = "spawn";                                        // Nama object spawn player
 constexpr const char *DOOR_TYPE_OBJECT_NAME = "pass";                                     // Type object untuk pintu
 constexpr const char *BARRIER_TYPE_OBJECT_NAME = "barrier";                               // Type object untuk barrier

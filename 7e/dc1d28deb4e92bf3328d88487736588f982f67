@@ -1,0 +1,19 @@
+docs/build.md
+  s_0ee2af2fc9ffe9::t_39d61e2e3bfdd1 5-9,43-45,47-49,63,65,67,69-71,74,76-78,80,90-92,99,106-112,126,130-132
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.8",
+  "base_commit_sha": "7edc1d28deb4e92bf3328d88487736588f982f67",
+  "prompts": {},
+  "sessions": {
+    "s_0ee2af2fc9ffe9": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_12174ed8dffeQT3WRIoy8BfpB3",
+        "model": "unknown"
+      },
+      "human_author": "NiskoDT <65821447+NiskoDT@users.noreply.github.com>"
+    }
+  }
+}

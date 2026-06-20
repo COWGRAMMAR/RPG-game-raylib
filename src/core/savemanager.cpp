@@ -514,15 +514,24 @@ bool SaveManager::HasSnapshot(const std::string &path)
 bool SaveManager::SaveManual(const GameSnapshot &snap, int slot)
 {
     if (slot < 0) return false;
-    EnsureDirs(slot);
-    CaptureInitialSnapshot(-1); // update runtime workspace
 
-    // Generate checkpoint untuk current map biar folder checkpoints/
-    // gak kosong pas save di-load. Plan mode — source of truth.
+    // 1. Bersihkan workspace manual (snapshot.json + snapshot_initial.json)
+    //    Autosave DIKEEP — biar ikut di-copy ke slot via CopyWorkspaceTo()
+    ClearWorkspaceManual();
+
+    // 2. Generate fresh initial snapshot
+    CaptureInitialSnapshot(-1);
+
+    // 3. Write snapshot + current checkpoint ke -1
+    if (!WriteSnapshot(snap, GetManualPath(-1)))
+        return false;
     if (!snap.mapPath.empty())
-        SaveCheckpoint(snap, snap.mapPath, slot);
+        SaveCheckpoint(snap, snap.mapPath, -1);
 
-    return WriteSnapshot(snap, GetManualPath(slot));
+    // 4. Mirror seluruh workspace ke slot tujuan
+    CopyWorkspaceTo(slot);
+
+    return true;
 }
 
 GameSnapshot SaveManager::LoadManual(int slot)
@@ -537,9 +546,6 @@ bool SaveManager::HasManual(int slot)
 
 bool SaveManager::SaveAutosave(int slot)
 {
-    if (slot < 0)
-        return false;
-
     EnsureDirs(slot);
 
     // Generate timestamped filename
@@ -632,23 +638,31 @@ bool SaveManager::MirrorToWorkspace(int sourceSlot)
     try
     {
         // Bersihin dulu, baru copy — biar gak ada data basi dari slot lain
+        ClearWorkspaceManual();
+        ClearWorkspaceAutosave();
         ClearWorkspaceCheckpoints();
 
-        std::string srcChk = srcDir + "/checkpoints";
-        if (fs::exists(srcChk) && fs::is_directory(srcChk))
+        auto CopyDir = [&](const std::string &subdir)
         {
-            for (const auto &entry : fs::directory_iterator(srcChk))
+            std::string src = srcDir + "/" + subdir;
+            std::string dst = dstDir + "/" + subdir;
+            if (!fs::exists(src) || !fs::is_directory(src))
+                return;
+            fs::create_directories(dst);
+            for (const auto &entry : fs::directory_iterator(src))
             {
                 if (entry.path().extension() == ".json")
                 {
                     fs::copy(entry.path(),
-                             fs::path(dstDir + "/checkpoints") / entry.path().filename(),
+                             fs::path(dst) / entry.path().filename(),
                              fs::copy_options::overwrite_existing);
                 }
             }
-        }
+        };
 
-        // snapshot.json manual & initial gak di-copy — gak ada yg baca dari -1/manual/
+        CopyDir("checkpoints");
+        CopyDir("manual");
+        CopyDir("autosave");
 
         return true;
     }
@@ -681,6 +695,76 @@ void SaveManager::ClearWorkspaceCheckpoints()
     {
         TraceLog(LOG_WARNING, "ClearWorkspaceCheckpoints: %s", e.what());
     }
+}
+
+void SaveManager::ClearWorkspaceManual()
+{
+    constexpr int WORKSPACE = -1;
+    std::string dir = GetSlotDir(WORKSPACE) + "/manual";
+
+    try
+    {
+        if (fs::exists(dir))
+            fs::remove_all(dir);
+    }
+    catch (const std::exception &e)
+    {
+        TraceLog(LOG_WARNING, "ClearWorkspaceManual: %s", e.what());
+    }
+}
+
+void SaveManager::ClearWorkspaceAutosave()
+{
+    constexpr int WORKSPACE = -1;
+    std::string dir = GetSlotDir(WORKSPACE) + "/autosave";
+
+    try
+    {
+        if (fs::exists(dir))
+            fs::remove_all(dir);
+    }
+    catch (const std::exception &e)
+    {
+        TraceLog(LOG_WARNING, "ClearWorkspaceAutosave: %s", e.what());
+    }
+}
+
+void SaveManager::CopyWorkspaceTo(int slot)
+{
+    if (slot < 0) return;
+    EnsureDirs(slot);
+
+    auto copyDir = [&](const std::string &subdir)
+    {
+        constexpr int WORKSPACE = -1;
+        std::string src = GetSlotDir(WORKSPACE) + "/" + subdir;
+        std::string dst = GetSlotDir(slot) + "/" + subdir;
+
+        if (!fs::exists(src)) return;
+
+        try
+        {
+            fs::create_directories(dst);
+            for (const auto &entry : fs::directory_iterator(src))
+            {
+                if (entry.path().extension() == ".json")
+                {
+                    fs::copy(entry.path(),
+                             fs::path(dst) / entry.path().filename(),
+                             fs::copy_options::overwrite_existing);
+                }
+            }
+        }
+        catch (const std::exception &e)
+        {
+            TraceLog(LOG_WARNING, "CopyWorkspaceTo: copy %s failed: %s",
+                     subdir.c_str(), e.what());
+        }
+    };
+
+    copyDir("checkpoints");
+    copyDir("manual");
+    copyDir("autosave");
 }
 
 /*==============================================================================
@@ -1146,40 +1230,31 @@ void SaveManager::ApplyCheckpointData(const GameSnapshot &snap)
         }
     }
 
-    /*--- Items ---*/
+    /*--- Items (full replacement - snapshot is source of truth) ---*/
     if (!snap.items.empty())
     {
+        itemData.activeItems.clear();
         for (const auto &saved : snap.items)
         {
-            for (ItemSpawn &item : itemData.activeItems)
+            ItemSpawn item;
+            item.position = saved.position;
+            item.isPickedUp = saved.isPickedUp;
+            item.definitionId = saved.definitionId;
+            item.amount = saved.amount;
+            item.uuid = saved.uuid;
+            // Rekonstruksi hitbox dari definisi item agar magnet/pickup berfungsi normal
             {
-                if (item.uuid == saved.uuid && !saved.uuid.empty())
-                {
-                    item.isPickedUp = saved.isPickedUp;
-                    item.isAdded = saved.isPickedUp;
-                    item.position = saved.position;
-                    item.definitionId = saved.definitionId;
-                    item.amount = saved.amount;
-                    break;
-                }
+                const ItemDefinition &def = itemDefs.GetById(item.definitionId);
+                float halfW = def.hitboxSize.x / 2.0f;
+                float halfH = def.hitboxSize.y / 2.0f;
+                item.hitbox = {item.position.x - halfW,
+                               item.position.y - halfH,
+                               def.hitboxSize.x,
+                               def.hitboxSize.y};
             }
-        }
-
-        int itemIndex = 0;
-        for (ItemSpawn &item : itemData.activeItems)
-        {
-            if (itemIndex < (int)snap.items.size())
-            {
-                if (item.uuid.empty() || snap.items[itemIndex].uuid.empty() || item.uuid != snap.items[itemIndex].uuid)
-                {
-                    item.isPickedUp = snap.items[itemIndex].isPickedUp;
-                    item.isAdded = snap.items[itemIndex].isPickedUp;
-                    item.position = snap.items[itemIndex].position;
-                    item.definitionId = snap.items[itemIndex].definitionId;
-                    item.amount = snap.items[itemIndex].amount;
-                }
-                itemIndex++;
-            }
+            item.spawnTime = (float)GetTime(); // Immunity mulai dari sekarang
+            item.isAdded = item.isPickedUp;
+            itemData.activeItems.push_back(item);
         }
     }
 

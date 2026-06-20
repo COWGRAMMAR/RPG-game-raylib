@@ -56,7 +56,6 @@ void PlayerInput::PollInput(void)
     Current.pauseMenu = IsKeyPressed(keybindManager.GetKeycode(PAUSE_MENU));
 
     Current.mouseWheel = GetMouseWheelMove();
-    Current.goBack = IsKeyPressed(keybindManager.GetKeycode(GO_BACK));
 }
 
 void PlayerInput::UpdateState(void)

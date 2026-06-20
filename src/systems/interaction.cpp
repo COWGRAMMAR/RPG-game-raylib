@@ -34,12 +34,6 @@ namespace Interaction
      */
     void ExecutePendingTransitions(Player &player)
     {
-        if (player.pendingGoBack)
-        {
-            player.pendingGoBack = false;
-            GoBack();
-        }
-
         if (player.pendingSwitchMap)
         {
             player.pendingSwitchMap = false;
@@ -77,7 +71,7 @@ namespace Interaction
     void CheckDoors(Player &player)
     {
         // Skip kalau lagi transisi map — cegah double trigger dari fixed-timestep loop
-        if (gState->isSwitchingMap || gState->isGoingBack)
+        if (gState->isSwitchingMap)
             return;
 
         Rectangle playerHitbox = BuildHitbox(player.Position, player.GetHitboxOffsetX(), player.GetHitboxOffsetY(), player.GetHitboxWidth(), player.GetHitboxHeight());

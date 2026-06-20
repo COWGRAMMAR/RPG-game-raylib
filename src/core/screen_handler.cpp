@@ -184,7 +184,6 @@ GameState InitScreen()
     state.currentScreen = MAIN_MENU;
     state.showFPS = false;
     state.isSwitchingMap = false;
-    state.isGoingBack = false;
     state.pendingMapPath.clear();
     state.pendingDoorName.clear();
 
@@ -306,7 +305,7 @@ void UpdateLogicAll()
 
     // Deteksi FINISH cell untuk stage transition (hanya di worldgen stage)
     // Guard isSwitchingMap — cegah double trigger dari grid + door detection
-    if (!gState->isSwitchingMap && !gState->isGoingBack)
+    if (!gState->isSwitchingMap)
     {
         const char *mapPath = GetCurrentMapPath();
         if (mapPath)

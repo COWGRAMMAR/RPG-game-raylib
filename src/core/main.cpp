@@ -298,7 +298,7 @@ int main()
                 autosaveTimer += frameTime;
                 if (autosaveTimer >= 60.0f)
                 {
-                    SaveManager::SaveAutosave(g_ActiveSaveSlot);
+                    SaveManager::SaveAutosave(-1);
                     autosaveTimer = 0.0f;
                 }
             }

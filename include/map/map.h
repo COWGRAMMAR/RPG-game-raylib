@@ -198,9 +198,6 @@ const char *GetCurrentMapPath(void);
  */
 void SetCurrentMapPath(const char *newPath);
 
-/** @brief Kembali ke map sebelumnya */
-void GoBack(void);
-
 /**
  * @brief Generate world di map yang sudah di-load
  * @param seed Seed deterministic

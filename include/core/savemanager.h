@@ -310,6 +310,29 @@ public:
      */
     static void ClearWorkspaceCheckpoints();
 
+    /**
+     * @brief Hapus semua file di -1/manual/ (snapshot.json + snapshot_initial.json)
+     *
+     * Dipanggil pas SaveManual() sebelum regenerate snapshot.
+     */
+    static void ClearWorkspaceManual();
+
+    /**
+     * @brief Hapus semua file di -1/autosave/
+     *
+     * Dipanggil pas SaveManual() biar autosave lama gak ikut ke slot tujuan.
+     */
+    static void ClearWorkspaceAutosave();
+
+    /**
+     * @brief Copy seluruh workspace (-1) ke slot tujuan
+     * @param slot Slot tujuan (0-4)
+     *
+     * Copy checkpoints/, manual/, autosave/ dari -1 ke slot_N.
+     * Dipanggil di akhir SaveManual() setelah semua write ke -1 selesai.
+     */
+    static void CopyWorkspaceTo(int slot);
+
     /*=== Serialization ===*/
 
     /**

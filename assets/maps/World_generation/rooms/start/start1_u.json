@@ -36,19 +36,19 @@
          "name":"obstacle",
          "objects":[
                 {
-                 "height":352,
+                 "height":416,
                  "id":1,
                  "name":"",
                  "opacity":1,
                  "rotation":0,
                  "type":"",
                  "visible":true,
-                 "width":32,
-                 "x":0,
-                 "y":0
+                 "width":64,
+                 "x":-32,
+                 "y":-32
                 }, 
                 {
-                 "height":32,
+                 "height":64,
                  "id":2,
                  "name":"",
                  "opacity":1,
@@ -57,10 +57,10 @@
                  "visible":true,
                  "width":96,
                  "x":0,
-                 "y":0
+                 "y":-32
                 }, 
                 {
-                 "height":32,
+                 "height":64,
                  "id":3,
                  "name":"",
                  "opacity":1,
@@ -69,22 +69,22 @@
                  "visible":true,
                  "width":96,
                  "x":256,
-                 "y":0
+                 "y":-32
                 }, 
                 {
-                 "height":352,
+                 "height":416,
                  "id":4,
                  "name":"",
                  "opacity":1,
                  "rotation":0,
                  "type":"",
                  "visible":true,
-                 "width":32,
+                 "width":64,
                  "x":320,
-                 "y":0
+                 "y":-32
                 }, 
                 {
-                 "height":32,
+                 "height":64,
                  "id":8,
                  "name":"",
                  "opacity":1,

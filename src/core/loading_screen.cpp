@@ -131,7 +131,6 @@ static bool LoadWorldgenForSave(const std::string &mapPath, int worldgenSlot)
 
 static void HandleMapSwitch(GameState *state)
 {
-    bool isBack = state->isGoingBack;
     static bool s_OldMapHasInitialSnapshot = false;
 
     switch (state->loadingStage)
@@ -139,8 +138,8 @@ static void HandleMapSwitch(GameState *state)
     case 0:
         s_OldMapHasInitialSnapshot = !TilesonGetObjectsByType("initial_snapshot").empty();
 
-        TraceLog(LOG_INFO, "LOADING: [stage 1/4] %s", isBack ? "Returning to previous map" : "Unloading current map");
-        state->loadingText = isBack ? "Returning to previous map..." : "Unloading current map...";
+        TraceLog(LOG_INFO, "LOADING: [stage 1/4] Unloading current map");
+        state->loadingText = "Unloading current map...";
         UnloadMap();
         spawnFlowFields.clear();
         state->loadingStage++;
@@ -149,14 +148,14 @@ static void HandleMapSwitch(GameState *state)
 
     case 1:
         TraceLog(LOG_INFO, "LOADING: [stage 2/4] Loading map: %s", state->pendingMapPath.c_str());
-        state->loadingText = isBack ? "Reloading previous map..." : "Loading new map...";
+        state->loadingText = "Loading new map...";
         LoadMap(state->pendingMapPath.c_str());
 
         // Update map path segera agar IsAlreadyDead() pakai path yang benar
         SetCurrentMapPath(state->pendingMapPath.c_str());
 
         // Worldgen map-switch: SeedManager currentStage udah bener dari NextStage/PrevStage
-        if (!isBack && state->pendingMapPath.find("worldseed/save_") != std::string::npos)
+        if (state->pendingMapPath.find("worldseed/save_") != std::string::npos)
         {
             int stageIdx = g_SeedManager.GetCurrentStage();
             uint64_t seed = g_SeedManager.GetSeed(stageIdx);
@@ -164,6 +163,17 @@ static void HandleMapSwitch(GameState *state)
             // Reset barrier state — jangan bawa stale state dari map sebelumnya
             barrierManager.SetCleared(false);
             barrierManager.SetHasReLocked(false);
+
+            // BUGFIX: Apply pre-spawn state SEBELUM SpawnObject
+            // agar chest/bomb/crate yang sudah dikonsumsi tidak spawn ulang
+            {
+                GameSnapshot chkSnap;
+                if (SaveManager::HasCheckpoint(state->pendingMapPath, -1))
+                {
+                    chkSnap = SaveManager::LoadCheckpoint(state->pendingMapPath, -1);
+                    SaveManager::ApplyPreSpawn(chkSnap);
+                }
+            }
         }
         else
         {
@@ -240,12 +250,11 @@ static void HandleMapSwitch(GameState *state)
         }
 
         state->isSwitchingMap = false;
-        state->isGoingBack = false;
         state->pendingMapPath.clear();
         state->pendingDoorName.clear();
 
         TraceLog(LOG_INFO, "LOADING: Map switch complete, player at (%.2f, %.2f)", PlayerInstance.GetPosition().x, PlayerInstance.GetPosition().y);
-        SaveManager::SaveAutosave(g_ActiveSaveSlot);
+        SaveManager::SaveAutosave(-1);
         state->loadingComplete = true;
         state->loadingProgress = 100.0F;
         state->loadingText = "Map loaded!";
@@ -291,6 +300,8 @@ static void HandleFastPath(GameState *state)
     {
         PlayerInstance.ResetForNewGame();
         InitMap();
+        SaveManager::ClearWorkspaceManual();
+        SaveManager::ClearWorkspaceAutosave();
         SaveManager::ClearWorkspaceCheckpoints();
     }
 
@@ -318,7 +329,7 @@ static void HandleFastPath(GameState *state)
     }
     else
     {
-        SaveManager::SaveAutosave(g_ActiveSaveSlot);
+        SaveManager::SaveAutosave(-1);
     }
 
     Entities::PruneDeadEntities();
@@ -428,8 +439,10 @@ static void HandleInitialLoad(GameState *state)
             RestoreGameState(state);
         else
         {
-            SaveManager::SaveAutosave(g_ActiveSaveSlot);
+            SaveManager::ClearWorkspaceManual();
+            SaveManager::ClearWorkspaceAutosave();
             SaveManager::ClearWorkspaceCheckpoints();
+            SaveManager::SaveAutosave(-1);
         }
 
         Entities::PruneDeadEntities();
@@ -466,7 +479,7 @@ void UpdateLoadingScreen(GameState *state)
     if (state->loadingComplete)
         return;
 
-    if (state->isSwitchingMap || state->isGoingBack)
+    if (state->isSwitchingMap)
     {
         HandleMapSwitch(state);
         return;

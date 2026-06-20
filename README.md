@@ -61,18 +61,32 @@ Jalankan script sesuai OS kamu:
 
 ### Windows
 
-```powershell
-.\run-windows.ps1
-```
+1. Build project dari sumber kode, lalu otomatis menjalankan dengan ini.
 
-Atau double-click `run-windows.bat`.
+    ```powershell
+    .\run-windows.ps1
+    ```
+
+    Atau double-click `run-windows.bat`.
+
+2. Kemudian, agar tidak memakan waktu untuk build lagi, jalankan file berikut untuk langsung membuka program
+
+   ```batch
+   Breach&Loot.bat
+   ```
 
 ### Linux/macOS
 
-```bash
-bash run-linux.sh
-```
+1. Build project untuk membangun program dari sumber kode, lalu otomatis menjalankan dengan ini.
 
-Script ini akan otomatis menjalankan setup dependensi, build project, dan langsung meluncurkan game.
+    ```bash
+    bash run-linux.sh
+    ```
+
+2. Agar tidak membangun lagi, jalankan perintah berikut
+
+   ```bash
+   build/bin/main
+   ```
 
 > Untuk opsi build lanjutan, lihat [Panduan Build](docs/build.md). Untuk dokumentasi projek lainnya, lihat [Dokumentasi Projek](docs/README.md).

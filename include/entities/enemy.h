@@ -297,8 +297,9 @@ private:
     float BossAbilityTimer = 0.0f;     // Timer periodik ability boss AOE slam (5 detik)
     float BossAbility2Timer = 0.0f;    // Timer periodik ability boss charge (7 detik)
     bool PlayerWasInRange = false;     // Flag mencegah serangan ganda dalam satu frame
-    float ChargeDistanceRemaining = 0.0f; // Sisa jarak charge ability2 (pixel)
-    Vector2 ChargeDir = {0, 0};          // Arah charge ability2
+    float ChargeDistanceRemaining = 0.0f;     // Sisa jarak charge ability2 (pixel)
+    Vector2 ChargeDir = {0, 0};              // Arah charge ability2
+    bool ChargeHitPlayer = false;            // Cegah multiple hit per charge
 
     void MoveTowards(Vector2 target, float speed); // Helper gerak ke target dengan collision check
 };

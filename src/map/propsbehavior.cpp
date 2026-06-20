@@ -21,6 +21,7 @@
 #include "core/utils.h"
 #include "game_debug.h"
 #include "animation.h"
+#include "combatTurn.h"
 #include <sstream>
 
 /*==============================================================================
@@ -452,15 +453,16 @@ void SpikeManager::Update(float deltaTime, Rectangle playerBounds, Player *playe
             spike.onDeactivate(spike.tile);
             continue;
         }
-        // damage player
+        // damage player (skip during turn-based combat)
         if (CheckCollisionRecs(playerBounds, spike.tile.bounds) && globalPlayerDamageCooldown <= 0.0f && player)
         {
             globalPlayerDamageCooldown = SPIKE_DAMAGE_COOLDOWN;
-            player->TakeDamage(SPIKE_DAMAGE);
+            if (!TurnCombat::IsActive())
+                player->TakeDamage(SPIKE_DAMAGE);
         }
 
-        // damage enemy
-        if (globalEnemyDamageCooldown <= 0.0f)
+        // damage enemy (skip during turn-based combat)
+        if (globalEnemyDamageCooldown <= 0.0f && !TurnCombat::IsActive())
         {
             for (auto entity : Entities::GetRegistry())
             {
@@ -903,12 +905,15 @@ void BombManager::Explode(BombData &bomb, Rectangle playerBounds, Player *player
             }
         }
 
-        // Apply damage sekali per entity — stacking tetap (count × BOMB_DAMAGE)
-        if (playerHitCount > 0)
-            player->TakeDamage(static_cast<float>(playerHitCount) * BOMB_DAMAGE);
+        // Apply damage sekali per entity — skip during turn-based combat
+        if (!TurnCombat::IsActive())
+        {
+            if (playerHitCount > 0)
+                player->TakeDamage(static_cast<float>(playerHitCount) * BOMB_DAMAGE);
 
-        for (auto &[enemy, count] : enemyHitCounts)
-            enemy->TakeDamage(static_cast<float>(count) * BOMB_DAMAGE, {0, 0});
+            for (auto &[enemy, count] : enemyHitCounts)
+                enemy->TakeDamage(static_cast<float>(count) * BOMB_DAMAGE, {0, 0});
+        }
     }
 }
 

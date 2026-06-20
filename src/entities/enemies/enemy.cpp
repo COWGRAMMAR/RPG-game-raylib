@@ -723,6 +723,7 @@ void Enemy::HandleAbility2()
         if (Anim.direction == UP)    ChargeDir = {0, -1};
         if (Anim.direction == DOWN)  ChargeDir = {0, 1};
         ChargeDistanceRemaining = 200.0f;
+        ChargeHitPlayer = false;
     }
 
     // Charge gradual tiap frame (skip DynamicObstacles agar bomb tidak menghalangi)
@@ -751,9 +752,10 @@ void Enemy::HandleAbility2()
         Rectangle bossHitbox = {next.x + HitboxOffsetX, next.y + HitboxOffsetY, HitboxWidth, HitboxHeight};
         bombManager.HitByAttack(bossHitbox, PlayerInstance.GetHitbox(), &PlayerInstance);
 
-        if (CheckCollisionRecs(bossHitbox, PlayerInstance.GetHitbox()))
+        if (!ChargeHitPlayer && CheckCollisionRecs(bossHitbox, PlayerInstance.GetHitbox()))
         {
-            Vector2 kb = Vector2Scale(ChargeDir, 1.5f);
+            ChargeHitPlayer = true;
+            Vector2 kb = Vector2Scale(ChargeDir, 4.0f);
             PlayerInstance.TakeDamage(50.0f, kb);
         }
     }
@@ -944,7 +946,9 @@ void Enemy::TakeDamage(float amount, Vector2 knockback)
     AudioManager::PlaySFX("attack");
     HitFlashTimer = 0.15f;
     HealthBarTimer = HealthBarDuration;
-    KnockbackVelocity = Vector2Scale(knockback, 5.0f);
+    // Boss immune knockback saat ability charge/slam
+    if (!(rank == ENEMY_BOSS && (AIState == ENEMY_ABILITY1 || AIState == ENEMY_ABILITY2)))
+        KnockbackVelocity = Vector2Scale(knockback, 5.0f);
     HealthRegenTimer = Def->stats.healthRegenDelay;
 }
 

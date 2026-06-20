@@ -1,18 +1,24 @@
 # Struktur Folder Assets
 
-Dokumentasi ini menjelaskan struktur folder `assets/` yang menyimpan semua aset non-kode proyek RPG Game Raylib.
+Dokumentasi ini menjelaskan struktur folder `assets/` yang menyimpan semua aset non-kode proyek Breach & Loot.
 
 ## Pohon Folder Assets
 
 ```txt
 assets/
-├── audio/                # Aset audio game
-│   ├── music/            #   Musik latar (MP3)
-│   └── sfx/              #   Efek suara (MP3)
-├── data/                 # Data statis game (JSON: animasi, musuh, item, sprite, tile)
-├── fonts/                # Aset font TTF (NewDawn, Poppins)
-├── maps/                 # File peta Tileson (JSON)
-└── textures/             # Sprite sheet dan UI (PNG)
+├── audio/                        # Aset audio game
+│   ├── music/                    #   Musik latar (MP3)
+│   └── sfx/                      #   Efek suara (MP3)
+├── data/                         # Data statis game (JSON: animasi, musuh, item, sprite, tile)
+├── fonts/                        # Aset font (TTF / OTF)
+├── images/                       # Gambar untuk dokumentasi dan README
+│   ├── gameplayScreenshots/      #   6 screenshot gameplay untuk README
+│   └── logo/                     #   (kosong — untuk logo alternatif)
+├── maps/                         # File peta Tileson (JSON)
+│   └── World_generation/         #   Template room, koridor, dan world seed
+├── textures/                     # Sprite sheet dan UI (PNG)
+└── video/                        # Video untuk background menu dan cutscene
+    └── intro/                    #   Cutscene pembuka (MKV)
 ```
 
 ## Deskripsi per Kategori
@@ -21,8 +27,8 @@ assets/
 
 | Subfolder | Isi |
 | --- | --- |
-| `music/` | Musik latar game (MP3): Dungeon, GameOver, MainMenu, dll. |
-| `sfx/` | Efek suara pendek (MP3): slash, step, dll. |
+| `music/` | Musik latar game (MP3): Dungeon, GameOver, MainMenu, Boss, WinTheme, dll. |
+| `sfx/` | Efek suara pendek (MP3): arrow, slash, walk, explosion, hurt, chest, crate, dll. |
 
 ### Data (`assets/data/`)
 
@@ -38,21 +44,98 @@ Definisi game berbasis JSON, dimuat saat startup oleh `animation.cpp` dan `datad
 
 ### Font (`assets/fonts/`)
 
-| File | Kegunaan |
-| --- | --- |
-| `NewDawn.ttf` | Font dekoratif gothic untuk header dan judul |
-| `Poppins-Regular.ttf` | Font sans-serif utama untuk teks UI dan entry keybinds |
-| `Poppins-Bold.ttf` | Varian bold untuk teks tebal |
+| File | Format | Typeface | Kegunaan |
+| --- | --- | --- | --- |
+| `NewDawn.ttf` | TTF | New Dawn | Font dekoratif gothic untuk header dan judul |
+| `Poppins-Regular.ttf` | TTF | Poppins | Font sans-serif utama untuk teks UI |
+| `Poppins-Bold.ttf` | TTF | Poppins | Varian bold untuk teks tebal |
+| `Quicksand-Bold.ttf` | TTF | Quicksand | Teks UI alternatif — varian bold |
+| `Quicksand-Light.ttf` | TTF | Quicksand | Teks UI alternatif — varian light |
+| `Quicksand-Medium.ttf` | TTF | Quicksand | Teks UI alternatif — varian medium |
+| `Quicksand-Regular.ttf` | TTF | Quicksand | Teks UI alternatif — varian regular |
+| `Quicksand-SemiBold.ttf` | TTF | Quicksand | Teks UI alternatif — varian semi-bold |
+| `Norse.otf` | OTF | Norse | Font dekoratif untuk elemen tematik Norse |
+| `Norsebold.otf` | OTF | Norsebold | Varian bold dari Norse |
+| `MedievalSharp-Regular.ttf` | TTF | MedievalSharp | Font bergaya abad pertengahan |
 
-Font dimuat sekali di startup (`InitFonts()` di `main.cpp`) via variabel global `fontKeybindHeader` / `fontKeybindEntry`. Lihat `include/rendering/fonts.h`.
+Font dimuat secara **lazy** via `GetOrLoad(FontId)` — dipanggil pertama kali saat render, bukan di startup. Font di-cache dalam `std::unordered_map` dengan key `(FontId << 16) | AtlasRes`. Lihat `docs/font-system.md` untuk detail pipeline dan API.
+
+### Gambar (`assets/images/`)
+
+Gambar untuk keperluan dokumentasi dan README proyek.
+
+| Subfolder | Isi |
+| --- | --- |
+| `gameplayScreenshots/` | 6 screenshot gameplay (PNG) untuk ditampilkan di README: main menu, gameplay, turn-based combat, boss combat, explosion effects, bow attack |
+| `logo/` | Folder kosong — disediakan untuk logo alternatif di masa depan |
 
 ### Peta (`assets/maps/`)
 
-Peta format JSON Tileson (kompatibel Tiled Map Editor): `floorA.json`, `floorB.json`, `floorC.json`, `tutorial.json`.
+Peta format JSON Tileson (kompatibel Tiled Map Editor).
+
+| File / Folder | Keterangan |
+| --- | --- |
+| `floorA.json` | Lantai A — peta utama |
+| `floorB.json` | Lantai B — peta utama |
+| `floorC.json` | Lantai C — peta utama |
+| `main_hub.json` | Area hub utama pemain |
+| `tutorial.json` | Peta tutorial |
+| `tutorial copy 2.json` | Duplikat/leftover dari tutorial.json (tidak digunakan) |
+| `World_generation/` | Template dan data untuk world generation procedural |
+
+#### World_generation/
+
+Struktur folder `World_generation/`:
+
+```txt
+maps/World_generation/
+├── background_map.json                 # Background map besar untuk world generation
+├── template_untuk_copy_object.json     # Template untuk copy object
+├── rooms/                              # Template room — tiap kategori punya varian koneksi
+│   ├── start/                          #   Room spawn pemain (start1_u.json)
+│   ├── enemy/                          #   Room musuh biasa (6 varian × 5 tipe koneksi = 30 file)
+│   ├── elite/                          #   Room elite (3 varian × 3 tipe koneksi = 9 file)
+│   ├── boss/                           #   Room boss (3 varian)
+│   ├── treasure/                       #   Room harta karun (2 varian × 2 tipe koneksi = 4 file)
+│   ├── trader/                         #   Room trader
+│   └── finish/                         #   Room finish
+├── corridor/                           # Koridor penghubung antar room
+│   ├── corridor_h/                     #   Koridor horizontal (16 varian)
+│   └── corridor_v/                     #   Koridor vertikal (16 varian)
+└── worldseed/                          # Seed world generation tersimpan per save slot
+    ├── save_1/                         #   Seed save slot 1 (meta.json + 5 stage map)
+    └── save_2/                         #   Seed save slot 2 (meta.json + 5 stage map)
+```
+
+Tiap room template punya varian koneksi (u = up, d = down, l = left, r = right) yang menentukan arah konektor koridor.
 
 ### Tekstur (`assets/textures/`)
 
-Sprite sheet PNG dan aset UI: tile, karakter, musuh, item, efek, props, logo.
+Sprite sheet PNG dan aset UI di root folder:
+
+`autotiles.png`, `bg-dungeon.png`, `bg-forest.png`, `boss-enemies.png`, `dialogBox.png`, `effects.png`, `elite-enemies.png`, `enemies.png`, `grass-terrain.png`, `items.png`, `knight (1).png`, `logo.png`, `props.png`, `test.png`, `tiles.png`
+
+Subdirektori UI:
+
+| Subfolder | Jumlah File | Konten |
+| --- | --- | --- |
+| `settingsButt/` | 13 | Tombol dan elemen UI screen settings (audio, video, keybinds, scrollbar, knob, back) |
+| `saveloadAsset/` | 9 | Aset UI screen save/load (box kosong, box terisi, tombol delete, title, background) |
+| `pauseButt/` | 11 | Tombol pause menu (resume, save, load, settings, restart, exit, background, notifikasi) |
+| `mainMenuButt/` | 4 | Tombol main menu (start, load, settings, quit) |
+| `inventory/` | 3 | UI inventory (background, full-grid, complete indicator) |
+| `gameOver/` | 4 | UI game over (gameover.png, revive, settings, to-main menu) |
+| `hudPlayer/` | 3 | HUD player (ikon tas, kill count, ikon settings) |
+
+### Video (`assets/video/`)
+
+Video untuk background menu dan cutscene.
+
+| File / Folder | Keterangan |
+| --- | --- |
+| `bg-main-menu.mp4` | Video background untuk main menu (MP4) |
+| `intro/` | Folder cutscene pembuka |
+| `intro/IntroIntroductions.mkv` | Video cutscene intro (MKV) |
 
 ## Format File Aset
 
@@ -62,7 +145,9 @@ Sprite sheet PNG dan aset UI: tile, karakter, musuh, item, efek, props, logo.
 | Tekstur | PNG | Gambar tanpa kompresi lossy, mendukung transparansi |
 | Peta | JSON | Format Tileson (kompatibel dengan Tiled Map Editor) |
 | Data Game | JSON | Definisi item, musuh, sprite, animasi, tile properties |
-| Font | TTF | TrueType Font untuk rendering teks kustom |
+| Font | TTF / OTF | TrueType Font dan OpenType Font untuk rendering teks kustom |
+| Gambar | PNG | Screenshot dan aset visual untuk dokumentasi |
+| Video | MP4 / MKV | Video background menu (MP4) dan cutscene (MKV) |
 
 ## Direktori Runtime (tidak di-commit)
 
@@ -72,15 +157,17 @@ Folder berikut dibuat saat runtime dan tidak dilacak oleh git:
 | --- | --- |
 | `saves/` | File save game, autosave, dan pengaturan per-user |
 
-### saves/settings.json
+### saves/settings/
 
-File `saves/settings.json` menyimpan pengaturan per-user yang dibuat saat runtime:
+Pengaturan per-user disimpan sebagai 3 file JSON terpisah, dibuat saat runtime:
 
-- **Keybindings**: Semua mapping tombol kustom pemain
-- **Video settings**: Resolusi, fullscreen, FPS display
-- **Audio settings**: Volume musik dan SFX
+| File | Konten |
+| --- | --- |
+| `saves/settings/audioTab.json` | Pengaturan audio: volume musik dan SFX |
+| `saves/settings/videoTab.json` | Pengaturan video: resolusi, fullscreen, FPS display |
+| `saves/settings/keybindsTab.json` | Keybindings: semua mapping tombol kustom pemain |
 
-File ini tidak dilacak oleh git (masuk `.gitignore`), sehingga setiap pemain memiliki konfigurasi masing-masing tanpa mengganggu repo.
+File-file ini tidak dilacak oleh git (masuk `.gitignore`), sehingga setiap pemain memiliki konfigurasi masing-masing tanpa mengganggu repo.
 
 ## Cara Navigasi Aset
 
@@ -88,5 +175,5 @@ File ini tidak dilacak oleh git (masuk `.gitignore`), sehingga setiap pemain mem
 2. **Tekstur**: Tambahkan sprite/tiles baru ke `assets/textures/`, gunakan format PNG.
 3. **Peta**: Buat peta baru menggunakan Tiled, ekspor ke format JSON Tileson, simpan di `assets/maps/`.
 4. **Data**: Edit `assets/data/*.json` untuk menambah/mengubah definisi item, musuh, sprite, atau tile.
-5. **Font**: Tambahkan file TTF ke `assets/fonts/`, lalu deklarasikan di `include/rendering/fonts.h` dan muat di `src/rendering/animation.cpp`.
-6. **Konfigurasi pemain**: File `saves/settings.json` dibuat otomatis saat pertama kali game dijalankan, jangan diedit manual — gunakan menu Options di dalam game.
+5. **Font**: Tambahkan file TTF/OTF ke `assets/fonts/`, lalu daftarkan `FontId` baru di `include/rendering/fonts.h` dan definisikan `FontDef`-nya. Font akan di-load secara lazy via `GetOrLoad(FontId)` saat pertama kali dipakai.
+6. **Konfigurasi pemain**: File di `saves/settings/*Tab.json` dibuat otomatis saat pertama kali game dijalankan. Jangan diedit manual — gunakan menu Options di dalam game.

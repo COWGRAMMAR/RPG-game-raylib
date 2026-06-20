@@ -84,7 +84,7 @@ cmake --build --preset ninja
 
 ```bash
 # Linux/macOS
-./build/bin/main
+./build-linux/bin/main
 
 # Windows (PowerShell 5.1+. 7+ Recommended)
 .\build\bin\main.exe

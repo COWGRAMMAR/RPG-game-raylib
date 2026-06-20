@@ -86,7 +86,7 @@ Jalankan script sesuai OS kamu:
 2. Agar tidak membangun lagi, jalankan perintah berikut
 
    ```bash
-   build/bin/main
+   ./build-linux/bin/main
    ```
 
 > Untuk opsi build lanjutan, lihat [Panduan Build](docs/build.md). Untuk dokumentasi projek lainnya, lihat [Dokumentasi Projek](docs/README.md).

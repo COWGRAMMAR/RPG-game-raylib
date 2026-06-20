@@ -124,7 +124,10 @@ saves/
 │   └── ...
 ├── slot_3/
 │   └── ...
-└── slot_4/
+├── slot_4/
+│   └── ...
+├── ... (slot_5 — slot_11)
+└── slot_11/
     └── ...
 ```
 
@@ -142,7 +145,7 @@ Ini mencegah file korup jika crash di tengah write. `CleanupTmpFiles()` tersedia
 
 ## 4. Per-slot Isolation
 
-Setiap save slot (0-4) punya direktori sendiri (`saves/slot_N/`):
+Setiap save slot (0-11) punya direktori sendiri (`saves/slot_N/`):
 
 - `SaveManual(snap, 0)` → tulis `saves/slot_0/manual/snapshot.json`
 - `LoadCheckpoint("assets/maps/forest.json", 1)` → baca `saves/slot_1/checkpoints/assets_maps_forest_json.json`
@@ -292,7 +295,7 @@ Menggunakan checkpoint system:
 
 ### `g_ActiveSaveSlot`
 
-- Variabel global yang menandai slot mana yang sedang aktif (`-1` = tidak aktif, `0-4` = slot manual)
+- Variabel global yang menandai slot mana yang sedang aktif (`-1` = tidak aktif, `0-11` = slot manual)
 - Di-set di:
   - `saveLoadScreen.cpp` — saat LOAD atau SAVE selesai
   - `mainMenu.cpp` — saat NEW GAME
@@ -496,7 +499,7 @@ Commits `8e9586d`, `3def89e`, `1b01b2e`
 
 Commits `a15840b`, `601f360`
 
-- Setiap slot 0-4 punya direktori terisolasi: `saves/slot_N/{manual,autosave,enemies,items}/`
+- Setiap slot 0-11 punya direktori terisolasi: `saves/slot_N/{manual,autosave,checkpoints}/`
 - Fungsi baru: `EnsureSlotDirectory()`
 - Autosave per-slot dengan rotating 5 file, timestamp-based
 - Isolasi penuh: path routing via `GetSlotPath()`, worldgen mapping via `worldgenSlot`
@@ -515,7 +518,7 @@ Commit `87768b0`
 Commits `959d1e6`, `694234f`, `d88611c`, `b8d182f`, `fd7e2c7`
 
 - File baru: `include/ui/saveLoadScreen.h`, `src/ui/saveLoadScreen.cpp`
-- 5 manual slot + 5 autosave slot, layout 3+2 grid
+- 12 manual slot (0-11) + 5 autosave per slot, layout 3+2 grid
 - Mode: SAVE_MODE (simpan) / LOAD_MODE (muat)
 - Wiring: Pause Menu → Save/Load, Main Menu → Load
 

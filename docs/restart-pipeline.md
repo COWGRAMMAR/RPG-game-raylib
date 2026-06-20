@@ -129,7 +129,7 @@ Stages:
 
 - **Stage 0**: SEBELUM UnloadMap — cek old map untuk `initial_snapshot` objects → set `s_OldMapHasInitialSnapshot` flag
 - **Stage 1**: Load map baru + loading text
-- **Stage 2**: InitPlayer → SpawnEnemies → ApplyPostSpawn → kalo flag true, `CaptureInitialSnapshot(-1)`
+- **Stage 2**: InitPlayer → SpawnEnemies → ApplyCheckpointData → kalo flag true, `CaptureInitialSnapshot(-1)`
 
 Trigger mechanism:
 

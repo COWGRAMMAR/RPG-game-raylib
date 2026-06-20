@@ -84,16 +84,17 @@ Loading screen first-time path:
 
 Saat player masuk pintu di stage worldgen, dipanggil:
 
-**`src/map/worldgenio.cpp:311-334`** — `WorldgenIO::NextStage()`
+**`src/map/worldgenio.cpp:178-200`** — `WorldgenIO::NextStage()`
 
 ```txt
-1. SaveRuntimeState(currentStage)         — simpan state stage lama
-2. g_SeedManager.NextStage()               — increment stage
-3. SaveMeta()                              — simpan seeds + stage ke disk
-4. GetStagePath(newStage) → "save_N/maps/stage_X.json"
-5. SwitchMap(stagePath, "start")
-6. TrimStageStack()
+1. g_SeedManager.NextStage()               — increment stage
+2. SaveMeta()                              — simpan seeds + stage ke disk
+3. GetStagePath(newStage) → "save_N/maps/stage_X.json"
+4. SwitchMap(stagePath, "start")
+5. TrimStageStack()
 ```
+
+> **Catatan**: Per-stage runtime state (chests, crates, enemies, items, barrier) tidak lagi disimpan via `SaveRuntimeState`. State persisten sekarang di-handle oleh `SaveManager` melalui checkpoint/snapshot system. Lihat [save-system.md](./save-system.md) untuk detail.
 
 `SwitchMap()` di **`src/map/map.cpp:457-489`**:
 
@@ -115,7 +116,7 @@ Loading screen mendeteksi `isSwitchingMap == true`:
 | Stage | Fungsi | Detail |
 | --- | --- | --- |
 | 0 | `UnloadMap()` + `spawnFlowFields.clear()` | `loading_screen.cpp:91-97` |
-| 1 | `LoadMap(path)` + `SetCurrentMapPath()` + **`RunWorldgen()`** + **`LoadRuntimeState()`** + `SpawnObject()` + `RebuildObstacleCache()` | `loading_screen.cpp:99-124` |
+| 1 | `LoadMap(path)` + `SetCurrentMapPath()` + **`RunWorldgen()`** + `SpawnObject()` + `RebuildObstacleCache()` | `loading_screen.cpp:99-124` |
 | 2 | `PlayerInstance.Init()` + `Entities::Clear()` + `Add(PlayerInstance)` + `SpawnEnemiesFromMap()` + `LoadItemsForMap()` | `loading_screen.cpp:126-150` |
 | 3 | Camera setup + clear switch flags + `currentScreen = PLAY` | `loading_screen.cpp:152-172` |
 
@@ -127,7 +128,9 @@ if (!isBack && path contains "worldseed/save_")
     int stageIdx = g_SeedManager.GetCurrentStage();
     uint64_t seed = g_SeedManager.GetSeed(stageIdx);
     RunWorldgen(seed, stageIdx == SEED_COUNT - 1);   // ← generate map
-    WorldgenIO::LoadRuntimeState(stageIdx);            // ← restore runtime
+    // Runtime state (chests, crates, enemies, items, barrier)
+    // di-restore oleh SaveManager di stage 2 setelah SpawnEnemiesFromMap()
+    // lihat save-system.md → checkpoint/snapshot system
 }
 ```
 
@@ -155,7 +158,7 @@ if (!isBack && path contains "worldseed/save_")
 | `GetNextAvailableSlot()` | 74 | Scan folder `save_*`, return max+1 |
 | `GetTopSlot()` | 107 | Scan folder `save_*`, return max (untuk Load) |
 | `InitRun(slot)` | 159 | Buat folder slot, generate worldgen, copy BG map, fix path, save meta |
-| `SaveRuntimeState(idx)` | 193 | Simpan chests/crates/bombs/deadEnemies/items/barrier ke runtime.json |
+| `HandleMapSwitch(...)` | 217 | Bungkus NextStage/PrevStage + SaveMeta + panggil SwitchMap |
 | `LoadRuntimeState(idx)` | 258 | Load runtime.json dan restore semua state |
 | `NextStage()` | 311 | Save old stage → increment → SwitchMap ke stage baru |
 | `PrevStage()` | 336 | Save old stage → GoBackStage → SwitchMap ke stage sebelumnya |
@@ -186,7 +189,7 @@ if (!isBack && path contains "worldseed/save_")
 | MAIN_MENU handler | 64-70 | Update + Render main menu |
 | LOADING handler | 74-88 | InitLoadingScreen (sekali) → Update → Render |
 | PLAY handler | 111-168 | Fixed timestep gameplay loop |
-| Auto-save on exit | 172-173 | `SaveRuntimeState` jika run masih aktif |
+| Auto-save on exit | — | **Tidak ada**. Auto-save exit dihapus — save hanya via pause menu case 6 (SaveGameState + CleanupOrphanedSlots) |
 
 ### 3f. Main Menu (`src/ui/mainMenu.cpp`)
 
@@ -201,52 +204,52 @@ if (!isBack && path contains "worldseed/save_")
 
 | Aksi | Line | Fungsi |
 | --- | --- | --- |
-| Save | `src/ui/pauseMenu.cpp:362` | `SaveRuntimeState()` + `SaveGameState()` |
-| Return to Menu | `src/ui/pauseMenu.cpp:374-376` | Save runtime + game state → MAIN_MENU |
-| Close Game | `src/ui/pauseMenu.cpp:385-387` | Save runtime + game state → CloseWindow |
+| Save | `src/ui/pauseMenu.cpp:558-561` | Buka SaveLoadScreen dalam mode SAVE_MODE → user pilih slot → `SaveManager::SaveToFile()` |
+| Return to Menu | `src/ui/pauseMenu.cpp:581-584` | Tampilkan popup konfirmasi — **tidak save otomatis**, hanya set `currentScreen = MAIN_MENU` |
+| Close Game | `src/ui/pauseMenu.cpp:585-588` | `SaveGameState(state)` + `WorldgenIO::CleanupOrphanedSlots()` + `CloseWindow()` |
 
 ---
 
 ## 4. Runtime State (Save/Load Detail)
 
-### Data yang Disimpan di `runtime.json`
+> **Perubahan Arsitektur**: Per-stage `runtime.json` (`SaveRuntimeState`/`LoadRuntimeState`) sudah dihapus. Runtime state dunia (chests, crates, enemies, items, barrier) di-handle oleh **SaveManager** melalui snapshot system.
 
-Key per stage: `"stage_0"`, `"stage_1"`, dll.
+### Snapshot System (SaveManager)
 
-| Field | Type | Deskripsi | Dependencies |
-| --- | --- | --- | --- |
-| `chests` | `string[]` | Posisi chest yang sudah di-loot (`"x_y"`) | `ChestManager` |
-| `crates` | `string[]` | Posisi crate yang sudah hancur | `CrateManager` |
-| `bombs` | `string[]` | Posisi bomb yang sudah meledak | `BombManager` |
-| `deadEnemies` | `string[]` | ID `"mapPath_objId"` — enemy mati | `DeadEntities::set` |
-| `itemDrops` | `object[]` | `{defId, amount, x, y}` — item di lantai | `ItemDataManager` |
-| `barrier` | `{cleared, hasReLocked}` | State barrier manager | `BarrierManager` |
+Runtime state disimpan sebagai *checkpoints* dalam `GameSnapshot` — satu snapshot per save slot, bukan per stage.
 
-### Save Flow (`SaveRuntimeState`)
+| Komponen | Cara Restore |
+| --- | --- |
+| Chest yang sudah di-loot | `SaveManager::ApplyPreSpawn(snap)` → restore chest states sebelum spawn |
+| Crate hancur | Sama, dalam `ApplyPreSpawn()` |
+| Enemy mati | `Entities::SetDeadEntries()` via `ApplyPreSpawn()` |
+| Item drops di lantai | `ItemData::SetItemDrops()` via `ApplyPreSpawn()` |
+| Barrier state | `BarrierManager::SetCleared()` / `SetHasReLocked()` via `ApplyPreSpawn()` |
+| Player posisi/inventory | `ApplyPostSpawn(snap)` — setelah enemy/item spawn |
 
-**`src/map/worldgenio.cpp:193-252`**
-
-```txt
-1. Baca runtime.json yang sudah ada (atau bikin baru)
-2. Buat entry "stage_{index}" berisi state terkini
-3. Tulis ulang runtime.json
-```
-
-### Load Flow (`LoadRuntimeState`)
-
-**`src/map/worldgenio.cpp:258-304`**
+### Alur Save (via Pause Menu)
 
 ```txt
-1. Buka runtime.json
-2. Cari entry "stage_{index}"
-3. Restore ke masing-masing manager:
-   a. chestManager.SetConsumed(chests)
-   b. crateManager.SetDestroyed(crates)
-   c. bombManager.SetExploded(bombs)
-   d. Entities::SetDeadEntries(deadEnemies)
-   e. itemData.SetItemDrops(itemDrops)
-   f. barrierManager.SetCleared() / SetHasReLocked()
+1. Pause Menu → Save → SaveLoadScreen (mode SAVE_MODE)
+2. User pilih slot, konfirmasi
+3. SaveManager: collect state dari semua manager → simpan ke file save slot
+4. Meta otomatis disimpan oleh SeedManager via SaveMeta()
 ```
+
+### Alur Load (via Main Menu / Map Switch)
+
+```txt
+1. Main Menu → Load → loading_screen
+2. LoadWorldgenForSave() → LoadMeta + RunWorldgen
+3. SaveManager::LoadFromFile() → restore snapshot
+4. ApplyPreSpawn() → restore runtime state sebelum enemy/item spawn
+5. SpawnEnemiesFromMap() + SpawnItemWave()
+6. ApplyPostSpawn() → restore player state setelah spawn
+```
+
+### Meta Save (`SaveMeta`)
+
+**`src/core/seedmanager.cpp:30-42`**
 
 ### Meta Save (`SaveMeta`)
 

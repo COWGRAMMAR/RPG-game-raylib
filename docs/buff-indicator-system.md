@@ -87,7 +87,7 @@ Tiap entry buff terdiri dari:
 - **Bar background**: `DrawRectangleRounded` DARKGRAY, 150x18px
 - **Bar fill**: Warna khas tiap buff, ratio = timer / maxTimer
 - **Highlight**: Overlay putih tipis 15% alpha di bagian atas bar
-- **Timer text**: `fontLoadingTitle` 22px, `%ds` (≥1s) / `%.1fs` (<1s)
+- **Timer text**: `FontId::HUD_PLAYER` 22px, `%ds` (≥1s) / `%.1fs` (<1s)
 - **Spacing**: `buffGap=4px` antar entry
 
 ### Data Buff

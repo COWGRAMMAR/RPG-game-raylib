@@ -224,8 +224,10 @@ Makin tinggi atlas resolution → makin tajam text ukuran besar, tapi makin bera
 | --- | --- | --- | --- |
 | `DEFAULT` | Poppins-Bold.ttf | RES_256 | Font default UI |
 | `KEYBIND_HEADER` | NewDawn.ttf | RES_256 | Header keybind list |
-| `KEYBIND_ENTRY` | Poppins-Regular.ttf | RES_256 | Entry keybind list |
+| `KEYBIND_ENTRY` | Quicksand-Bold.ttf | RES_256 | Entry keybind list |
 | `LOADING_TITLE` | Poppins-Bold.ttf | RES_256 | Alias DEFAULT buat loading screen |
+| `HUD_PLAYER` | Poppins-Bold.ttf | RES_256 | Font HUD player (HP bar, buff indicator) |
+| `INVENTORY_UI` | Poppins-Bold.ttf | RES_256 | Font inventory UI |
 | `MEDIEVAL_SHARP` | MedievalSharp-Regular.ttf | RES_256 | Font tematik medieval |
 | `QUICKSAND_BOLD` | Quicksand-Bold.ttf | RES_256 | Bold sans-serif |
 | `QUICKSAND_SEMIBOLD` | Quicksand-SemiBold.ttf | RES_256 | Semi-bold sans-serif |
@@ -234,6 +236,9 @@ Makin tinggi atlas resolution → makin tajam text ukuran besar, tapi makin bera
 | `QUICKSAND_LIGHT` | Quicksand-Light.ttf | RES_256 | Light sans-serif |
 | `NORSE_BOLD` | Norsebold.otf | RES_256 | Norse bold display |
 | `NORSE` | Norse.otf | RES_256 | Norse regular display |
+| `AUDIOSETTS_HEADER` | NewDawn.ttf | **RES_512** | Header slider audio — resolusi tinggi biar tajam |
+| `AUDIOSETTS_VALUE` | Poppins-Regular.ttf | RES_256 | Value text audio settings |
+| `SAVESLOT_TEXT` | Poppins-Regular.ttf | RES_256 | Font teks save slot UI |
 
 Semua file font ada di `assets/fonts/`.
 

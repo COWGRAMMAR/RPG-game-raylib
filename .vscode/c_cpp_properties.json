@@ -4,7 +4,8 @@
             "name": "windows-gcc-x64",
             "includePath": [
                 "${workspaceFolder}/**",
-                "${workspaceFolder}/lib/json/include"
+                "${workspaceFolder}/lib/json/include",
+                "${workspaceFolder}/-p"
             ],
             "compilerPath": "gcc",
             "cStandard": "${default}",

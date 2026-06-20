@@ -1,49 +1,112 @@
 # Debug Keybinds
 
-Dokumen ini mencatat semua keybind untuk keperluan **debug dan development**. Tidak seperti keybind biasa (Movement, Combat, Inventory, Hotbar), keybind ini tidak muncul di UI Settings > Keybinds karena disembunyikan secara sengaja -- hanya bisa diakses melalui default binding yang sudah di-set di `keybindManager`.
+Dokumen ini mencatat semua keybind di Breach & Loot, termasuk yang tidak muncul di UI Settings > Keybinds. Ada dua kategori: action enum yang bisa di-rebind (tapi beberapa disembunyikan dari UI), dan debug toggle yang hardcoded di luar keybind manager.
 
-## Daftar Debug Keybinds
+## Daftar Lengkap Action Enum
 
-| Action | Default Key | Deskripsi |
-| --- | --- | --- |
-| `REVIVE` | `R` | Menghidupkan kembali player (debug). Berguna saat player mati dan ingin testing tanpa restart. |
-| `TEST_LOSE_HP` | `K` | Mengurangi HP player untuk testing damage, knockback, atau death animation. |
-| `GO_BACK` | `B` | Kembali ke state sebelumnya (debug). Untuk testing map switching atau scene transition tanpa harus lewat trigger normal. |
-| `PAUSE_MENU` | `Escape` | Membuka/menutup pause menu. **Tidak bisa di-rebind melalui UI settings.** Escape selalu hardcoded sebagai toggle pause. |
-| `DEBUG_TOGGLE` | `Tab` | Menampilkan/menyembunyikan overlay debug utama (FPS, koordinat, memory usage, dll). |
-| `DEBUG_TOGGLE_ENEMY` | `\` | Menampilkan/menyembunyikan debug info enemy -- bounding box, HP, AI state, pathfinding target, dll. |
-| `DEBUG_TOGGLE_PLAYER` | `]` | Menampilkan/menyembunyikan debug info player -- position, velocity, state machine, hitbox, cooldown, dll. |
+Tabel berikut adalah semua nilai dalam `enum Action` di `keybindManager.h`. Kolom Section menunjukkan letaknya di UI settings (`sections[]` di `keybindsTab.cpp`).
 
-## Kenapa Disembunyikan?
+| Index | Action | Default Key | Section (keybindsTab) |
+|-------|--------|-------------|----------------------|
+| 0 | MOVE_UP | W | MOVEMENT |
+| 1 | MOVE_DOWN | S | MOVEMENT |
+| 2 | MOVE_LEFT | A | MOVEMENT |
+| 3 | MOVE_RIGHT | D | MOVEMENT |
+| 4 | INTERACT | E | ACTION |
+| 5 | TOGGLE_INVENTORY | I | INVENTORY |
+| 6 | TOGGLE_MAP | M | ACTION |
+| 7 | DROP_ITEM | Q | ACTION |
+| 8 | DROP_ALL | Left Ctrl | ACTION |
+| 9 | ATTACK_DRINK | Mouse Left | ACTION |
+| 10 | DASH | Mouse Right | ACTION |
+| 11 | HOTBAR_SLOT_1 | 1 | INVENTORY |
+| 12 | HOTBAR_SLOT_2 | 2 | INVENTORY |
+| 13 | HOTBAR_SLOT_3 | 3 | INVENTORY |
+| 14 | HOTBAR_SLOT_4 | 4 | INVENTORY |
+| 15 | PAUSE_MENU | Escape | -- (tidak ada di UI) |
+| 16 | TOGGLE_FULLSCREEN | F11 | -- (tidak ada di UI) |
+| 17 | ACTION_COUNT | -- (sentinel) | -- |
 
-Keybind ini sengaja **tidak dimasukkan ke section manapun** di `keybindsTab.cpp` (lihat struct `sections[]` yang hanya mencakup MOVEMENT, COMBAT, INVENTORY, HOTBAR). Akibatnya:
+Semua action dari index 0 sampai 14 muncul di UI settings lewat struct `sections[]` di `keybindsTab.cpp`. Action 15 (PAUSE_MENU) dan 16 (TOGGLE_FULLSCREEN) sengaja tidak dimasukkan ke section manapun.
 
-- Tidak bisa di-rebind melalui UI Settings > Keybinds
-- Tidak muncul di daftar keybind yang bisa diedit player
-- Tetap **berfungsi penuh** karena `keybindManager` tetap memuat default binding-nya
+## PAUSE_MENU -- Bisa Di-rebind, Tapi Tidak Lewat UI
 
-Jika suatu saat diperlukan rebindability, cara termudah adalah menambahkan section baru di `keybindsTab.cpp` atau mengekspos action ini di debug menu.
+PAUSE_MENU (index 15) berbeda dari yang dideskripsikan di dokumen lama. Sekarang ia adalah action biasa di enum:
 
-## PAUSE_MENU -- Pengecualian Khusus
+- Default key: `KEY_ESCAPE`, diset di `keybindManager.cpp` lewat `InitDefaults()`.
+- **Tidak hardcoded.** `input.cpp` baris 56 membaca dari keybindManager: `Current.pauseMenu = IsKeyPressed(keybindManager.GetKeycode(PAUSE_MENU))`.
+- Hasilnya dicek di `main.cpp` baris 271: `if (InputInstance.GetState().pauseMenu)` untuk toggle pause menu.
+- Karena tidak ada di `sections[]` di `keybindsTab.cpp`, action ini tidak bisa di-rebind lewat UI Settings.
+- Tapi karena datanya tetap disimpan ke `saves/settings/keybindsTab.json`, kamu bisa mengubah binding-nya secara manual di file JSON.
 
-`PAUSE_MENU` (Escape) memiliki status khusus:
+Satu-satunya fungsi Escape yang benar-benar hardcoded adalah di `keybindsTab.cpp` baris 167, sebagai cancel key di rebind listener. Ini tidak terkait dengan PAUSE_MENU.
 
-- Default key `KEY_ESCAPE` di-set di `keybindManager`, tapi logika pause di `main.cpp` dan `screen_handler.cpp` tidak selalu membaca dari `keybindManager`.
-- Escape juga berfungsi sebagai cancel key di rebind listener (`keybindsTab.cpp` baris 92: `if (key == KEY_ESCAPE) listeningAction = -1`), sehingga merubah bind Escape bisa menyebabkan konflik.
-- Untuk alasan ini, PAUSE_MENU tidak disarankan untuk di-rebind dan saat ini tidak ada di UI settings.
+Jika suatu saat ingin mengekspos PAUSE_MENU atau TOGGLE_FULLSCREEN ke UI, caranya dengan menambahkan index-nya ke array `sections[]` di `keybindsTab.cpp`.
 
-## File Source Terkait
+## Debug Toggle -- Hardcoded, Bukan Action Enum
+
+Ini adalah bagian yang paling banyak berubah dari dokumen lama. Tidak ada action khusus debug di enum Action. Semua fungsi debug di-handle oleh `Debug::Toggle()` di `debugmode.cpp` dengan input yang hardcoded.
+
+### Aktifkan Debug Mode
+
+**LCtrl + LShift + \** (backslash)
+
+Kombinasi ini men toggle `isDebugMode` di `Debug::Toggle()` (baris 276). Ketiga tombol harus ditekan bersamaan. Tidak ada action di keybindManager untuk ini.
+
+### Sub-toggle (hanya berfungsi saat debug mode ON)
+
+| Tombol | Fungsi | Variable | File:Baris |
+|--------|--------|----------|------------|
+| `]` (right bracket) | Toggle overlay flow field enemy | `showFlowFieldOverlay` | debugmode.cpp:282 |
+| `[` (left bracket) | Toggle overlay flow field player | `showFlowFieldOverlayPlayer` | debugmode.cpp:287 |
+| `K` | Kill player (HP langsung 0) | `PlayerInstance.Health = 0` | debugmode.cpp:292 |
+
+Semua input di atas hardcoded langsung di `Debug::Toggle()`, menggunakan `IsKeyPressed()` raylib, bukan lewat keybindManager. Tidak ada cara untuk mengubahnya tanpa mengedit source code.
+
+## Kenapa Debug Toggle Tidak Ada di UI Settings?
+
+Dulu versi lama Action enum punya entry REVIVE, TEST_LOSE_HP, GO_BACK, DEBUG_TOGGLE, DEBUG_TOGGLE_ENEMY, DEBUG_TOGGLE_PLAYER dengan index 15-21. Semua itu sudah dihapus saat Action enum dibersihkan. Sekarang debug system berdiri sendiri di `debugmode.cpp`, terpisah dari keybindManager.
+
+Akibatnya:
+- Tidak bisa di-rebind sama sekali (kecuali edit source code).
+- Tidak muncul di UI Settings.
+- Tidak tersimpan di `keybindsTab.json`.
+
+## Sections Coverage di keybindsTab.cpp
+
+Struktur `sections[]` di `keybindsTab.cpp`:
+
+```cpp
+static const int movementIndices[] = {0, 1, 2, 3};         // MOVE_UP, DOWN, LEFT, RIGHT
+static const int actionIndices[] = {9, 10, 4, 7, 8, 6};    // ATTACK_DRINK, DASH, INTERACT, DROP_ITEM, DROP_ALL, TOGGLE_MAP
+static const int inventoryIndices[] = {5, 11, 12, 13, 14}; // TOGGLE_INVENTORY, HOTBAR_SLOT_1,2,3,4
+```
+
+- **MOVEMENT**: mencakup 4 action (0-3).
+- **ACTION**: mencakup 6 action (4, 6, 7, 8, 9, 10) -- gabungan combat dan TOGGLE_MAP.
+- **INVENTORY**: mencakup 5 action (5, 11, 12, 13, 14) -- TOGGLE_INVENTORY dan 4 hotbar slot.
+- **Tidak tercakup**: PAUSE_MENU (15), TOGGLE_FULLSCREEN (16), dan ACTION_COUNT (17).
+
+Ada juga 3 entry info (non-rebindable) di section INVENTORY: Drag Item, Split Item, Merge Item.
+
+## File Sumber Terkait
 
 | File | Peran |
-| --- | --- |
-| `include/systems/keybindManager.h` | Definisi enum `Action` (REVIVE = 15, TEST_LOSE_HP = 16, ..., DEBUG_TOGGLE_PLAYER = 21) dan class KeybindManager |
+|------|-------|
+| `include/systems/keybindManager.h` | Definisi enum `Action` (MOVE_UP=0 ... ACTION_COUNT=17) dan class KeybindManager |
 | `src/systems/keybindManager.cpp` | Default bindings (`InitDefaults()`), action names, JSON persistence ke `saves/settings/keybindsTab.json` |
-| `src/ui/keybindsTab.cpp` | UI settings keybinds -- struct `sections[]` hanya mencakup action 0-14, debug action 15-21 sengaja tidak diikutsertakan |
-| `src/core/screen_handler.cpp` | Pengecekan input debug toggle di game loop |
-| `src/core/main.cpp` | Pengecekan PAUSE_MENU dan debug input di main loop |
+| `include/systems/input.h` | Struct `InputState` -- field `pauseMenu` dan semua flag input |
+| `src/systems/input.cpp` | Polling PAUSE_MENU dari keybindManager (baris 56), mapping key action ke InputState |
+| `include/debug/game_debug.h` | Deklarasi `Debug::Toggle()`, `isDebugMode`, `showFlowFieldOverlay`, `showFlowFieldOverlayPlayer` |
+| `src/debug/debugmode.cpp` | Implementasi semua debug toggle keys (baris 271-297) |
+| `src/ui/keybindsTab.cpp` | Struct `sections[]` hanya mencakup index 0-14; rebind listener dengan hardcoded Escape cancel |
+| `src/core/main.cpp` | Pengecekan PAUSE_MENU (baris 271) dan TOGGLE_FULLSCREEN (baris 168) di game loop |
+| `src/core/screen_handler.cpp` | Panggilan `DebugInstance.Toggle()` dan `DebugInstance.Draw()` di rendering (baris 416-417) |
 
 ## Catatan
 
-- Semua debug keybind menggunakan **keyboard key**, tidak ada yang menggunakan mouse button.
-- Keybind disimpan ke `saves/settings/keybindsTab.json` bersama keybind normal lainnya. Mengedit file JSON secara manual bisa mengubah binding debug action, meskipun tidak ada di UI.
-- Untuk mereset semua keybind (termasuk debug) ke default, bisa menggunakan opsi Reset Defaults di UI Settings > Keybinds.
+- Debug toggle (LCtrl+LShift+\) menggunakan kombinasi keyboard, bukan mouse.
+- Keybind normal disimpan ke `saves/settings/keybindsTab.json`. Mengedit file JSON secara manual bisa mengubah binding PAUSE_MENU atau TOGGLE_FULLSCREEN meskipun tidak ada di UI.
+- Reset Defaults di UI Settings > Keybinds mereset semua keybind ke nilai default dari `InitDefaults()`.
+- PAUSE_MENU dan TOGGLE_FULLSCREEN ikut di-reset karena ada di enum `Action` dan di-loop oleh `InitDefaults()`.
+- Debug toggle hardcoded tidak terpengaruh oleh Reset Defaults.

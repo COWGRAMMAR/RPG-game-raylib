@@ -1,0 +1,19 @@
+docs/source-structure.md
+  s_024fc33291c2f9::t_e11a5c332dac0c 3,11-64,71-73,76-83,85,89-90,92-93,96-109,114,116,121,126-127,129-131,141,144-145,153-154,162,164,169-180,186,189-190,193-195,202,212-217,230,237-245,252-254,261-264,271
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.8",
+  "base_commit_sha": "8aba9953d47504dda082fb7579de16c726cf3841",
+  "prompts": {},
+  "sessions": {
+    "s_024fc33291c2f9": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_11b1494d6ffePg0gOCF1Owj51i",
+        "model": "unknown"
+      },
+      "human_author": "NiskoDT <65821447+NiskoDT@users.noreply.github.com>"
+    }
+  }
+}

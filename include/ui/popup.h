@@ -36,6 +36,12 @@ public:
     void SetTextYOffset(int offset);
     void SetButtonYOffset(int offset);
 
+    // basch-3: set warna teks & tombol (default WHITE)
+    void SetTextColor(Color color);
+
+    // basch-3: trim piksel dari lebar tombol agar hitbox sesuai dgn visual teks
+    void SetButtonTrim(int trim);
+
 private:
     /** @brief Hitung dimensi popup berdasarkan teks */
     void CalculateDimensions();
@@ -59,4 +65,10 @@ private:
     // member variable untuk offset Y teks dan tombol
     int textYOffset;
     int buttonYOffset;
+
+    // basch-3: warna teks & tombol (default WHITE)
+    Color textColor;
+
+    // basch-3: trim horizontal tombol agar hitbox sesuai visual teks
+    int buttonTrim;
 };

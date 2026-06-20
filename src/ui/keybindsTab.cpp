@@ -320,25 +320,60 @@ static void DrawToastNotification(const char toastLine1[128], const char toastLi
     if (toastTimer <= 0 || !toastLine1[0])
         return;
 
-    Vector2 sz1 = MeasureTextEx(GetOrLoad(FontId::KEYBIND_ENTRY), toastLine1, KEYB_TOAST_SZ, 0);
-    Vector2 sz2 = MeasureTextEx(GetOrLoad(FontId::KEYBIND_ENTRY), toastLine2, KEYB_TOAST_SZ, 0);
-    int toastW = std::max((int)sz1.x, (int)sz2.x) + 40;
-    int toastH = (sz1.y > 0 ? (int)sz1.y + 10 : 0) + (sz2.y > 0 ? (int)sz2.y : 0) + 30;
-    int toastX = GameScreenWidth - toastW - 20;
-    int toastY = 15;
+    // basch-3: texture keybindReplace.png untuk notifikasi swap tombol
+    static Texture2D replaceTex = {0};
+    if (replaceTex.id == 0)
+    {
+        Image img = LoadImage("assets/textures/settingsButt/keybindReplace.png");
+        if (img.data != nullptr)
+        {
+            replaceTex = LoadTextureFromImage(img);
+            UnloadImage(img);
+        }
+    }
 
     float alpha = std::min(toastTimer, 1.0f) * 0.85f + 0.15f;
     unsigned char a = static_cast<unsigned char>(alpha * 255.0f);
-    DrawRectangle(toastX, toastY, toastW, toastH, Color{20, 20, 30, a});
-    DrawRectangleLinesEx(Rectangle{(float)toastX, (float)toastY, (float)toastW, (float)toastH}, 2,
-                         Color{255, 165, 0, a});
+    Color tint = {255, 255, 255, a};
 
-    float textY = toastY + 15.0f;
-    DrawTextEx(GetOrLoad(FontId::KEYBIND_ENTRY), toastLine1,
-               Vector2{(float)(toastX + 20), textY}, KEYB_TOAST_SZ, 0, Color{255, 255, 255, a});
-    textY += sz1.y + 10.0f;
-    DrawTextEx(GetOrLoad(FontId::KEYBIND_ENTRY), toastLine2,
-               Vector2{(float)(toastX + 20), textY}, KEYB_TOAST_SZ, 0, Color{255, 255, 255, a});
+    Vector2 sz1 = MeasureTextEx(GetOrLoad(FontId::KEYBIND_ENTRY), toastLine1, KEYB_TOAST_SZ, 0);
+    Vector2 sz2 = MeasureTextEx(GetOrLoad(FontId::KEYBIND_ENTRY), toastLine2, KEYB_TOAST_SZ, 0);
+
+    // basch-3: toast dengan texture, pusat box di px 177, teks hitam ukuran 22
+    if (replaceTex.id != 0)
+    {
+        int toastX = GameScreenWidth - replaceTex.width - 20;
+        int toastY = 15;
+        int drawX = toastX + (replaceTex.width / 2) - 177;
+        DrawTexture(replaceTex, drawX, toastY, tint);
+
+        Color textColor = {0, 0, 0, a};
+        float textX = (float)(drawX + 40);
+        float textY = toastY + 10.0f;
+        DrawTextEx(GetOrLoad(FontId::KEYBIND_ENTRY), toastLine1,
+                   Vector2{textX, textY}, 22, 0, textColor);
+        textY += 28.0f;
+        DrawTextEx(GetOrLoad(FontId::KEYBIND_ENTRY), toastLine2,
+                   Vector2{textX, textY}, 22, 0, textColor);
+    }
+    else // basch-3: fallback — toast persegi panjang asli
+    {
+        int toastW = std::max((int)sz1.x, (int)sz2.x) + 40;
+        int toastH = (sz1.y > 0 ? (int)sz1.y + 10 : 0) + (sz2.y > 0 ? (int)sz2.y : 0) + 30;
+        int toastX = GameScreenWidth - toastW - 20;
+        int toastY = 15;
+
+        DrawRectangle(toastX, toastY, toastW, toastH, Color{20, 20, 30, a});
+        DrawRectangleLinesEx(Rectangle{(float)toastX, (float)toastY, (float)toastW, (float)toastH}, 2,
+                             Color{255, 165, 0, a});
+
+        float textY = toastY + 15.0f;
+        DrawTextEx(GetOrLoad(FontId::KEYBIND_ENTRY), toastLine1,
+                   Vector2{(float)(toastX + 20), textY}, KEYB_TOAST_SZ, 0, Color{255, 255, 255, a});
+        textY += sz1.y + 10.0f;
+        DrawTextEx(GetOrLoad(FontId::KEYBIND_ENTRY), toastLine2,
+                   Vector2{(float)(toastX + 20), textY}, KEYB_TOAST_SZ, 0, Color{255, 255, 255, a});
+    }
 }
 
 /**
@@ -346,23 +381,46 @@ static void DrawToastNotification(const char toastLine1[128], const char toastLi
  */
 static void DrawListeningPopup(int startX, int startY, int contentW)
 {
-    const int popupX = startX + (contentW - POPUP_W) / 2;
-    const int popupY = startY + CONTENT_TOP + (CONTENT_H - POPUP_H) / 2 - 30;
+    // basch-3: texture keybindRead.png untuk popup listening
+    static Texture2D listenTex = {0};
+    if (listenTex.id == 0)
+    {
+        Image img = LoadImage("assets/textures/settingsButt/keybindRead.png");
+        if (img.data != nullptr)
+        {
+            listenTex = LoadTextureFromImage(img);
+            UnloadImage(img);
+        }
+    }
 
-    DrawRectangle(popupX, popupY, POPUP_W, POPUP_H, Color{20, 20, 30, 235});
-    DrawRectangleLinesEx(Rectangle{(float)popupX, (float)popupY, (float)POPUP_W, (float)POPUP_H}, 2, GREEN);
+    const int popupCenterX = startX + contentW / 2;
+    const int popupH = (listenTex.id != 0) ? listenTex.height : POPUP_H;
+    const int popupY = startY + CONTENT_TOP + (CONTENT_H - popupH) / 2 - 30;
 
-    const int pad = 20;
+    // basch-3: popup dengan texture, pusat box di px 234
+    if (listenTex.id != 0)
+    {
+        const int drawX = popupCenterX - 234;
+        DrawTexture(listenTex, drawX, popupY, WHITE);
+    }
+    else // basch-3: fallback — popup persegi panjang asli
+    {
+        const int popupX = startX + (contentW - POPUP_W) / 2;
+        DrawRectangle(popupX, popupY, POPUP_W, POPUP_H, Color{20, 20, 30, 235});
+        DrawRectangleLinesEx(Rectangle{(float)popupX, (float)popupY, (float)POPUP_W, (float)POPUP_H}, 2, MAGENTA);
+    }
+
+    // basch-3: warna teks diubah menjadi HITAM
     const char *line1 = "Press A Key Or Click A Mouse Button";
     const char *line2 = "ESC To Cancel";
     Vector2 sz1 = MeasureTextEx(GetOrLoad(FontId::KEYBIND_ENTRY), line1, KEYB_TOAST_SZ, 0);
     Vector2 sz2 = MeasureTextEx(GetOrLoad(FontId::KEYBIND_ENTRY), line2, KEYB_TOAST_SZ, 0);
     DrawTextEx(GetOrLoad(FontId::KEYBIND_ENTRY), line1,
-               Vector2{(float)(popupX + (POPUP_W - (int)sz1.x) / 2), (float)(popupY + 8)},
-               KEYB_TOAST_SZ, 0, WHITE);
+               Vector2{(float)(popupCenterX - (int)sz1.x / 2), (float)(popupY + 8)},
+               KEYB_TOAST_SZ, 0, BLACK);
     DrawTextEx(GetOrLoad(FontId::KEYBIND_ENTRY), line2,
-               Vector2{(float)(popupX + (POPUP_W - (int)sz2.x) / 2), (float)(popupY + 44)},
-               KEYB_TOAST_SZ, 0, GREEN);
+               Vector2{(float)(popupCenterX - (int)sz2.x / 2), (float)(popupY + 44)},
+               KEYB_TOAST_SZ, 0, MAGENTA);
 }
 
 /** @brief Scrollbar vertikal di pojok kanan konten */

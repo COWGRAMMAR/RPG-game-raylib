@@ -88,7 +88,6 @@ public:
     bool pendingSwitchMap = false; // Flag untuk memicu transisi map
     std::string pendingMapPath;    // Path map tujuan
     std::string pendingDoorName;   // Nama pintu tujuan di map baru
-    bool pendingGoBack = false;    // Flag untuk kembali ke map sebelumnya
     GameState *State = nullptr;    // Pointer ke status game global
     bool hasDroppedItems = false;  // Flag cegah double-drop pas mati
 

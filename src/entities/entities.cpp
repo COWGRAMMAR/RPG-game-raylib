@@ -10,7 +10,7 @@
  */
 
 #include "entities.h"
-#include "../../include/map/map.h"
+#include "map/map.h"
 #include "propsbehavior.h"
 #include <vector>
 #include <algorithm>

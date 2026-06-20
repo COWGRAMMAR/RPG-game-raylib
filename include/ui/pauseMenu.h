@@ -118,11 +118,11 @@ private:
     /// Tombol toggle FPS display (ON/OFF)
     buttonTxt fpsButton;
 
-    /// Tombol reset settings tab saat ini
-    buttonTxt resetTabButton;
+    /// Tombol reset tab (basch-3: diubah dari buttonTxt ke buttonImage pakai resetTab.png)
+    buttonImage resetTabButton;
 
-    /// Tombol reset semua settings
-    buttonTxt resetOptionsButton;
+    /// Tombol reset semua (basch-3: diubah dari buttonTxt ke buttonImage pakai resetAll.png)
+    buttonImage resetOptionsButton;
 
     /// Status tampilan FPS (disinkronkan dengan GameState)
     bool showFPS;

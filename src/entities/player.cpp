@@ -12,7 +12,7 @@
 
 #include "player.h"
 #include "config/game_constants.h"
-#include "../../include/systems/audioManager.h"
+#include "systems/audioManager.h"
 #include "screen.h"
 #include "movement.h"
 #include "combat.h"
@@ -50,7 +50,7 @@ void Player::Init(GameState *state, const char *spawnObjectName)
         ManaRegenTimer = 0.0f;
 
         // Inisialisasi hotbar + bag dengan semua item dari items.json (id 0-18)
-        Hotbar[0] = {1, 1}; // Steel Sword
+        Hotbar[0] = {15, 1}; // Steel Sword (1)
         Hotbar[1] = {4, 1}; // Wooden Bow
         Hotbar[2] = {2, 4}; // Health
         Hotbar[3] = {3, 4}; // Mana
@@ -245,13 +245,6 @@ void Player::Update()
         KnockbackVelocity = {0, 0};
     }
 
-    // 5. Modul Logika
-    if (InputInstance.IsGoBack())
-    {
-        pendingSwitchMap = false;
-        pendingGoBack = true;
-    }
-
     // Pergerakan bisa dilakukan bersamaan dengan animasi serangan
     Movement::HandleMovement(*this);
 
@@ -270,12 +263,6 @@ void Player::Update()
     Movement::UpdateCamera(*this);
 
     // 7. Handle map transitions
-    if (pendingGoBack)
-    {
-        pendingGoBack = false;
-        GoBack();
-        return;
-    }
     if (pendingSwitchMap)
     {
         pendingSwitchMap = false;

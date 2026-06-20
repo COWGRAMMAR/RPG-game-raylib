@@ -2,7 +2,11 @@
 
 > **PowerShell 5.1+ required for Windows. CMD is no longer supported.**
 
-## Pengaturan Pengembangan
+---
+
+## 1. First-Time Setup
+
+> Langkah satu kali — selesaikan ini sebelum build pertama.
 
 ### Alat yang Diperlukan
 
@@ -36,9 +40,13 @@ Pasang alat-alat berikut untuk membangun proyek:
 
 > **PERHATIAN**: Dukungan untuk sistem Unix (Linux/macOS) bersifat eksperimental dan memerlukan pengujian lebih lanjut. Skrip `setup.sh` telah disediakan dan `run-linux.sh` tersedia untuk menjalankan permainan, namun mungkin mengalami kendala pada beberapa distribusi.
 
-## Membangun
+---
 
-### Satu Perintah (One-Click Run)
+## 2. Building & Running
+
+### 2a. One-Click Run (recommended for first-timers)
+
+Skrip ini mengkonfigurasi, membangun, dan menjalankan permainan secara otomatis.
 
 #### Windows (PowerShell)
 
@@ -52,23 +60,24 @@ Pasang alat-alat berikut untuk membangun proyek:
 bash run-linux.sh
 ```
 
-Skrip di atas akan mengkonfigurasi, membangun, dan menjalankan permainan secara otomatis.
+### 2b. Manual Build
 
-### Mulai Cepat
+Untuk pengguna yang ingin kontrol lebih atau perlu debug build.
+
+#### Configure (sekali saja, atau setelah menambah file baru)
 
 ```bash
-# Configure (sekali saja, atau setelah menambah file baru)
-cmake --preset ninja
+cmake --preset ninja       # release build (default)
+cmake --preset ninja-debug # debug build dengan simbol
+```
 
-# Build
+#### Build
+
+```bash
 cmake --build --preset ninja
 ```
 
-File executable akan berada di `build/bin/main.exe`.
-
-#### Jalankan Program
-
-Atau gunakan `.\run-windows.ps1` (Windows) atau `bash run-linux.sh` (Linux/macOS) untuk menjalankan secara otomatis.
+#### Run
 
 ```bash
 # Linux/macOS
@@ -78,21 +87,29 @@ Atau gunakan `.\run-windows.ps1` (Windows) atau `bash run-linux.sh` (Linux/macOS
 .\build\bin\main.exe
 ```
 
-### Preset Build
+Atau gunakan `.\run-windows.ps1` (Windows) / `bash run-linux.sh` (Linux/macOS) untuk menjalankan tanpa build ulang.
+
+### 2c. Build Presets Reference
 
 | Preset | Deskripsi |
 | --- | --- |
 | `ninja` | Build release dengan optimasi (default) |
 | `ninja-debug` | Build debug dengan simbol |
 
-### Build Manual (tanpa preset)
+### 2d. Manual Build Without Presets (opsional)
 
 ```bash
 cmake -B build -G Ninja
 cmake --build build --parallel
 ```
 
-### Build Bersih
+---
+
+## 3. Maintenance
+
+### 3a. Clean Build
+
+Hapus direktori build lalu build ulang dari awal.
 
 ```bash
 # Linux/macOS
@@ -106,17 +123,13 @@ cmake --preset ninja
 cmake --build --preset ninja
 ```
 
-### Referensi Perintah
-
-| Aksi | Linux/macOS | PowerShell |
-| --- | --- | --- |
-| **Clean** | `rm -rf build` | `Remove-Item -Recurse -Force build` |
-
-## Menambahkan File Sumber Baru
+### 3b. Adding New Source Files
 
 File `.cpp` baru di `src/` akan otomatis ditemukan pada saat CMake berjalan ulang. Tidak perlu perubahan manual.
 
-## Pemecahan Masalah
+---
+
+## 4. Troubleshooting
 
 - **Error "No such file or directory"**: Jalankan `.\setup.ps1` (Windows) atau `bash setup.sh` (Linux/macOS) untuk mengunduh dependensi
 - **Build error setelah menambah file**: Jalankan `cmake --preset ninja` untuk mengkonfigurasi ulang

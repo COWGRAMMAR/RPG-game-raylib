@@ -18,7 +18,7 @@
         "startAngleOffset": 0.0,
         "sweepAngle": 0.0,
         "centerOffset": { "x": 8.0, "y": 4.0 },
-        "manaCost": 10.0,
+        "manaCost": 5.0,
         "attackType": "slash"
       }
     },
@@ -40,7 +40,7 @@
         "startAngleOffset": 55.0,
         "sweepAngle": -95.0,
         "centerOffset": { "x": 20.0, "y": 20.0 },
-        "manaCost": 15.0,
+        "manaCost": 7.0,
         "attackType": "slash"
       }
     },
@@ -94,7 +94,7 @@
         "startAngleOffset": 0.0,
         "sweepAngle": 0.0,
         "centerOffset": { "x": 8.0, "y": 4.0 },
-        "manaCost": 5.0,
+        "manaCost": 3.0,
         "attackType": "pierce"
       }
     },
@@ -310,7 +310,7 @@
         "startAngleOffset": 0.0,
         "sweepAngle": 0.0,
         "centerOffset": { "x": 10.0, "y": 20.0 },
-        "manaCost": 10.0,
+        "manaCost": 5.0,
         "attackType": "thrust"
       }
     },
@@ -332,7 +332,7 @@
         "startAngleOffset": 45.0,
         "sweepAngle": -90.0,
         "centerOffset": { "x": 10.0, "y": 20.0 },
-        "manaCost": 15.0,
+        "manaCost": 8.0,
         "attackType": "slash"
       }
     },
@@ -354,7 +354,7 @@
         "startAngleOffset": 0.0,
         "sweepAngle": 0.0,
         "centerOffset": { "x": 10.0, "y": 10.0 },
-        "manaCost": 20.0,
+        "manaCost": 12.0,
         "attackType": "slam"
       }
     }

@@ -209,6 +209,13 @@ public:
         return {Position.x + HitboxOffsetX, Position.y + HitboxOffsetY, HitboxWidth, HitboxHeight};
     }
 
+    Rectangle GetHurtbox() const override
+    {
+        float scale = Def ? Def->Scale : 1.0f;
+        float size = 32.0f * scale;
+        return {Position.x + (FRAME_SIZE - size) / 2.0f, Position.y + (FRAME_SIZE - size) / 2.0f, size, size};
+    }
+
     EnemySteering Steering; // helper steering untuk chase dan return pathfinding
 
     /** @brief Ambil velocity enemy dari frame terakhir */

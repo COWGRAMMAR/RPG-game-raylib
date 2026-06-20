@@ -179,6 +179,11 @@ public:
             HitboxHeight};
     }
 
+    Rectangle GetHurtbox() const override
+    {
+        return {Position.x, Position.y, 32.0f, 32.0f};
+    }
+
     /** @brief Get radius magnet pickup */
     float GetMagnetRadius() { return MagnetRadius; }
     /** @brief Get speed item pickup */

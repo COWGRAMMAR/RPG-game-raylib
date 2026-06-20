@@ -1,6 +1,6 @@
 #include "hud.h"
 #include "config/game_constants.h"
-#include "../../include/systems/audioManager.h"
+#include "systems/audioManager.h"
 #include "keybindManager.h"
 #include "fonts.h"
 #include "player.h"
@@ -1273,25 +1273,93 @@ void DrawSignDialog()
     if (!signManager.IsDialogActive())
         return;
 
-    DrawRectangle(0, 0, GameScreenWidth, GameScreenHeight, ColorAlpha(BLACK, 0.4f));
+    static Texture2D dialogTex = {0};
+    if (dialogTex.id == 0)
+    {
+        Image img = LoadImage("assets/textures/dialogBox.png");
+        if (img.data != nullptr)
+        {
+            dialogTex = LoadTextureFromImage(img);
+            UnloadImage(img);
+        }
+    }
+
+    if (dialogTex.id != 0) // basch-3: texture dialogBox.png sebagai latar dialog
+    {
+        int texX = (GameScreenWidth - dialogTex.width) / 2;
+        int texY = (int)(GameScreenHeight * 0.6f + GameScreenHeight * 0.15f) - dialogTex.height / 2;
+        DrawTexture(dialogTex, texX, texY, WHITE);
+    }
+    else // basch-3: fallback — overlay asli + rounded rect original
+    {
+        DrawRectangle(0, 0, GameScreenWidth, GameScreenHeight, ColorAlpha(BLACK, 0.4f));
+        Rectangle box = {
+            GameScreenWidth * 0.1f,
+            GameScreenHeight * 0.6f,
+            GameScreenWidth * 0.8f,
+            GameScreenHeight * 0.3f};
+        DrawRectangleRounded(box, 0.15f, 8, ColorAlpha(DARKGRAY, 0.95f));
+        DrawRectangleRoundedLines(box, 0.15f, 8, WHITE);
+    }
 
     Rectangle box = {
         GameScreenWidth * 0.1f,
         GameScreenHeight * 0.6f,
         GameScreenWidth * 0.8f,
         GameScreenHeight * 0.3f};
-    DrawRectangleRounded(box, 0.15f, 8, ColorAlpha(DARKGRAY, 0.95f));
-    DrawRectangleRoundedLines(box, 0.15f, 8, WHITE);
-
     const auto &lines = signManager.GetActiveDialogLines();
-    float lineY = box.y + 16;
-    for (const auto &line : lines)
+    float lineY = box.y + 36; // basch-3: teks diturunkan 20px
+
+    if (dialogTex.id != 0) // basch-3: word-wrap teks agar tidak melebihi area konten (83px dekorasi kanan)
     {
-        DrawDefaultText(line.c_str(), (int)box.x + 16, (int)lineY, 16, WHITE);
-        lineY += 22;
+        int texX = (GameScreenWidth - dialogTex.width) / 2;
+        int maxW = dialogTex.width - 83 - ((int)box.x + 16 - texX);
+        Font df = GetOrLoad(FontId::DEFAULT);
+        for (const auto &line : lines)
+        {
+            const char *p = line.c_str();
+            while (*p != '\0')
+            {
+                if (MeasureTextEx(df, p, 22, 1).x <= maxW)
+                {
+                    DrawTextEx(df, p, Vector2{(float)box.x + 16, lineY}, 22, 1, BLACK);
+                    lineY += 30;
+                    break;
+                }
+                int lastSpace = -1;
+                int i = 0;
+                for (; p[i] != '\0'; i++)
+                {
+                    if (p[i] == ' ') lastSpace = i;
+                    if (MeasureTextEx(df, TextSubtext(p, 0, i + 1), 22, 1).x > maxW)
+                        break;
+                }
+                int cut = (lastSpace > 0) ? lastSpace : (i > 0 ? i : 1);
+                DrawTextEx(df, TextSubtext(p, 0, cut), Vector2{(float)box.x + 16, lineY}, 22, 1, BLACK);
+                p += cut + (lastSpace > 0 ? 1 : 0);
+                lineY += 30;
+            }
+        }
+    }
+    else // basch-3: fallback — rendering asli (tanpa texture)
+    {
+        for (const auto &line : lines)
+        {
+            DrawDefaultText(line.c_str(), (int)box.x + 16, (int)lineY, 16, WHITE);
+            lineY += 22;
+        }
     }
 
-    DrawDefaultText("[Klik kiri] untuk tutup", (int)box.x + (int)box.width - 140, (int)box.y + (int)box.height - 20, 10, GRAY);
+    // basch-3: teks tutup — posisi berbeda tergantung ketersediaan texture
+    if (dialogTex.id != 0)
+    {
+        int contentRight = (GameScreenWidth - dialogTex.width) / 2 + dialogTex.width - 83;
+        DrawDefaultText("[Klik kiri] untuk tutup", contentRight - 140, (int)box.y + (int)box.height - 20, 14, BLACK);
+    }
+    else // basch-3: fallback — posisi & gaya asli
+    {
+        DrawDefaultText("[Klik kiri] untuk tutup", (int)box.x + (int)box.width - 140, (int)box.y + (int)box.height - 20, 10, GRAY);
+    }
 }
 
 /*==============================================================================

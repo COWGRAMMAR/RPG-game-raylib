@@ -12,7 +12,7 @@
 
 #include "player.h"
 #include "config/game_constants.h"
-#include "../../include/systems/audioManager.h"
+#include "systems/audioManager.h"
 #include "screen.h"
 #include "movement.h"
 #include "combat.h"
@@ -244,13 +244,6 @@ void Player::Update()
         KnockbackVelocity = {0, 0};
     }
 
-    // 5. Modul Logika
-    if (InputInstance.IsGoBack())
-    {
-        pendingSwitchMap = false;
-        pendingGoBack = true;
-    }
-
     // Pergerakan bisa dilakukan bersamaan dengan animasi serangan
     Movement::HandleMovement(*this);
 
@@ -269,12 +262,6 @@ void Player::Update()
     Movement::UpdateCamera(*this);
 
     // 7. Handle map transitions
-    if (pendingGoBack)
-    {
-        pendingGoBack = false;
-        GoBack();
-        return;
-    }
     if (pendingSwitchMap)
     {
         pendingSwitchMap = false;

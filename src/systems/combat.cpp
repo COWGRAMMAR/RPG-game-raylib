@@ -9,7 +9,7 @@
 #include "effects.h"
 #include "propsbehavior.h"
 #include "raymath.h"
-#include "../../include/systems/audioManager.h"
+#include "systems/audioManager.h"
 #include <algorithm>
 #include <cmath>
 #include <string>

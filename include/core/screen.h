@@ -76,7 +76,6 @@ struct GameState
 
     /* Map Switch State Variables */
     bool isSwitchingMap;         // Flag menandakan sedang dalam proses switch map
-    bool isGoingBack;            // Flag menandakan sedang dalam proses kembali ke map sebelumnya
     std::string pendingMapPath;  // Path map tujuan yang akan dimuat
     std::string pendingDoorName; // Nama door atau spawn point tujuan
 

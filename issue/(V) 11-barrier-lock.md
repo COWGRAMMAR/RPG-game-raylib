@@ -61,18 +61,36 @@ Secara flow kodenya harusnya **beres** — `ApplyPreSpawn` di case 1 set `barrie
 
 4. **Snapshot version mismatch** — `ApplyPreSpawn` ngecek `snap.version != SNAPSHOT_VERSION`. Kalo format snapshot berubah antar sesi save, `ApplyPreSpawn` return duluan.
 
-## Perlu di-investigasi lebih lanjut
-- [ ] Cek format map path yang disimpan di `mapHistoryStack` vs yang dicek `HasCheckpoint`
-- [ ] Cek apakah ada `SaveCheckpoint` call yang cukup sering untuk nangkep barrier clear event
-- [ ] Cek apakah boss room Stage 1 punya logic re-lock yang interfere
+## Fix — barrierMap + always-spawn (2026-06-19)
 
-## File yang terlibat
-- `src/core/loading_screen.cpp` — HandleMapSwitch (case 1, case 2)
-- `src/map/map.cpp` — SwitchMap, GoBack (checkpoint save trigger)
-- `src/map/propsbehavior.cpp` — BarrierManager::SpawnBarriers, Clear, ReLockBarriers
-- `src/entities/entities.cpp` — ClearTileProps (reset barrier state)
-- `src/core/savemanager.cpp` — ApplyPreSpawn, ApplyCheckpointData
+### Root Cause
+Barrier state sebelumnya cuma pake `barrierCleared + hasReLocked` di snapshot — relatif terhadap map path. Pas balik ke stage, state barrier gak konsisten karena snapshot disimpen per-stage pake format worldgen path.
+
+### Solusi
+- `barrierMap`: `std::unordered_map<string,bool>` di snapshot — kebenaran persisten per map path
+  - `SerializeBarrierMap()` / `DeserializeBarrierMap()` di save/load
+  - `CaptureSnapshot()` → dump barrierMap ke snap
+  - `ApplyPreSpawn()` → restore barrierMap ke BarrierManager
+  - `ApplyPostSpawn()` → sync barrierMap lagi setelah spawn
+- `SpawnBarriers()` **always spawn** — hapus `if (cleared) return`
+  - Barrier manager jadi runtime state machine; barrierMap = persistent truth
+- Forward worldgen reset: `SetCleared(false)` sebelum `SpawnObject()` biar barrier selalu di-worldgen
+- Checkpoint refactor: `SaveCheckpoint`/`SaveInitial` pake runtime workspace `-1` aja
+  - `MirrorToWorkspace()`, `ClearWorkspaceCheckpoints()` untuk cleanup
+- Cross-stage: map switch cukup tulis ke `-1`, checkpoint dual-write dihapus
+
+### File yang diubah
+| File | Perubahan |
+|------|-----------|
+| `include/core/savemanager.h` | Tambah barrierMap field, Serialize/DeserializeBarrierMap |
+| `src/core/savemanager.cpp` | Implementasi barrierMap di CaptureSnapshot/ApplyPreSpawn/PostSpawn |
+| `include/map/propsbehavior.h` | BarrierManager: barrierMap + SetCleared per map path |
+| `src/map/propsbehavior.cpp` | SpawnBarriers always spawn, SetCleared forward to barrierMap |
+| `src/core/loading_screen.cpp` | ApplyPreSpawn/PostSpawn sync barrierMap |
+| `src/entities/entities.cpp` | ClearTileProps reset barrier state |
+| `src/map/map.cpp` | SwitchMap, GoBack, worldgen reset |
 
 ## Status
-- Root cause:  Partial (perlu investigasi lanjutan)
-- Fix approach:  Belum ditentukan
+- Root cause:   Worldgen map path mismatch + barrier state gak persisten antar stage
+- Fix approach:  barrierMap (persistent per-map-path) + always-spawn runtime BarrierManager
+- Dibantu oleh story: `#11 Barrier lock — fixed`

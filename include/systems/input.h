@@ -35,7 +35,6 @@ struct InputState
     bool leftClickDown;
     bool rightClickDown;
     bool ctrlDown;
-    bool goBack;
     bool dropItem;
     bool dropItemAll;
 
@@ -46,9 +45,6 @@ struct InputState
 
     // Absorbed from rogues (were hardcoded in main.cpp / debugmode.cpp)
     bool pauseMenu;
-    bool debugToggle;
-    bool debugToggleEnemy;
-    bool debugTogglePlayer;
 
     float mouseWheel;
 };
@@ -103,8 +99,6 @@ public:
     bool IsRightClickDown() const { return Current.rightClickDown; }
     /** @brief Cek tombol Ctrl ditahan */
     bool IsCtrlDown() { return Current.ctrlDown; }
-    /** @brief Cek tombol kembali (back) */
-    bool IsGoBack() const { return Current.goBack; }
     /** @brief Cek drop item */
     bool IsDropItem() const { return Current.dropItem; }
     /** @brief Cek drop seluruh item */

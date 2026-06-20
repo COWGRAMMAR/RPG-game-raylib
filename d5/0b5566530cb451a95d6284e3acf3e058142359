@@ -1,0 +1,30 @@
+docs/font-system.md
+  s_006923ea3efb1b::t_253bb6ebc5fcbf 299
+  s_006923ea3efb1b::t_06f7b149ffc6ae 60-61
+docs/sign-system-ui.md
+  s_ebec3ca9fe2698::t_126bcf07cc7993 118-121
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.8",
+  "base_commit_sha": "d50b5566530cb451a95d6284e3acf3e058142359",
+  "prompts": {},
+  "sessions": {
+    "s_006923ea3efb1b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_11b153e61ffe6PsW9T6mp010gW",
+        "model": "unknown"
+      },
+      "human_author": "NiskoDT <65821447+NiskoDT@users.noreply.github.com>"
+    },
+    "s_ebec3ca9fe2698": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_11b14f5b8ffeYTjlyWEMlmTlNh",
+        "model": "unknown"
+      },
+      "human_author": "NiskoDT <65821447+NiskoDT@users.noreply.github.com>"
+    }
+  }
+}

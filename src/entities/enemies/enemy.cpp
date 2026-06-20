@@ -1044,6 +1044,7 @@ void Enemy::Render()
         DrawCircleLinesV(enemyCenter, DetectionRange, Fade(GRAY, 0.6f));
         DrawCircleLinesV(enemyCenter, Def->stats.attackRange, RED);
         DrawRectangleLinesEx(GetHitbox(), 1.0f, VIOLET);
+        DrawRectangleLinesEx(GetHurtbox(), 1.0f, YELLOW);
 
         if (AIState == ENEMY_CHASE || AIState == ENEMY_ATTACK)
             DrawLineEx(enemyCenter, PlayerInstance.GetCenter(), 1.0f, RED);

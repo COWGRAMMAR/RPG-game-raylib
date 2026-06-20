@@ -499,6 +499,7 @@ void Debug::DrawWorldOverlay(void)
     Rectangle playerHitbox = PlayerInstance.GetHitbox();
 
     DrawRectangleLinesEx(playerHitbox, 2.0f, LIME);
+    DrawRectangleLinesEx(PlayerInstance.GetHurtbox(), 2.0f, YELLOW);
 
     // Magnet radius overlay
     Vector2 playerCenter = PlayerInstance.GetCenter();

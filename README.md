@@ -1,13 +1,51 @@
-# Game RPG - Raylib
+<h1 align="center">BREACH &amp; LOOT</h1>
 
-Game RPG 2D yang dibuat dengan Raylib.
+<!-- Game logo -->
+![Game Logo](assets/textures/logo.png)
+
+<!-- Screenshot gameplay 2x2 grid -->
+<div align="center">
+  <table>
+    <tr>
+      <td align="center" width="50%">
+        <img src="assets/images/gameplayScreenshots/screenshot_mainMenu.png" alt="Main Menu" width="100%">
+      </td>
+      <td align="center" width="50%">
+        <img src="assets/images/gameplayScreenshots/screenshot_gameplay1.png" alt="Gameplay" width="100%">
+      </td>
+    </tr>
+    <tr>
+      <td align="center" width="50%">
+        <img src="assets/images/gameplayScreenshots/screenshot_turnbased.png" alt="Turn-Based Combat" width="100%">
+      </td>
+      <td align="center" width="50%">
+        <img src="assets/images/gameplayScreenshots/screenshot_bossgameplay.png" alt="Boss Combat" width="100%">
+      </td>
+    </tr>
+    <tr>
+      <td align="center" width="50%">
+        <img src="assets/images/gameplayScreenshots/screenshot_explosion.png" alt="Explosion Effects" width="100%">
+      </td>
+      <td align="center" width="50%">
+        <img src="assets/images/gameplayScreenshots/screenshot_attackbow.png" alt="Bow Attack" width="100%">
+      </td>
+    </tr>
+  </table>
+</div>
+
+Game RPG 2D bertema fantasi yang dibuat dengan Raylib (C++).
+<!-- TODO: tambah deskripsi lebih detail -- genre, setting, gameplay loop -->
 
 ## Fitur
 
-- Main menu dengan button components
-- Player movement system
-- Tilemap support (Tileson JSON)
-- Virtual screen rendering (640x360)
+- Movement & interaksi tilemap (Tileson JSON)
+- Combat turn-based dengan entity arrow & efek buff
+- Inventory management dengan BST sorting
+- Save/load system multi-slot (GameSnapshot + SaveManager)
+- UI settings: video, audio, keybind customization
+- World generation procedural
+- Font system dengan lazy-load atlas caching
+- Debug mode dengan overlay informasi
 
 ## Persyaratan
 
@@ -16,13 +54,6 @@ Game RPG 2D yang dibuat dengan Raylib.
 - **CMake**: >= 3.20
 - **Ninja**
 - **Git**
-
-## Dependencies
-
-- **Raylib 6.0**: Auto-download via `setup.ps1` (Windows) atau `setup.sh` (Linux/macOS)
-- **Tileson**: Download manual dari [GitHub Tileson](https://github.com/SSBMTonberry/tileson), copy `tileson.hpp` ke `lib/tileson/`
-
-> **PERHATIAN**: Dukungan untuk sistem Unix (Linux/macOS) bersifat eksperimental dan memerlukan pengujian lebih lanjut. Skrip `setup.sh` telah disediakan namun mungkin mengalami kendala pada beberapa distribusi.
 
 ## Setup Pertama Kali
 
@@ -58,10 +89,13 @@ Ini akan:
 ### Jalankan Game
 
 ```bash
-./build/bin/main.exe   # Linux/macOS
+# Linux/macOS
+./build/bin/main
+
+# Windows (Powershell)
 .\build\bin\main.exe   # Windows PowerShell
 ```
 
 ### Build
 
-Untuk instruksi build, lihat [Halaman Build](docs/build.md)
+Untuk instruksi build dan dokumentasi lainnya, lihat [Dokumentasi Projek](docs/README.md)

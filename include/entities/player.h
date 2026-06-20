@@ -178,6 +178,11 @@ public:
             HitboxHeight};
     }
 
+    Rectangle GetHurtbox() const override
+    {
+        return {Position.x, Position.y, 32.0f, 32.0f};
+    }
+
     /** @brief Get radius magnet pickup */
     float GetMagnetRadius() { return MagnetRadius; }
     /** @brief Get speed item pickup */
@@ -217,7 +222,7 @@ public:
     float InvincibilityTimerMax = 0.0f;///< Max durasi invincibility (untuk progress bar)
 
     // movement
-    float Speed = 6.0f;         // Kecepatan gerak dasar 
+    float Speed = 5.0f;         // Kecepatan gerak dasar 
     float DashSpeed = 0.0f;       // Current dash speed tambahan
     float DashMaxSpeed = 4.0f;    // Max dash speed
     float DashDecel = 0.06f;      // Lerp factor deselerasi

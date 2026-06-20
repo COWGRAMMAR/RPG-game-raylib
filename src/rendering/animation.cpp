@@ -29,7 +29,9 @@ static TextureSlot ResolveTextureSlot(const std::string &str)
         {"TILESET_ITEMS", TILESET_ITEMS},
         {"SPRITESHEET_KNIGHT", SPRITESHEET_KNIGHT},
         {"SPRITESHEET_ENEMIES", SPRITESHEET_ENEMIES},
-        {"SPRITESHEET_EFFECTS", SPRITESHEET_EFFECTS}};
+        {"SPRITESHEET_EFFECTS", SPRITESHEET_EFFECTS},
+        {"SPRITESHEET_ENEMIES_ELITE", SPRITESHEET_ENEMIES_ELITE},
+        {"SPRITESHEET_ENEMY_BOSS", SPRITESHEET_ENEMY_BOSS}};
     auto it = mapping.find(str);
     if (it != mapping.end())
         return it->second;
@@ -115,6 +117,8 @@ void InitTextures()
     LoadFrameTexture(SPRITESHEET_KNIGHT, "assets/textures/knight (1).png");
     LoadFrameTexture(SPRITESHEET_ENEMIES, "assets/textures/enemies.png");
     LoadFrameTexture(SPRITESHEET_EFFECTS, "assets/textures/effects.png");
+    LoadFrameTexture(SPRITESHEET_ENEMIES_ELITE, "assets/textures/elite-enemies.png");
+    LoadFrameTexture(SPRITESHEET_ENEMY_BOSS, "assets/textures/boss-enemies.png");
     LoadFramesFromJSON();
     LoadAnimationsFromJSON();
 }
@@ -182,7 +186,9 @@ static State ResolveState(const std::string &str)
         {"idle", IDLE},
         {"walk", WALK},
         {"attack", ATTACK},
-        {"dead", DEAD}};
+        {"dead", DEAD},
+        {"ability1", ABILITY1},
+        {"ability2", ABILITY2}};
     auto it = mapping.find(str);
     if (it != mapping.end())
         return it->second;
@@ -217,7 +223,7 @@ void LoadAnimationsFromJSON()
         for (auto &[entityKey, entityVal] : root.items())
         {
             AnimationSet set;
-            for (int s = 0; s < 4; s++)
+            for (int s = 0; s < 6; s++)
             {
                 for (int d = 0; d < 4; d++)
                 {
@@ -275,7 +281,7 @@ void PlayAnimation(Animation &anim, State state, Direction direction)
 
             if (anim.currentConfig)
             {
-                for (int s = 0; s < 4; s++)
+                for (int s = 0; s < 6; s++)
                 {
                     if (anim.currentConfig == &anim.animSet->configs[s][LEFT])
                         wasLeft = true;

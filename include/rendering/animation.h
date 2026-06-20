@@ -10,7 +10,7 @@ constexpr int FRAME_SIZE = 32;
 /** @brief Gap antar frame di spritesheet */
 constexpr int FRAME_GAP = 4;
 /** @brief Jumlah maksimum texture slot */
-constexpr int MAX_TEXTURES = 7;
+constexpr int MAX_TEXTURES = 9;
 
 /** @brief Array global texture */
 extern Texture2D textures[MAX_TEXTURES];
@@ -18,13 +18,15 @@ extern Texture2D textures[MAX_TEXTURES];
 /** @brief Slot index untuk texture lookup */
 enum TextureSlot
 {
-    TILESET_MAP_1,      // Slot tileset map 1
-    TILESET_MAP_2,      // Slot tileset map 2
-    TILESET_PROPS,      // Slot tileset props
-    TILESET_ITEMS,      // Slot tileset items
-    SPRITESHEET_KNIGHT, // Slot spritesheet knight
-    SPRITESHEET_ENEMIES,// Slot spritesheet enemies
-    SPRITESHEET_EFFECTS // Slot spritesheet effects
+    TILESET_MAP_1,              // Slot tileset map 1
+    TILESET_MAP_2,              // Slot tileset map 2
+    TILESET_PROPS,              // Slot tileset props
+    TILESET_ITEMS,              // Slot tileset items
+    SPRITESHEET_KNIGHT,         // Slot spritesheet knight
+    SPRITESHEET_ENEMIES,        // Slot spritesheet enemies
+    SPRITESHEET_EFFECTS,        // Slot spritesheet effects
+    SPRITESHEET_ENEMIES_ELITE,  // Slot spritesheet elite enemies
+    SPRITESHEET_ENEMY_BOSS      // Slot spritesheet boss enemy
 };
 
 /** @brief Referensi ke satu frame dalam spritesheet */
@@ -67,10 +69,12 @@ void DrawFrame(const std::string &id, Display display);
 /** @brief State animasi entity */
 enum State
 {
-    IDLE,  // Idle / diam
-    WALK,  // Berjalan
-    ATTACK,// Menyerang
-    DEAD   // Mati
+    IDLE,       // Idle / diam
+    WALK,       // Berjalan
+    ATTACK,     // Menyerang
+    DEAD,       // Mati
+    ABILITY1,   // Serangan Khusus
+    ABILITY2    // Serangan Khusus
 };
 
 /** @brief Arah hadap entity */
@@ -93,7 +97,7 @@ struct AnimationConfig
 /** @brief Kumpulan konfigurasi animasi untuk satu entity */
 struct AnimationSet
 {
-    AnimationConfig configs[4][4]; // [State][Direction] -> konfigurasi animasi
+    AnimationConfig configs[6][4]; // [State][Direction] -> konfigurasi animasi
 };
 
 /** @brief Runtime state animasi */

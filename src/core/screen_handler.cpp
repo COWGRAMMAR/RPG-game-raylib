@@ -280,7 +280,7 @@ void UpdateLogicAll()
         for (Entity *entity : Entities::GetRegistry())
         {
             Enemy *enemy = dynamic_cast<Enemy *>(entity);
-            if (enemy && enemy->IsActive && enemy->isTurnBasedMode)
+            if (enemy && enemy->IsActive && enemy->Health > 0 && enemy->isTurnBasedMode)
             {
                 if (PlayerInstance.Health <= 0)
                     continue;
@@ -443,17 +443,17 @@ void DrawUIOverlay(GameState *state)
     // 3. Sign dialog overlay (placeholder UI)
     DrawSignDialog();
 
-    // 4. Menus
-    if (pauseMenu.IsActive())
-    {
-        Vector2 mousePos = GetVirtualMousePosition(state);
-        pauseMenu.Draw(mousePos);
-    }
-
     // 4. Turn-based combat overlay
     if (TurnCombat::IsActive())
     {
         TurnCombat::Draw();
+    }
+
+    // 5. Menus (paling depan, di atas turn base)
+    if (pauseMenu.IsActive())
+    {
+        Vector2 mousePos = GetVirtualMousePosition(state);
+        pauseMenu.Draw(mousePos);
     }
 }
 

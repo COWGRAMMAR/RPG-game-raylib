@@ -108,6 +108,7 @@ void UpdateMainMenu(GameState *state)
                 // GC worldseed: hapus save_N/ yang gak dipake save manapun
                 WorldgenIO::CleanupOrphanedSlots();
                 Entities::ClearDeadEntities();
+                std::filesystem::remove_all("saves/slot_0/checkpoints");
                 std::filesystem::remove_all("saves/slot_0/enemies");
                 std::filesystem::remove_all("saves/slot_0/items");
                 state->enteredLoading = false;

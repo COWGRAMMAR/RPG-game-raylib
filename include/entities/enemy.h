@@ -46,11 +46,13 @@ constexpr int LOOT_RARITY_ELITE_RARE     = 30;
 /** @brief Status AI untuk perilaku musuh (FSM) */
 enum EnemyAIState
 {
-    ENEMY_IDLE,   // Berdiri diam atau menunggu
-    ENEMY_PATROL, // Bergerak antar titik acak di sekitar titik spawn
-    ENEMY_CHASE,  // Mengejar pemain
-    ENEMY_ATTACK, // Menjalankan animasi/logika serangan
-    ENEMY_RETURN  // Kembali ke titik spawn setelah kehilangan pemain
+    ENEMY_IDLE,     // Berdiri diam atau menunggu
+    ENEMY_PATROL,   // Bergerak antar titik acak di sekitar titik spawn
+    ENEMY_CHASE,    // Mengejar pemain
+    ENEMY_ATTACK,   // Menjalankan animasi/logika serangan
+    ENEMY_RETURN,   // Kembali ke titik spawn setelah kehilangan pemain
+    ENEMY_ABILITY1, // Menjalankan animasi/logika serangan khusus
+    ENEMY_ABILITY2  // Menjalankan animasi/logika serangan khusus
 };
 
 /** @brief Mode raycast untuk deteksi LoS enemy */
@@ -163,6 +165,7 @@ public:
 
     void UpdateAI();       // Titik masuk utama logika AI, dipanggil tiap frame
     bool CheckPlayerLoS(); // Cek Line of Sight ke pemain via raycasting
+    Rectangle GetAbilityZone() const; // Danger zone rectangle saat elite ability wind-up
 
     // --- Definisi ---
     const EnemyDefinition *Def = nullptr; // Pointer ke definisi tipe, di-assign saat Init
@@ -272,12 +275,14 @@ public:
     const float DeathDuration = 1.2f; // Durasi animasi kematian sebelum di-deactivate
 
 private:
-    void HandleIdle();    // Jalankan state idle
-    void HandlePatrol();  // Jalankan state patrol
-    void HandleChase();   // Jalankan state chase
-    void HandleAttack();  // Jalankan state attack
-    void HandleReturn();  // Jalankan state return
-    void PerformAttack(); // Eksekusi damage ke player
+    void HandleIdle();     // Jalankan state idle
+    void HandlePatrol();   // Jalankan state patrol
+    void HandleChase();    // Jalankan state chase
+    void HandleAttack();   // Jalankan state attack
+    void HandleAbility1(); // Jalankan state ability1 (elite special / boss AOE slam)
+    void HandleAbility2(); // Jalankan state ability2 (boss charge)
+    void HandleReturn();   // Jalankan state return
+    void PerformAttack();  // Eksekusi damage ke player
 
     FlowField *ReturnFlowField = nullptr; // Flow field untuk kembali ke spawn
 
@@ -292,7 +297,14 @@ private:
 
     float AttackCooldownTimer;         // Sisa waktu cooldown serangan (runtime)
     const float AttackCooldown = 1.0f; // Durasi cooldown antar serangan
+    float AttackWindUpTimer = 0.0f;    // Timer wind-up serangan elite sebelum damage (runtime)
+    float AbilityTimer = 0.0f;         // Timer periodik ability elite (4-5 detik)
+    float BossAbilityTimer = 0.0f;     // Timer periodik ability boss AOE slam (5 detik)
+    float BossAbility2Timer = 0.0f;    // Timer periodik ability boss charge (7 detik)
     bool PlayerWasInRange = false;     // Flag mencegah serangan ganda dalam satu frame
+    float ChargeDistanceRemaining = 0.0f;     // Sisa jarak charge ability2 (pixel)
+    Vector2 ChargeDir = {0, 0};              // Arah charge ability2
+    bool ChargeHitPlayer = false;            // Cegah multiple hit per charge
 
     void MoveTowards(Vector2 target, float speed); // Helper gerak ke target dengan collision check
 };

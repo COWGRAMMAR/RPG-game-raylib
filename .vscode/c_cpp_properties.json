@@ -1,11 +1,19 @@
 {
     "configurations": [
         {
-            "name": "Win32",
-            "compilerPath": "C:/Users/ASUS/scoop/apps/mingw-mstorsjo-llvm-ucrt/current/bin/clang++.exe",
+            "name": "windows-gcc-x64",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "${workspaceFolder}/lib/json/include"
+            ],
+            "compilerPath": "gcc",
+            "cStandard": "${default}",
+            "cppStandard": "c++23",
             "intelliSenseMode": "windows-clang-x64",
             "compileCommands": "${workspaceFolder}/build/compile_commands.json",
-            "cppStandard": "c++23"
+            "compilerArgs": [
+                ""
+            ]
         }
     ],
     "version": 4

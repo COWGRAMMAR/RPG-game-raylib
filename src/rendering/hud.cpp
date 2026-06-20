@@ -1228,6 +1228,10 @@ void DrawPlayerHUD()
         hudTexLoaded = true;
     }
 
+    // Sembunyikan HUD player selama turn-based combat
+    if (TurnCombat::IsActive())
+        return;
+
     // 1. Stat bars
     DrawStatBars();
 

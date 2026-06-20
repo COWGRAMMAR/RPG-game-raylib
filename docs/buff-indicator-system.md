@@ -22,34 +22,36 @@ DrawPlayerHUD() [hud.cpp]
   Panggil DrawBuffIndicators() — render stacked progress bars
 ```
 
-### 1. Trigger: UsePotion() — `src/items/inventory.cpp:89-176`
+### 1. Trigger: UsePotion() — `src/items/inventory.cpp:90-178`
 
 Fungsi `UsePotion()` di-invoke pas player minum potion dari hotbar. Urutan:
 
 1. **Cooldown check** (baris 106-111) — per-kategori, tolak kalo masih cooldown
-2. **Heal/mana** (baris 130-142) — kalo potion punya healValue
-3. **Set buff** (baris 144-165):
+2. **Heal/mana** (baris 130-143) — kalo potion punya healValue
+3. **Set buff** (baris 146-167):
    - Damage: set `BuffDamageTimer`, `BuffDamageTimerMax`, `BuffDamageMultiplier`
    - Speed: set `BuffSpeedTimer`, `BuffSpeedTimerMax`, `BuffSpeedMultiplier`
    - Invincibility: set `InvincibilityTimer`, `InvincibilityTimerMax`
-4. **Set cooldown** (baris 167-168) — per-kategori
+4. **Set cooldown** (baris 168-170) — per-kategori
 
-### 2. Tick: Player::Update() — `src/entities/player.cpp:186-220`
+### 2. Tick: Player::Update() — `src/entities/player.cpp:199-229`
 
 Dipanggil tiap frame di `Player::Update()`. Tiap buff:
 
 ```txt
-if (BuffDamageTimer > 0)
+if (BuffDamageTimer > 0) {
     BuffDamageTimer -= Time::DELTA_TIME;
-    if (BuffDamageTimer <= 0)
+    if (BuffDamageTimer <= 0) {
         BuffDamageTimer = 0;
         BuffDamageMultiplier = 1.0f;
         Effects::AddLog("Efek Damage Berakhir");
+    }
+}
 ```
 
 Hal yang sama untuk Speed dan Invincibility.
 
-### 3. Reset on Death — `src/ui/gameOverScreen.cpp:63-68`
+### 3. Reset on Death — `src/ui/gameOverScreen.cpp:66-71`
 
 Pas player mati (game over screen), buff di-reset:
 
@@ -62,9 +64,9 @@ PlayerInstance.InvincibilityTimer = 0.0f;
 PlayerInstance.InvincibilityTimerMax = 0.0f;
 ```
 
-### 4. Render: DrawBuffIndicators() — `src/rendering/hud.cpp:784-870`
+### 4. Render: DrawBuffIndicators() — `src/rendering/hud.cpp:916-1008`
 
-Static function, dipanggil dari `DrawPlayerHUD()` (baris 935).
+Static function, dipanggil dari `DrawPlayerHUD()` (baris 1239).
 
 ## Detail Implementasi DrawBuffIndicators()
 
@@ -72,8 +74,8 @@ Static function, dipanggil dari `DrawPlayerHUD()` (baris 935).
 
 - **File**: `src/rendering/hud.cpp`
 - **Fungsi**: `static void DrawBuffIndicators()` (static — cuma dipake di file ini)
-- **Dipanggil dari**: `DrawPlayerHUD()` baris 935 — SEBELUM `DrawHotbar()`
-- **Posisi render**: Dihitung dari health bar position, stack ke ATAS (dari health bar → mana bar → dash bar → buff bars)
+- **Dipanggil dari**: `DrawPlayerHUD()` baris 1239 — SEBELUM `DrawHotbar()`
+- **Posisi render**: Dihitung dari health bar position, stack ke ATAS (dari dash bar → mana bar → health bar → buff bars)
 
 ### Struktur Visual
 
@@ -107,7 +109,7 @@ struct {
 
 Hanya buff dengan timer > 0 yang dirender. Urutan stack: Damage → Speed → Invul (dari atas ke bawah).
 
-### Variables di Player — `include/entities/player.h:213-218`
+### Variables di Player — `include/entities/player.h:212-217`
 
 ```cpp
 float BuffDamageTimer = 0.0f;        ///< Timer durasi buff damage
@@ -130,8 +132,8 @@ float BuffSpeedMultiplier = 1.0f;    // Dipakai di sistem movement
 Cooldown potion per-kategori disimpan di:
 
 ```cpp
-float PotionCategoryCooldowns[5];      // Current cooldown
-float PotionCategoryCooldownMax[5];    // Max cooldown (dari JSON)
+float PotionCategoryCooldowns[POTION_CATEGORY_COUNT];      // Current cooldown
+float PotionCategoryCooldownMax[POTION_CATEGORY_COUNT];    // Max cooldown (dari JSON)
 ```
 
 Ini di-tick di `HandleInventoryActions()` tiap frame, dan di-render sebagai overlay CircleSector + teks di hotbar/inventory slot. **BUKAN** bagian dari buff indicator — dua sistem terpisah.
@@ -143,12 +145,12 @@ Ini di-tick di `HandleInventoryActions()` tiap frame, dan di-render sebagai over
 - Posisi Y dihitung relatif dari `GameScreenHeight - padding`
 - Kalo turn-based punya screen sendiri / layout sendiri, bisa:
   - **Panggil ulang** `DrawBuffIndicators()` di screen render function turn-based
-  - **Atau** extract logika per-entry loop (baris 821-868) ke fungsi terpisah biar lebih reusable
+  - **Atau** extract logika per-entry loop (baris 960-1007) ke fungsi terpisah biar lebih reusable
   - **Atau** matikan panggilan di `DrawPlayerHUD()` kalo lagi turn-based mode
 
 ### 2. Array buffs[] static — gampang ditambah
 
-Array `buffs[]` di baris 796-800 hardcoded 3 entries. Kalo ada buff baru (Stamina regen, Poison, etc.), tinggal tambah entry + variable di Player. Warna panggung sendiri.
+Array `buffs[]` di baris 934-938 hardcoded 3 entries. Kalo ada buff baru (Stamina regen, Poison, etc.), tinggal tambah entry + variable di Player. Warna panggung sendiri.
 
 ### 3. Sprite key hardcoded
 

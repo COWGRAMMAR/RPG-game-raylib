@@ -16,10 +16,11 @@ Pasang alat-alat berikut untuk membangun proyek:
 
 | Alat | Windows (scoop) | macOS (brew) | Linux (apt) |
 | --- | --- | --- | --- |
-| **Compiler (gcc)** | `scoop install gcc` atau `scoop install mingw-mstorsjo-llvm-ucrt` (Clang) | `brew install gcc` | `apt install gcc` |
+| **Compiler (gcc)** | `scoop install gcc` atau `scoop install mingw-mstorsjo-llvm-ucrt` (Clang) | Xcode CLT (Apple Clang, otomatis terdeteksi CMake) atau `brew install gcc` sebagai opsi | `apt install gcc` |
 | **CMake** | `scoop install cmake` | `brew install cmake` | `apt install cmake` |
 | **Ninja** | `scoop install ninja` | `brew install ninja` | `apt install ninja-build` |
 | **ccache** | `scoop install ccache` | `brew install ccache` | `apt install ccache` |
+| **FFmpeg** | (bundel melalui `setup.ps1`) | `brew install ffmpeg` | `apt install libavcodec-dev libavformat-dev libavutil-dev libswresample-dev libswscale-dev` |
 
 ### Pengaturan Pertama
 
@@ -38,7 +39,7 @@ Pasang alat-alat berikut untuk membangun proyek:
    bash setup.sh
    ```
 
-> **PERHATIAN**: Dukungan untuk sistem Unix (Linux/macOS) bersifat eksperimental dan memerlukan pengujian lebih lanjut. Skrip `setup.sh` telah disediakan dan `run-linux.sh` tersedia untuk menjalankan permainan, namun mungkin mengalami kendala pada beberapa distribusi.
+> **CATATAN**: Dukungan untuk sistem Unix (Linux/macOS) telah diuji pada Ubuntu, Debian, dan macOS. Skrip `setup.sh` telah disediakan dan `run-linux.sh` tersedia untuk menjalankan permainan.
 
 ---
 
@@ -53,6 +54,8 @@ Skrip ini mengkonfigurasi, membangun, dan menjalankan permainan secara otomatis.
 ```powershell
 .\run-windows.ps1
 ```
+
+Atau gunakan `.\run-windows.bat` jika terdapat kebijakan eksekusi PowerShell yang membatasi.
 
 #### Linux/macOS (Bash)
 
@@ -88,6 +91,8 @@ cmake --build --preset ninja
 ```
 
 Atau gunakan `.\run-windows.ps1` (Windows) / `bash run-linux.sh` (Linux/macOS) untuk menjalankan tanpa build ulang.
+
+Untuk pengguna Windows, `Breach&Loot.bat` juga tersedia sebagai peluncur cepat.
 
 ### 2c. Build Presets Reference
 
@@ -137,4 +142,4 @@ File `.cpp` baru di `src/` akan otomatis ditemukan pada saat CMake berjalan ulan
 - **`run-windows.ps1` tidak bisa dijalankan**: Jalankan PowerShell sebagai administrator, lalu `Set-ExecutionPolicy RemoteSigned -Scope CurrentUser`
 - **`run-linux.sh` tidak bisa dijalankan**: Jalankan `chmod +x run-linux.sh` lalu coba lagi
 
-> **CATATAN**: Jika mengalami kendala pada sistem Linux/macOS, periksa apakah semua alat (gcc, cmake, ninja) telah terpasang dengan benar. Skrip `setup.sh` masih bersifat eksperimental.
+> **CATATAN**: Jika mengalami kendala pada sistem Linux/macOS, periksa apakah semua alat (gcc, cmake, ninja) telah terpasang dengan benar. Skrip `setup.sh` menangani sebagian besar dependensi secara otomatis.

@@ -72,7 +72,7 @@ Struct `GameSnapshot` merepresentasikan **seluruh state runtime game** pada satu
 | Field | Tipe | Deskripsi |
 |---|---|---|
 | **Version** | | |
-| `version` | int | `SNAPSHOT_VERSION = 1` |
+| `version` | int | Default `-1`, diset ke `SNAPSHOT_VERSION=1` hanya saat capture/load berhasil |
 | **Player** | | |
 | `playerPosition` | Vector2 | Posisi player di world |
 | `playerHealth` | float | HP saat ini |
@@ -238,11 +238,11 @@ Player masuk pintu ke map lain
 ```
 Player klik Continue
   → LoadManual(g_ActiveSaveSlot)         # Baca slot_N/manual/snapshot.json
-  → MirrorToWorkspace(g_ActiveSaveSlot)  # Copy checkpoints/manual/autosave ke -1
   → HandleFastPath:
        ApplyPreSpawn(snap)             # Restore consumed state
        InitAll()                       # Load map + spawn everything
        RestoreGameState(state)         # Restore player HP, inventory, dll
+       MirrorToWorkspace(g_ActiveSaveSlot)  # Copy checkpoints/manual/autosave ke -1
 ```
 
 **MirrorToWorkspace = 3 langkah:**
@@ -276,9 +276,11 @@ Player klik Restart
   → ClearWorkspaceCheckpoints()       # Hapus checkpoints lama
   → LoadInitial(-1)                   # Baca snapshot_initial.json
   → ApplyPreSpawn(snap)
-  → SpawnObject()
   → SpawnEnemiesFromMap()
+  → SpawnItemWave()
   → ApplyPostSpawn(snap)
+  → SpawnObject()
+  → RebuildObstacleCache()
 ```
 
 **Kenapa gak perlu reload map?** Karena slot_-1 selalu berisi snapshot dari **map yang lagi dimainin**. Setiap ganti map → `HandleMapSwitch` → `CaptureInitialSnapshot(-1)` di akhir stage 2. Jadi restart gak perlu reload map — snapshot sudah sesuai map yang aktif.
@@ -294,9 +296,7 @@ static bool s_OldMapHasInitialSnapshot = false;
 
 // Stage 0 — sebelum UnloadMap
 {
-    auto oldTileson = tilesonMap; // snapshot before unload
-    auto objects = TilesonGetObjectsByType(oldTileson, "initial_snapshot");
-    s_OldMapHasInitialSnapshot = !objects.empty();
+    s_OldMapHasInitialSnapshot = !TilesonGetObjectsByType("initial_snapshot").empty();
 }
 UnloadMap();
 
@@ -318,7 +318,7 @@ Tiga mode loading screen, dipilih berdasarkan state:
 
 ```
 UpdateLoadingScreen()
-├── isSwitchingMap || isGoingBack → HandleMapSwitch()
+├── isSwitchingMap                → HandleMapSwitch()
 ├── assetsLoaded (true)           → HandleFastPath()
 └── else                          → HandleInitialLoad()
 ```
@@ -359,7 +359,7 @@ Ini memastikan ApplyPreSpawn/ApplyPostSpawn bisa match entity dengan benar antar
 
 | Method | When | What it restores |
 |---|---|---|
-| `ApplyPreSpawn` | BEFORE SpawnObject | `deadEntities`, `chestConsumed`, `bombConsumed`, `crateConsumed`, `barrierMap` |
+| `ApplyPreSpawn` | BEFORE SpawnObject | `chestConsumed`, `bombConsumed`, `crateConsumed`, `barrierMap` |
 | `ApplyCheckpointData` | AFTER SpawnEnemiesFromMap + SpawnItemWave | Enemy HP/AIState, world items (full replacement), chest/bomb/crate consumed, barrier |
 | `ApplyPostSpawn` | AFTER SpawnObject (restart path) | Same as ApplyCheckpointData + player stats + camera + mapHistory |
 
@@ -487,9 +487,9 @@ Restore: `ApplyPreSpawn` memanggil `SetConsumedPositions()` pada masing-masing m
 | Location | When |
 |---|---|
 | main.cpp:301 | Timer autosave (berkala) |
-| loading_screen.cpp:246 | Map switch selesai (Stage 3) |
-| loading_screen.cpp:321 | HandleFastPath new game |
-| loading_screen.cpp:434 | HandleInitialLoad new game |
+| loading_screen.cpp:257 | Map switch selesai (Stage 3) |
+| loading_screen.cpp:332 | HandleFastPath new game |
+| loading_screen.cpp:444 | HandleInitialLoad new game |
 
 ---
 

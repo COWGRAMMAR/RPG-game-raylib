@@ -21,6 +21,7 @@
 #include "core/utils.h"
 #include "game_debug.h"
 #include "animation.h"
+#include "combatTurn.h"
 #include <sstream>
 
 /*==============================================================================
@@ -119,9 +120,17 @@ void HitPropsByAttack(Rectangle attackHitbox, Rectangle playerBounds, Player *pl
 {
     g_PendingObstacleRebuild = false;
 
-    bombManager.HitByAttack(attackHitbox, playerBounds, player);
+    // Build solid obstacles untuk LOS check (static walls + dynamic minus crate/bomb)
+    std::vector<Rectangle> solidObstacles = gCollisionCache.rects;
+    for (const auto &obs : DynamicObstacles)
+    {
+        if (!crateManager.IsCratePos(obs) && !bombManager.IsBombPos(obs))
+            solidObstacles.push_back(obs);
+    }
 
-    crateManager.HitByAttack(attackHitbox);
+    bombManager.HitByAttack(attackHitbox, playerBounds, player, solidObstacles);
+
+    crateManager.HitByAttack(attackHitbox, playerBounds, solidObstacles);
 
     if (g_PendingObstacleRebuild)
     {
@@ -444,15 +453,16 @@ void SpikeManager::Update(float deltaTime, Rectangle playerBounds, Player *playe
             spike.onDeactivate(spike.tile);
             continue;
         }
-        // damage player
+        // damage player (skip during turn-based combat)
         if (CheckCollisionRecs(playerBounds, spike.tile.bounds) && globalPlayerDamageCooldown <= 0.0f && player)
         {
             globalPlayerDamageCooldown = SPIKE_DAMAGE_COOLDOWN;
-            player->TakeDamage(SPIKE_DAMAGE);
+            if (!TurnCombat::IsActive())
+                player->TakeDamage(SPIKE_DAMAGE);
         }
 
-        // damage enemy
-        if (globalEnemyDamageCooldown <= 0.0f)
+        // damage enemy (skip during turn-based combat)
+        if (globalEnemyDamageCooldown <= 0.0f && !TurnCombat::IsActive())
         {
             for (auto entity : Entities::GetRegistry())
             {
@@ -462,7 +472,10 @@ void SpikeManager::Update(float deltaTime, Rectangle playerBounds, Player *playe
                 if (CheckCollisionRecs(spike.tile.bounds, enemy->GetHitbox()))
                 {
                     globalEnemyDamageCooldown = SPIKE_DAMAGE_COOLDOWN;
-                    enemy->TakeDamage(SPIKE_DAMAGE, {0, 0});
+                    float dmg = SPIKE_DAMAGE;
+                    if (enemy->Def && enemy->Def->stats.canTriggerTurnBased && enemy->Health <= enemy->MaxHealth * 0.5f)
+                        dmg *= 0.65f;
+                    enemy->TakeDamage(dmg, {0, 0});
                 }
             }
         }
@@ -500,6 +513,152 @@ int SpikeManager::Render(Rectangle viewRect)
 void SpikeManager::Clear()
 {
     spikes.clear();
+}
+
+/*==============================================================================
+ * ExplosionUtils Implementation
+ *==============================================================================*/
+
+/**
+ * @brief Cluster bomb positions berdasarkan jarak menggunakan BFS pada graph bomb
+ */
+std::vector<std::vector<Vector2>> ExplosionUtils::ClusterByDistance(
+    const std::vector<Vector2> &bombPositions,
+    float clusterRadius)
+{
+    std::vector<bool> visited(bombPositions.size(), false);
+    std::vector<std::vector<Vector2>> clusters;
+
+    for (size_t i = 0; i < bombPositions.size(); i++)
+    {
+        if (visited[i])
+            continue;
+
+        std::vector<Vector2> cluster;
+        std::queue<size_t> q;
+        q.push(i);
+        visited[i] = true;
+
+        while (!q.empty())
+        {
+            size_t idx = q.front();
+            q.pop();
+            cluster.push_back(bombPositions[idx]);
+
+            for (size_t j = 0; j < bombPositions.size(); j++)
+            {
+                if (visited[j])
+                    continue;
+                if (Vector2Distance(bombPositions[idx], bombPositions[j]) <= clusterRadius)
+                {
+                    visited[j] = true;
+                    q.push(j);
+                }
+            }
+        }
+
+        clusters.push_back(cluster);
+    }
+
+    return clusters;
+}
+
+/**
+ * @brief Multi-source BFS flood fill dari seed tiles
+ *
+ * Standard 4 arah (atas, kanan, bawah, kiri). Tile yang overlap dengan obstacle
+ * tidak di-expand. Boundary tile dicek dengan CheckCollisionCircleRec.
+ */
+// Helper: cek apakah satu tile overlap dengan obstacle
+bool IsTileBlocked(int tileX, int tileY, const std::vector<Rectangle> &obstacles)
+{
+    Rectangle r = {(float)(tileX * FRAME_SIZE), (float)(tileY * FRAME_SIZE),
+                   (float)FRAME_SIZE, (float)FRAME_SIZE};
+    for (const auto &obs : obstacles)
+        if (CheckCollisionRecs(r, obs))
+            return true;
+    return false;
+}
+
+bool IsLineBlockedByObstacles(
+    const Vector2 &startTile,
+    const Vector2 &endTile,
+    const std::vector<Rectangle> &obstacles)
+{
+    if (startTile.x == endTile.x && startTile.y == endTile.y)
+        return false;
+
+    int x0 = (int)(startTile.x / FRAME_SIZE);
+    int y0 = (int)(startTile.y / FRAME_SIZE);
+    int x1 = (int)(endTile.x / FRAME_SIZE);
+    int y1 = (int)(endTile.y / FRAME_SIZE);
+
+    int dx = abs(x1 - x0);
+    int dy = abs(y1 - y0);
+    int sx = (x0 < x1) ? 1 : -1;
+    int sy = (y0 < y1) ? 1 : -1;
+    int err = dx - dy;
+
+    int x = x0, y = y0;
+    bool isStart = true;
+
+    while (x != x1 || y != y1)
+    {
+        if (!isStart)
+        {
+            if (IsTileBlocked(x, y, obstacles))
+                return true;
+        }
+
+        int e2 = 2 * err;
+        bool stepX = (e2 > -dy);
+        bool stepY = (e2 < dx);
+
+        // Diagonal step: cek cross tiles biar gak nyusup lewat celah diagonal
+        if (stepX && stepY)
+        {
+            // Cross tiles = (x+sx, y) dan (x, y+sy)
+            // Kalau KEDUANYA blocked → diagonal gak bisa lewat
+            bool hBlocked = IsTileBlocked(x + sx, y, obstacles);
+            bool vBlocked = IsTileBlocked(x, y + sy, obstacles);
+
+            // Kalau SALAH SATU cross tile blocked → diagonal gak tembus
+            // (nanganin stair pattern: tiap langkah diagonal, salah satu cross tile pasti obstacle)
+            if (hBlocked || vBlocked)
+                return true;
+        }
+
+        if (stepX) { err -= dy; x += sx; }
+        if (stepY) { err += dx; y += sy; }
+        isStart = false;
+    }
+
+    return false;
+}
+
+/**
+ * @brief Unified radius + tile DDA line-of-sight check
+ *
+ * Step 1: nearest-point dalam radius
+ * Step 2: tile DDA (Bresenham) — cek apakah ada obstacle di tile intermediate
+ */
+bool ExplosionUtils::CheckExplosionCircle(
+    const Vector2 &bombCenter,
+    float radius,
+    const Rectangle &targetHitbox,
+    const std::vector<Rectangle> &obstacles)
+{
+    // Step 1: nearest point di hitbox target
+    float nearestX = Clamp(bombCenter.x, targetHitbox.x, targetHitbox.x + targetHitbox.width);
+    float nearestY = Clamp(bombCenter.y, targetHitbox.y, targetHitbox.y + targetHitbox.height);
+    Vector2 nearestPoint = {nearestX, nearestY};
+    if (Vector2Distance(bombCenter, nearestPoint) > radius)
+        return false;
+
+    // Step 2: tile DDA line-of-sight
+    Vector2 bombTile = SnapToTileGrid(bombCenter);
+    Vector2 targetTile = SnapToTileGrid(nearestPoint);
+    return !IsLineBlockedByObstacles(bombTile, targetTile, obstacles);
 }
 
 /*==============================================================================
@@ -577,14 +736,28 @@ TileObject *BombManager::FindBomb(Vector2 hitPos, float threshold)
  * @param playerBounds Bounding box player
  * @param player Pointer ke player
  */
-void BombManager::HitByAttack(Rectangle attackHitbox, Rectangle playerBounds, Player *player)
+void BombManager::HitByAttack(Rectangle attackHitbox, Rectangle playerBounds, Player *player,
+                              const std::vector<Rectangle> &solidObstacles)
 {
+    Vector2 playerCenter = {playerBounds.x + playerBounds.width / 2.0f, playerBounds.y + playerBounds.height / 2.0f};
+
     for (auto &bomb : bombs)
     {
         if (!bomb.isAlive || bomb.isExploding)
             continue;
         if (!CheckCollisionAgainstRects(attackHitbox, {bomb.tile.bounds}))
             continue;
+
+        // LOS check pake Bresenham tile DDA (handle stair pattern)
+        if (!solidObstacles.empty())
+        {
+            Vector2 bombCenter = {
+                bomb.tile.bounds.x + bomb.tile.bounds.width / 2.0f,
+                bomb.tile.bounds.y + bomb.tile.bounds.height / 2.0f};
+            if (IsLineBlockedByObstacles(playerCenter, bombCenter, solidObstacles))
+                continue;
+        }
+
         Explode(bomb, playerBounds, player);
     }
 }
@@ -593,14 +766,13 @@ void BombManager::HitByAttack(Rectangle attackHitbox, Rectangle playerBounds, Pl
  * @brief Trigger ledakan bomb
  *
  * Urutan proses:
- * 1. Set state Inactive, tandai isExploding & isTriggered
- * 2. Hapus dari DynamicObstacles
- * 3. Damage player jika dalam radius
- * 4. Damage semua enemy aktif dalam radius
- * 5. Chain reaction: trigger Explode pada bomb lain dalam radius yang belum meledak
- *
- * isTriggered dipakai sebagai guard agar tidak terjadi infinite loop
- * pada layout bomb yang saling berdekatan.
+ * 1. Kumpulin chain bomb (BFS pada graph bomb)
+ * 2. Cluster chain bomb berdasarkan jarak
+ * 3. Mark semua chain bomb + hapus dari DynamicObstacles
+ * 4. Per cluster: multi-source BFS flood fill
+ * 5. Per cluster: hancurkan crate yang overlap reachable tiles
+ * 6. Per cluster: re-compute reachable tiles setelah crate hancur
+ * 7. Per cluster: damage entity (player & enemy) via reachable + shadow
  *
  * @param bomb BombData yang akan diledakkan
  * @param playerBounds Bounding box player
@@ -608,74 +780,149 @@ void BombManager::HitByAttack(Rectangle attackHitbox, Rectangle playerBounds, Pl
  */
 void BombManager::Explode(BombData &bomb, Rectangle playerBounds, Player *player)
 {
-    bomb.tile.state = ObjectState::Inactive;
-    bomb.isExploding = true;
-    bomb.isTriggered = true;
-    bomb.explosionTimer = BOMB_EXPLOSION_DURATION;
+    /*=== Fase 1: Kumpulin chain bomb ===*/
+    std::vector<BombData *> chain;
+    std::unordered_set<BombData *> visitedChain;
+    std::queue<BombData *> qChain;
+    qChain.push(&bomb);
+    visitedChain.insert(&bomb);
+
+    while (!qChain.empty())
+    {
+        BombData *current = qChain.front();
+        qChain.pop();
+        chain.push_back(current);
+
+        Vector2 curCenter = {
+            current->tile.position.x + FRAME_SIZE / 2.0f,
+            current->tile.position.y + FRAME_SIZE / 2.0f};
+
+        for (auto &other : bombs)
+        {
+            if (&other == current)
+                continue;
+            if (visitedChain.count(&other))
+                continue;
+            if (!other.isAlive || other.isExploding || other.isTriggered)
+                continue;
+
+            Vector2 otherCenter = {
+                other.tile.position.x + FRAME_SIZE / 2.0f,
+                other.tile.position.y + FRAME_SIZE / 2.0f};
+
+            // Chain reaction: distance check (mirip IsInExplosionRadius)
+            float nearestX = Clamp(curCenter.x, other.tile.bounds.x, other.tile.bounds.x + other.tile.bounds.width);
+            float nearestY = Clamp(curCenter.y, other.tile.bounds.y, other.tile.bounds.y + other.tile.bounds.height);
+            if (Vector2Distance(curCenter, {nearestX, nearestY}) <= BOMB_EXPLOSION_RADIUS)
+            {
+                visitedChain.insert(&other);
+                qChain.push(&other);
+            }
+        }
+    }
+
+    /*=== Fase 2: Collect center positions & cluster ===*/
+    std::vector<Vector2> chainCenters;
+    chainCenters.reserve(chain.size());
+    for (auto *cb : chain)
+        chainCenters.push_back({
+            cb->tile.position.x + FRAME_SIZE / 2.0f,
+            cb->tile.position.y + FRAME_SIZE / 2.0f});
+
+    auto clusters = ExplosionUtils::ClusterByDistance(chainCenters, BOMB_EXPLOSION_RADIUS * 2.0f);
+
+    /*=== Fase 3: Mark exploding + hapus obstacles ===*/
+    for (auto *cb : chain)
+    {
+        cb->tile.state = ObjectState::Inactive;
+        cb->isExploding = true;
+        cb->isTriggered = true;
+        cb->explosionTimer = BOMB_EXPLOSION_DURATION;
+
+        consumedPositions.insert(EncodePos(cb->tile.position));
+
+        DynamicObstacles.erase(
+            std::remove_if(DynamicObstacles.begin(), DynamicObstacles.end(), [&](const Rectangle &r)
+                           { return r.x == cb->tile.bounds.x && r.y == cb->tile.bounds.y; }),
+            DynamicObstacles.end());
+        MarkSpawnFlowFieldsDirty(cb->tile.position);
+    }
+    g_PendingObstacleRebuild = true;
 
     AudioManager::PlaySFX("explosion");
 
-    consumedPositions.insert(EncodePos(bomb.tile.position));
+    /*=== Bangun daftar obstacle gabungan (dynamic + static collision) ===*/
+    // Static collision dari Tiled object layer (COLLISION_LAYER_NAME)
+    const auto &staticRects = gCollisionCache.rects;
 
-    // hapus dari dynamic obstacles
-    DynamicObstacles.erase(
-        std::remove_if(DynamicObstacles.begin(), DynamicObstacles.end(), [&](const Rectangle &r)
-                       { return r.x == bomb.tile.bounds.x && r.y == bomb.tile.bounds.y; }),
-        DynamicObstacles.end());
-    MarkSpawnFlowFieldsDirty(bomb.tile.position);
-    g_PendingObstacleRebuild = true;
-
-    Vector2 bombCenter = {
-        bomb.tile.position.x + FRAME_SIZE / 2.0f,
-        bomb.tile.position.y + FRAME_SIZE / 2.0f};
-
-    // player kena damage
-    if (IsInExplosionRadius(bombCenter, playerBounds))
-        if (player)
-            player->TakeDamage(BOMB_DAMAGE);
-
-    // enemy kena damage
-    for (auto entity : Entities::GetRegistry())
+    // Solid obstacles buat crate shadow check (dynamic minus crate + static)
+    std::vector<Rectangle> solidObstacles;
+    solidObstacles.reserve(DynamicObstacles.size() + staticRects.size());
+    for (const auto &obs : DynamicObstacles)
     {
-        Enemy *enemy = dynamic_cast<Enemy *>(entity);
-        if (!enemy)
+        if (crateManager.IsCratePos(obs))
             continue;
-        if (!enemy->IsActive || enemy->Health <= 0)
-            continue;
-        if (IsInExplosionRadius(bombCenter, enemy->GetHitbox()))
-            enemy->TakeDamage(BOMB_DAMAGE, {0, 0});
+        solidObstacles.push_back(obs);
     }
+    solidObstacles.insert(solidObstacles.end(), staticRects.begin(), staticRects.end());
 
-    // chain reaction
-    for (auto &other : bombs)
+    // Full obstacles buat entity damage check (dynamic + static)
+    std::vector<Rectangle> allObstacles;
+    allObstacles.reserve(DynamicObstacles.size() + staticRects.size());
+    allObstacles.insert(allObstacles.end(), DynamicObstacles.begin(), DynamicObstacles.end());
+    allObstacles.insert(allObstacles.end(), staticRects.begin(), staticRects.end());
+
+    /*=== Fase 4: Crate destruction (global) — radius + shadow thd solidObstacles ===*/
+    for (const auto &bombCenter : chainCenters)
+        crateManager.HitByExplosion(bombCenter, BOMB_EXPLOSION_RADIUS, solidObstacles);
+
+    /*=== Fase 5-6: Per cluster — entity damage accumulation ===*/
+    for (auto &cluster : clusters)
     {
-        if (!other.isAlive || other.isExploding || other.isTriggered)
+        if (cluster.empty())
             continue;
-        if (IsInExplosionRadius(bombCenter, other.tile.bounds))
-            Explode(other, playerBounds, player);
+
+        // Akumulasi hit count per entity biar TakeDamage dipanggil sekali
+        int playerHitCount = 0;
+        std::unordered_map<Enemy *, int> enemyHitCounts;
+
+        for (const auto &bombCenter : cluster)
+        {
+            if (player && ExplosionUtils::CheckExplosionCircle(
+                              bombCenter, BOMB_EXPLOSION_RADIUS,
+                              playerBounds, allObstacles))
+                playerHitCount++;
+
+            for (auto entity : Entities::GetRegistry())
+            {
+                Enemy *enemy = dynamic_cast<Enemy *>(entity);
+                if (!enemy)
+                    continue;
+                if (!enemy->IsActive || enemy->Health <= 0)
+                    continue;
+
+                if (ExplosionUtils::CheckExplosionCircle(
+                        bombCenter, BOMB_EXPLOSION_RADIUS,
+                        enemy->GetHitbox(), allObstacles))
+                    enemyHitCounts[enemy]++;
+            }
+        }
+
+        // Apply damage sekali per entity — skip during turn-based combat
+        if (!TurnCombat::IsActive())
+        {
+            if (playerHitCount > 0)
+                player->TakeDamage(static_cast<float>(playerHitCount) * BOMB_DAMAGE);
+
+            for (auto &[enemy, count] : enemyHitCounts)
+            {
+                float dmg = static_cast<float>(count) * BOMB_DAMAGE;
+                if (enemy->Def && enemy->Def->stats.canTriggerTurnBased && enemy->Health <= enemy->MaxHealth * 0.5f)
+                    dmg *= 0.65f;
+                enemy->TakeDamage(dmg, {0, 0});
+            }
+        }
     }
-
-    // crate hilang kalo kena bomb
-    crateManager.HitByExplosion(bombCenter, this);
-}
-
-/**
- * @brief Cek apakah target rectangle berada dalam radius ledakan bomb
- *
- * Menggunakan nearest-point check dari center bomb ke rectangle target,
- * bukan center-to-center, agar akurat untuk target berukuran besar.
- *
- * @param bombPos Posisi center bomb
- * @param target Bounding box target
- * @return true jika jarak nearest point <= BOMB_EXPLOSION_RADIUS
- */
-bool BombManager::IsInExplosionRadius(Vector2 bombPos, Rectangle target)
-{
-    // cek titik terdekat di rectangle target ke pusat bomb
-    float nearestX = Clamp(bombPos.x, target.x, target.x + target.width);
-    float nearestY = Clamp(bombPos.y, target.y, target.y + target.height);
-    float dist = Vector2Distance(bombPos, {nearestX, nearestY});
-    return dist <= BOMB_EXPLOSION_RADIUS;
 }
 
 /**
@@ -709,6 +956,7 @@ void BombManager::Update(float deltaTime, Rectangle playerBounds, Player *player
         std::remove_if(bombs.begin(), bombs.end(), [](const BombData &bomb)
                        { return !bomb.isAlive; }),
         bombs.end());
+
 }
 
 /**
@@ -751,6 +999,7 @@ int BombManager::Render(Rectangle viewRect)
             DrawFrame("bomb", display);
         }
     }
+
     return rendered;
 }
 
@@ -765,6 +1014,14 @@ void BombManager::Clear()
 void BombManager::ResetConsumed()
 {
     consumedPositions.clear();
+}
+
+bool BombManager::IsBombPos(const Rectangle &bounds) const
+{
+    for (const auto &b : bombs)
+        if (b.isAlive && !b.isExploding && !b.isTriggered && b.tile.bounds.x == bounds.x && b.tile.bounds.y == bounds.y)
+            return true;
+    return false;
 }
 
 /*==============================================================================
@@ -805,8 +1062,11 @@ void CrateManager::SpawnCrates(const std::vector<MapObject *> &crateObjects)
  * @param crateObjects Daftar pointer MapObject bertipe crate
  * @note Crate yang posisinya sudah tercatat hancur tidak akan di-spawn ulang.
  */
-void CrateManager::HitByAttack(Rectangle attackHitbox)
+void CrateManager::HitByAttack(Rectangle attackHitbox, Rectangle playerBounds,
+                               const std::vector<Rectangle> &solidObstacles)
 {
+    Vector2 playerCenter = {playerBounds.x + playerBounds.width / 2.0f, playerBounds.y + playerBounds.height / 2.0f};
+
     std::vector<Rectangle> toRemove;
     bool anyDestroyed = false;
 
@@ -816,6 +1076,16 @@ void CrateManager::HitByAttack(Rectangle attackHitbox)
             continue;
         if (!CheckCollisionRecs(attackHitbox, crate.tile.bounds))
             continue;
+
+        // LOS check pake Bresenham tile DDA (handle stair pattern)
+        if (!solidObstacles.empty())
+        {
+            Vector2 crateCenter = {
+                crate.tile.bounds.x + crate.tile.bounds.width / 2.0f,
+                crate.tile.bounds.y + crate.tile.bounds.height / 2.0f};
+            if (IsLineBlockedByObstacles(playerCenter, crateCenter, solidObstacles))
+                continue;
+        }
 
         // Hancurkan crate, tapi tunda DynamicObstacles erase biar batch
         crate.tile.state = ObjectState::Inactive;
@@ -844,11 +1114,12 @@ void CrateManager::HitByAttack(Rectangle attackHitbox)
 }
 
 /**
- * @brief Hancurkan crate yang berada dalam radius ledakan bomb.
- * @param bombPos Posisi pusat ledakan bomb
- * @param bomber BombManager yang dipakai untuk cek radius ledakan
+ * @brief Hancurkan crate yang kena ledakan bomb (radius + shadow terhadap solid obstacles)
+ * @param bombCenter Posisi center bomb
+ * @param radius Radius ledakan
+ * @param solidObstacles Daftar obstacle solid (barrier, wall — tanpa crate/bomb)
  */
-void CrateManager::HitByExplosion(Vector2 bombPos, BombManager *bomber)
+void CrateManager::HitByExplosion(const Vector2 &bombCenter, float radius, const std::vector<Rectangle> &solidObstacles)
 {
     std::vector<Rectangle> toRemove;
     bool anyDestroyed = false;
@@ -857,16 +1128,17 @@ void CrateManager::HitByExplosion(Vector2 bombPos, BombManager *bomber)
     {
         if (!crate.isAlive)
             continue;
-        if (bomber->IsInExplosionRadius(bombPos, crate.tile.bounds))
-        {
-            crate.tile.state = ObjectState::Inactive;
-            crate.isAlive = false;
-            consumedPositions.insert(EncodePos(crate.tile.position));
-            toRemove.push_back(crate.tile.bounds);
-            MarkSpawnFlowFieldsDirty(crate.tile.position);
-            TriggerLoot(crate.tile);
-            anyDestroyed = true;
-        }
+
+        if (!ExplosionUtils::CheckExplosionCircle(bombCenter, radius, crate.tile.bounds, solidObstacles))
+            continue;
+
+        crate.tile.state = ObjectState::Inactive;
+        crate.isAlive = false;
+        consumedPositions.insert(EncodePos(crate.tile.position));
+        toRemove.push_back(crate.tile.bounds);
+        MarkSpawnFlowFieldsDirty(crate.tile.position);
+        TriggerLoot(crate.tile);
+        anyDestroyed = true;
     }
 
     if (anyDestroyed)
@@ -961,6 +1233,14 @@ int CrateManager::Render(Rectangle viewRect)
 void CrateManager::Clear()
 {
     crates.clear();
+}
+
+bool CrateManager::IsCratePos(const Rectangle &bounds) const
+{
+    for (const auto &crate : crates)
+        if (crate.isAlive && crate.tile.bounds.x == bounds.x && crate.tile.bounds.y == bounds.y)
+            return true;
+    return false;
 }
 
 void CrateManager::ResetConsumed()
@@ -1118,7 +1398,66 @@ void BarrierManager::Update()
             if (bossAlive == 0)
             {
                 RemoveAllBarriers();
+                pendingReLock = false;
                 TraceLog(LOG_INFO, "BarrierManager: boss barrier unlocked (boss defeated)");
+            }
+        }
+
+        // Step 4 — retry barrier yang di-skip karena overlap player
+        // All-or-nothing: kalo masih ada 1 aja yang overlap → jangan lock satupun
+        if (hasReLocked && pendingReLock)
+        {
+            bool stillOverlap = false;
+            for (auto &b : barriers)
+            {
+                if (b.isActive)
+                    continue;
+                if (CheckCollisionRecs(playerBounds, b.tile.bounds))
+                {
+                    stillOverlap = true;
+                    break;
+                }
+            }
+
+            if (!stillOverlap)
+            {
+                for (auto &b : barriers)
+                {
+                    if (b.isActive)
+                        continue;
+                    b.isActive = true;
+                    DynamicObstacles.push_back(b.tile.bounds);
+                }
+                pendingReLock = false;
+                RebuildObstacleCache();
+                TraceLog(LOG_INFO, "BarrierManager: all pending barriers locked");
+            }
+        }
+
+        // Step 5 — player keluar area boss room → unlock barrier
+        // Guard: kalo player mati/respawn di luar, barrier gak bakal stuck lock
+        if (hasReLocked && !cleared)
+        {
+            if (!CheckCollisionRecs(playerBounds, bossStageBounds))
+            {
+                for (auto &b : barriers)
+                {
+                    if (!b.isActive)
+                        continue;
+                    b.isActive = false;
+                    DynamicObstacles.erase(
+                        std::remove_if(DynamicObstacles.begin(), DynamicObstacles.end(),
+                                       [&](const Rectangle &r)
+                                       {
+                                           return r.x == b.tile.bounds.x && r.y == b.tile.bounds.y;
+                                       }),
+                        DynamicObstacles.end());
+                }
+                hasReLocked = false;
+                cleared = true;
+                pendingReLock = false;
+                RebuildObstacleCache();
+                TraceLog(LOG_INFO, "BarrierManager: boss barrier unlocked (player left boss room)");
             }
         }
     }
@@ -1219,6 +1558,24 @@ void BarrierManager::RemoveAllBarriers()
  */
 void BarrierManager::ReLockBarriers()
 {
+    Rectangle playerBounds = PlayerInstance.GetHitbox();
+
+    // Cek apakah ADA barrier yang overlap dengan player
+    for (auto &b : barriers)
+    {
+        if (b.isActive)
+            continue;
+        if (CheckCollisionRecs(playerBounds, b.tile.bounds))
+        {
+            // Ada overlap → jangan lock satupun — tunggu sampe player keluar
+            pendingReLock = true;
+            cleared = false;
+            TraceLog(LOG_INFO, "BarrierManager: barriers deferred (player overlap barrier)");
+            return;
+        }
+    }
+
+    // Gak ada overlap sama sekali → lock semua barrier
     for (auto &b : barriers)
     {
         if (b.isActive)
@@ -1227,7 +1584,9 @@ void BarrierManager::ReLockBarriers()
         DynamicObstacles.push_back(b.tile.bounds);
     }
     cleared = false;
+    pendingReLock = false;
     RebuildObstacleCache();
+    TraceLog(LOG_INFO, "BarrierManager: all barriers locked");
 }
 
 /**
@@ -1239,6 +1598,7 @@ void BarrierManager::Clear()
     cleared = false; // Default: barrier belum di-clear — di-set ulang sama LoadRuntimeState kalo ada save
     isBossMap = false;
     hasReLocked = false;
+    pendingReLock = false;
     bossStageBounds = {0};
     totalEnemyCount = 0;
     prevDeadCount = 0;

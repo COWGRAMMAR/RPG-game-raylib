@@ -18,6 +18,7 @@
 #include "player.h"
 #include "map.h"
 #include "datadriven.h"
+#include "propsbehavior.h"
 #include "raymath.h"
 #include "../lib/json/include/nlohmann/json.hpp"
 #include "game_debug.h"
@@ -25,6 +26,7 @@
 #include "animation.h"
 #include "item.h"
 #include "core/utils.h"
+#include "core/seedmanager.h"
 #include "audioManager.h"
 #include <map>
 #include <random>
@@ -199,6 +201,7 @@ void Enemy::Init(Vector2 pos, const char *name, int mapId, const EnemyDefinition
     PatrolFailCount = 0;
     PatrolStuckTimer = 0;
     AttackCooldownTimer = 0.0f;
+    AttackWindUpTimer = 0.0f;
     HitFlashTimer = 0.0f;
     KnockbackVelocity = {0, 0};
     DeathTimer = 0.0f;
@@ -224,6 +227,7 @@ void Enemy::Update()
 
     if (Health <= 0)
     {
+        isTurnBasedMode = false; // Prevent re-trigger turn-based jika mati kena bomb dll
         HealthBarTimer = 0.0f; // Langsung matikan health bar sebelum death anim
 
         if (Anim.state != DEAD)
@@ -294,6 +298,12 @@ void Enemy::Update()
         HealthBarTimer -= Time::DELTA_TIME;
     if (AttackCooldownTimer > 0)
         AttackCooldownTimer -= Time::DELTA_TIME;
+    if (AbilityTimer > 0)
+        AbilityTimer -= Time::DELTA_TIME;
+    if (BossAbilityTimer > 0)
+        BossAbilityTimer -= Time::DELTA_TIME;
+    if (BossAbility2Timer > 0)
+        BossAbility2Timer -= Time::DELTA_TIME;
 
     // Freeze enemy selama turn-based combat — AI & movement dijeda
     if (TurnCombat::IsActive())
@@ -332,6 +342,10 @@ void Enemy::Update()
 
     Anim.position = Position;
     UpdateAnimation(Anim, Time::DELTA_TIME);
+
+    // Elite: prevent attack animation auto-transition to IDLE during wind-up
+    if (rank == ENEMY_ELITE && AttackWindUpTimer > 0 && Anim.state == ATTACK && Anim.currentConfig)
+        Anim.timer = fminf(Anim.timer, Anim.currentConfig->speed - 0.001f);
 }
 
 /**
@@ -358,7 +372,7 @@ void Enemy::UpdateAI()
     }
 
     // Detection range diperluas saat mengejar agar enemy tidak langsung berhenti di tepi range
-    DetectionRange = (AIState == ENEMY_CHASE || AIState == ENEMY_ATTACK)
+    DetectionRange = (AIState == ENEMY_CHASE || AIState == ENEMY_ATTACK || AIState == ENEMY_ABILITY1 || AIState == ENEMY_ABILITY2)
                          ? Def->stats.chaseDetectionRange
                          : Def->stats.baseDetectionRange;
 
@@ -374,6 +388,26 @@ void Enemy::UpdateAI()
             Health = MaxHealth;
     }
 
+    // Boss ability triggers (hanya saat player dalam range)
+    if (rank == ENEMY_BOSS && AIState != ENEMY_ABILITY1 && AIState != ENEMY_ABILITY2 && AIState != ENEMY_ATTACK)
+    {
+        float range = fmaxf(Def->stats.chaseDetectionRange, FRAME_SIZE * 2.0f);
+        float dist = Vector2Distance(GetCenter(), PlayerInstance.GetCenter());
+        if (dist <= range)
+        {
+            if (BossAbilityTimer <= 0)
+            {
+                AIState = ENEMY_ABILITY1;
+                BossAbilityTimer = 5.0f;
+            }
+            else if (BossAbility2Timer <= 0)
+            {
+                AIState = ENEMY_ABILITY2;
+                BossAbility2Timer = 7.0f;
+            }
+        }
+    }
+
     switch (AIState)
     {
     case ENEMY_IDLE:
@@ -387,6 +421,12 @@ void Enemy::UpdateAI()
         break;
     case ENEMY_ATTACK:
         HandleAttack();
+        break;
+    case ENEMY_ABILITY1:
+        HandleAbility1();
+        break;
+    case ENEMY_ABILITY2:
+        HandleAbility2();
         break;
     case ENEMY_RETURN:
         HandleReturn();
@@ -559,6 +599,15 @@ void Enemy::HandleChase()
 
     if (dist <= Def->stats.attackRange)
     {
+        // Elite: chance ability setiap 4-5 detik
+        if (rank == ENEMY_ELITE && AbilityTimer <= 0 && GetRandomValue(0, 99) < 50)
+        {
+            AbilityTimer = (float)GetRandomValue(4, 5);
+            AIState = ENEMY_ABILITY1;
+            PlayerWasInRange = true;
+            return;
+        }
+
         if (!PlayerWasInRange)
             PerformAttack();
         AIState = ENEMY_ATTACK;
@@ -600,6 +649,137 @@ void Enemy::HandleChase()
 
     if (Anim.state != WALK)
         PlayAnimation(Anim, WALK, Anim.direction);
+}
+
+/**
+ * @brief Jalankan state ability1 elite — wind-up 0.7s lalu 2.5x damage.
+ */
+void Enemy::HandleAbility1()
+{
+    float windupDuration = (rank == ENEMY_BOSS) ? 1.0f : 0.7f;
+
+    if (Anim.state != ABILITY1)
+    {
+        PlayAnimation(Anim, ABILITY1, Anim.direction);
+        AttackWindUpTimer = windupDuration;
+        Anim.isAttacking = true;
+    }
+
+    if (AttackWindUpTimer > 0)
+    {
+        AttackWindUpTimer -= Time::DELTA_TIME;
+        if (Anim.currentConfig && Anim.timer >= Anim.currentConfig->speed)
+            Anim.timer = Anim.currentConfig->speed - 0.001f;
+        return;
+    }
+
+    if (rank == ENEMY_BOSS)
+    {
+        // Boss AOE slam selesai
+        Vector2 ctr = GetCenter();
+        float radius = 190.0f;
+        if (CheckCollisionCircleRec(ctr, radius, PlayerInstance.GetHitbox()))
+        {
+            PlayerInstance.TakeDamage(40.0f, Vector2Normalize(Vector2Subtract(PlayerInstance.GetCenter(), ctr)));
+        }
+    }
+    else
+    {
+        // Elite: damage dalam danger zone
+        Rectangle zone = GetAbilityZone();
+        if (CheckCollisionPointRec(PlayerInstance.GetCenter(), zone))
+        {
+            Vector2 dir = Vector2Normalize(Vector2Subtract(PlayerInstance.GetCenter(), GetCenter()));
+            float abilityDamage = Def->stats.damage * 2.5f;
+            PlayerInstance.TakeDamage(abilityDamage, dir);
+        }
+        AttackCooldownTimer = AttackCooldown;
+    }
+
+    AIState = ENEMY_ATTACK;
+}
+
+void Enemy::HandleAbility2()
+{
+    if (Anim.state != ABILITY2)
+    {
+        PlayAnimation(Anim, ABILITY2, Anim.direction);
+        AttackWindUpTimer = 0.8f;
+        Anim.isAttacking = true;
+    }
+
+    if (AttackWindUpTimer > 0)
+    {
+        AttackWindUpTimer -= Time::DELTA_TIME;
+        if (Anim.currentConfig && Anim.timer >= Anim.currentConfig->speed)
+            Anim.timer = Anim.currentConfig->speed - 0.001f;
+        return;
+    }
+
+    // Wind-up selesai: inisialisasi charge direction & distance
+    if (ChargeDistanceRemaining <= 0)
+    {
+        if (Anim.direction == LEFT)  ChargeDir = {-1, 0};
+        if (Anim.direction == RIGHT) ChargeDir = {1, 0};
+        if (Anim.direction == UP)    ChargeDir = {0, -1};
+        if (Anim.direction == DOWN)  ChargeDir = {0, 1};
+        ChargeDistanceRemaining = 200.0f;
+        ChargeHitPlayer = false;
+    }
+
+    // Charge gradual tiap frame (skip DynamicObstacles agar bomb tidak menghalangi)
+    float step = 4.0f;
+    Vector2 next = {Position.x + ChargeDir.x * step, Position.y + ChargeDir.y * step};
+    bool blocked = true;
+    if (tilesonMap)
+    {
+        Rectangle hitbox = BuildHitbox(next, HitboxOffsetX, HitboxOffsetY, HitboxWidth, HitboxHeight);
+        float worldW = (float)tilesonMap->width * FRAME_SIZE;
+        float worldH = (float)tilesonMap->height * FRAME_SIZE;
+        blocked = !IsWithinWorldBounds(hitbox, worldW, worldH) ||
+                   CheckCollisionAgainstRects(hitbox, gCollisionCache.rects) ||
+                   CheckCollisionAgainstPolygons(hitbox, gCollisionCache.polygons);
+    }
+    if (blocked)
+    {
+        ChargeDistanceRemaining = 0;
+    }
+    else
+    {
+        Position = next;
+        ChargeDistanceRemaining -= step;
+
+        // Collision dengan bom saat charge
+        Rectangle bossHitbox = {next.x + HitboxOffsetX, next.y + HitboxOffsetY, HitboxWidth, HitboxHeight};
+        bombManager.HitByAttack(bossHitbox, PlayerInstance.GetHitbox(), &PlayerInstance);
+
+        if (!ChargeHitPlayer && CheckCollisionRecs(bossHitbox, PlayerInstance.GetHitbox()))
+        {
+            ChargeHitPlayer = true;
+            Vector2 kb = Vector2Scale(ChargeDir, 4.0f);
+            PlayerInstance.TakeDamage(50.0f, kb);
+        }
+    }
+
+    if (ChargeDistanceRemaining <= 0)
+    {
+        ChargeDistanceRemaining = 0;
+        AIState = ENEMY_CHASE;
+    }
+}
+
+Rectangle Enemy::GetAbilityZone() const
+{
+    Vector2 center = GetCenter();
+    float zoneW = 44.0f, zoneH = 44.0f;
+    float zx = center.x - zoneW / 2.0f;
+    float zy = center.y - zoneH / 2.0f;
+    float offset = 22.0f;
+    if (Anim.direction == LEFT)  zx -= offset;
+    if (Anim.direction == RIGHT) zx += offset;
+    if (Anim.direction == UP)    zy -= offset;
+    if (Anim.direction == DOWN)  zy += offset;
+    return {zx, zy, zoneW, zoneH};
 }
 
 /**
@@ -671,6 +851,27 @@ void Enemy::HandleReturn()
  */
 void Enemy::HandleAttack()
 {
+    // If we are winding up an attack, count down and deliver damage when ready
+    if (AttackWindUpTimer > 0)
+    {
+        AttackWindUpTimer -= Time::DELTA_TIME;
+        // Prevent auto-transition to IDLE by keeping timer below threshold
+        if (rank == ENEMY_ELITE && Anim.currentConfig && Anim.timer >= Anim.currentConfig->speed)
+            Anim.timer = Anim.currentConfig->speed - 0.001f;
+        if (AttackWindUpTimer <= 0)
+        {
+            AttackWindUpTimer = 0;
+            Vector2 dir = Vector2Normalize(Vector2Subtract(PlayerInstance.GetCenter(), GetCenter()));
+            PlayerInstance.TakeDamage(Def->stats.damage, dir);
+            AttackCooldownTimer = AttackCooldown;
+        }
+        return; // Stay still during wind-up
+    }
+
+    // After wind-up, keep attack sprite visible during cooldown
+    if (rank == ENEMY_ELITE && AIState == ENEMY_ATTACK && Anim.state != ATTACK)
+        PlayAnimation(Anim, ATTACK, Anim.direction);
+
     Vector2 enemyCenter = GetCenter();
     Vector2 playerCenter = PlayerInstance.GetCenter();
     float dist = Vector2Distance(enemyCenter, playerCenter);
@@ -678,7 +879,19 @@ void Enemy::HandleAttack()
     if (dist <= Def->stats.attackRange)
     {
         if (!PlayerWasInRange || AttackCooldownTimer <= 0)
-            PerformAttack();
+        {
+            if (rank == ENEMY_ELITE)
+            {
+                // Elite wind-up: stand still for 0.6s playing attack animation, then deal damage
+                AttackWindUpTimer = 0.6f;
+                PlayAnimation(Anim, ATTACK, Anim.direction);
+                Anim.isAttacking = true;
+            }
+            else
+            {
+                PerformAttack();
+            }
+        }
         PlayerWasInRange = true;
     }
     else
@@ -734,7 +947,9 @@ void Enemy::TakeDamage(float amount, Vector2 knockback)
     AudioManager::PlaySFX("attack");
     HitFlashTimer = 0.15f;
     HealthBarTimer = HealthBarDuration;
-    KnockbackVelocity = Vector2Scale(knockback, 5.0f);
+    // Boss immune knockback saat ability charge/slam
+    if (!(rank == ENEMY_BOSS && (AIState == ENEMY_ABILITY1 || AIState == ENEMY_ABILITY2)))
+        KnockbackVelocity = Vector2Scale(knockback, 5.0f);
     HealthRegenTimer = Def->stats.healthRegenDelay;
 }
 
@@ -769,6 +984,38 @@ void Enemy::Render()
         if (HitFlashTimer > 0)
             tint = RED;
         DrawAnimation(Anim, tint, Def->Scale);
+    }
+
+    // Ability danger zone
+    if (AttackWindUpTimer > 0)
+    {
+        if (AIState == ENEMY_ABILITY1)
+        {
+            if (rank == ENEMY_ELITE)
+            {
+                Rectangle zone = GetAbilityZone();
+                DrawRectangleRec(zone, ColorAlpha(RED, 0.55f));
+            }
+            else if (rank == ENEMY_BOSS)
+            {
+                Vector2 ctr = GetCenter();
+                DrawCircleV(ctr, 190.0f, ColorAlpha(ORANGE, 0.35f));
+                DrawCircleLinesV(ctr, 190.0f, ColorAlpha(RED, 0.7f));
+            }
+        }
+        else if (AIState == ENEMY_ABILITY2 && rank == ENEMY_BOSS)
+        {
+            // Visual charge direction
+            Vector2 ctr = GetCenter();
+            Vector2 d = {0, 0};
+            if (Anim.direction == LEFT)  d.x = -1;
+            if (Anim.direction == RIGHT) d.x = 1;
+            if (Anim.direction == UP)    d.y = -1;
+            if (Anim.direction == DOWN)  d.y = 1;
+            Vector2 end = Vector2Add(ctr, Vector2Scale(d, 200.0f));
+            DrawLineEx(ctr, end, 6.0f, ColorAlpha(YELLOW, 0.5f));
+            DrawCircleV(end, 8.0f, ColorAlpha(RED, 0.7f));
+        }
     }
 
     // Health bar tampil saat agresif atau setelah kena damage (boss pake bar sendiri)
@@ -949,6 +1196,9 @@ void SpawnAtPoint(const MapObject *obj, EnemyRank rank)
     if (spawnFlowFields.find(obj->id) == spawnFlowFields.end())
         BuildSpawnFlowFields(center, obj->id, tilesonMap->width, tilesonMap->height);
 
+    uint64_t dSeed = g_SeedManager.IsRunActive()
+        ? (uint64_t)g_SeedManager.GetSeed(g_SeedManager.GetCurrentStage()) : 0;
+
     for (int i = 0; i < count; i++)
     {
         std::string picked = pool[pickDist(rng)];
@@ -958,7 +1208,7 @@ void SpawnAtPoint(const MapObject *obj, EnemyRank rank)
 
         Enemy *enemy = new Enemy();
         enemy->Init(spawnPos, picked.c_str(), obj->id, def);
-        enemy->SetUUID(GenerateUUID());
+        enemy->SetUUID(GenerateDeterministicUUID(dSeed, obj->id, picked, i));
         PushOutOfWalls(enemy);
         enemy->SetReturnFlowField(&spawnFlowFields[obj->id].field);
         Entities::AddDynamic(enemy);
@@ -993,6 +1243,9 @@ void SpawnInRect(const MapObject *obj, const std::string &enemyName, float ratio
     if (spawnFlowFields.find(obj->id) == spawnFlowFields.end())
         BuildSpawnFlowFields(rectCenter, obj->id, tilesonMap->width, tilesonMap->height);
 
+    uint64_t dSeed = g_SeedManager.IsRunActive()
+        ? (uint64_t)g_SeedManager.GetSeed(g_SeedManager.GetCurrentStage()) : 0;
+
     for (int i = 0; i < count; i++)
     {
         Vector2 spawnPos;
@@ -1003,9 +1256,9 @@ void SpawnInRect(const MapObject *obj, const std::string &enemyName, float ratio
             spawnPos = {xDist(rng), yDist(rng)};
             // Convert center (Enemy::Init expectation) ke Entity::Position (IsPositionSafe expectation)
             Vector2 entityPos = {spawnPos.x - def.hitbox.size.x / 2.0f - def.hitbox.offset.x,
-                                 spawnPos.y - def.hitbox.size.y / 2.0f - def.hitbox.offset.y};
+                                  spawnPos.y - def.hitbox.size.y / 2.0f - def.hitbox.offset.y};
             if (IsPositionSafe(entityPos, def.hitbox.size.x, def.hitbox.size.y,
-                               def.hitbox.offset.x, def.hitbox.offset.y))
+                                def.hitbox.offset.x, def.hitbox.offset.y))
             {
                 valid = true;
                 break;
@@ -1017,7 +1270,7 @@ void SpawnInRect(const MapObject *obj, const std::string &enemyName, float ratio
 
         Enemy *enemy = new Enemy();
         enemy->Init(spawnPos, enemyName.c_str(), obj->id, def);
-        enemy->SetUUID(GenerateUUID());
+        enemy->SetUUID(GenerateDeterministicUUID(dSeed, obj->id, enemyName, i));
         enemy->SpawnRect = obj->bounds;
         enemy->SetReturnFlowField(&spawnFlowFields[obj->id].field);
         Entities::AddDynamic(enemy);
@@ -1050,9 +1303,12 @@ void SpawnBoss(const MapObject *obj)
     if (spawnFlowFields.find(obj->id) == spawnFlowFields.end())
         BuildSpawnFlowFields(spawnPos, obj->id, tilesonMap->width, tilesonMap->height);
 
+    uint64_t dSeed = g_SeedManager.IsRunActive()
+        ? (uint64_t)g_SeedManager.GetSeed(g_SeedManager.GetCurrentStage()) : 0;
+
     Enemy *enemy = new Enemy();
     enemy->Init(spawnPos, picked.c_str(), obj->id, def);
-    enemy->SetUUID(GenerateUUID());
+    enemy->SetUUID(GenerateDeterministicUUID(dSeed, obj->id, picked, 0));
     PushOutOfWalls(enemy);
     enemy->SetReturnFlowField(&spawnFlowFields[obj->id].field);
     Entities::AddDynamic(enemy);

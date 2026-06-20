@@ -56,9 +56,7 @@ void Player::Init(GameState *state, const char *spawnObjectName)
         Hotbar[3] = {3, 8};  // Small Mana Potion
 
         for (int i = 0; i < PlayerInstance.MaxBag; i++)
-        {
             Bag[i] = {EMPTY_ITEM_ID, 0};
-        }
 
         // Reset buff timers & multipliers
         BuffDamageTimer = 0.0f;
@@ -133,7 +131,7 @@ void Player::ResetForNewGame()
     Hotbar[2] = {2, 8};  // Small Health Potion
     Hotbar[3] = {3, 8};  // Small Mana Potion
     for (int i = 0; i < MaxBag; i++)
-        Bag[i] = {-1, 0};
+        Bag[i] = {EMPTY_ITEM_ID, 0};
     Anim.isDead = false;
     Anim.isAttacking = false;
     HitFlashTimer = 0.0f;

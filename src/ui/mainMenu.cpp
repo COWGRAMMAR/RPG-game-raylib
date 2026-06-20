@@ -9,6 +9,7 @@
 #include "../../include/ui/mainMenu.h"
 #include "../../include/core/screen.h"
 #include "../../include/core/seedmanager.h"
+#include "../../include/core/savemanager.h"
 #include "../../include/map/worldgenio.h"
 #include "raylib.h"
 #include <array>
@@ -22,20 +23,8 @@
  * Static Variables
  *==============================================================================*/
 
-/** Skala logo dari resolusi sumber (3840x2160 -> 960x540) */
-static constexpr float LOGO_SCALE = 0.25F;
-/** Offset vertikal dari tengah layar untuk baris tombol */
-static constexpr int BTN_START_OFFSET = 20;
-
 /** Array tombol menu utama (Start, Load, Options, Quit) */
 static std::array<buttonImage, 4> buttons;
-
-static constexpr struct { const char *path; float scale; int yOffset; } btnConfig[4] = {
-    {"assets/textures/mainMenuButt/main-start.png",    1, -40},
-    {"assets/textures/mainMenuButt/main-load.png",     1,  50},
-    {"assets/textures/mainMenuButt/main-settings.png", 1, 140},
-    {"assets/textures/mainMenuButt/main-quit.png",     1, 230},
-};
 
 /** Logo texture untuk main menu */
 static Texture2D logoTexture;
@@ -58,47 +47,42 @@ extern SaveLoadScreen saveLoadScreen;
  */
 void InitMainMenu(GameState *state)
 {
-    (void)state;
+    (void)state; // unused parameter, buat future use
 
+    // set texture background load-notif untuk semua popup main menu
     loadPopup.SetBackgroundTexture("assets/textures/pauseButt/load-notif.png");
     mainNoSavePopup.SetBackgroundTexture("assets/textures/pauseButt/load-notif.png");
     mainCorruptPopup.SetBackgroundTexture("assets/textures/pauseButt/load-notif.png");
 
+    // Load dan resize logo
     Image logoImg = LoadImage("assets/textures/logo.png");
-    int targetWidth = static_cast<int>(3840 * LOGO_SCALE);
-    int targetHeight = static_cast<int>(2160 * LOGO_SCALE);
+    int targetWidth = static_cast<int>(3840 * 0.25F);
+    int targetHeight = static_cast<int>(2160 * 0.25F);
     ImageResize(&logoImg, targetWidth, targetHeight);
     logoTexture = LoadTextureFromImage(logoImg);
     UnloadImage(logoImg);
 
     // Konfigurasi individu untuk setiap tombol (path, scale, yOffset)
-    int startY = (GScreenHeight / 2) + BTN_START_OFFSET;
+    struct
+    {
+        const char *path;
+        float scale;
+        int yOffset;
+    } btnConfig[4] = {
+        {"assets/textures/mainMenuButt/main-start.png", 1, -40},
+        {"assets/textures/mainMenuButt/main-load.png", 1, 50},
+        {"assets/textures/mainMenuButt/main-settings.png", 1, 140},
+        {"assets/textures/mainMenuButt/main-quit.png", 1, 230},
+    };
+
+    int startY = (GameScreenHeight / 2) + 20;
+
     for (int i = 0; i < 4; i++)
     {
         Vector2 pos = {
-            GScreenWidth / 2.0F,
-            static_cast<float>(startY + btnConfig[i].yOffset)
-        };
+            GameScreenWidth / 2.0F,
+            static_cast<float>(startY + btnConfig[i].yOffset)};
         buttons[i] = buttonImage(btnConfig[i].path, pos, btnConfig[i].scale, 0.6F);
-    }
-}
-
-static void UpdateMainMenuButtonPositions()
-{
-    static int lastWidth = 0, lastHeight = 0;
-    if (GScreenWidth == lastWidth && GScreenHeight == lastHeight)
-        return;
-    lastWidth = GScreenWidth;
-    lastHeight = GScreenHeight;
-
-    int startY = (GScreenHeight / 2) + BTN_START_OFFSET;
-    for (int i = 0; i < 4; i++)
-    {
-        Vector2 pos = {
-            GScreenWidth / 2.0F,
-            static_cast<float>(startY + btnConfig[i].yOffset)
-        };
-        buttons[i].SetPosition(pos);
     }
 }
 
@@ -121,8 +105,10 @@ void UpdateMainMenu(GameState *state)
             case 0: // Start Game - langsung mulai baru tanpa popup
                 SetActiveSlot(0);
                 ResetMemoryState();
-                ResetWorldseed(0);
+                // GC worldseed: hapus save_N/ yang gak dipake save manapun
+                WorldgenIO::CleanupOrphanedSlots();
                 Entities::ClearDeadEntities();
+                std::filesystem::remove_all("saves/slot_0/checkpoints");
                 std::filesystem::remove_all("saves/slot_0/enemies");
                 std::filesystem::remove_all("saves/slot_0/items");
                 state->enteredLoading = false;
@@ -199,14 +185,14 @@ void UpdateMainMenu(GameState *state)
  */
 void RenderMainMenuToVirtualScreen(GameState *state)
 {
-    UpdateMainMenuButtonPositions();
     Vector2 virtualMouse = GetVirtualMousePosition(state);
 
+    // Mulai render ke texture virtual
     BeginTextureMode(state->Dungeon);
     DrawMenuBackground();
 
     // Render logo
-    int logoX = (GScreenWidth / 2) - (logoTexture.width / 2);
+    int logoX = (GameScreenWidth / 2) - (logoTexture.width / 2);
     DrawTexture(logoTexture, logoX, 10, WHITE);
 
     // Render semua tombol menu

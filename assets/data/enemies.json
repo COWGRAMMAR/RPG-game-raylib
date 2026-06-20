@@ -72,14 +72,14 @@
         "offset": { "x": 4.0, "y": 12.0 }
       }
     },
-    "Slime_Elite": {
+    "orc": {
       "id": 10,
       "rank": "elite",
       "scale": 1.25,
       "potionWeight": 9,
       "weaponWeight": 1,
       "stats": {
-        "maxHealth": 250.0,
+        "maxHealth": 450.0,
         "speed": 1.2,
         "chaseSpeed": 1.5,
         "damage": 12.0,
@@ -97,14 +97,14 @@
         "offset": { "x": 8.0, "y": 14.0 }
       }
     },
-    "Skeleton_Elite": {
+    "Manticore": {
       "id": 11,
       "rank": "elite",
       "scale": 1.25,
       "potionWeight": 2,
       "weaponWeight": 8,
       "stats": {
-        "maxHealth": 250.0,
+        "maxHealth": 450.0,
         "speed": 1.2,
         "chaseSpeed": 1.6,
         "damage": 18.0,
@@ -122,14 +122,14 @@
         "offset": { "x": 6.0, "y": 12.0 }
       }
     },
-    "Wolf_Boss": {
+    "Minotaur": {
       "id": 22,
       "rank": "boss",
       "scale": 1.75,
       "potionWeight": 5,
       "weaponWeight": 5,
       "stats": {
-        "maxHealth": 600.0,
+        "maxHealth": 1350.0,
         "speed": 1.0,
         "chaseSpeed": 2.0,
         "damage": 30.0,

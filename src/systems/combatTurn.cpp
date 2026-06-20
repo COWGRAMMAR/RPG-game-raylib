@@ -13,8 +13,8 @@
 #include "fonts.h"
 #include <algorithm>
 
-extern int GScreenWidth;
-extern int GScreenHeight;
+extern const int GameScreenWidth;
+extern const int GameScreenHeight;
 extern GameState *gState;
 
 static struct
@@ -49,6 +49,15 @@ static struct
     float targetZoom;
     Vector2 targetCameraTarget;
 
+    // Boss attack animation duration (for dynamic SHOW_RESULT timer)
+    float bossAnimDuration = 0.0f;
+
+    // Turn-based buff tracking
+    int buffDamageTurns = 0;
+    int buffInvincibilityTurns = 0;
+    float buffDamageMultiplier = 1.0f;
+    int itemCategory = -1;  // -1=select category, 0=health, 1=damage, 2=invincibility
+
 } state;
 
 static float OUTLINE_THICK = 3.0f;
@@ -67,19 +76,31 @@ void TurnCombat::Init(Enemy *boss, Player *player)
     state.keyProcessed = false;
     state.selectedAction = -1;
     state.selectedPotionId = -1;
-    // Save & teleport entities to arena
+    state.buffDamageTurns = 0;
+    state.buffInvincibilityTurns = 0;
+    state.buffDamageMultiplier = 1.0f;
+    state.itemCategory = -1;
+
+    // Clear non-damage buffs saat masuk turn base (invincibility & speed)
+    player->BuffSpeedTimer = 0.0f;
+    player->BuffSpeedTimerMax = 0.0f;
+    player->BuffSpeedMultiplier = 1.0f;
+    player->InvincibilityTimer = 0.0f;
+    player->InvincibilityTimerMax = 0.0f;
+
+    // Save original positions
     state.origPlayerPos = player->Position;
     state.origBossPos = boss->Position;
     state.origCameraTarget = camera.target;
     state.origCameraZoom = camera.zoom;
 
-    // Arena positions: below respective panels
-    // At 2.5x zoom, screen width 1280 → world width ~512, screen height 720 → world height ~288
-    // Panel center X: player=235, boss=1045. Screen center at 640.
-    // World offset from camera target: (235-640)/2.5 = -162, (1045-640)/2.5 = +162
-    // Panel bottom Y = 180, sprite below at ~230. (230-360)/2.5 = -52 above camera target
+    // Teleport boss back to its spawn point agar tidak di luar map
+    boss->Position.x = boss->SpawnPoint.x - boss->HitboxOffsetX - boss->HitboxWidth / 2.0f;
+    boss->Position.y = boss->SpawnPoint.y - boss->HitboxOffsetY - boss->HitboxHeight / 2.0f;
+
+    // Arena positions centered on boss spawn
     float zoom = 2.5f;
-    Vector2 center = player->GetCenter();
+    Vector2 center = boss->SpawnPoint;
     float halfDist = 162.0f;
     float yOffset = -52.0f;
 
@@ -109,12 +130,55 @@ static void TransitionTo(TurnPhase newPhase)
 
 static float GetPlayerAttackDamage()
 {
-    return (float)GetRandomValue(25, 30);
+    float base;
+    InventoryItem activeItem = Inventory::GetActiveHotbarItem(*state.player);
+    if (activeItem.definitionId != -1)
+    {
+        const ItemDefinition &def = itemDefs.GetById(activeItem.definitionId);
+        if (def.category == ITEM_WEAPON)
+        {
+            const WeaponData &wpn = std::get<WeaponData>(def.data);
+            float minVar = wpn.damage * 0.9f;
+            float maxVar = wpn.damage * 1.1f;
+            base = (float)GetRandomValue((int)minVar, (int)maxVar);
+        }
+        else
+        {
+            base = 30.0f;
+        }
+    }
+    else
+    {
+        base = 30.0f;
+    }
+    return base * state.player->BuffDamageMultiplier * state.buffDamageMultiplier;
 }
 
 static bool IsCriticalHit()
 {
     return GetRandomValue(1, 100) <= 20;
+}
+
+static bool ConsumeInventoryItem(int defId)
+{
+    Player &p = *state.player;
+    auto scan = [&](int idx, bool isBag) -> bool
+    {
+        InventoryItem &item = isBag ? p.GetBagItem(idx) : p.GetHotbarItem(idx);
+        if (item.definitionId != defId)
+            return false;
+        item.amount--;
+        if (item.amount <= 0)
+            item = {-1, 0};
+        return true;
+    };
+    for (int i = 0; i < p.GetMaxHotbar(); i++)
+        if (scan(i, false))
+            return true;
+    for (int i = 0; i < p.GetMaxBag(); i++)
+        if (scan(i, true))
+            return true;
+    return false;
 }
 
 static bool UsePotion(int defId)
@@ -235,24 +299,39 @@ static void ExecuteBossTurn()
     float roll = (float)GetRandomValue(0, 99) / 100.0f;
     float damage = 0;
     const char *actionName = "";
+    State animState = ATTACK;
 
     if (roll < 0.15f)
     {
         state.lastBossAction = BossActionType::DASH;
         damage = state.player->Health * 0.5f;
-        actionName = "Dash";
+        actionName = "Trample";
+        animState = ABILITY2;
     }
     else if (roll < 0.50f)
     {
         state.lastBossAction = BossActionType::BITE;
         damage = (float)GetRandomValue(8, 20);
-        actionName = "Gigitan";
+        actionName = "Bantingan";
+        animState = ABILITY1;
     }
     else
     {
         state.lastBossAction = BossActionType::CLAW;
         damage = (float)GetRandomValue(3, 15);
-        actionName = "Cakaran";
+        actionName = "Pukulan";
+        animState = ATTACK;
+    }
+
+    // Play boss attack animation (boss faces left toward player in arena)
+    if (state.boss)
+    {
+        PlayAnimation(state.boss->Anim, animState, LEFT);
+        // Calculate total animation duration from config
+        if (state.boss->Anim.currentConfig && !state.boss->Anim.currentConfig->sprites.empty())
+            state.bossAnimDuration = (float)state.boss->Anim.currentConfig->sprites.size() * state.boss->Anim.currentConfig->speed;
+        else
+            state.bossAnimDuration = 1.0f;
     }
 
     if (state.playerDefending)
@@ -268,6 +347,13 @@ static void ExecuteBossTurn()
         char buf[96];
         snprintf(buf, sizeof(buf), "Boss menggunakan %s! %.0f damage diterima!", actionName, damage);
         state.message = buf;
+    }
+
+    // Invincibility check (overrides damage)
+    if (state.buffInvincibilityTurns > 0)
+    {
+        damage = 0;
+        state.message = "INVINCIBLE! Boss tidak bisa menyakitimu!";
     }
 
     state.player->TakeDamage(damage, {0, 0});
@@ -329,7 +415,10 @@ void TurnCombat::Update()
             if (state.selectedAction == 0)
                 state.phase = TurnPhase::PLAYER_ATTACK;
             else if (state.selectedAction == 1)
+            {
+                state.itemCategory = -1;
                 state.phase = TurnPhase::PLAYER_ITEM;
+            }
             else if (state.selectedAction == 2)
             {
                 state.playerDefending = true;
@@ -413,38 +502,137 @@ void TurnCombat::Update()
         }
         else if (state.timer > 0.0f)
         {
-            // 1s delay after "no potion" message
+            // 1s delay after "no potion" or error message (message kept from error code)
             state.timer -= Time::DELTA_TIME;
-            state.message = "Tidak ada potion! Kembali ke menu...";
             if (state.timer <= 0.0f)
             {
                 state.selectedPotionId = -1;
+                state.selectedAction = -1;
+                state.itemCategory = -1;
                 TransitionTo(TurnPhase::PLAYER_CHOICE);
+            }
+        }
+        else if (state.itemCategory == -1)
+        {
+            // Category selection
+            if (IsKeyPressed(KEY_ONE))
+                state.selectedAction = (state.selectedAction == 0) ? -1 : 0;
+            else if (IsKeyPressed(KEY_TWO))
+                state.selectedAction = (state.selectedAction == 1) ? -1 : 1;
+            else if (IsKeyPressed(KEY_THREE))
+                state.selectedAction = (state.selectedAction == 2) ? -1 : 2;
+            else if (IsKeyPressed(KEY_FOUR))
+                state.selectedAction = (state.selectedAction == 3) ? -1 : 3;
+
+            if (state.selectedAction >= 0 && state.selectedAction < 3)
+            {
+                const char *catNames[] = {"Health Potion", "Damage Buff", "Invincibility"};
+                state.message = TextFormat("Dipilih: %s. Tekan ENTER untuk pilih.", catNames[state.selectedAction]);
+            }
+            else if (state.selectedAction == 3)
+            {
+                state.message = "Kembali ke menu utama. Tekan ENTER untuk konfirmasi.";
+            }
+            else
+            {
+                state.message = "Pilih kategori item (1-3), [4] Kembali, lalu ENTER untuk konfirmasi!";
+            }
+
+            if (IsKeyPressed(KEY_ENTER) && state.selectedAction >= 0)
+            {
+                if (state.selectedAction == 3)
+                {
+                    state.selectedAction = -1;
+                    TransitionTo(TurnPhase::PLAYER_CHOICE);
+                    break;
+                }
+                state.itemCategory = state.selectedAction;
+                state.selectedAction = -1;
+                state.selectedPotionId = -1;
+                state.message = "Pilih potion (1-2/3), [4] Kembali, lalu ENTER";
             }
         }
         else
         {
-            // Normal input: select potion type, then ENTER to confirm
+            // Potion selection within chosen category
+            int ids[3] = {-1, -1, -1};
+            int count = 0;
+            if (state.itemCategory == 0) { ids[0] = 2; ids[1] = 5; ids[2] = 7; count = 3; }
+            else if (state.itemCategory == 1) { ids[0] = 9; ids[1] = 10; count = 2; }
+            else if (state.itemCategory == 2) { ids[0] = 13; ids[1] = 14; count = 2; }
+
             if (IsKeyPressed(KEY_ONE))
-                state.selectedPotionId = GetPotionIdForSlot(0);
-            else if (IsKeyPressed(KEY_TWO))
-                state.selectedPotionId = GetPotionIdForSlot(1);
-            else if (IsKeyPressed(KEY_THREE))
-                state.selectedPotionId = GetPotionIdForSlot(2);
+            {
+                state.selectedPotionId = (state.selectedPotionId == ids[0]) ? -1 : ids[0];
+                state.selectedAction = -1;
+            }
+            else if (IsKeyPressed(KEY_TWO) && count >= 2)
+            {
+                state.selectedPotionId = (state.selectedPotionId == ids[1]) ? -1 : ids[1];
+                state.selectedAction = -1;
+            }
+            else if (IsKeyPressed(KEY_THREE) && count >= 3)
+            {
+                state.selectedPotionId = (state.selectedPotionId == ids[2]) ? -1 : ids[2];
+                state.selectedAction = -1;
+            }
+            else if (IsKeyPressed(KEY_FOUR))
+                state.selectedAction = (state.selectedAction == 99) ? -1 : 99;
 
             if (state.selectedPotionId >= 0)
             {
                 const ItemDefinition &def = itemDefs.GetById(state.selectedPotionId);
                 state.message = TextFormat("Dipilih: %s. Tekan ENTER untuk memakai.", def.name.c_str());
             }
+            else if (state.selectedAction == 99)
+            {
+                state.message = "Kembali ke kategori. Tekan ENTER untuk konfirmasi.";
+            }
             else
             {
-                state.message = "Pilih potion (1-3), lalu ENTER untuk konfirmasi!";
+                state.message = TextFormat("Pilih potion (1-%d), [4] Kembali, lalu ENTER", count);
             }
 
+            if (IsKeyPressed(KEY_ENTER) && state.selectedAction == 99)
+            {
+                state.itemCategory = -1;
+                state.selectedPotionId = -1;
+                state.selectedAction = -1;
+                state.message = "Pilih kategori item (1-3), [4] Kembali, lalu ENTER untuk konfirmasi!";
+                break;
+            }
             if (IsKeyPressed(KEY_ENTER) && state.selectedPotionId >= 0)
             {
-                if (UsePotion(state.selectedPotionId))
+                bool success = false;
+                if (state.itemCategory == 0)
+                {
+                    success = UsePotion(state.selectedPotionId);
+                }
+                else if (state.itemCategory == 1)
+                {
+                    if (ConsumeInventoryItem(state.selectedPotionId))
+                    {
+                        const ItemDefinition &def = itemDefs.GetById(state.selectedPotionId);
+                        const PotionData &pot = std::get<PotionData>(def.data);
+                        int turns = (state.selectedPotionId == 9) ? 1 : 3;
+                        state.buffDamageTurns = turns;
+                        state.buffDamageMultiplier = pot.damageMultiplier;
+                        state.message = TextFormat("Damage buff %d turn! (x%.1f damage)", turns, pot.damageMultiplier);
+                        success = true;
+                    }
+                }
+                else if (state.itemCategory == 2)
+                {
+                    if (ConsumeInventoryItem(state.selectedPotionId))
+                    {
+                        int turns = (state.selectedPotionId == 13) ? 1 : 3;
+                        state.buffInvincibilityTurns = turns;
+                        state.message = TextFormat("Invincibility %d turn!", turns);
+                        success = true;
+                    }
+                }
+
+                if (success)
                 {
                     state.keyProcessed = true;
                     state.timer = 1.0f;
@@ -482,7 +670,8 @@ void TurnCombat::Update()
         {
             ExecuteBossTurn();
             state.keyProcessed = true;
-            state.timer = 1.0f;
+            // Use dynamic timer matching the boss attack animation duration
+            state.timer = state.bossAnimDuration;
         }
         state.timer -= Time::DELTA_TIME;
         if (state.timer <= 0.0f)
@@ -490,7 +679,24 @@ void TurnCombat::Update()
             if (state.player->Health <= 0)
                 TransitionTo(TurnPhase::DEFEAT);
             else
+            {
+                // Decrement turn-based buffs at end of full turn cycle
+                if (state.buffDamageTurns > 0)
+                {
+                    state.buffDamageTurns--;
+                    if (state.buffDamageTurns <= 0)
+                        state.buffDamageMultiplier = 1.0f;
+                }
+                if (state.buffInvincibilityTurns > 0)
+                {
+                    state.buffInvincibilityTurns--;
+                }
+
+                // Reset boss back to idle animation
+                if (state.boss)
+                    PlayAnimation(state.boss->Anim, IDLE, LEFT);
                 TransitionTo(TurnPhase::PLAYER_CHOICE);
+            }
         }
         break;
     }
@@ -556,7 +762,7 @@ static void DrawHealthBar(float x, float y, float w, float h, float ratio, Color
 static void DrawTextCentered(const char *text, int y, int fontSize, Color color)
 {
     int textW = MeasureText(text, fontSize);
-    DrawDefaultText(text, (GScreenWidth - textW) / 2, y, fontSize, color);
+    DrawDefaultText(text, (GameScreenWidth - textW) / 2, y, fontSize, color);
 }
 
 static void DrawActionButton(const char *key, const char *label, int x, int y, int w, int h, bool selected, bool highlight)
@@ -581,7 +787,7 @@ void TurnCombat::Draw()
         return;
 
     int topBorder = 20;
-    DrawRectangleRoundedLinesEx((Rectangle){10, (float)topBorder, (float)GScreenWidth - 20, (float)GScreenHeight - (float)topBorder * 2}, 0.1f, 8, OUTLINE_THICK, ColorAlpha(GOLD, 0.5f));
+    DrawRectangleRoundedLinesEx((Rectangle){10, (float)topBorder, (float)GameScreenWidth - 20, (float)GameScreenHeight - (float)topBorder * 2}, 0.1f, 8, OUTLINE_THICK, ColorAlpha(GOLD, 0.5f));
 
     DrawTextCentered("TURN-BASED COMBAT", 30, 28, GOLD);
 
@@ -611,8 +817,22 @@ void TurnCombat::Draw()
     snprintf(manaText, sizeof(manaText), "MP: %.0f / %.0f", mana, maxMana);
     DrawDefaultText(manaText, playerX + 15, panelY + 90, 16, GOLD);
 
+    // Buff indicators
+    if (state.buffDamageTurns > 0)
+    {
+        char buf[32];
+        snprintf(buf, sizeof(buf), "DMG x%.1f (%d turn)", state.buffDamageMultiplier, state.buffDamageTurns);
+        DrawDefaultText(buf, playerX + 15, panelY + 115, 14, ORANGE);
+    }
+    if (state.buffInvincibilityTurns > 0)
+    {
+        char buf[32];
+        snprintf(buf, sizeof(buf), "INVINCIBLE (%d turn)", state.buffInvincibilityTurns);
+        DrawDefaultText(buf, playerX + 15, panelY + 115 + (state.buffDamageTurns > 0 ? 16 : 0), 14, SKYBLUE);
+    }
+
     // Boss panel (right)
-    int bossX = GScreenWidth - 60 - panelW;
+    int bossX = GameScreenWidth - 60 - panelW;
     DrawRectangleRounded((Rectangle){(float)bossX, (float)panelY, (float)panelW, (float)panelH}, 0.2f, 8, ColorAlpha(BLACK, 0.5f));
     DrawRectangleRoundedLinesEx((Rectangle){(float)bossX, (float)panelY, (float)panelW, (float)panelH}, 0.2f, 8, OUTLINE_THICK, ColorAlpha(RED, 0.5f));
 
@@ -652,11 +872,11 @@ void TurnCombat::Draw()
     // Action buttons (bottom)
     if (state.phase == TurnPhase::PLAYER_CHOICE)
     {
-        int btnY = GScreenHeight - 80;
+        int btnY = GameScreenHeight - 80;
         int btnW = 180;
         int btnH = 50;
         int totalW = btnW * 3 + 20 * 2;
-        int startX = (GScreenWidth - totalW) / 2;
+        int startX = (GameScreenWidth - totalW) / 2;
 
         DrawActionButton("1", "Attack", startX, btnY, btnW, btnH, state.selectedAction == 0, false);
         DrawActionButton("2", "Items", startX + btnW + 20, btnY, btnW, btnH, state.selectedAction == 1, false);
@@ -664,29 +884,57 @@ void TurnCombat::Draw()
     }
     else if (state.phase == TurnPhase::PLAYER_ITEM)
     {
-        int btnY = GScreenHeight - 80;
+        int btnY = GameScreenHeight - 80;
         int btnW = 180;
         int btnH = 50;
-        int totalW = btnW * 3 + 20 * 2;
-        int startX = (GScreenWidth - totalW) / 2;
-        const char *potionNames[] = {"Small HP", "Medium HP", "Large HP"};
-        int potionDefs[] = {2, 5, 7};
-        int selPotion = state.selectedPotionId;
-        DrawActionButton("1", potionNames[0], startX, btnY, btnW, btnH, selPotion == potionDefs[0], false);
-        DrawActionButton("2", potionNames[1], startX + btnW + 20, btnY, btnW, btnH, selPotion == potionDefs[1], false);
-        DrawActionButton("3", potionNames[2], startX + (btnW + 20) * 2, btnY, btnW, btnH, selPotion == potionDefs[2], false);
+        int gap = 12;
+        int totalW = btnW * 4 + gap * 3;
+        int startX = (GameScreenWidth - totalW) / 2;
+
+        if (state.itemCategory == -1)
+        {
+            DrawActionButton("1", "Health Potion", startX, btnY, btnW, btnH, state.selectedAction == 0, false);
+            DrawActionButton("2", "Damage Buff", startX + btnW + gap, btnY, btnW, btnH, state.selectedAction == 1, false);
+            DrawActionButton("3", "Invincibility", startX + (btnW + gap) * 2, btnY, btnW, btnH, state.selectedAction == 2, false);
+            DrawActionButton("4", "Kembali", startX + (btnW + gap) * 3, btnY, btnW, btnH, state.selectedAction == 3, false);
+        }
+        else if (state.itemCategory == 0)
+        {
+            const char *names[] = {"Small HP", "Medium HP", "Large HP"};
+            int ids[] = {2, 5, 7};
+            DrawActionButton("1", names[0], startX, btnY, btnW, btnH, state.selectedPotionId == ids[0], false);
+            DrawActionButton("2", names[1], startX + btnW + gap, btnY, btnW, btnH, state.selectedPotionId == ids[1], false);
+            DrawActionButton("3", names[2], startX + (btnW + gap) * 2, btnY, btnW, btnH, state.selectedPotionId == ids[2], false);
+            DrawActionButton("4", "Kembali", startX + (btnW + gap) * 3, btnY, btnW, btnH, state.selectedAction == 99, false);
+        }
+        else if (state.itemCategory == 1)
+        {
+            DrawActionButton("1", "Small Dmg (1t)", startX, btnY, btnW, btnH, state.selectedPotionId == 9, false);
+            DrawActionButton("2", "Med Dmg (3t)", startX + btnW + gap, btnY, btnW, btnH, state.selectedPotionId == 10, false);
+            int emptyX = startX + (btnW + gap) * 2;
+            DrawRectangleRounded((Rectangle){(float)emptyX, (float)btnY, (float)btnW, (float)btnH}, 0.3f, 8, ColorAlpha(DARKGRAY, 0.3f));
+            DrawActionButton("4", "Kembali", startX + (btnW + gap) * 3, btnY, btnW, btnH, state.selectedAction == 99, false);
+        }
+        else if (state.itemCategory == 2)
+        {
+            DrawActionButton("1", "Small Inv (1t)", startX, btnY, btnW, btnH, state.selectedPotionId == 13, false);
+            DrawActionButton("2", "Med Inv (3t)", startX + btnW + gap, btnY, btnW, btnH, state.selectedPotionId == 14, false);
+            int emptyX = startX + (btnW + gap) * 2;
+            DrawRectangleRounded((Rectangle){(float)emptyX, (float)btnY, (float)btnW, (float)btnH}, 0.3f, 8, ColorAlpha(DARKGRAY, 0.3f));
+            DrawActionButton("4", "Kembali", startX + (btnW + gap) * 3, btnY, btnW, btnH, state.selectedAction == 99, false);
+        }
     }
     else if (state.phase == TurnPhase::VICTORY)
     {
         // Darken screen
-        DrawRectangle(0, 0, GScreenWidth, GScreenHeight, ColorAlpha(BLACK, 0.5f));
+        DrawRectangle(0, 0, GameScreenWidth, GameScreenHeight, ColorAlpha(BLACK, 0.5f));
 
         // Big MENANG text with yellow outline
         const char *menangText = "MENANG";
         int fontSize = 80;
         int textW = MeasureText(menangText, fontSize);
-        int textX = (GScreenWidth - textW) / 2;
-        int textY = GScreenHeight / 2 - fontSize / 2 - 40;
+        int textX = (GameScreenWidth - textW) / 2;
+        int textY = GameScreenHeight / 2 - fontSize / 2 - 40;
 
         DrawDefaultText(menangText, textX - 3, textY, fontSize, YELLOW);
         DrawDefaultText(menangText, textX + 3, textY, fontSize, YELLOW);
@@ -706,19 +954,19 @@ void TurnCombat::Draw()
             int gap = 8;
             int textW = MeasureText(itemText, 20);
             int groupW = iconSize + gap + textW;
-            int groupX = (GScreenWidth - groupW) / 2;
+            int groupX = (GameScreenWidth - groupW) / 2;
             Rectangle iconDest = {(float)groupX, (float)itemY - 3, (float)iconSize, (float)iconSize};
             Display iconDisplay = {{iconDest.x, iconDest.y}, (int)iconDest.width, {0, 0}, {0, 0}, 0.0f, WHITE};
             DrawFrame(def.spriteKey, iconDisplay);
             DrawDefaultText(itemText, groupX + iconSize + gap, itemY + 4, 20, LIGHTGRAY);
         }
 
-        DrawTextCentered("Tekan ENTER atau klik untuk melanjutkan.", GScreenHeight - 60, 20, GREEN);
+        DrawTextCentered("Tekan ENTER atau klik untuk melanjutkan.", GameScreenHeight - 60, 20, GREEN);
     }
     else if (state.phase == TurnPhase::DEFEAT)
     {
         // Darken screen
-        DrawRectangle(0, 0, GScreenWidth, GScreenHeight, ColorAlpha(BLACK, 0.5f));
+        DrawRectangle(0, 0, GameScreenWidth, GameScreenHeight, ColorAlpha(BLACK, 0.5f));
     }
 
     // Phase indicator
@@ -732,7 +980,14 @@ void TurnCombat::Draw()
         phaseText = "Menyerang...";
         break;
     case TurnPhase::PLAYER_ITEM:
-        phaseText = "Menggunakan Item...";
+        if (state.itemCategory == -1)
+            phaseText = "Pilih Kategori Item";
+        else if (state.itemCategory == 0)
+            phaseText = "Pilih Health Potion";
+        else if (state.itemCategory == 1)
+            phaseText = "Pilih Damage Buff";
+        else
+            phaseText = "Pilih Invincibility";
         break;
     case TurnPhase::PLAYER_DEFEND:
         phaseText = "Bertahan...";
@@ -752,7 +1007,7 @@ void TurnCombat::Draw()
     default:
         break;
     }
-    DrawTextCentered(phaseText, GScreenHeight - 120, 18, LIGHTGRAY);
+    DrawTextCentered(phaseText, GameScreenHeight - 120, 18, LIGHTGRAY);
 }
 
 bool TurnCombat::IsActive()
@@ -781,6 +1036,10 @@ void TurnCombat::Shutdown()
     state.player = nullptr;
     state.message.clear();
     state.playerDefending = false;
+    state.buffDamageTurns = 0;
+    state.buffInvincibilityTurns = 0;
+    state.buffDamageMultiplier = 1.0f;
+    state.itemCategory = -1;
 
     // Restore camera
     camera.target = state.origCameraTarget;

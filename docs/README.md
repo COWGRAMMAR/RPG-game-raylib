@@ -6,7 +6,7 @@ Folder ini berisi dokumentasi yang diperlukan untuk memahami struktur projek. Si
 
 ## Daftar Isi
 
-Isi folder ini dapat berubah-ubah sepanjang waktu. Apabila menambahkan atau mengurangi, mohon sebaikanya `./README.md` ini juga diubah agar mempermudah navigasi
+Isi folder ini dapat berubah-ubah sepanjang waktu. Apabila menambahkan atau mengurangi, mohon sebaikanya `./README.md` ini juga diubah agar mempermudah navigasi.
 
 1. `./assets-structure.md` : Berisi panduan untuk meletakkan aset dan resource yang diperlukan untuk permainan.
 2. `./build.md` : Panduan untuk membangun projek agar bisa dijalankan dan dimainkan.

@@ -1,6 +1,6 @@
 # Instruksi Build
 
-> **PowerShell 5.1+ required for Windows. CMD is no longer supported.**
+> **PowerShell 5.1+ required for Windows. CMD is lacking features for the best build experience.**
 
 ---
 
@@ -48,7 +48,7 @@ Pasang alat-alat berikut untuk membangun proyek:
 
 Skrip ini mengkonfigurasi, membangun, dan menjalankan permainan secara otomatis.
 
-#### Windows (PowerShell)
+#### Windows (PowerShell 5.1+. 7+ Recommended)
 
 ```powershell
 .\run-windows.ps1
@@ -83,7 +83,7 @@ cmake --build --preset ninja
 # Linux/macOS
 ./build/bin/main
 
-# Windows (PowerShell)
+# Windows (PowerShell 5.1+. 7+ Recommended)
 .\build\bin\main.exe
 ```
 

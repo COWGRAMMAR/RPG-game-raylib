@@ -1,0 +1,19 @@
+docs/debug-keybinds.md
+  s_0a4bb6d2154abc::t_6ed1979fb94d0b 3,5,7,9-28,30,32,34,36-40,42,44,46-92,95-96,98-104,108-112
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.8",
+  "base_commit_sha": "05714d8c0946c1e4853cf81c6f1b36160aaf7953",
+  "prompts": {},
+  "sessions": {
+    "s_0a4bb6d2154abc": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_11b1433d9ffeJQFlTDDytvZdg9",
+        "model": "unknown"
+      },
+      "human_author": "NiskoDT <65821447+NiskoDT@users.noreply.github.com>"
+    }
+  }
+}

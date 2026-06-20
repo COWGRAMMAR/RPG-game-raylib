@@ -50,8 +50,8 @@ void Player::Init(GameState *state, const char *spawnObjectName)
         ManaRegenTimer = 0.0f;
 
         // Inisialisasi perlengkapan hotbar default
-        Hotbar[0] = {18, 1}; // War Hammer
-        Hotbar[1] = {4, 1};  // Bow
+        Hotbar[0] = {4, 1}; // Bow
+        Hotbar[1] = {15, 1};  // AK-47
         Hotbar[2] = {2, 8};  // Small Health Potion
         Hotbar[3] = {3, 8};  // Small Mana Potion
 
@@ -128,8 +128,8 @@ void Player::ResetForNewGame()
     Health = MaxHealth = 100.0f;
     Mana = MaxMana = 100.0f;
     ManaRegenTimer = 0.0f;
-    Hotbar[0] = {18, 1}; // War Hammer
-    Hotbar[1] = {4, 1};  // Bow
+    Hotbar[0] = {4, 1}; // Bow
+    Hotbar[1] = {15, 1};  // AK-47
     Hotbar[2] = {2, 8};  // Small Health Potion
     Hotbar[3] = {3, 8};  // Small Mana Potion
     for (int i = 0; i < MaxBag; i++)

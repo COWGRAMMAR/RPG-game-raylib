@@ -115,3 +115,7 @@ signManager.DismissDialog()
 | `src/rendering/hud.cpp` | Implementasi render dialog (yang bakal diedit UI designer) |
 | `src/core/screen_handler.cpp` | Panggil `DrawSignDialog()` di `DrawUIOverlay()` |
 | `src/core/main.cpp` | Logika dismiss + freeze game logic |
+| `include/map/propsbehavior.h` | Deklarasi class `SignManager` + `extern SignManager signManager` |
+| `src/map/propsbehavior.cpp` | Definisi `signManager` global + implementasi method (`SpawnSigns`, `Render`, `Interact`, `DismissDialog`, dll) |
+| `src/systems/interaction.cpp` | Panggil `signManager.Interact()` saat player interaksi |
+| `src/entities/entities.cpp` | Panggil `signManager.Render()` dan `signManager.Clear()` |

@@ -57,6 +57,8 @@ FontHandle            AtlasRes          DrawTextCached()
 | `GetOrLoad()` | `src/rendering/fonts.cpp` | Lazy load + cache lookup |
 | `DrawTextCached()` | `src/rendering/fonts.cpp` | DrawTextEx wrapper — otomatis get dari cache |
 | `DrawDefaultText()` | `src/rendering/fonts.cpp` | DrawText sederhana pake FontId::DEFAULT |
+| `MeasureTextCached()` | `src/rendering/fonts.cpp` | MeasureTextEx wrapper — ngukur ukuran text pake font dari cache |
+| `UnloadFonts()` | `src/rendering/fonts.cpp` | Unload semua font dari cache |
 
 ### Cache Key
 
@@ -294,7 +296,7 @@ void DrawCenteredText(const char* text, int y, int fontSize, Color color) {
         {FontId::LOADING_TITLE, AtlasRes::RES_256},
         text, (float)fontSize, 1
     );
-    int x = (640 - (int)size.x) / 2;  // 640 = virtual screen width
+    int x = (GameScreenWidth - (int)size.x) / 2;
     DrawTextCached(
         {FontId::LOADING_TITLE, AtlasRes::RES_256},
         text, {(float)x, (float)y}, (float)fontSize, 1, color

@@ -1,0 +1,36 @@
+docs/worldgeneration.md
+  s_0ee2af2fc9ffe9::t_10b784c389edf4 119,131-133
+  s_0ee2af2fc9ffe9::t_b1d5b1413d8308 215,217,219,221-228,230,233-236,239,242-247
+  s_0ee2af2fc9ffe9::t_a88ee5887859d8 192
+  s_0ee2af2fc9ffe9::t_c282d1f8881253 87,90-94,97-98,254-257
+  s_0ee2af2fc9ffe9::t_55c022e49014b9 161
+  s_0ee2af2fc9ffe9::t_588ef759ba99a0 207-209
+docs/font-system.md
+  s_0ee2af2fc9ffe9::t_ee09d4a158d4d2 227,229-230,239-241
+docs/buff-indicator-system.md
+  s_0ee2af2fc9ffe9::t_e4088815e2d3c4 90
+docs/restart-pipeline.md
+  s_0ee2af2fc9ffe9::t_e7889f09d4676f 132
+docs/save-system.md
+  s_0ee2af2fc9ffe9::t_065221ef581ecd 521
+  s_0ee2af2fc9ffe9::t_5147fef534484f 298
+  s_0ee2af2fc9ffe9::t_b6601627061184 127-130
+  s_0ee2af2fc9ffe9::t_f3bcb96313e5a0 148
+  s_0ee2af2fc9ffe9::t_b18357fe4c6d11 502
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.8",
+  "base_commit_sha": "806c74aa75c67ee7804c14d42a7b74215a105560",
+  "prompts": {},
+  "sessions": {
+    "s_0ee2af2fc9ffe9": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_12174ed8dffeQT3WRIoy8BfpB3",
+        "model": "unknown"
+      },
+      "human_author": "NiskoDT <65821447+NiskoDT@users.noreply.github.com>"
+    }
+  }
+}

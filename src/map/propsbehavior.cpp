@@ -472,7 +472,10 @@ void SpikeManager::Update(float deltaTime, Rectangle playerBounds, Player *playe
                 if (CheckCollisionRecs(spike.tile.bounds, enemy->GetHitbox()))
                 {
                     globalEnemyDamageCooldown = SPIKE_DAMAGE_COOLDOWN;
-                    enemy->TakeDamage(SPIKE_DAMAGE, {0, 0});
+                    float dmg = SPIKE_DAMAGE;
+                    if (enemy->Def && enemy->Def->stats.canTriggerTurnBased && enemy->Health <= enemy->MaxHealth * 0.5f)
+                        dmg *= 0.65f;
+                    enemy->TakeDamage(dmg, {0, 0});
                 }
             }
         }
@@ -912,7 +915,12 @@ void BombManager::Explode(BombData &bomb, Rectangle playerBounds, Player *player
                 player->TakeDamage(static_cast<float>(playerHitCount) * BOMB_DAMAGE);
 
             for (auto &[enemy, count] : enemyHitCounts)
-                enemy->TakeDamage(static_cast<float>(count) * BOMB_DAMAGE, {0, 0});
+            {
+                float dmg = static_cast<float>(count) * BOMB_DAMAGE;
+                if (enemy->Def && enemy->Def->stats.canTriggerTurnBased && enemy->Health <= enemy->MaxHealth * 0.5f)
+                    dmg *= 0.65f;
+                enemy->TakeDamage(dmg, {0, 0});
+            }
         }
     }
 }

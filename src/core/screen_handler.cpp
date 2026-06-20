@@ -280,7 +280,7 @@ void UpdateLogicAll()
         for (Entity *entity : Entities::GetRegistry())
         {
             Enemy *enemy = dynamic_cast<Enemy *>(entity);
-            if (enemy && enemy->IsActive && enemy->isTurnBasedMode)
+            if (enemy && enemy->IsActive && enemy->Health > 0 && enemy->isTurnBasedMode)
             {
                 if (PlayerInstance.Health <= 0)
                     continue;

@@ -227,6 +227,7 @@ void Enemy::Update()
 
     if (Health <= 0)
     {
+        isTurnBasedMode = false; // Prevent re-trigger turn-based jika mati kena bomb dll
         HealthBarTimer = 0.0f; // Langsung matikan health bar sebelum death anim
 
         if (Anim.state != DEAD)

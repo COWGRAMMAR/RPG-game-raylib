@@ -98,6 +98,13 @@ struct EnemyHitboxData
     Vector2 offset; // Offset hitbox relatif terhadap Position {offsetX, offsetY}
 };
 
+/** @brief Ukuran dan offset hurtbox enemy, di-load dari JSON */
+struct EnemyHurtboxData
+{
+    Vector2 size;   // Lebar dan tinggi hurtbox
+    Vector2 offset; // Offset X dan Y dari ujung kiri atas sprite
+};
+
 /** @brief Single source of truth untuk satu tipe enemy, di-load dari JSON */
 struct EnemyDefinition
 {
@@ -105,6 +112,7 @@ struct EnemyDefinition
     std::string name;            ///< Nama tipe enemy (e.g. "Slime", "Skeleton")
     EnemyStats stats;            ///< Statistik gameplay
     EnemyHitboxData hitbox;      ///< Konfigurasi hitbox
+    EnemyHurtboxData hurtbox;    ///< Konfigurasi hurtbox
     EnemyRank rank = ENEMY_NORMAL; ///< Rank untuk spawn/balance
     float Scale = 1.0f;           ///< Skala visual (1.0 = normal, 1.25 = elite, 1.75 = boss)
     int potionWeight = 5;          ///< Bobot potion saat roll kategori loot (default 5)
@@ -209,6 +217,20 @@ public:
     Rectangle GetHitbox() const override
     {
         return {Position.x + HitboxOffsetX, Position.y + HitboxOffsetY, HitboxWidth, HitboxHeight};
+    }
+
+    Rectangle GetHurtbox() const override
+    {
+        float scale = Def ? Def->Scale : 1.0f;
+        float hw = Def ? (Def->hurtbox.size.x * scale) : (32.0f * scale);
+        float hh = Def ? (Def->hurtbox.size.y * scale) : (32.0f * scale);
+        
+        float centeringOffset = (FRAME_SIZE - FRAME_SIZE * scale) / 2.0f;
+        
+        float ox = Def ? (Def->hurtbox.offset.x * scale) : 0.0f;
+        float oy = Def ? (Def->hurtbox.offset.y * scale) : 0.0f;
+
+        return {Position.x + centeringOffset + ox, Position.y + centeringOffset + oy, hw, hh};
     }
 
     EnemySteering Steering; // helper steering untuk chase dan return pathfinding

@@ -119,6 +119,18 @@ void EnemyDataManager::Load(const std::string &path)
         def.hitbox.size = ParseVector2(h.at("size"));
         def.hitbox.offset = ParseVector2(h.at("offset"));
 
+        if (data.contains("hurtbox"))
+        {
+            const auto &hu = data.at("hurtbox");
+            def.hurtbox.size = ParseVector2(hu.at("size"));
+            def.hurtbox.offset = ParseVector2(hu.at("offset"));
+        }
+        else
+        {
+            def.hurtbox.size = {32.0f, 32.0f};
+            def.hurtbox.offset = {0.0f, 0.0f};
+        }
+
         def.Scale = SafeGet<float>(data, "scale", 1.0f);
         def.potionWeight = SafeGet<int>(data, "potionWeight", 5);
         def.weaponWeight = SafeGet<int>(data, "weaponWeight", 5);
@@ -1042,6 +1054,7 @@ void Enemy::Render()
         DrawCircleLinesV(enemyCenter, GetEffectiveAttackRange(), GREEN);
         DrawCircleLinesV(enemyCenter, Def->stats.attackRange, Fade(RED, 0.3f));
         DrawRectangleLinesEx(GetHitbox(), 1.0f, VIOLET);
+        DrawRectangleLinesEx(GetHurtbox(), 1.0f, YELLOW);
 
         if (AIState == ENEMY_CHASE || AIState == ENEMY_ATTACK)
             DrawLineEx(enemyCenter, PlayerInstance.GetCenter(), 1.0f, RED);

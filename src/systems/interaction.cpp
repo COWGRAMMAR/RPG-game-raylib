@@ -10,6 +10,7 @@
 #include "game_state_saver.h"
 #include "entities.h"
 #include "raymath.h"
+#include "map/minimap.h"
 
 namespace Interaction
 {
@@ -19,7 +20,7 @@ namespace Interaction
     void HandleInteractions(Player &player)
     {
         // Gak bisa interact pas inventory kebuka
-        if (InputInstance.IsInventoryOpen())
+        if (InputInstance.IsInventoryOpen() || g_MinimapScreen.IsActive())
             return;
 
         player.canInteract = false;

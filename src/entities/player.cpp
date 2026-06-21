@@ -25,6 +25,7 @@
 #include "propsbehavior.h"
 #include "combatTurn.h"
 #include <cmath>
+#include "map/minimap.h"
 
 constexpr int EMPTY_ITEM_ID = -1;
 
@@ -411,7 +412,7 @@ void Player::DrawAimIndicator(void)
 // Handle action player
 void Player::HandleAction(void)
 {
-    if (InputInstance.IsInventoryOpen())
+    if (InputInstance.IsInventoryOpen() || g_MinimapScreen.IsActive())
         return;
 
     PlayerAction action = InputInstance.ResolveAction();

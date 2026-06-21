@@ -2,6 +2,7 @@
 #include "player.h"
 #include "item.h"
 #include "keybindManager.h"
+#include "map/minimap.h"
 
 /** @brief Instance global input */
 PlayerInput InputInstance;
@@ -60,7 +61,7 @@ void PlayerInput::PollInput(void)
 
 void PlayerInput::UpdateState(void)
 {
-    if (Current.toggleInventory)
+    if (Current.toggleInventory && !g_MinimapScreen.IsActive())
     {
         InventoryOpen = !InventoryOpen;
         if (InventoryOpen)
@@ -69,7 +70,7 @@ void PlayerInput::UpdateState(void)
         TraceLog(LOG_INFO, "INPUT: Inventory %s", InventoryOpen ? "OPENED" : "CLOSED");
     }
 
-    if (Current.toggleMap)
+    if (Current.toggleMap && !InventoryOpen)
     {
         MapOpen = !MapOpen;
         if (MapOpen)
@@ -123,6 +124,7 @@ void PlayerInput::ResetMenuFlags()
 {
     InventoryOpen = false;
     MapOpen = false;
+    g_MinimapScreen.Shutdown();
 }
 
 PlayerAction PlayerInput::ResolveAction() const

@@ -8,6 +8,7 @@
  */
 
 #include "core/loading_screen.h"
+#include "map/minimap.h"
 #include "map/map.h"
 #include "entities/player.h"
 #include "entities/enemy.h"
@@ -191,6 +192,7 @@ static void HandleMapSwitch(GameState *state)
         }
         SpawnObject();
         RebuildObstacleCache();
+        MinimapSystem::InitWithMap();
         globalFlowField.Invalidate();
         state->loadingStage++;
         state->loadingProgress = (float)state->loadingStage / MAP_SWITCH_STAGES * 100.0F;

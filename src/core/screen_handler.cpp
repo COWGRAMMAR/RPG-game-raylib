@@ -32,6 +32,7 @@
 #include "combat.h"
 #include "interaction.h"
 #include "input.h"
+#include "map/minimap.h"
 #include <cstdio>
 #include "enemy_ai.h"
 #include "raylib.h"
@@ -112,6 +113,7 @@ void InitAll()
 
     SpawnObject();
     RebuildObstacleCache();
+    MinimapSystem::InitWithMap();
     globalFlowField.Invalidate(); // nanti diganti kalo nambah method ai nya
     // Spawn musuh dari map aktif
     SpawnEnemiesFromMap();

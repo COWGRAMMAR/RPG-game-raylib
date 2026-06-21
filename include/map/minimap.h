@@ -7,7 +7,7 @@
  * Bukan wallhack: cuma nampilin layout statis (wall/floor) dan posisi player.
  * gak ada enemy / item / runtime object dots.
  *
- * Scale: 2×2 tile → 1 px minimap grid.
+ * Scale: 1 tile = 1 px minimap grid.
  */
 
 #include "raylib.h"
@@ -21,16 +21,19 @@
  * Minimap Constants
  *==============================================================================*/
 
-/// 2 tile map = 1 px pada minimap grid
-constexpr int MINIMAP_TILE_TO_PX   = 2;
+/// 1 tile map = 1 px pada minimap grid
+constexpr int MINIMAP_TILE_TO_PX   = 1;
 /// Radius reveal fog of war (dalam tile map)
 constexpr int MINIMAP_REVEAL_RADIUS = 10;
 /// Alpha untuk fog explored (pernah visible, sekarang gelap lagi)
 constexpr float MINIMAP_FOG_EXPLORED_ALPHA = 0.6f;
 /// Scale factor pas render grid ke layar (1 grid px = N screen px)
-constexpr int MINIMAP_PANEL_SCALE = 3;
+constexpr int MINIMAP_PANEL_SCALE = 4;
 /// Padding dalam panel (px)
 constexpr int MINIMAP_PANEL_PADDING = 10;
+/// Ukuran tetap viewport minimap (screen pixels)
+constexpr int MINIMAP_VIEWPORT_WIDTH  = 500;
+constexpr int MINIMAP_VIEWPORT_HEIGHT = 460;
 
 /*==============================================================================
  * FogState Enum
@@ -48,9 +51,9 @@ enum class FogState : unsigned char
  *==============================================================================*/
 
 /**
- * @brief Data inti minimap: grid warna + fog array.
+ * @brief Data inti minimap: grid dimensi + fog array.
  *
- * Dibangun sekali pas map load via BuildMinimapGrid().
+ * Grid warna tidak disimpan — langsung sampling tilesonMap tiap frame.
  * fogCache nyimpen fog per map path buat persistensi (mirip barrierMap).
  */
 struct MinimapData
@@ -60,9 +63,6 @@ struct MinimapData
     int mapTileWidth  = 0;  ///< Ukuran asli map (tile)
     int mapTileHeight = 0;
 
-    /// Warna per grid cell — 1 Color per 2×2 tile block, row-major
-    std::vector<Color> grid;
-
     /// Fog state per grid cell — 0/1/2, row-major
     std::vector<unsigned char> fog;
 
@@ -70,29 +70,7 @@ struct MinimapData
     std::unordered_map<std::string, std::vector<unsigned char>> fogCache;
 };
 
-/*==============================================================================
- * Grid Building Functions
- *==============================================================================*/
 
-/**
- * @brief Bangun minimap grid dari tile GID + obstacle rects.
- *
- * @param mapTileW       Lebar map dalam tile
- * @param mapTileH       Tinggi map dalam tile
- * @param tileGids       Array GID per tile (row-major, size = mapTileW * mapTileH)
- * @param obstacleRects  Rectangle dari Tiled object layer "obstacle" (dalam tile coords)
- */
-void BuildMinimapGrid(int mapTileW, int mapTileH,
-                      const std::vector<int>& tileGids,
-                      const std::vector<Rectangle>& obstacleRects);
-
-/**
- * @brief Petakan GID tile ke warna minimap.
- *
- * Sementara pake heuristic sederhana.
- * Nanti bisa diperhalus pas tileset properti udah jelas.
- */
-Color MapGidToColor(int gid);
 
 /*==============================================================================
  * Fog Functions
@@ -163,8 +141,8 @@ public:
     void Draw(Vector2 mousePosition);
 
 private:
-    /** @brief Render static grid ke gridRT (panggil sekali pas Init) */
-    void PreRenderGrid();
+    /** @brief Build grid texture dari tilesonMap + collision (panggil sekali pas Init) */
+    void BuildGridTexture();
 
     /** @brief Render fog layer ke fogRT (panggil tiap frame) */
     void RenderFogLayer();
@@ -174,6 +152,9 @@ private:
 
     /** @brief Gambar marker player di atas grid+fog */
     void DrawPlayerMarker() const;
+
+    /** @brief Update panOffset agar view selalu center ke player (tiap frame) */
+    void UpdateView();
 
     /** @brief Handle drag untuk pan */
     void HandlePan(Vector2 mousePosition, bool mouseClicked);
@@ -189,10 +170,10 @@ private:
     bool initialized;   ///< Init() udah dipanggil?
 
     /*----------------------------------------------------------------------
-     * Render Textures
+     * Textures
      *----------------------------------------------------------------------*/
 
-    RenderTexture2D gridRT;  ///< Static grid (pre-render sekali)
+    Texture2D gridTexture;   ///< Static grid (build sekali dari tilesonMap)
     RenderTexture2D fogRT;   ///< Fog layer (update tiap frame)
 
     /*----------------------------------------------------------------------
@@ -220,3 +201,43 @@ extern MinimapData g_Minimap;
 
 /// Global minimap screen instance
 extern MinimapScreen g_MinimapScreen;
+
+/*==============================================================================
+ * MinimapSystem — Public Namespace Interface
+ *==============================================================================*/
+
+/**
+ * @brief Public API untuk integrasi minimap ke game loop.
+ *
+ * External files cukup panggil 4 fungsi ini — no scattered minimap logic.
+ */
+namespace MinimapSystem {
+
+    /**
+     * @brief Init/rebuild minimap dari map yang sedang aktif.
+     *
+     * Panggil setelah LoadMap + SpawnObject + RebuildObstacleCache.
+     * Otomatis: build grid → restore fog cache → init RenderTexture.
+     */
+    void InitWithMap();
+
+    /**
+     * @brief Shutdown minimap — simpan fog + unload RT.
+     */
+    void Shutdown();
+
+    /**
+     * @brief Update fog + handle toggle map.
+     *
+     * Panggil tiap frame di PLAY state setelah InputInstance.PollInput().
+     */
+    void Update();
+
+    /**
+     * @brief Draw minimap overlay (jika aktif).
+     *
+     * Panggil di dalam BeginTextureMode / DrawUIOverlay.
+     */
+    void Draw();
+
+} // namespace MinimapSystem

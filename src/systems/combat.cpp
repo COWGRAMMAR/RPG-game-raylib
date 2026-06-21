@@ -16,6 +16,7 @@
 #include "mapLogic.h"
 #include "propsbehavior.h"
 #include "item.h"
+#include "map/minimap.h"
 
 namespace Combat
 {
@@ -27,7 +28,7 @@ namespace Combat
 
         HandleStamina(player);
 
-        if (InputInstance.IsInventoryOpen())
+        if (InputInstance.IsInventoryOpen() || g_MinimapScreen.IsActive())
             return;
 
         HandleAttack(player);

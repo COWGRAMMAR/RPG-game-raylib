@@ -13,6 +13,7 @@
 #include "worldgenenartion.h"
 #include "combatTurn.h"
 #include "raymath.h"
+#include "map/minimap.h"
 #include <cstdio>
 #include <vector>
 #include <string>
@@ -1260,6 +1261,9 @@ void DrawPlayerHUD()
         AudioManager::PlaySFX("inventori");
     else if (initialDragSlot != -1 && dragSlot == -1)
         AudioManager::PlaySFX("inventori");
+
+    // 10. Minimap overlay (paling depan, di belakang pause menu)
+    MinimapSystem::Draw();
 }
 
 /**

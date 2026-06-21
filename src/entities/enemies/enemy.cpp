@@ -1225,43 +1225,6 @@ void SpawnAtPoint(const MapObject *obj, EnemyRank rank)
     }
 }
 
-void SpawnTutorialAtPoint(const MapObject *obj)
-{
-    if (!obj) return;
-    auto pool = GetNamesByRank(ENEMY_NORMAL);
-    if (pool.empty()) return;
-
-    std::mt19937 rng(obj->id);
-    std::uniform_int_distribution<int> pickDist(0, (int)pool.size() - 1);
-    std::uniform_int_distribution<int> countDist(SPAWN_PINPOINT_TUTORIAL_MIN, SPAWN_PINPOINT_TUTORIAL_MAX);
-    std::uniform_real_distribution<float> offsetDist(-SEPARATION_RADIUS, SEPARATION_RADIUS);
-
-    int count = countDist(rng);
-
-    Vector2 center = {obj->bounds.x + obj->bounds.width / 2.0f,
-                      obj->bounds.y + obj->bounds.height / 2.0f};
-    if (spawnFlowFields.find(obj->id) == spawnFlowFields.end())
-        BuildSpawnFlowFields(center, obj->id, tilesonMap->width, tilesonMap->height);
-
-    uint64_t dSeed = g_SeedManager.IsRunActive()
-        ? (uint64_t)g_SeedManager.GetSeed(g_SeedManager.GetCurrentStage()) : 0;
-
-    for (int i = 0; i < count; i++)
-    {
-        std::string picked = pool[pickDist(rng)];
-        const EnemyDefinition &def = enemyData.Get(picked);
-
-        Vector2 spawnPos = {center.x + offsetDist(rng), center.y + offsetDist(rng)};
-
-        Enemy *enemy = new Enemy();
-        enemy->Init(spawnPos, picked.c_str(), obj->id, def);
-        enemy->SetUUID(GenerateDeterministicUUID(dSeed, obj->id, picked, i));
-        PushOutOfWalls(enemy);
-        enemy->SetReturnFlowField(&spawnFlowFields[obj->id].field);
-        Entities::AddDynamic(enemy);
-    }
-}
-
 /**
  * @brief Spawn sejumlah enemy acak di dalam rectangle spawn.
  * @param obj Object rectangle spawn dari Tiled

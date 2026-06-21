@@ -751,22 +751,6 @@ void Arrow::Update()
     }
 
     Rectangle hitbox = GetHitbox();
-    if (CheckCollisionAgainstRects(hitbox, PlayerInstance.CollisionRects) ||
-        CheckCollisionAgainstPolygons(hitbox, PlayerInstance.CollisionPolygons))
-    {
-        Effects::AddCollision(Position);
-        IsActive = false;
-        return;
-    }
-
-    if (CheckCollisionAgainstRects(hitbox, DynamicObstacles))
-    {
-        HitPropsByAttack(hitbox, PlayerInstance.GetHitbox(), &PlayerInstance);
-        Effects::AddCollision(Position);
-        IsActive = false;
-        return;
-    }
-
     for (auto *entity : Entities::GetRegistry())
     {
         if (entity == this || entity == Owner || !entity->IsActive || entity->Health <= 0)
@@ -784,6 +768,24 @@ void Arrow::Update()
             IsActive = false;
             break;
         }
+    }
+
+    if (!IsActive) return;
+
+    if (CheckCollisionAgainstRects(hitbox, PlayerInstance.CollisionRects) ||
+        CheckCollisionAgainstPolygons(hitbox, PlayerInstance.CollisionPolygons))
+    {
+        Effects::AddCollision(Position);
+        IsActive = false;
+        return;
+    }
+
+    if (CheckCollisionAgainstRects(hitbox, DynamicObstacles))
+    {
+        HitPropsByAttack(hitbox, PlayerInstance.GetHitbox(), &PlayerInstance);
+        Effects::AddCollision(Position);
+        IsActive = false;
+        return;
     }
 }
 

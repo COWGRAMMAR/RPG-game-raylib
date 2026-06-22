@@ -12,8 +12,8 @@ assets/
 ├── data/                         # Data statis game (JSON: animasi, musuh, item, sprite, tile)
 ├── fonts/                        # Aset font (TTF / OTF)
 ├── images/                       # Gambar untuk dokumentasi dan README
-│   ├── gameplayScreenshots/      #   Folder screenshot — kosong (file dihapus di PR #82 akbarazy)
-│   └── logo/                     #   (kosong — untuk logo alternatif)
+│   ├── gameplayScreenshots/      #   Folder screenshot -- kosong (file dihapus di PR #82 akbarazy)
+│   └── logo/                     #   (kosong -- untuk logo alternatif)
 ├── maps/                         # File peta Tileson (JSON)
 │   └── World_generation/         #   Template room, koridor, dan world seed
 ├── textures/                     # Sprite sheet dan UI (PNG)
@@ -49,16 +49,16 @@ Definisi game berbasis JSON, dimuat saat startup oleh `animation.cpp` dan `datad
 | `NewDawn.ttf` | TTF | New Dawn | Font dekoratif gothic untuk header dan judul |
 | `Poppins-Regular.ttf` | TTF | Poppins | Font sans-serif utama untuk teks UI |
 | `Poppins-Bold.ttf` | TTF | Poppins | Varian bold untuk teks tebal |
-| `Quicksand-Bold.ttf` | TTF | Quicksand | Teks UI alternatif — varian bold |
-| `Quicksand-Light.ttf` | TTF | Quicksand | Teks UI alternatif — varian light |
-| `Quicksand-Medium.ttf` | TTF | Quicksand | Teks UI alternatif — varian medium |
-| `Quicksand-Regular.ttf` | TTF | Quicksand | Teks UI alternatif — varian regular |
-| `Quicksand-SemiBold.ttf` | TTF | Quicksand | Teks UI alternatif — varian semi-bold |
+| `Quicksand-Bold.ttf` | TTF | Quicksand | Teks UI alternatif -- varian bold |
+| `Quicksand-Light.ttf` | TTF | Quicksand | Teks UI alternatif -- varian light |
+| `Quicksand-Medium.ttf` | TTF | Quicksand | Teks UI alternatif -- varian medium |
+| `Quicksand-Regular.ttf` | TTF | Quicksand | Teks UI alternatif -- varian regular |
+| `Quicksand-SemiBold.ttf` | TTF | Quicksand | Teks UI alternatif -- varian semi-bold |
 | `Norse.otf` | OTF | Norse | Font dekoratif untuk elemen tematik Norse |
 | `Norsebold.otf` | OTF | Norsebold | Varian bold dari Norse |
 | `MedievalSharp-Regular.ttf` | TTF | MedievalSharp | Font bergaya abad pertengahan |
 
-Font dimuat secara **lazy** via `GetOrLoad(FontId)` — dipanggil pertama kali saat render, bukan di startup. Font di-cache dalam `std::unordered_map` dengan key `(FontId << 16) | AtlasRes`. Lihat `docs/font-system.md` untuk detail pipeline dan API.
+Font dimuat secara **lazy** via `GetOrLoad(FontId)` -- dipanggil pertama kali saat render, bukan di startup. Font di-cache dalam `std::unordered_map` dengan key `(FontId << 16) | AtlasRes`. Lihat `docs/font-system.md` untuk detail pipeline dan API.
 
 ### Gambar (`assets/images/`)
 
@@ -66,8 +66,8 @@ Gambar untuk keperluan dokumentasi dan README proyek.
 
 | Subfolder | Isi |
 | --- | --- |
-| `gameplayScreenshots/` | Folder screenshot — kosong (6 file PNG dihapus di PR #82 akbarazy). README masih referensi screenshot ini — perlu update terpisah |
-| `logo/` | Folder kosong — disediakan untuk logo alternatif di masa depan |
+| `gameplayScreenshots/` | Folder screenshot -- kosong (6 file PNG dihapus di PR #82 akbarazy). README masih referensi screenshot ini -- perlu update terpisah |
+| `logo/` | Folder kosong -- disediakan untuk logo alternatif di masa depan |
 
 ### Peta (`assets/maps/`)
 
@@ -75,9 +75,9 @@ Peta format JSON Tileson (kompatibel Tiled Map Editor).
 
 | File / Folder | Keterangan |
 | --- | --- |
-| `floorA.json` | Lantai A — peta utama |
-| `floorB.json` | Lantai B — peta utama |
-| `floorC.json` | Lantai C — peta utama |
+| `floorA.json` | Lantai A -- peta utama |
+| `floorB.json` | Lantai B -- peta utama |
+| `floorC.json` | Lantai C -- peta utama |
 | `main_hub.json` | Area hub utama pemain |
 | `tutorial.json` | Peta tutorial |
 | `tutorial copy 2.json` | Duplikat/leftover dari tutorial.json (tidak digunakan) |
@@ -91,7 +91,7 @@ Struktur folder `World_generation/`:
 maps/World_generation/
 ├── background_map.json                 # Background map besar untuk world generation
 ├── template_untuk_copy_object.json     # Template untuk copy object
-├── rooms/                              # Template room — tiap kategori punya varian koneksi
+├── rooms/                              # Template room -- tiap kategori punya varian koneksi
 │   ├── start/                          #   Room spawn pemain (start1_u.json)
 │   ├── enemy/                          #   Room musuh biasa (6 varian × 5 tipe koneksi = 30 file)
 │   ├── elite/                          #   Room elite (3 varian × 3 tipe koneksi = 9 file)
@@ -176,4 +176,4 @@ File-file ini tidak dilacak oleh git (masuk `.gitignore`), sehingga setiap pemai
 3. **Peta**: Buat peta baru menggunakan Tiled, ekspor ke format JSON Tileson, simpan di `assets/maps/`.
 4. **Data**: Edit `assets/data/*.json` untuk menambah/mengubah definisi item, musuh, sprite, atau tile.
 5. **Font**: Tambahkan file TTF/OTF ke `assets/fonts/`, lalu daftarkan `FontId` baru di `include/rendering/fonts.h` dan definisikan `FontDef`-nya. Font akan di-load secara lazy via `GetOrLoad(FontId)` saat pertama kali dipakai.
-6. **Konfigurasi pemain**: File di `saves/settings/*Tab.json` dibuat otomatis saat pertama kali game dijalankan. Jangan diedit manual — gunakan menu Options di dalam game.
+6. **Konfigurasi pemain**: File di `saves/settings/*Tab.json` dibuat otomatis saat pertama kali game dijalankan. Jangan diedit manual -- gunakan menu Options di dalam game.

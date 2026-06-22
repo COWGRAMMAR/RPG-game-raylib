@@ -172,7 +172,7 @@ void SaveLoadScreen::Update(GameState *state, Vector2 mousePosition, bool mouseC
             }
             else
             {
-                TraceLog(LOG_WARNING, "LOAD: slot %d: snapshot corrupt atau tidak terbaca", m_selectedSlot);
+                TraceLog(LOG_WARNING, "LOAD: slot %d: snapshot corrupted or unreadable", m_selectedSlot);
                 m_corruptionPopup.Show();
                 m_showCorruptionPopup = true;
             }

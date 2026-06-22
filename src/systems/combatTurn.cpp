@@ -967,18 +967,6 @@ void TurnCombat::Draw()
     {
         // Darken screen
         DrawRectangle(0, 0, GameScreenWidth, GameScreenHeight, ColorAlpha(BLACK, 0.5f));
-
-        const char *defeatText = "DEFEAT";
-        int fontSize = 80;
-        int textW = MeasureText(defeatText, fontSize);
-        int textX = (GameScreenWidth - textW) / 2;
-        int textY = GameScreenHeight / 2 - fontSize / 2 - 40;
-
-        DrawDefaultText(defeatText, textX - 3, textY, fontSize, RED);
-        DrawDefaultText(defeatText, textX + 3, textY, fontSize, RED);
-        DrawDefaultText(defeatText, textX, textY - 3, fontSize, RED);
-        DrawDefaultText(defeatText, textX, textY + 3, fontSize, RED);
-        DrawDefaultText(defeatText, textX, textY, fontSize, WHITE);
     }
 
     // Phase indicator
@@ -1014,7 +1002,7 @@ void TurnCombat::Draw()
         phaseText = "VICTORY!";
         break;
     case TurnPhase::DEFEAT:
-        phaseText = "DEFEAT";
+        phaseText = "";
         break;
     default:
         break;

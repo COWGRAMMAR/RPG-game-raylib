@@ -233,7 +233,7 @@ Saat player kembali dari main menu atau OPTIONS tanpa perlu reload assets (`asse
 | `InitRun(slot)` | 130 | ClearCache, generate worldgen, buat folder slot, copy BG map per stage, fix texture paths, save meta |
 | `NextStage()` | 178 | Boss-check → increment stage → SaveMeta → SwitchMap → TrimStageStack |
 | `PrevStage()` | 203 | CanGoBack → GoBackStage → SetCurrentStage → SaveMeta → SwitchMap("finish") → TrimStageStack |
-| `CleanupOrphanedSlots()` | 240 | Hapus worldseed `save_N/` yang tidak direferensi oleh save manual manapun |
+| `CleanupOrphanedSlots()` | 240 | Hapus worldseed `save_N/` yang tidak direferensi oleh save manual manapun (hanya scan new format `manual/snapshot.json` via `SaveManager::GetManualPath()`) |
 
 **Catatan:** `HandleMapSwitch` dan `LoadRuntimeState` sudah tidak ada. Map switch handling sekarang ada di `loading_screen.cpp:132` (`HandleMapSwitch`). Runtime state dikelola oleh SaveManager.
 

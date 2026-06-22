@@ -53,6 +53,27 @@ Ini adalah bagian yang paling banyak berubah dari dokumen lama. Tidak ada action
 
 Kombinasi ini men toggle `isDebugMode` di `Debug::Toggle()` (baris 276). Ketiga tombol harus ditekan bersamaan. Tidak ada action di keybindManager untuk ini.
 
+### World Overlay (saat Debug Mode ON)
+
+`Debug::DrawWorldOverlay()` (baris 489) merender overlay di world space:
+
+| Elemen | Warna | File:Baris |
+|--------|-------|------------|
+| Player hitbox | LIME (hijau) | debugmode.cpp:503 |
+| Player hurtbox | YELLOW (kuning) | debugmode.cpp:504 |
+| Magnet radius | GOLD (garis lingkaran) | debugmode.cpp:508 |
+| Hitbox corner points | LIME (lingkaran) | debugmode.cpp:511-514 |
+| Collision layer | RED | debugmode.cpp:517 |
+| Object layer | SKYBLUE | debugmode.cpp:518 |
+| Trap layer | BEIGE | debugmode.cpp:519 |
+| Item layer | PINK | debugmode.cpp:520 |
+| Exit layer | BLACK | debugmode.cpp:521 |
+| Attack area | RED (filled + outline) | debugmode.cpp:522 |
+| Map bounds | GREEN (rectangle) | debugmode.cpp:548 |
+| Item hitboxes | PINK (outline + label) | debugmode.cpp:551-558 |
+
+Player hurtbox overlay (YELLOW) ditambahkan di PR #82 (akbarazy — enemy hitbox/hurtbox combat rework).
+
 ### Sub-toggle (hanya berfungsi saat debug mode ON)
 
 | Tombol | Fungsi | Variable | File:Baris |

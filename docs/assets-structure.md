@@ -12,7 +12,7 @@ assets/
 ├── data/                         # Data statis game (JSON: animasi, musuh, item, sprite, tile)
 ├── fonts/                        # Aset font (TTF / OTF)
 ├── images/                       # Gambar untuk dokumentasi dan README
-│   ├── gameplayScreenshots/      #   6 screenshot gameplay untuk README
+│   ├── gameplayScreenshots/      #   Folder screenshot — kosong (file dihapus di PR #82 akbarazy)
 │   └── logo/                     #   (kosong — untuk logo alternatif)
 ├── maps/                         # File peta Tileson (JSON)
 │   └── World_generation/         #   Template room, koridor, dan world seed
@@ -66,7 +66,7 @@ Gambar untuk keperluan dokumentasi dan README proyek.
 
 | Subfolder | Isi |
 | --- | --- |
-| `gameplayScreenshots/` | 6 screenshot gameplay (PNG) untuk ditampilkan di README: main menu, gameplay, turn-based combat, boss combat, explosion effects, bow attack |
+| `gameplayScreenshots/` | Folder screenshot — kosong (6 file PNG dihapus di PR #82 akbarazy). README masih referensi screenshot ini — perlu update terpisah |
 | `logo/` | Folder kosong — disediakan untuk logo alternatif di masa depan |
 
 ### Peta (`assets/maps/`)

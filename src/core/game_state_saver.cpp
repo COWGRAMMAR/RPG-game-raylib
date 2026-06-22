@@ -282,12 +282,22 @@ bool WriteSaveFile(const std::string &path)
 
     root["map"] = mapJson;
 
-    // Atomic write: write to .tmp then rename
+    // Atomic write: dump tanpa hash → hitung CRC32 → inject hash → dump ulang
     std::string tmpPath = path + ".tmp";
     if (std::filesystem::exists(tmpPath))
         std::filesystem::remove(tmpPath);
+
+    std::string content = root.dump(4);
+    unsigned int crc = ComputeCRC32(
+        reinterpret_cast<unsigned char *>(content.data()),
+        static_cast<int>(content.size()));
+
+    json rootWithHash = root;
+    rootWithHash["hash"] = crc;
+    std::string finalContent = rootWithHash.dump(4);
+
     std::ofstream file(tmpPath);
-    file << root.dump(4);
+    file << finalContent;
     file.close();
 
     std::filesystem::rename(tmpPath, path);
@@ -313,6 +323,26 @@ bool ReadSaveFile(const std::string &path)
     {
         std::ifstream file(path);
         json root = json::parse(file);
+
+        // Verifikasi CRC32 hash kalo ada (backward-compat: save lama tanpa hash skip check)
+        auto hashIt = root.find("hash");
+        if (hashIt != root.end())
+        {
+            unsigned int storedHash = hashIt->get<unsigned int>();
+            root.erase(hashIt);
+
+            std::string content = root.dump(4);
+            unsigned int computedHash = ComputeCRC32(
+                reinterpret_cast<unsigned char *>(content.data()),
+                static_cast<int>(content.size()));
+
+            if (computedHash != storedHash)
+            {
+                TraceLog(LOG_WARNING, "Save file CRC32 mismatch (computed=%u stored=%u): %s",
+                         computedHash, storedHash, path.c_str());
+                return false;
+            }
+        }
 
         // Validate required fields exist
         if (!root.contains("version") || !root.contains("player") || !root.contains("map"))
@@ -657,7 +687,6 @@ void RestoreGameState(GameState *state)
     TraceLog(LOG_INFO, "RestoreGameState: slot=%d hasSaved=%d enemies=%zu items=%zu mapPath='%s'",
              g_ActiveSaveSlot, hasSavedState, savedEnemyStates.size(), savedItemStates.size(), savedMapState.mapPath.c_str());
 
-    // === NEW PATH: SaveManager (preferred) ===
     if (g_ActiveSaveSlot >= 0 && SaveManager::HasManual(g_ActiveSaveSlot))
     {
         GameSnapshot snap = SaveManager::LoadManual(g_ActiveSaveSlot);
@@ -672,253 +701,67 @@ void RestoreGameState(GameState *state)
             TraceLog(LOG_INFO, "RestoreGameState: restored via SaveManager (slot %d)", g_ActiveSaveSlot);
             return;
         }
-        TraceLog(LOG_WARNING, "RestoreGameState: snapshot version mismatch (%d != %d), falling back to old format",
-                 snap.version, GameSnapshot::SNAPSHOT_VERSION);
+        TraceLog(LOG_WARNING, "RestoreGameState: snapshot version mismatch (%d != %d) for slot %d",
+                 snap.version, GameSnapshot::SNAPSHOT_VERSION, g_ActiveSaveSlot);
     }
-    else if (g_ActiveSaveSlot >= 0)
+    else
     {
-        TraceLog(LOG_INFO, "RestoreGameState: no new-format snapshot for slot %d, trying old-format fallback", g_ActiveSaveSlot);
+        TraceLog(LOG_WARNING, "RestoreGameState: no valid snapshot for slot %d", g_ActiveSaveSlot);
     }
 
-    // === OLD PATH FALLBACK: restore dari global state ===
-
-    /*==============================================================================
-     * Restore Player State
-     *==============================================================================*/
-    if (hasSavedState)
-    {
-        // Restore max stats first so SetHealth/SetMana can clamp correctly
-        if (savedPlayerState.maxHealth > 0)
-        {
-            PlayerInstance.MaxHealth = savedPlayerState.maxHealth;
-            PlayerInstance.MaxMana = savedPlayerState.maxMana;
-        }
-        else
-        {
-            PlayerInstance.MaxHealth = DEFAULT_MAX_HEALTH;
-            PlayerInstance.MaxMana = DEFAULT_MAX_MANA;
-        }
-
-        PlayerInstance.SetHealth(savedPlayerState.health);
-        PlayerInstance.SetMana(savedPlayerState.mana);
-        PlayerInstance.SetPosition(savedPlayerState.position);
-        TraceLog(LOG_INFO, "RESTORE: SetPosition = (%.2f, %.2f)", savedPlayerState.position.x, savedPlayerState.position.y);
-
-        for (int i = 0; i < HOTBAR_SLOTS; i++)
-        {
-            PlayerInstance.SetHotbarItem(i, savedPlayerState.hotbar[i]);
-        }
-
-        // Restore bag inventory
-        for (int i = 0; i < BAG_SLOTS; i++)
-        {
-            PlayerInstance.GetBagItem(i) = savedPlayerState.bag[i];
-        }
-
-        // Restore animation state
-        PlayerInstance.Anim.state = static_cast<State>(savedPlayerState.animState.state);
-        PlayerInstance.Anim.direction = static_cast<Direction>(savedPlayerState.animState.direction);
-        PlayerInstance.Anim.isDead = savedPlayerState.animState.isDead;
-
-        // Restore active slot
-        InputInstance.SetActiveSlot(static_cast<ItemSlot>(savedPlayerState.animState.activeSlot));
-
-        // Restore player combat/regen fields
-        PlayerInstance.DashCooldown = savedPlayerState.dashCooldown;
-        PlayerInstance.ManaRegenTimer = savedPlayerState.manaRegenTimer;
-
-        // Restore attack state
-        if (!savedPlayerState.swingAttack.is_null())
-        {
-            PlayerInstance.attack.active = savedPlayerState.swingAttack.value("active", false);
-            PlayerInstance.attack.timer = savedPlayerState.swingAttack.value("timer", 0.0f);
-            PlayerInstance.attack.duration = savedPlayerState.swingAttack.value("duration", 0.9f);
-            PlayerInstance.attack.raycastAngle = savedPlayerState.swingAttack.value("raycastAngle", 0.0f);
-            PlayerInstance.attack.pressHeld = savedPlayerState.swingAttack.value("pressHeld", false);
-            if (savedPlayerState.swingAttack.contains("center"))
-            {
-                PlayerInstance.attack.center.x = savedPlayerState.swingAttack["center"][0].get<float>();
-                PlayerInstance.attack.center.y = savedPlayerState.swingAttack["center"][1].get<float>();
-            }
-        }
-    }
-
-    /*==============================================================================
-     * Restore Enemy States
-     *==============================================================================*/
-    if (hasSavedState && !savedEnemyStates.empty())
-    {
-        auto &enemyReg = Entities::GetEnemyRegistry();
-        std::unordered_set<Enemy *> matchedEnemies;
-        for (auto &saved : savedEnemyStates)
-        {
-            if (!saved.isAlive)
-            {
-                // Deactivate matched enemy directly (same pattern as ApplyPostSpawn);
-                // RegisterDeath no longer prevents SpawnEnemiesFromMap from spawning
-                for (auto &enemy : enemyReg)
-                {
-                    if (enemy == nullptr || matchedEnemies.count(enemy))
-                        continue;
-                    if (enemy->MapObjectID == saved.mapObjectID && enemy->Name == saved.enemyName)
-                    {
-                        enemy->IsActive = false;
-                        enemy->Health = 0.0f;
-                        matchedEnemies.insert(enemy);
-                        break;
-                    }
-                }
-                continue;
-            }
-            // First pass: match by UUID
-            bool matched = false;
-            for (auto &enemy : enemyReg)
-            {
-                if (enemy == nullptr || matchedEnemies.count(enemy))
-                    continue;
-                if (!saved.uuid.empty() && enemy->GetUUID() == saved.uuid)
-                {
-                    enemy->Position = saved.position;
-                    enemy->Health = saved.currentHP;
-                    enemy->MaxHealth = saved.maxHealth;
-                    enemy->AIState = (EnemyAIState)(saved.aiState < 0 || saved.aiState > 4 ? 0 : saved.aiState);
-                    enemy->PatrolTarget = {saved.patrolTargetX, saved.patrolTargetY};
-                    enemy->PatrolTimer = saved.patrolTimer;
-                    if (!saved.spawnPoint.is_null())
-                    {
-                        enemy->SpawnPoint.x = saved.spawnPoint["x"].get<float>();
-                        enemy->SpawnPoint.y = saved.spawnPoint["y"].get<float>();
-                    }
-                    enemy->HealthRegenTimer = saved.healthRegenTimer;
-                    // Grace: if timer is 0 and enemy is at full health, set to 2.0f to prevent instant regen after load
-                    if (saved.healthRegenTimer <= 0.0f && enemy->Health >= enemy->MaxHealth)
-                        enemy->HealthRegenTimer = 2.0f;
-                    enemy->SetAttackCooldownTimer(saved.attackCooldownTimer);
-                    enemy->IsActive = true;
-                    matchedEnemies.insert(enemy);
-                    matched = true;
-                }
-            }
-            // Second pass: fallback to MapObjectID+Name matching (for legacy saves or dev migration)
-            if (!matched)
-            {
-                for (auto &enemy : enemyReg)
-                {
-                    if (enemy == nullptr || matchedEnemies.count(enemy))
-                        continue;
-                    if (enemy->MapObjectID == saved.mapObjectID && enemy->Name == saved.enemyName)
-                    {
-                        enemy->Position = saved.position;
-                        enemy->Health = saved.currentHP;
-                        enemy->MaxHealth = saved.maxHealth;
-                        enemy->AIState = (EnemyAIState)(saved.aiState < 0 || saved.aiState > 4 ? 0 : saved.aiState);
-                        enemy->PatrolTarget = {saved.patrolTargetX, saved.patrolTargetY};
-                        enemy->PatrolTimer = saved.patrolTimer;
-                        if (!saved.spawnPoint.is_null())
-                        {
-                            enemy->SpawnPoint.x = saved.spawnPoint["x"].get<float>();
-                            enemy->SpawnPoint.y = saved.spawnPoint["y"].get<float>();
-                        }
-                        enemy->HealthRegenTimer = saved.healthRegenTimer;
-                        // Grace: if timer is 0 and enemy is at full health, set to 2.0f to prevent instant regen after load
-                        if (saved.healthRegenTimer <= 0.0f && enemy->Health >= enemy->MaxHealth)
-                            enemy->HealthRegenTimer = 2.0f;
-                        enemy->SetAttackCooldownTimer(saved.attackCooldownTimer);
-                        enemy->IsActive = true;
-                        matchedEnemies.insert(enemy);
-                        break;
-                    }
-                }
-            }
-        }
-    }
-
-    /*==============================================================================
-     * Restore Item States
-     *==============================================================================*/
-    if (hasSavedState && !savedItemStates.empty())
-    {
-        // First pass: match by UUID
-        for (const auto &saved : savedItemStates)
-        {
-            for (ItemSpawn &item : itemData.activeItems)
-            {
-                if (item.uuid == saved.uuid && !saved.uuid.empty())
-                {
-                    item.isPickedUp = saved.isPickedUp;
-                    item.isAdded = saved.isPickedUp;
-                    item.position = saved.position;
-                    item.definitionId = saved.definitionId;
-                    item.amount = saved.amount;
-                    break;
-                }
-            }
-        }
-        // Second pass: fallback to index-based matching for items that were not matched by UUID
-        int itemIndex = 0;
-        for (ItemSpawn &item : itemData.activeItems)
-        {
-            if (itemIndex < (int)savedItemStates.size())
-            {
-                if (item.uuid.empty() || savedItemStates[itemIndex].uuid.empty() || item.uuid != savedItemStates[itemIndex].uuid)
-                {
-                    item.isPickedUp = savedItemStates[itemIndex].isPickedUp;
-                    item.isAdded = savedItemStates[itemIndex].isPickedUp;
-                    item.position = savedItemStates[itemIndex].position;
-                    item.definitionId = savedItemStates[itemIndex].definitionId;
-                    item.amount = savedItemStates[itemIndex].amount;
-                }
-                itemIndex++;
-            }
-        }
-    }
-    /*==============================================================================
-     * Restore Map State (camera, chest opened status)
-     *==============================================================================*/
-    if (hasSavedState)
-    {
-        // Restore camera position
-        camera.target = savedMapState.cameraTarget;
-        camera.zoom = savedMapState.cameraZoom;
-
-        // Fall back to main hub if saved map file is missing
-        if (!std::filesystem::exists(savedMapState.mapPath))
-        {
-            TraceLog(LOG_WARNING, "Saved map not found: %s, falling back to assets/maps/main_hub.json", savedMapState.mapPath.c_str());
-            savedMapState.mapPath = "assets/maps/main_hub.json";
-        }
-
-        // Restore consumed chest positions
-        if (!savedMapState.chestsOpened.empty())
-        {
-            chestManager.SetConsumedPositions(std::unordered_set<std::string>(
-                savedMapState.chestsOpened.begin(),
-                savedMapState.chestsOpened.end()));
-        }
-
-        // Restore bomb/crate consumed positions (guarded against null/non-array JSON)
-        if (!savedMapState.bombConsumedPositions.is_null() && savedMapState.bombConsumedPositions.is_array())
-            bombManager.SetConsumedPositions(savedMapState.bombConsumedPositions.get<std::unordered_set<std::string>>());
-        if (!savedMapState.crateConsumedPositions.is_null() && savedMapState.crateConsumedPositions.is_array())
-            crateManager.SetConsumedPositions(savedMapState.crateConsumedPositions.get<std::unordered_set<std::string>>());
-
-        // Restore map history
-        if (!savedMapState.mapHistory.empty())
-        {
-            mapHistoryStack.FromVector(savedMapState.mapHistory);
-        }
-    }
-    TraceLog(LOG_INFO, "Game state restored");
+    TraceLog(LOG_INFO, "Game state not restored (no valid save)");
 }
 
 /**
  * @brief HasSavedState()
- * Cek apakah ada state tersimpan.
- * @return true jika ada state yang bisa direstore
+ * Cek apakah ada state tersimpan (new-format snapshot).
+ * Populates global saved-state structs from the snapshot
+ * so loading_screen.cpp can read mapPath / worldgenSlot.
+ * @return true jika ada snapshot yang valid
  */
 bool HasSavedState(void)
 {
-    return hasSavedState;
+    if (g_ActiveSaveSlot >= 0 && SaveManager::HasManual(g_ActiveSaveSlot))
+    {
+        GameSnapshot snap = SaveManager::LoadManual(g_ActiveSaveSlot);
+        if (snap.version == GameSnapshot::SNAPSHOT_VERSION)
+        {
+            hasSavedState = true;
+            // Populate globals from snapshot for loading_screen.cpp compat
+            savedPlayerState.position      = snap.playerPosition;
+            savedPlayerState.health        = snap.playerHealth;
+            savedPlayerState.maxHealth     = snap.playerMaxHealth;
+            savedPlayerState.mana          = snap.playerMana;
+            savedPlayerState.maxMana       = snap.playerMaxMana;
+            savedPlayerState.worldgenSlot  = snap.worldgenSlot;
+            savedPlayerState.mapDisplayName = snap.mapDisplayName;
+
+            savedMapState.mapPath         = snap.mapPath;
+            savedMapState.cameraTarget    = snap.cameraTarget;
+            savedMapState.cameraZoom      = snap.cameraZoom;
+            savedMapState.deadEntities.assign(snap.deadEntities.begin(),
+                                              snap.deadEntities.end());
+            savedMapState.chestsOpened.assign(snap.chestConsumed.begin(),
+                                              snap.chestConsumed.end());
+            savedMapState.mapHistory      = snap.mapHistory;
+            savedMapState.bombConsumedPositions = snap.bombConsumed;
+            savedMapState.crateConsumedPositions = snap.crateConsumed;
+
+            savedEnemyStates = snap.enemies;
+            savedItemStates  = snap.items;
+
+            // Convert unordered_set → JSON array for old-format globals
+            savedMapState.bombConsumedPositions = nlohmann::json::array();
+            for (const auto &p : snap.bombConsumed)
+                savedMapState.bombConsumedPositions.push_back(p);
+            savedMapState.crateConsumedPositions = nlohmann::json::array();
+            for (const auto &p : snap.crateConsumed)
+                savedMapState.crateConsumedPositions.push_back(p);
+            return true;
+        }
+    }
+    hasSavedState = false;
+    return false;
 }
 
 /**

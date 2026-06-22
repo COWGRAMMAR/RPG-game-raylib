@@ -203,13 +203,15 @@ private:
 
     /// Mode sebelumnya — digunakan untuk kembali dari DELETE_MODE ke mode asal
     SaveLoadMode m_previousMode;
-    Popup m_overwritePopup;   ///< Popup konfirmasi timpa save
-    Popup m_loadPopup;        ///< Popup konfirmasi load game
-    Popup m_deletePopup;      ///< Popup konfirmasi hapus slot
-    bool m_showOverwritePopup; ///< Flag tampilkan overwrite popup
-    bool m_showLoadPopup;      ///< Flag tampilkan load popup
-    bool m_showDeletePopup;    ///< Flag tampilkan delete popup
-    int m_selectedSlot;        ///< Slot yang dipilih untuk save/load
+    Popup m_overwritePopup;      ///< Popup konfirmasi timpa save
+    Popup m_loadPopup;           ///< Popup konfirmasi load game
+    Popup m_deletePopup;         ///< Popup konfirmasi hapus slot
+    Popup m_corruptionPopup;     ///< Popup peringatan save corrupt
+    bool m_showOverwritePopup;   ///< Flag tampilkan overwrite popup
+    bool m_showLoadPopup;        ///< Flag tampilkan load popup
+    bool m_showDeletePopup;      ///< Flag tampilkan delete popup
+    bool m_showCorruptionPopup;  ///< Flag tampilkan corruption popup
+    int m_selectedSlot;          ///< Slot yang dipilih untuk save/load
 
     /// Tombol DELETE untuk masuk mode hapus slot (basch-3: buttonImage pakai saveloadDelete.png)
     buttonImage deleteButton;

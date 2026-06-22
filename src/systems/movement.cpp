@@ -75,7 +75,7 @@ namespace Movement
         if (InputInstance.IsRightClickPressed() && player.DashCooldown <= 0.0f && !player.IsDashing && player.Mana < player.DashManaCost)
         {
             TraceLog(LOG_WARNING, "DASH: Mana tidak cukup! Mana: %.2f, Cost: %.2f", player.Mana, player.DashManaCost);
-            Effects::AddLog("Stamina tidak cukup!");
+            Effects::AddLog("Not enough stamina!");
             return;
         }
 

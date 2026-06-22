@@ -1653,7 +1653,7 @@ void SignManager::SpawnSigns(const std::vector<MapObject *> &signObjects)
         if (it != obj->properties.end())
             d.lines = SplitDialog(it->second.getValue<std::string>());
         else
-            d.lines = {"(tidak ada teks)"};
+            d.lines = {"(no text)"};
 
         signs.push_back(d);
         DynamicObstacles.push_back(d.tile.bounds);

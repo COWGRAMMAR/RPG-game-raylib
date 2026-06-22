@@ -1,0 +1,23 @@
+docs/buff-indicator-system.md
+  s_0ee2af2fc9ffe9::t_0964cd9746a543 1
+docs/assets-structure.md
+  s_0ee2af2fc9ffe9::t_0964cd9746a543 15
+docs/font-system.md
+  s_0ee2af2fc9ffe9::t_0964cd9746a543 1
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.9",
+  "base_commit_sha": "1f0ec56efa09625d199f695a1267c06a69250ee4",
+  "prompts": {},
+  "sessions": {
+    "s_0ee2af2fc9ffe9": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_12174ed8dffeQT3WRIoy8BfpB3",
+        "model": "unknown"
+      },
+      "human_author": "NiskoDT <65821447+NiskoDT@users.noreply.github.com>"
+    }
+  }
+}

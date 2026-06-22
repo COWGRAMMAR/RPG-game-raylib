@@ -181,6 +181,69 @@
         "width": 1,
         "height": 1
     },
+    "skeletonAttackLeft": {
+        "texture": "SPRITESHEET_ENEMIES",
+        "column": 3,
+        "row": 1,
+        "width": 1,
+        "height": 1
+    },
+    "skeletonWalkLeft1": {
+        "texture": "SPRITESHEET_ENEMIES",
+        "column": 4,
+        "row": 1,
+        "width": 1,
+        "height": 1
+    },
+    "skeletonWalkLeft2": {
+        "texture": "SPRITESHEET_ENEMIES",
+        "column": 5,
+        "row": 1,
+        "width": 1,
+        "height": 1
+    },
+    "skeletonIdleRight1": {
+        "texture": "SPRITESHEET_ENEMIES",
+        "column": 0,
+        "row": 3,
+        "width": 1,
+        "height": 1
+    },
+    "skeletonIdleRight2": {
+        "texture": "SPRITESHEET_ENEMIES",
+        "column": 1,
+        "row": 3,
+        "width": 1,
+        "height": 1
+    },
+    "skeletonDeadRight": {
+        "texture": "SPRITESHEET_ENEMIES",
+        "column": 2,
+        "row": 3,
+        "width": 1,
+        "height": 1
+    },
+    "skeletonAttackRight": {
+        "texture": "SPRITESHEET_ENEMIES",
+        "column": 3,
+        "row": 3,
+        "width": 1,
+        "height": 1
+    },
+    "skeletonWalkRight1": {
+        "texture": "SPRITESHEET_ENEMIES",
+        "column": 4,
+        "row": 3,
+        "width": 1,
+        "height": 1
+    },
+    "skeletonWalkRight2": {
+        "texture": "SPRITESHEET_ENEMIES",
+        "column": 5,
+        "row": 3,
+        "width": 1,
+        "height": 1
+    },
     "wolfIdleLeft1": {
         "texture": "SPRITESHEET_ENEMIES",
         "column": 0,
@@ -199,6 +262,69 @@
         "texture": "SPRITESHEET_ENEMIES",
         "column": 2,
         "row": 2,
+        "width": 1,
+        "height": 1
+    },
+    "wolfAttackLeft": {
+        "texture": "SPRITESHEET_ENEMIES",
+        "column": 3,
+        "row": 2,
+        "width": 1,
+        "height": 1
+    },
+    "wolfWalkLeft1": {
+        "texture": "SPRITESHEET_ENEMIES",
+        "column": 4,
+        "row": 2,
+        "width": 1,
+        "height": 1
+    },
+    "wolfWalkLeft2": {
+        "texture": "SPRITESHEET_ENEMIES",
+        "column": 5,
+        "row": 2,
+        "width": 1,
+        "height": 1
+    },
+    "wolfIdleRight1": {
+        "texture": "SPRITESHEET_ENEMIES",
+        "column": 0,
+        "row": 4,
+        "width": 1,
+        "height": 1
+    },
+    "wolfIdleRight2": {
+        "texture": "SPRITESHEET_ENEMIES",
+        "column": 1,
+        "row": 4,
+        "width": 1,
+        "height": 1
+    },
+    "wolfDeadRight": {
+        "texture": "SPRITESHEET_ENEMIES",
+        "column": 2,
+        "row": 4,
+        "width": 1,
+        "height": 1
+    },
+    "wolfAttackRight": {
+        "texture": "SPRITESHEET_ENEMIES",
+        "column": 3,
+        "row": 4,
+        "width": 1,
+        "height": 1
+    },
+    "wolfWalkRight1": {
+        "texture": "SPRITESHEET_ENEMIES",
+        "column": 4,
+        "row": 4,
+        "width": 1,
+        "height": 1
+    },
+    "wolfWalkRight2": {
+        "texture": "SPRITESHEET_ENEMIES",
+        "column": 5,
+        "row": 4,
         "width": 1,
         "height": 1
     },

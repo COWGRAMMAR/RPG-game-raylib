@@ -68,7 +68,7 @@ void TurnCombat::Init(Enemy *boss, Player *player)
     state.phase = TurnPhase::PLAYER_CHOICE;
     state.boss = boss;
     state.player = player;
-    state.message = "Pilih gerakan (1-3), lalu ENTER untuk konfirmasi!";
+    state.message = "Choose action (1-3), then ENTER to confirm!";
     state.timer = 0.0f;
     state.lastBossAction = BossActionType::CLAW;
     state.playerDefending = false;
@@ -199,7 +199,7 @@ static bool UsePotion(int defId)
         if (item.amount <= 0)
             item = {-1, 0};
         char buf[64];
-        snprintf(buf, sizeof(buf), "Menggunakan %s! +%.0f HP (%.0f -> %.0f)", def.name.c_str(), heal, oldHp, p.Health);
+        snprintf(buf, sizeof(buf), "Using %s! +%.0f HP (%.0f -> %.0f)", def.name.c_str(), heal, oldHp, p.Health);
         state.message = buf;
         return true;
     };
@@ -312,14 +312,14 @@ static void ExecuteBossTurn()
     {
         state.lastBossAction = BossActionType::BITE;
         damage = (float)GetRandomValue(8, 20);
-        actionName = "Bantingan";
+        actionName = "Slam";
         animState = ABILITY1;
     }
     else
     {
         state.lastBossAction = BossActionType::CLAW;
         damage = (float)GetRandomValue(3, 15);
-        actionName = "Pukulan";
+        actionName = "Punch";
         animState = ATTACK;
     }
 
@@ -339,13 +339,13 @@ static void ExecuteBossTurn()
         damage *= 0.5f;
         state.playerDefending = false;
         char buf[96];
-        snprintf(buf, sizeof(buf), "Boss menggunakan %s! (Damage berkurang) %.0f damage diterima", actionName, damage);
+        snprintf(buf, sizeof(buf), "Boss uses %s! (Damage reduced) %.0f damage taken", actionName, damage);
         state.message = buf;
     }
     else
     {
         char buf[96];
-        snprintf(buf, sizeof(buf), "Boss menggunakan %s! %.0f damage diterima!", actionName, damage);
+        snprintf(buf, sizeof(buf), "Boss uses %s! %.0f damage taken!", actionName, damage);
         state.message = buf;
     }
 
@@ -353,7 +353,7 @@ static void ExecuteBossTurn()
     if (state.buffInvincibilityTurns > 0)
     {
         damage = 0;
-        state.message = "INVINCIBLE! Boss tidak bisa menyakitimu!";
+        state.message = "INVINCIBLE! Boss can't hurt you!";
     }
 
     state.player->TakeDamage(damage, {0, 0});
@@ -402,11 +402,11 @@ void TurnCombat::Update()
         if (state.selectedAction >= 0)
         {
             const char *names[] = {"Attack", "Items", "Defense"};
-            state.message = TextFormat("Dipilih: %s. Tekan ENTER untuk konfirmasi.", names[state.selectedAction]);
+            state.message = TextFormat("Selected: %s. Press ENTER to confirm.", names[state.selectedAction]);
         }
         else
         {
-            state.message = "Pilih gerakan (1-3), lalu ENTER untuk konfirmasi!";
+            state.message = "Choose action (1-3), then ENTER to confirm!";
         }
 
         if (IsKeyPressed(KEY_ENTER) && state.selectedAction >= 0)
@@ -422,7 +422,7 @@ void TurnCombat::Update()
             else if (state.selectedAction == 2)
             {
                 state.playerDefending = true;
-                state.message = "Bertahan untuk serangan berikutnya!";
+                state.message = "Defending against the next attack!";
                 state.phase = TurnPhase::PLAYER_DEFEND;
             }
         }
@@ -443,7 +443,7 @@ void TurnCombat::Update()
             if (critical)
                 snprintf(buf, sizeof(buf), "CRITICAL! %.0f damage! (%.0f -> %.0f)", dmg, oldHp, state.boss->Health);
             else
-                snprintf(buf, sizeof(buf), "Kamu menyerang memberikan %.0f damage! (%.0f -> %.0f)", dmg, oldHp, state.boss->Health);
+                snprintf(buf, sizeof(buf), "You attack dealing %.0f damage! (%.0f -> %.0f)", dmg, oldHp, state.boss->Health);
             state.message = buf;
             state.keyProcessed = true;
             state.timer = 1.0f;
@@ -527,15 +527,15 @@ void TurnCombat::Update()
             if (state.selectedAction >= 0 && state.selectedAction < 3)
             {
                 const char *catNames[] = {"Health Potion", "Damage Buff", "Invincibility"};
-                state.message = TextFormat("Dipilih: %s. Tekan ENTER untuk pilih.", catNames[state.selectedAction]);
+                state.message = TextFormat("Selected: %s. Press ENTER to choose.", catNames[state.selectedAction]);
             }
             else if (state.selectedAction == 3)
             {
-                state.message = "Kembali ke menu utama. Tekan ENTER untuk konfirmasi.";
+                state.message = "Back to main menu. Press ENTER to confirm.";
             }
             else
             {
-                state.message = "Pilih kategori item (1-3), [4] Kembali, lalu ENTER untuk konfirmasi!";
+                state.message = "Choose item category (1-3), [4] Back, then ENTER to confirm!";
             }
 
             if (IsKeyPressed(KEY_ENTER) && state.selectedAction >= 0)
@@ -549,7 +549,7 @@ void TurnCombat::Update()
                 state.itemCategory = state.selectedAction;
                 state.selectedAction = -1;
                 state.selectedPotionId = -1;
-                state.message = "Pilih potion (1-2/3), [4] Kembali, lalu ENTER";
+                state.message = "Choose potion (1-2/3), [4] Back, then ENTER";
             }
         }
         else
@@ -582,15 +582,15 @@ void TurnCombat::Update()
             if (state.selectedPotionId >= 0)
             {
                 const ItemDefinition &def = itemDefs.GetById(state.selectedPotionId);
-                state.message = TextFormat("Dipilih: %s. Tekan ENTER untuk memakai.", def.name.c_str());
+                state.message = TextFormat("Selected: %s. Press ENTER to use.", def.name.c_str());
             }
             else if (state.selectedAction == 99)
             {
-                state.message = "Kembali ke kategori. Tekan ENTER untuk konfirmasi.";
+                state.message = "Back to category. Press ENTER to confirm.";
             }
             else
             {
-                state.message = TextFormat("Pilih potion (1-%d), [4] Kembali, lalu ENTER", count);
+                state.message = TextFormat("Choose potion (1-%d), [4] Back, then ENTER", count);
             }
 
             if (IsKeyPressed(KEY_ENTER) && state.selectedAction == 99)
@@ -598,7 +598,7 @@ void TurnCombat::Update()
                 state.itemCategory = -1;
                 state.selectedPotionId = -1;
                 state.selectedAction = -1;
-                state.message = "Pilih kategori item (1-3), [4] Kembali, lalu ENTER untuk konfirmasi!";
+                state.message = "Choose item category (1-3), [4] Back, then ENTER to confirm!";
                 break;
             }
             if (IsKeyPressed(KEY_ENTER) && state.selectedPotionId >= 0)
@@ -640,7 +640,7 @@ void TurnCombat::Update()
                 else
                 {
                     const ItemDefinition &def = itemDefs.GetById(state.selectedPotionId);
-                    state.message = TextFormat("Tidak ada %s!", def.name.c_str());
+                    state.message = TextFormat("No %s available!", def.name.c_str());
                     state.selectedPotionId = -1;
                     state.timer = 1.0f;
                 }
@@ -712,7 +712,7 @@ void TurnCombat::Update()
         if (state.lootCount == 0)
         {
             GrantBossLoot();
-            state.message = "Boss dikalahkan! Loot didapat:";
+            state.message = "Boss defeated! Loot obtained:";
             AudioManager::PlayTrack("Win");
         }
         if (state.combatTimer >= 1.0f && (IsKeyPressed(KEY_ENTER) || IsMouseButtonPressed(MOUSE_LEFT_BUTTON)))
@@ -852,7 +852,7 @@ void TurnCombat::Draw()
 
     if (state.playerDefending)
     {
-        DrawDefaultText(">>> BERTAHAN! <<<", bossX + 15, panelY + 90, 14, GREEN);
+        DrawDefaultText(">>> DEFENDING! <<<", bossX + 15, panelY + 90, 14, GREEN);
     }
 
     // Boss sprite area — below boss panel
@@ -896,7 +896,7 @@ void TurnCombat::Draw()
             DrawActionButton("1", "Health Potion", startX, btnY, btnW, btnH, state.selectedAction == 0, false);
             DrawActionButton("2", "Damage Buff", startX + btnW + gap, btnY, btnW, btnH, state.selectedAction == 1, false);
             DrawActionButton("3", "Invincibility", startX + (btnW + gap) * 2, btnY, btnW, btnH, state.selectedAction == 2, false);
-            DrawActionButton("4", "Kembali", startX + (btnW + gap) * 3, btnY, btnW, btnH, state.selectedAction == 3, false);
+            DrawActionButton("4", "Back", startX + (btnW + gap) * 3, btnY, btnW, btnH, state.selectedAction == 3, false);
         }
         else if (state.itemCategory == 0)
         {
@@ -905,7 +905,7 @@ void TurnCombat::Draw()
             DrawActionButton("1", names[0], startX, btnY, btnW, btnH, state.selectedPotionId == ids[0], false);
             DrawActionButton("2", names[1], startX + btnW + gap, btnY, btnW, btnH, state.selectedPotionId == ids[1], false);
             DrawActionButton("3", names[2], startX + (btnW + gap) * 2, btnY, btnW, btnH, state.selectedPotionId == ids[2], false);
-            DrawActionButton("4", "Kembali", startX + (btnW + gap) * 3, btnY, btnW, btnH, state.selectedAction == 99, false);
+            DrawActionButton("4", "Back", startX + (btnW + gap) * 3, btnY, btnW, btnH, state.selectedAction == 99, false);
         }
         else if (state.itemCategory == 1)
         {
@@ -913,7 +913,7 @@ void TurnCombat::Draw()
             DrawActionButton("2", "Med Dmg (3t)", startX + btnW + gap, btnY, btnW, btnH, state.selectedPotionId == 10, false);
             int emptyX = startX + (btnW + gap) * 2;
             DrawRectangleRounded((Rectangle){(float)emptyX, (float)btnY, (float)btnW, (float)btnH}, 0.3f, 8, ColorAlpha(DARKGRAY, 0.3f));
-            DrawActionButton("4", "Kembali", startX + (btnW + gap) * 3, btnY, btnW, btnH, state.selectedAction == 99, false);
+            DrawActionButton("4", "Back", startX + (btnW + gap) * 3, btnY, btnW, btnH, state.selectedAction == 99, false);
         }
         else if (state.itemCategory == 2)
         {
@@ -921,7 +921,7 @@ void TurnCombat::Draw()
             DrawActionButton("2", "Med Inv (3t)", startX + btnW + gap, btnY, btnW, btnH, state.selectedPotionId == 14, false);
             int emptyX = startX + (btnW + gap) * 2;
             DrawRectangleRounded((Rectangle){(float)emptyX, (float)btnY, (float)btnW, (float)btnH}, 0.3f, 8, ColorAlpha(DARKGRAY, 0.3f));
-            DrawActionButton("4", "Kembali", startX + (btnW + gap) * 3, btnY, btnW, btnH, state.selectedAction == 99, false);
+            DrawActionButton("4", "Back", startX + (btnW + gap) * 3, btnY, btnW, btnH, state.selectedAction == 99, false);
         }
     }
     else if (state.phase == TurnPhase::VICTORY)
@@ -930,7 +930,7 @@ void TurnCombat::Draw()
         DrawRectangle(0, 0, GameScreenWidth, GameScreenHeight, ColorAlpha(BLACK, 0.5f));
 
         // Big MENANG text with yellow outline
-        const char *menangText = "MENANG";
+        const char *menangText = "VICTORY";
         int fontSize = 80;
         int textW = MeasureText(menangText, fontSize);
         int textX = (GameScreenWidth - textW) / 2;
@@ -961,7 +961,7 @@ void TurnCombat::Draw()
             DrawDefaultText(itemText, groupX + iconSize + gap, itemY + 4, 20, LIGHTGRAY);
         }
 
-        DrawTextCentered("Tekan ENTER atau klik untuk melanjutkan.", GameScreenHeight - 60, 20, GREEN);
+        DrawTextCentered("Press ENTER or click to continue.", GameScreenHeight - 60, 20, GREEN);
     }
     else if (state.phase == TurnPhase::DEFEAT)
     {
@@ -974,32 +974,32 @@ void TurnCombat::Draw()
     switch (state.phase)
     {
     case TurnPhase::PLAYER_CHOICE:
-        phaseText = "Giliran anda";
+        phaseText = "Your turn";
         break;
     case TurnPhase::PLAYER_ATTACK:
-        phaseText = "Menyerang...";
+        phaseText = "Attacking...";
         break;
     case TurnPhase::PLAYER_ITEM:
         if (state.itemCategory == -1)
-            phaseText = "Pilih Kategori Item";
+            phaseText = "Choose Item Category";
         else if (state.itemCategory == 0)
-            phaseText = "Pilih Health Potion";
+            phaseText = "Choose Health Potion";
         else if (state.itemCategory == 1)
-            phaseText = "Pilih Damage Buff";
+            phaseText = "Choose Damage Buff";
         else
-            phaseText = "Pilih Invincibility";
+            phaseText = "Choose Invincibility";
         break;
     case TurnPhase::PLAYER_DEFEND:
-        phaseText = "Bertahan...";
+        phaseText = "Defending...";
         break;
     case TurnPhase::SHOW_RESULT:
-        phaseText = "Boss sedang menyerang!";
+        phaseText = "Boss is attacking!";
         break;
     case TurnPhase::BOSS_TURN:
-        phaseText = "Giliran Boss";
+        phaseText = "Boss's Turn";
         break;
     case TurnPhase::VICTORY:
-        phaseText = "MENANG!";
+        phaseText = "VICTORY!";
         break;
     case TurnPhase::DEFEAT:
         phaseText = "";

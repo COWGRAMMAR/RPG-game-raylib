@@ -300,6 +300,7 @@ private:
     float ChargeDistanceRemaining = 0.0f;     // Sisa jarak charge ability2 (pixel)
     Vector2 ChargeDir = {0, 0};              // Arah charge ability2
     bool ChargeHitPlayer = false;            // Cegah multiple hit per charge
+    Vector2 AbilityDir = {0, 0};             // Arah ability elite (fix di cast awal, ga tracking)
 
     void MoveTowards(Vector2 target, float speed); // Helper gerak ke target dengan collision check
 };

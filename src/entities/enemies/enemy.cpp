@@ -388,22 +388,26 @@ void Enemy::UpdateAI()
             Health = MaxHealth;
     }
 
-    // Boss ability triggers (hanya saat player dalam range)
+    // Boss ability triggers: 5s cooldown, 50/50 random, aktif cuma dalam range ability
     if (rank == ENEMY_BOSS && AIState != ENEMY_ABILITY1 && AIState != ENEMY_ABILITY2 && AIState != ENEMY_ATTACK)
     {
-        float range = fmaxf(Def->stats.chaseDetectionRange, FRAME_SIZE * 2.0f);
         float dist = Vector2Distance(GetCenter(), PlayerInstance.GetCenter());
-        if (dist <= range)
+        if (BossAbilityTimer <= 0)
         {
-            if (BossAbilityTimer <= 0)
+            BossAbilityTimer = 5.0f;
+            bool inSlamRange = dist <= 160.0f;
+            bool inChargeRange = dist <= 250.0f;
+            if (inSlamRange && inChargeRange)
+            {
+                AIState = (GetRandomValue(0, 1) == 0) ? ENEMY_ABILITY1 : ENEMY_ABILITY2;
+            }
+            else if (inSlamRange)
             {
                 AIState = ENEMY_ABILITY1;
-                BossAbilityTimer = 5.0f;
             }
-            else if (BossAbility2Timer <= 0)
+            else if (inChargeRange)
             {
                 AIState = ENEMY_ABILITY2;
-                BossAbility2Timer = 7.0f;
             }
         }
     }
@@ -575,8 +579,7 @@ void Enemy::HandlePatrol()
     }
 
     MoveTowards(PatrolTarget, Def->stats.speed);
-    if (Anim.state != WALK)
-        PlayAnimation(Anim, WALK, Anim.direction);
+    PlayAnimation(Anim, WALK, Anim.direction);
 }
 
 /**
@@ -647,8 +650,10 @@ void Enemy::HandleChase()
             MoveTowards(playerCenter, Def->stats.chaseSpeed);
     }
 
-    if (Anim.state != WALK)
-        PlayAnimation(Anim, WALK, Anim.direction);
+    // Arah visual selalu ke player saat chase (abaikan steering target)
+    Vector2 toPlayer = Vector2Normalize(Vector2Subtract(PlayerInstance.GetCenter(), GetCenter()));
+    Anim.direction = (toPlayer.x > 0) ? RIGHT : LEFT;
+    PlayAnimation(Anim, WALK, Anim.direction);
 }
 
 /**
@@ -663,6 +668,9 @@ void Enemy::HandleAbility1()
         PlayAnimation(Anim, ABILITY1, Anim.direction);
         AttackWindUpTimer = windupDuration;
         Anim.isAttacking = true;
+        // Simpan arah ability di awal (ga tracking player terus)
+        Vector2 toPlayer = Vector2Subtract(PlayerInstance.GetCenter(), GetCenter());
+        AbilityDir = Vector2Normalize(toPlayer);
     }
 
     if (AttackWindUpTimer > 0)
@@ -677,7 +685,7 @@ void Enemy::HandleAbility1()
     {
         // Boss AOE slam selesai
         Vector2 ctr = GetCenter();
-        float radius = 190.0f;
+        float radius = 160.0f;
         if (CheckCollisionCircleRec(ctr, radius, PlayerInstance.GetHitbox()))
         {
             PlayerInstance.TakeDamage(40.0f, Vector2Normalize(Vector2Subtract(PlayerInstance.GetCenter(), ctr)));
@@ -689,9 +697,9 @@ void Enemy::HandleAbility1()
         Rectangle zone = GetAbilityZone();
         if (CheckCollisionPointRec(PlayerInstance.GetCenter(), zone))
         {
-            Vector2 dir = Vector2Normalize(Vector2Subtract(PlayerInstance.GetCenter(), GetCenter()));
+            Vector2 kbDir = (AbilityDir.x != 0 || AbilityDir.y != 0) ? AbilityDir : Vector2{1, 0};
             float abilityDamage = Def->stats.damage * 2.5f;
-            PlayerInstance.TakeDamage(abilityDamage, dir);
+            PlayerInstance.TakeDamage(abilityDamage, kbDir);
         }
         AttackCooldownTimer = AttackCooldown;
     }
@@ -706,6 +714,9 @@ void Enemy::HandleAbility2()
         PlayAnimation(Anim, ABILITY2, Anim.direction);
         AttackWindUpTimer = 0.8f;
         Anim.isAttacking = true;
+        Vector2 toPlayer = Vector2Subtract(PlayerInstance.GetCenter(), GetCenter());
+        ChargeDir = Vector2Normalize(toPlayer);
+        Anim.direction = (ChargeDir.x > 0) ? RIGHT : LEFT;
     }
 
     if (AttackWindUpTimer > 0)
@@ -716,13 +727,8 @@ void Enemy::HandleAbility2()
         return;
     }
 
-    // Wind-up selesai: inisialisasi charge direction & distance
     if (ChargeDistanceRemaining <= 0)
     {
-        if (Anim.direction == LEFT)  ChargeDir = {-1, 0};
-        if (Anim.direction == RIGHT) ChargeDir = {1, 0};
-        if (Anim.direction == UP)    ChargeDir = {0, -1};
-        if (Anim.direction == DOWN)  ChargeDir = {0, 1};
         ChargeDistanceRemaining = 200.0f;
         ChargeHitPlayer = false;
     }
@@ -749,9 +755,10 @@ void Enemy::HandleAbility2()
         Position = next;
         ChargeDistanceRemaining -= step;
 
-        // Collision dengan bom saat charge
+        // Collision dengan bom saat charge — berhenti kalo kena bom
         Rectangle bossHitbox = {next.x + HitboxOffsetX, next.y + HitboxOffsetY, HitboxWidth, HitboxHeight};
-        bombManager.HitByAttack(bossHitbox, PlayerInstance.GetHitbox(), &PlayerInstance);
+        if (bombManager.HitByAttack(bossHitbox, PlayerInstance.GetHitbox(), &PlayerInstance))
+            ChargeDistanceRemaining = 0;
 
         if (!ChargeHitPlayer && CheckCollisionRecs(bossHitbox, PlayerInstance.GetHitbox()))
         {
@@ -772,13 +779,10 @@ Rectangle Enemy::GetAbilityZone() const
 {
     Vector2 center = GetCenter();
     float zoneW = 44.0f, zoneH = 44.0f;
-    float zx = center.x - zoneW / 2.0f;
-    float zy = center.y - zoneH / 2.0f;
+    Vector2 dir = (AbilityDir.x != 0 || AbilityDir.y != 0) ? AbilityDir : Vector2{1, 0};
     float offset = 22.0f;
-    if (Anim.direction == LEFT)  zx -= offset;
-    if (Anim.direction == RIGHT) zx += offset;
-    if (Anim.direction == UP)    zy -= offset;
-    if (Anim.direction == DOWN)  zy += offset;
+    float zx = center.x + dir.x * offset - zoneW / 2.0f;
+    float zy = center.y + dir.y * offset - zoneH / 2.0f;
     return {zx, zy, zoneW, zoneH};
 }
 
@@ -842,8 +846,7 @@ void Enemy::HandleReturn()
     else
         MoveTowards(SpawnPoint, Def->stats.speed);
 
-    if (Anim.state != WALK)
-        PlayAnimation(Anim, WALK, Anim.direction);
+    PlayAnimation(Anim, WALK, Anim.direction);
 }
 
 /**
@@ -882,8 +885,8 @@ void Enemy::HandleAttack()
         {
             if (rank == ENEMY_ELITE)
             {
-                // Elite wind-up: stand still for 0.6s playing attack animation, then deal damage
-                AttackWindUpTimer = 0.6f;
+                // Elite wind-up: stand still playing attack animation, then deal damage
+                AttackWindUpTimer = 1.0f;
                 PlayAnimation(Anim, ATTACK, Anim.direction);
                 Anim.isAttacking = true;
             }
@@ -993,26 +996,22 @@ void Enemy::Render()
         {
             if (rank == ENEMY_ELITE)
             {
-                Rectangle zone = GetAbilityZone();
-                DrawRectangleRec(zone, ColorAlpha(RED, 0.55f));
+                Vector2 ctr = GetCenter();
+                Vector2 end = Vector2Add(ctr, Vector2Scale(AbilityDir, 44.0f));
+                DrawLineEx(ctr, end, 15.0f, ColorAlpha(RED, 0.5f));
             }
             else if (rank == ENEMY_BOSS)
             {
                 Vector2 ctr = GetCenter();
-                DrawCircleV(ctr, 190.0f, ColorAlpha(ORANGE, 0.35f));
-                DrawCircleLinesV(ctr, 190.0f, ColorAlpha(RED, 0.7f));
+                DrawCircleV(ctr, 160.0f, ColorAlpha(ORANGE, 0.35f));
+                DrawCircleLinesV(ctr, 160.0f, ColorAlpha(RED, 0.7f));
             }
         }
         else if (AIState == ENEMY_ABILITY2 && rank == ENEMY_BOSS)
         {
-            // Visual charge direction
+            // Visual charge direction (pake ChargeDir, bukan Anim.direction 4 axis)
             Vector2 ctr = GetCenter();
-            Vector2 d = {0, 0};
-            if (Anim.direction == LEFT)  d.x = -1;
-            if (Anim.direction == RIGHT) d.x = 1;
-            if (Anim.direction == UP)    d.y = -1;
-            if (Anim.direction == DOWN)  d.y = 1;
-            Vector2 end = Vector2Add(ctr, Vector2Scale(d, 200.0f));
+            Vector2 end = Vector2Add(ctr, Vector2Scale(ChargeDir, 200.0f));
             DrawLineEx(ctr, end, 6.0f, ColorAlpha(YELLOW, 0.5f));
             DrawCircleV(end, 8.0f, ColorAlpha(RED, 0.7f));
         }
@@ -1084,10 +1083,9 @@ void Enemy::MoveTowards(Vector2 target, float speed)
     if (IsPositionSafe({Position.x, Position.y + move.y}, HitboxWidth, HitboxHeight, HitboxOffsetX, HitboxOffsetY))
         Position.y += move.y;
 
-    if (std::abs(dir.x) > std::abs(dir.y))
-        Anim.direction = (dir.x > 0) ? RIGHT : LEFT;
-    else
-        Anim.direction = (dir.y > 0) ? DOWN : UP;
+    // Direction berdasarkan center-to-center biar akurat
+    Vector2 dirToTarget = Vector2Normalize(Vector2Subtract(target, GetCenter()));
+    Anim.direction = (dirToTarget.x > 0) ? RIGHT : LEFT;
 }
 
 /**

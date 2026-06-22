@@ -1,0 +1,19 @@
+docs/README.md
+  s_0ee2af2fc9ffe9::t_f59626d6462cc8 3,5,9,11-12
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.9",
+  "base_commit_sha": "f3c4cb189823ce2414b380cc12b7cc102ba626d5",
+  "prompts": {},
+  "sessions": {
+    "s_0ee2af2fc9ffe9": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_12174ed8dffeQT3WRIoy8BfpB3",
+        "model": "unknown"
+      },
+      "human_author": "NiskoDT <65821447+NiskoDT@users.noreply.github.com>"
+    }
+  }
+}

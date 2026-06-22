@@ -26,7 +26,7 @@
  */
 SaveLoadScreen::SaveLoadScreen()
     : active(false), texturesLoaded(false), returnScreen(PLAY), width(0), height(0), startX(0), startY(0), bgTexture({0}), saveTitleTex({0}), loadTitleTex({0}), deleteTitleTex({0}), emptySlotTex({0}), savedSlotTex({0}), // basch-3: inisialisasi texture title & slot
-      slotOccupied{}, slotMapName{}, slotTimestamp{}, m_mode(SaveLoadMode::SAVE_MODE), m_previousMode(SaveLoadMode::SAVE_MODE),       m_overwritePopup("Overwrite existing save?", "Overwrite", "Cancel", 0.7f), m_loadPopup("Load this save?", "Load", "Cancel", 0.7f), m_deletePopup("Delete this save?", "Delete", "Cancel", 0.7f), m_corruptionPopup("Save data in this slot is corrupted or incompatible.\nPlease choose another slot.", "OK", 0.7f), m_showOverwritePopup(false), m_showLoadPopup(false), m_showDeletePopup(false), m_showCorruptionPopup(false), m_selectedSlot(-1)
+      slotOccupied{}, slotMapName{}, slotTimestamp{}, m_mode(SaveLoadMode::SAVE_MODE), m_previousMode(SaveLoadMode::SAVE_MODE),       m_overwritePopup("Overwrite existing save?", "Overwrite", "Cancel", 0.7f), m_loadPopup("Load this save?", "Load", "Cancel", 0.7f), m_deletePopup("Delete this save?", "Delete", "Cancel", 0.7f), m_corruptionPopup("Save file corrupt!", "OK", 0.7f), m_showOverwritePopup(false), m_showLoadPopup(false), m_showDeletePopup(false), m_showCorruptionPopup(false), m_selectedSlot(-1)
 {
 }
 
@@ -797,6 +797,8 @@ void SaveLoadScreen::LoadTextures()
     m_loadPopup.SetTextColor(BLACK);
     m_deletePopup.SetBackgroundTexture("assets/textures/saveloadAsset/overLoadNotifBG.png");
     m_deletePopup.SetTextColor(BLACK);
+    m_corruptionPopup.SetBackgroundTexture("assets/textures/saveloadAsset/overLoadNotifBG.png");
+    m_corruptionPopup.SetTextColor(BLACK);
 }
 
 // basch-3: bongkar semua texture (bg, title, slot)

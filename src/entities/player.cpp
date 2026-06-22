@@ -202,7 +202,7 @@ void Player::Update()
         {
             BuffDamageTimer = 0;
             BuffDamageMultiplier = 1.0f;
-            Effects::AddLog("Efek Damage Berakhir");
+            Effects::AddLog("Damage buff ended");
         }
     }
 
@@ -213,7 +213,7 @@ void Player::Update()
         {
             BuffSpeedTimer = 0;
             BuffSpeedMultiplier = 1.0f;
-            Effects::AddLog("Efek Speed Berakhir");
+            Effects::AddLog("Speed buff ended");
         }
     }
 
@@ -223,7 +223,7 @@ void Player::Update()
         if (InvincibilityTimer <= 0)
         {
             InvincibilityTimer = 0;
-            Effects::AddLog("Efek Kebal Berakhir");
+            Effects::AddLog("Invincibility ended");
         }
     }
 

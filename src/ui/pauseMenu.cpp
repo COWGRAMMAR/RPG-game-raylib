@@ -619,7 +619,7 @@ void PauseMenu::Update(GameState *state, Vector2 mousePosition, bool mouseClicke
             else
             {
                 loadConfirmPopup.Hide();
-                pauseCorruptPopup.SetSubMessage("Data ini akan dihapus.");
+                pauseCorruptPopup.SetSubMessage("This save data will be deleted.");
                 pauseCorruptPopup.Show();
             }
         }

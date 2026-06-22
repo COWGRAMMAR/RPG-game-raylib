@@ -1,4 +1,4 @@
-# World Generation — Save/Load Pipeline
+# World Generation -- Save/Load Pipeline
 
 ## 1. Arsitektur Global
 
@@ -84,7 +84,7 @@ Loading screen mendeteksi `isSwitchingMap = false` dan `assetsLoaded = false`, m
 
 | Stage | Fungsi | File:Line |
 | --- | --- | --- |
-| 0 | `InitTextures()` — load sprites, atlas, tileset textures | `loading_screen.cpp:360` |
+| 0 | `InitTextures()` -- load sprites, atlas, tileset textures | `loading_screen.cpp:360` |
 | 1 | `HasSavedState()` → `LoadMap(savedMap)` + `LoadWorldgenForSave()` / `InitMap()` | `loading_screen.cpp:366-398` |
 | 2 | Increment stage (kosong) | `loading_screen.cpp:400` |
 | default | `assetsLoaded = true`, `InitAll()`, `ApplyPreSpawn()`, `RestoreGameState()`, `InitMainMenu()`, `currentScreen = PLAY` | `loading_screen.cpp:406-461` |
@@ -97,23 +97,23 @@ Jika save game ditemukan (`HasSavedState()` true), maka `LoadMap(savedMap)` dipa
 
 Saat player memasuki door yang terhubung ke stage worldgen, fungsi `NextStage()` atau `PrevStage()` dipanggil:
 
-**`src/map/worldgenio.cpp:178-200`** — `WorldgenIO::NextStage()`
+**`src/map/worldgenio.cpp:178-200`** -- `WorldgenIO::NextStage()`
 
 ```txt
 1. Cek oldStage >= SEED_COUNT - 1 (boss stage):
      → ResetRun(), currentScreen = MAIN_MENU (return ke lobby)
-2. g_SeedManager.NextStage()             — increment stage
-3. SaveMeta()                            — simpan seeds + stage ke disk
+2. g_SeedManager.NextStage()             -- increment stage
+3. SaveMeta()                            -- simpan seeds + stage ke disk
 4. GetStagePath(newStage) → SwitchMap(stagePath, "start")
-5. TrimStageStack()                      — sisakan hanya prev stage di history stack
+5. TrimStageStack()                      -- sisakan hanya prev stage di history stack
 ```
 
-**`src/map/worldgenio.cpp:203-220`** — `WorldgenIO::PrevStage()`
+**`src/map/worldgenio.cpp:203-220`** -- `WorldgenIO::PrevStage()`
 
 ```txt
-1. Cek CanGoBack()                       — false jika prevStage < 0
-2. GoBackStage() → targetStage           — ambil prevStage, reset ke -1 (one-time use)
-3. SetCurrentStage(targetStage)          — set stage ke target
+1. Cek CanGoBack()                       -- false jika prevStage < 0
+2. GoBackStage() → targetStage           -- ambil prevStage, reset ke -1 (one-time use)
+3. SetCurrentStage(targetStage)          -- set stage ke target
 4. SaveMeta()
 5. GetStagePath(targetStage) → SwitchMap(stagePath, "finish")
 6. TrimStageStack()
@@ -123,7 +123,7 @@ Saat player memasuki door yang terhubung ke stage worldgen, fungsi `NextStage()`
 
 ```txt
 1. Null/empty path guard
-2. CaptureSnapshot() + SaveCheckpoint()  — simpan state map lama via SaveManager
+2. CaptureSnapshot() + SaveCheckpoint()  -- simpan state map lama via SaveManager
 3. Push current map ke history stack
 4. Set gState->isSwitchingMap = true
 5. Set pendingMapPath / pendingDoorName
@@ -145,7 +145,7 @@ Loading screen mendeteksi `isSwitchingMap == true` dan masuk ke **HandleMapSwitc
 | 0 | `UnloadMap()` + `spawnFlowFields.clear()` | `loading_screen.cpp:138-147` |
 | 1 | `LoadMap(path)` + `SetCurrentMapPath()` | `loading_screen.cpp:149-197` |
 
-Stage 1 — worldgen trigger + pre-spawn restore (`loading_screen.cpp:158-177`):
+Stage 1 -- worldgen trigger + pre-spawn restore (`loading_screen.cpp:158-177`):
 
 ```cpp
 if (state->pendingMapPath.find("worldseed/save_") != std::string::npos)
@@ -154,7 +154,7 @@ if (state->pendingMapPath.find("worldseed/save_") != std::string::npos)
     uint64_t seed = g_SeedManager.GetSeed(stageIdx);
     RunWorldgen(seed, stageIdx == SeedManager::SEED_COUNT - 1);
 
-    // Reset barrier state — jangan bawa stale state dari map sebelumnya
+    // Reset barrier state -- jangan bawa stale state dari map sebelumnya
     barrierManager.SetCleared(false);
     barrierManager.SetHasReLocked(false);
 
@@ -182,7 +182,7 @@ if (state->pendingMapPath.find("worldseed/save_") != std::string::npos)
 
 Saat player kembali dari main menu atau OPTIONS tanpa perlu reload assets (`assetsLoaded = true`, `!isSwitchingMap`):
 
-**`src/core/loading_screen.cpp:268-348`** — `HandleFastPath()`
+**`src/core/loading_screen.cpp:268-348`** -- `HandleFastPath()`
 
 ```txt
 1. loadingStage = max, loadingComplete = true, currentScreen = PLAY
@@ -260,7 +260,7 @@ Saat player kembali dari main menu atau OPTIONS tanpa perlu reload assets (`asse
 | `HandleMapSwitch(state)` | 132-264 | Eksekusi 4-stage map switch (Unload → Load+Worldgen → Player/Entities → Finalize) |
 | `HandleFastPath(state)` | 268-348 | Eksekusi fast path saat assets sudah ter-load (kembali dari menu) |
 | `HandleInitialLoad(state)` | 352-463 | Eksekusi 3-stage initial load (InitTextures → Map → InitAll) |
-| `UpdateLoadingScreen(state)` | 475-495 | Dispatcher — pilih mode berdasarkan flag (isSwitchingMap / assetsLoaded / initial) |
+| `UpdateLoadingScreen(state)` | 475-495 | Dispatcher -- pilih mode berdasarkan flag (isSwitchingMap / assetsLoaded / initial) |
 | `RenderLoadingScreen(state)` | 548-606 | Render progress bar + text + map name |
 | `IsLoadingComplete(state)` | 614-617 | Return loadingComplete flag |
 
@@ -320,29 +320,29 @@ Runtime state disimpan sebagai *checkpoints* dalam `GameSnapshot`:
 
 | Komponen | Cara Restore |
 | --- | --- |
-| Chest yang sudah di-loot | `SaveManager::ApplyPreSpawn(snap)` — restore chest states sebelum spawn |
+| Chest yang sudah di-loot | `SaveManager::ApplyPreSpawn(snap)` -- restore chest states sebelum spawn |
 | Crate hancur | Sama, dalam `ApplyPreSpawn()` |
 | Enemy mati | `Entities::SetDeadEntries()` via `ApplyPreSpawn()` |
 | Item drops di lantai | `ItemData::SetItemDrops()` via `ApplyPreSpawn()` |
 | Barrier state | `BarrierManager::SetCleared()` / `SetHasReLocked()` via `ApplyPreSpawn()` |
-| Player posisi/inventory | `ApplyPostSpawn(snap)` — setelah enemy/item spawn |
+| Player posisi/inventory | `ApplyPostSpawn(snap)` -- setelah enemy/item spawn |
 
 ### Alur Map Switch (checkpoint)
 
 ```txt
 1. SwitchMap() dipanggil
-2. SaveManager::CaptureSnapshot() — ambil snapshot state saat ini
-3. SaveManager::SaveCheckpoint(snap, path, -1) — simpan ke slot runtime
+2. SaveManager::CaptureSnapshot() -- ambil snapshot state saat ini
+3. SaveManager::SaveCheckpoint(snap, path, -1) -- simpan ke slot runtime
 4. Push current map ke history stack
 5. Set LOADING screen dengan pendingMapPath
 6. HandleMapSwitch stage 1:
      a. LoadMap(path) + RunWorldgen() (jika worldseed)
-     b. ApplyPreSpawn(chkSnap) — restore consumed state SEBELUM SpawnObject
+     b. ApplyPreSpawn(chkSnap) -- restore consumed state SEBELUM SpawnObject
      c. SpawnObject() + RebuildObstacleCache()
 7. HandleMapSwitch stage 2:
-     a. ApplyPreSpawn(chkSnap) — restore dead entities
+     a. ApplyPreSpawn(chkSnap) -- restore dead entities
      b. SpawnEnemiesFromMap() + SpawnItemWave()
-     c. ApplyCheckpointData(chkSnap) — restore player/enemy/item state
+     c. ApplyCheckpointData(chkSnap) -- restore player/enemy/item state
      d. SaveInitial() untuk restart
 8. HandleMapSwitch stage 3:
      a. Camera setup
@@ -387,7 +387,7 @@ File: meta.json
 }
 ```
 
-Meta file disimpan di `worldseed/save_{slot}/meta.json`. Tidak menyimpan runtime state — hanya seeds dan stage tracking.
+Meta file disimpan di `worldseed/save_{slot}/meta.json`. Tidak menyimpan runtime state -- hanya seeds dan stage tracking.
 
 ---
 
@@ -427,10 +427,10 @@ if (tilesonMap == nullptr)
 
 | File | Line | Fungsi |
 | --- | --- | --- |
-| `src/ui/mainMenu.cpp` | 114-118 | `Load Game` button — buka SaveLoadScreen |
-| `src/core/loading_screen.cpp` | 352-463 | `HandleInitialLoad` — initial loading + crash guard |
-| `src/core/loading_screen.cpp` | 132-264 | `HandleMapSwitch` — map switch loading |
-| `src/core/loading_screen.cpp` | 360 | `InitTextures()` — dipanggil di stage 0 initial load |
-| `src/core/main.cpp` | 223-237 | LOADING state handler — re-init jika selesai |
-| `src/entities/player.cpp` | 23-87 | `Player::Init()` — akses loadedAnimationSets |
+| `src/ui/mainMenu.cpp` | 114-118 | `Load Game` button -- buka SaveLoadScreen |
+| `src/core/loading_screen.cpp` | 352-463 | `HandleInitialLoad` -- initial loading + crash guard |
+| `src/core/loading_screen.cpp` | 132-264 | `HandleMapSwitch` -- map switch loading |
+| `src/core/loading_screen.cpp` | 360 | `InitTextures()` -- dipanggil di stage 0 initial load |
+| `src/core/main.cpp` | 223-237 | LOADING state handler -- re-init jika selesai |
+| `src/entities/player.cpp` | 23-87 | `Player::Init()` -- akses loadedAnimationSets |
 | `include/core/screen.h` | 59-84 | GameState struct definition |

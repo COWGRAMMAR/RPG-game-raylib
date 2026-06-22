@@ -127,7 +127,6 @@ void SaveLoadScreen::Update(GameState *state, Vector2 mousePosition, bool mouseC
         {
             m_showOverwritePopup = false;
             SetActiveSlot(m_selectedSlot);
-            SaveGameState(state);
             // Save new-format snapshot
             {
                 GameSnapshot snap = SaveManager::CaptureSnapshot();
@@ -137,7 +136,6 @@ void SaveLoadScreen::Update(GameState *state, Vector2 mousePosition, bool mouseC
                          snap.playerPosition.x, snap.playerPosition.y, snap.mapPath.c_str());
                 SaveManager::SaveManual(snap, m_selectedSlot);
             }
-            WriteSaveFile(GetSlotPath(m_selectedSlot, "manual"));
             active = false;
             state->currentScreen = returnScreen;
         }
@@ -157,7 +155,7 @@ void SaveLoadScreen::Update(GameState *state, Vector2 mousePosition, bool mouseC
             m_showLoadPopup = false;
             SetActiveSlot(m_selectedSlot);
 
-            // Cek validitas save — coba format baru dulu, fallback ke format lama
+            // Cek validitas primary format (SaveManager snapshot)
             bool saveValid = false;
             std::string newPath = SaveManager::GetManualPath(m_selectedSlot);
             if (SaveManager::HasSnapshot(newPath))
@@ -166,25 +164,15 @@ void SaveLoadScreen::Update(GameState *state, Vector2 mousePosition, bool mouseC
                 saveValid = (testSnap.version == GameSnapshot::SNAPSHOT_VERSION);
             }
 
-            if (!saveValid)
-            {
-                std::string oldPath = GetSlotPath(m_selectedSlot, "manual");
-                if (std::filesystem::exists(oldPath))
-                {
-                    saveValid = ReadSaveFile(oldPath);
-                }
-            }
-
             if (saveValid)
             {
-                TraceLog(LOG_INFO, "LOAD: slot=%d mapPath='%s' worldgenSlot=%d",
-                         m_selectedSlot, savedMapState.mapPath.c_str(), savedPlayerState.worldgenSlot);
+                TraceLog(LOG_INFO, "LOAD: slot=%d snapshot valid", m_selectedSlot);
                 active = false;
                 state->currentScreen = LOADING;
             }
             else
             {
-                TraceLog(LOG_WARNING, "LOAD: slot %d save corrupt atau tidak terbaca", m_selectedSlot);
+                TraceLog(LOG_WARNING, "LOAD: slot %d — snapshot corrupt atau tidak terbaca", m_selectedSlot);
                 m_corruptionPopup.Show();
                 m_showCorruptionPopup = true;
             }
@@ -249,13 +237,11 @@ void SaveLoadScreen::Update(GameState *state, Vector2 mousePosition, bool mouseC
                 else
                 {
                     SetActiveSlot(clickedSlot);
-                    SaveGameState(state);
                     // Save new-format snapshot
                     {
                         GameSnapshot snap = SaveManager::CaptureSnapshot();
                         SaveManager::SaveManual(snap, clickedSlot);
                     }
-                    WriteSaveFile(GetSlotPath(clickedSlot, "manual"));
                     active = false;
                     state->currentScreen = returnScreen;
                 }
@@ -703,16 +689,12 @@ void SaveLoadScreen::RefreshSlotMetadata()
 {
     for (int i = 0; i < MANUAL_SLOT_COUNT + AUTOSAVE_SLOT_COUNT; i++)
     {
-        std::string oldPath = "saves/slot_" + std::to_string(i) + "/manual/manual.json";
-        bool hasOldFormat = std::filesystem::exists(oldPath);
         bool hasNewFormat = SaveManager::HasManual(i);
 
-        if (hasOldFormat || hasNewFormat)
+        if (hasNewFormat)
         {
             slotOccupied[i] = true;
-            std::string metaPath = hasNewFormat
-                                       ? SaveManager::GetManualPath(i)
-                                       : oldPath;
+            std::string metaPath = SaveManager::GetManualPath(i);
             try
             {
                 std::ifstream file(metaPath);

@@ -560,7 +560,6 @@ void PauseMenu::HandleButtonClick(int buttonIndex, GameState *state)
         returnConfirmPopup.Show();
         break;
     case 6: // Exit Game
-        SaveGameState(state);
         WorldgenIO::CleanupOrphanedSlots();
         CloseWindow();
         break;
@@ -599,7 +598,15 @@ void PauseMenu::Update(GameState *state, Vector2 mousePosition, bool mouseClicke
         loadConfirmPopup.Update(mousePosition, mouseClicked);
         if (loadConfirmPopup.IsConfirmClicked())
         {
-            if (ReadSaveFile(GetSlotPath(g_ActiveSaveSlot, "manual")))
+        {
+            bool snapshotValid = SaveManager::HasManual(g_ActiveSaveSlot);
+            if (snapshotValid)
+            {
+                GameSnapshot snap = SaveManager::LoadManual(g_ActiveSaveSlot);
+                snapshotValid = (snap.version == GameSnapshot::SNAPSHOT_VERSION);
+            }
+
+            if (snapshotValid)
             {
                 loadConfirmPopup.Hide();
                 state->enteredLoading = false;
@@ -612,9 +619,10 @@ void PauseMenu::Update(GameState *state, Vector2 mousePosition, bool mouseClicke
             else
             {
                 loadConfirmPopup.Hide();
-                DeleteSaveFile(GetSlotPath(g_ActiveSaveSlot, "manual"));
+                SaveManager::DeleteSlot(g_ActiveSaveSlot);
                 pauseCorruptPopup.Show();
             }
+        }
         }
         return;
     }

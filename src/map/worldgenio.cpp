@@ -246,7 +246,7 @@ namespace WorldgenIO
         if (g_SeedManager.IsRunActive())
             activeSlots.insert(g_SeedManager.GetCurrentSlot());
 
-        // Scan save files — new format (manual/snapshot.json)
+        // Scan save files; new format (manual/snapshot.json)
         for (int i = 0; i < TOTAL_SAVE_SLOTS; i++)
         {
             int ws = ReadWorldgenSlotFromFile(SaveManager::GetManualPath(i));

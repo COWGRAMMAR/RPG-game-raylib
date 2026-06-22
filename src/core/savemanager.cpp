@@ -485,7 +485,7 @@ GameSnapshot SaveManager::ReadSnapshot(const std::string &path)
             unsigned int storedHash = hashIt->get<unsigned int>();
             root.erase(hashIt);
 
-            // Re-serialize without hash — must produce same string as pre-hash dump
+            // Re-serialize without hash. Must produce same string as the pre-hash dump.
             std::string content = root.dump(4);
             unsigned int computedHash = ComputeCRC32(
                 reinterpret_cast<unsigned char *>(content.data()),

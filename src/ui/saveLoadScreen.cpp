@@ -26,7 +26,7 @@
  */
 SaveLoadScreen::SaveLoadScreen()
     : active(false), texturesLoaded(false), returnScreen(PLAY), width(0), height(0), startX(0), startY(0), bgTexture({0}), saveTitleTex({0}), loadTitleTex({0}), deleteTitleTex({0}), emptySlotTex({0}), savedSlotTex({0}), // basch-3: inisialisasi texture title & slot
-      slotOccupied{}, slotMapName{}, slotTimestamp{}, m_mode(SaveLoadMode::SAVE_MODE), m_previousMode(SaveLoadMode::SAVE_MODE), m_overwritePopup("Overwrite existing save?", "Overwrite", "Cancel", 0.7f), m_loadPopup("Load this save?", "Load", "Cancel", 0.7f), m_deletePopup("Delete this save?", "Delete", "Cancel", 0.7f), m_showOverwritePopup(false), m_showLoadPopup(false), m_showDeletePopup(false), m_selectedSlot(-1)
+      slotOccupied{}, slotMapName{}, slotTimestamp{}, m_mode(SaveLoadMode::SAVE_MODE), m_previousMode(SaveLoadMode::SAVE_MODE),       m_overwritePopup("Overwrite existing save?", "Overwrite", "Cancel", 0.7f), m_loadPopup("Load this save?", "Load", "Cancel", 0.7f), m_deletePopup("Delete this save?", "Delete", "Cancel", 0.7f), m_corruptionPopup("Save file corrupt!", "OK", 0.7f), m_showOverwritePopup(false), m_showLoadPopup(false), m_showDeletePopup(false), m_showCorruptionPopup(false), m_selectedSlot(-1)
 {
 }
 
@@ -156,19 +156,54 @@ void SaveLoadScreen::Update(GameState *state, Vector2 mousePosition, bool mouseC
         {
             m_showLoadPopup = false;
             SetActiveSlot(m_selectedSlot);
+
+            // Cek validitas save — coba format baru dulu, fallback ke format lama
+            bool saveValid = false;
+            std::string newPath = SaveManager::GetManualPath(m_selectedSlot);
+            if (SaveManager::HasSnapshot(newPath))
             {
-                std::string path = GetSlotPath(m_selectedSlot, "manual");
+                GameSnapshot testSnap = SaveManager::ReadSnapshot(newPath);
+                saveValid = (testSnap.version == GameSnapshot::SNAPSHOT_VERSION);
+            }
+
+            if (!saveValid)
+            {
+                std::string oldPath = GetSlotPath(m_selectedSlot, "manual");
+                if (std::filesystem::exists(oldPath))
+                {
+                    saveValid = ReadSaveFile(oldPath);
+                }
+            }
+
+            if (saveValid)
+            {
                 TraceLog(LOG_INFO, "LOAD: slot=%d mapPath='%s' worldgenSlot=%d",
                          m_selectedSlot, savedMapState.mapPath.c_str(), savedPlayerState.worldgenSlot);
-                ReadSaveFile(path);
-                // RestoreGameState di-loading_screen.cpp (HandleFastPath) setelah InitAll
+                active = false;
+                state->currentScreen = LOADING;
             }
-            active = false;
-            state->currentScreen = LOADING;
+            else
+            {
+                TraceLog(LOG_WARNING, "LOAD: slot %d save corrupt atau tidak terbaca", m_selectedSlot);
+                m_corruptionPopup.Show();
+                m_showCorruptionPopup = true;
+            }
         }
         else if (!m_loadPopup.IsActive())
         {
             m_showLoadPopup = false; // Cancelled
+        }
+        return;
+    }
+
+    // Handle corruption popup
+    if (m_showCorruptionPopup)
+    {
+        m_corruptionPopup.Update(mousePosition, mouseClicked);
+        if (m_corruptionPopup.IsConfirmClicked() || !m_corruptionPopup.IsActive())
+        {
+            m_showCorruptionPopup = false;
+            m_selectedSlot = -1;
         }
         return;
     }
@@ -353,6 +388,10 @@ void SaveLoadScreen::Draw(Vector2 mousePosition)
     if (m_showDeletePopup)
     {
         m_deletePopup.Draw(mousePosition);
+    }
+    if (m_showCorruptionPopup)
+    {
+        m_corruptionPopup.Draw(mousePosition);
     }
 }
 

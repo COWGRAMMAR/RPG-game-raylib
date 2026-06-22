@@ -1,0 +1,19 @@
+src/ui/saveLoadScreen.cpp
+  s_f93b097f241fee::t_4cb4e959f0d0a5 29
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.9",
+  "base_commit_sha": "8370eb691036975f6df715530ec24bdaaebaafbb",
+  "prompts": {},
+  "sessions": {
+    "s_f93b097f241fee": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_1124fb43dffenVmyrXtOSm9wiE",
+        "model": "unknown"
+      },
+      "human_author": "NiskoDT <65821447+NiskoDT@users.noreply.github.com>"
+    }
+  }
+}

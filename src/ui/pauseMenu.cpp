@@ -44,7 +44,7 @@ static Popup savePopup("Game Saved!", "OK", 0.7F);
 static Popup saveErrorPopup("Failed to save game.", "OK", 0.7F);
 static Popup loadConfirmPopup("Load from save? Current progress will be lost.", "Load Save", "Cancel", 0.7f);
 static Popup noSavePopup("No save file found.", "OK", 0.7F);
-static Popup pauseCorruptPopup("Save file corrupted or unreadable.", "OK", 0.7f);
+static Popup pauseCorruptPopup("Data simpan rusak atau tidak kompatibel.\nSilakan pilih save lain.", "OK", 0.7f);
 static Popup returnConfirmPopup("Return to main menu?", "Continue", "Cancel", 0.7f);
 static Popup restartConfirmPopup("Restart Run?", "Restart", "Cancel", 0.7f);
 

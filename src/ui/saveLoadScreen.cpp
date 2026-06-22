@@ -26,7 +26,7 @@
  */
 SaveLoadScreen::SaveLoadScreen()
     : active(false), texturesLoaded(false), returnScreen(PLAY), width(0), height(0), startX(0), startY(0), bgTexture({0}), saveTitleTex({0}), loadTitleTex({0}), deleteTitleTex({0}), emptySlotTex({0}), savedSlotTex({0}), // basch-3: inisialisasi texture title & slot
-      slotOccupied{}, slotMapName{}, slotTimestamp{}, m_mode(SaveLoadMode::SAVE_MODE), m_previousMode(SaveLoadMode::SAVE_MODE),       m_overwritePopup("Overwrite existing save?", "Overwrite", "Cancel", 0.7f), m_loadPopup("Load this save?", "Load", "Cancel", 0.7f), m_deletePopup("Delete this save?", "Delete", "Cancel", 0.7f), m_corruptionPopup("Save file corrupt!", "OK", 0.7f), m_showOverwritePopup(false), m_showLoadPopup(false), m_showDeletePopup(false), m_showCorruptionPopup(false), m_selectedSlot(-1)
+      slotOccupied{}, slotMapName{}, slotTimestamp{}, m_mode(SaveLoadMode::SAVE_MODE), m_previousMode(SaveLoadMode::SAVE_MODE),       m_overwritePopup("Overwrite existing save?", "Overwrite", "Cancel", 0.7f), m_loadPopup("Load this save?", "Load", "Cancel", 0.7f), m_deletePopup("Delete this save?", "Delete", "Cancel", 0.7f), m_corruptionPopup("Data simpan di slot ini rusak atau tidak kompatibel.\nSilakan pilih slot lain.", "OK", 0.7f), m_showOverwritePopup(false), m_showLoadPopup(false), m_showDeletePopup(false), m_showCorruptionPopup(false), m_selectedSlot(-1)
 {
 }
 

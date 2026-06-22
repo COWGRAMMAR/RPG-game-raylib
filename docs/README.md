@@ -1,19 +1,19 @@
 # Dokumentasi Projek
 
-## Kegunaan folder ini
+## Isi folder ini
 
-Folder ini berisi dokumentasi yang diperlukan untuk memahami struktur projek. Silahkan untuk mengisi folder ini untuk memberikan konteks bagi manusia atau AI agent agar memahami cara kerja suatu bagian atau fungsi pada projek.
+Dokumentasi arsitektur, pipeline, dan sistem di projek ini. Setiap file mencakup satu subsistem dengan API reference, flow diagram, dan constraint. Untuk pengembang manusia atau AI agent yang ingin memahami kode sebelum mengerjakannya.
 
 ## Daftar Isi
 
-Isi folder ini dapat berubah-ubah sepanjang waktu. Apabila menambahkan atau mengurangi, mohon sebaikanya `./README.md` ini juga diubah agar mempermudah navigasi.
+Folder ini bertambah seiring projek berkembang. Kalau menambah atau mengurangi, update `./README.md` ini juga.
 
-1. [`./assets-structure.md`](./assets-structure.md) : Berisi panduan untuk meletakkan aset dan resource yang diperlukan untuk permainan.
-2. [`./build.md`](./build.md) : Panduan untuk membangun projek agar bisa dijalankan dan dimainkan.
-3. [`./save-system.md`](./save-system.md) : Dokumentasi arsitektur save/load system — slot_-1 workspace, GameSnapshot, per-slot isolation, UUID entity identity, pipeline flow (save/mapswitch/load/new/restart), coverage matrix, bug history, dan changelog Waves 1-8
-4. [`./sign-system-ui.md`](./sign-system-ui.md) : Dokumentasi sign/UI system (belum diisi)
-5. [`./source-structure.md`](./source-structure.md) : Struktur direktori source code dan header
-6. [`./worldgeneration.md`](./worldgeneration.md) : Dokumentasi world generation system
-7. [`./debug-keybinds.md`](./debug-keybinds.md) : Berisi dokumentasi keybind debug dan akses pengembang
-8. [`./buff-indicator-system.md`](./buff-indicator-system.md) : Dokumentasi indikator buff aktif (Damage/Speed/Invul) — pipeline, integrasi, design decisions untuk turn-based combat
-9. [`./font-system.md`](./font-system.md) : Dokumentasi font system — pipeline atlas resolution cache, API reference, panduan pemakaian, daftar font, & best practices
+1. [`./assets-structure.md`](./assets-structure.md) : Panduan meletakkan aset dan resource.
+2. [`./build.md`](./build.md) : Cara build dan run projek.
+3. [`./save-system.md`](./save-system.md) : Arsitektur save/load: slot_-1 workspace, GameSnapshot, per-slot isolation, UUID entity identity, pipeline flow (save/switch/load/new/restart), coverage matrix, bug history, changelog Waves 1-8.
+4. [`./sign-system-ui.md`](./sign-system-ui.md) : Sign/UI system (belum diisi).
+5. [`./source-structure.md`](./source-structure.md) : Struktur direktori source code dan header.
+6. [`./worldgeneration.md`](./worldgeneration.md) : World generation system.
+7. [`./debug-keybinds.md`](./debug-keybinds.md) : Keybind debug dan akses pengembang.
+8. [`./buff-indicator-system.md`](./buff-indicator-system.md) : Indikator buff aktif (Damage/Speed/Invul): pipeline, integrasi, design decisions untuk turn-based combat.
+9. [`./font-system.md`](./font-system.md) : Font system: pipeline atlas resolution cache, API, panduan pemakaian, daftar font, best practices.

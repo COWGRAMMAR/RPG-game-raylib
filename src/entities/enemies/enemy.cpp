@@ -591,8 +591,8 @@ void Enemy::HandleChase()
 
     if (AttackCooldownTimer > 0)
     {
-        if (Anim.state != IDLE)
-            PlayAnimation(Anim, IDLE, Anim.direction);
+        if (Anim.state != ATTACK)
+            PlayAnimation(Anim, ATTACK, Anim.direction);
         return;
     }
 
@@ -701,10 +701,9 @@ void Enemy::HandleAbility1()
             float abilityDamage = Def->stats.damage * 2.5f;
             PlayerInstance.TakeDamage(abilityDamage, kbDir);
         }
-        AttackCooldownTimer = AttackCooldown;
     }
 
-    AIState = ENEMY_ATTACK;
+    AIState = ENEMY_CHASE;
 }
 
 void Enemy::HandleAbility2()
@@ -872,8 +871,14 @@ void Enemy::HandleAttack()
     }
 
     // After wind-up, keep attack sprite visible during cooldown
-    if (rank == ENEMY_ELITE && AIState == ENEMY_ATTACK && Anim.state != ATTACK)
+    if (AIState == ENEMY_ATTACK && Anim.state != ATTACK)
         PlayAnimation(Anim, ATTACK, Anim.direction);
+
+    if (AttackCooldownTimer > 0 && Anim.state == ATTACK && Anim.currentConfig && !Anim.currentConfig->loop)
+    {
+        if (Anim.timer >= Anim.currentConfig->speed)
+            Anim.timer = Anim.currentConfig->speed - 0.001f;
+    }
 
     Vector2 enemyCenter = GetCenter();
     Vector2 playerCenter = PlayerInstance.GetCenter();

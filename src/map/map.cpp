@@ -202,6 +202,7 @@ void LoadMap(const char *mapPath)
             UnloadImage(img);
         }
 
+        info.imagePath = imagePath;
         info.cols = tileset->getColumns();
         info.spacing = tileset->getSpacing();
         info.firstgid = tileset->getFirstgid();

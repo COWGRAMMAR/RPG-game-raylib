@@ -28,6 +28,7 @@ static const FontDef FONT_DEFS[(int)FontId::COUNT] = {
     {"NewDawn.ttf", "NewDawn", AtlasRes::RES_512},                       // AUDIOSETTS_HEADER
     {"Poppins-Regular.ttf", "Poppins-Regular", AtlasRes::RES_256},       // AUDIOSETTS_VALUE
     {"Poppins-Regular.ttf", "Poppins-Regular", AtlasRes::RES_256},       // SAVESLOT_TEXT
+    {"Poppins-Bold.ttf", "MinimapUI", AtlasRes::RES_256},                // MINIMAP_UI
 };
 
 /*=== Cache System ===*/

@@ -30,6 +30,7 @@ enum class FontId : int {
     AUDIOSETTS_VALUE,   // Poppins-Regular.ttf, RES_256 — value text
 
     SAVESLOT_TEXT,   // Poppins-Regular.ttf — font save slot text
+    MINIMAP_UI,      // Poppins-Bold.ttf — font minimap UI (legend, hint)
 
     COUNT
 };

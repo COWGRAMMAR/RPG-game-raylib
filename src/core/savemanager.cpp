@@ -7,6 +7,7 @@
  */
 
 #include "savemanager.h"
+#include "map/minimap.h"
 #include "propsbehavior.h"
 #include "entities.h"
 #include "input.h"
@@ -256,6 +257,14 @@ json SaveManager::Serialize(const GameSnapshot &snap)
         barrierJson[path] = cleared;
     root["barrierMap"] = barrierJson;
 
+    // Fog Cache
+    {
+        json fogJson = json::object();
+        for (const auto &[mapPath, fogData] : snap.fogCache)
+            fogJson[mapPath] = fogData;
+        root["fogCache"] = fogJson;
+    }
+
     // Dead Entities
     {
         json arr = json::array();
@@ -412,6 +421,14 @@ GameSnapshot SaveManager::Deserialize(const json &root)
     {
         for (const auto &d : root.at("deadEntities"))
             snap.deadEntities.insert(d.get<std::string>());
+    }
+
+    // Fog Cache
+    if (root.contains("fogCache"))
+    {
+        const auto &fogJson = root.at("fogCache");
+        for (auto it = fogJson.begin(); it != fogJson.end(); ++it)
+            snap.fogCache[it.key()] = it.value().get<std::vector<unsigned char>>();
     }
 
     // Map
@@ -873,6 +890,16 @@ GameSnapshot SaveManager::CaptureSnapshot()
     snap.mapHistory = mapHistoryStack.GetAllEntries();
     snap.version = GameSnapshot::SNAPSHOT_VERSION;
 
+    /*--- Fog: sync fog current map ke cache ---*/
+    {
+        const char *mapPath = GetCurrentMapPath();
+        if (mapPath && mapPath[0] != '\0')
+        {
+            SaveMinimapFogToCache(std::string(mapPath));
+        }
+        snap.fogCache = g_Minimap.fogCache;
+    }
+
     return snap;
 }
 
@@ -1122,6 +1149,30 @@ void SaveManager::ApplyPostSpawn(const GameSnapshot &snap)
     /*--- Map: history ---*/
     if (!snap.mapHistory.empty())
         mapHistoryStack.FromVector(snap.mapHistory);
+
+    /*--- Fog: restore cache untuk persistensi antar map ---*/
+    if (!snap.fogCache.empty())
+    {
+        g_Minimap.fogCache = snap.fogCache;
+
+        // Restore fog untuk current map dari cache
+        const char *mapPath = GetCurrentMapPath();
+        if (mapPath && mapPath[0] != '\0')
+        {
+            auto it = g_Minimap.fogCache.find(std::string(mapPath));
+            if (it != g_Minimap.fogCache.end())
+            {
+                g_Minimap.fog = it->second;
+
+                // VISIBLE → EXPLORED karena gak lagi di current LOS
+                for (auto &f : g_Minimap.fog)
+                {
+                    if (f == (unsigned char)FogState::VISIBLE)
+                        f = (unsigned char)FogState::EXPLORED;
+                }
+            }
+        }
+    }
 
     TraceLog(LOG_INFO, "[SaveManager] Post-spawn restore complete (%zu enemies, %zu items)",
              snap.enemies.size(), snap.items.size());

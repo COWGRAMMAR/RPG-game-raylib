@@ -7,7 +7,8 @@
  * Bukan wallhack: cuma nampilin layout statis (wall/floor) dan posisi player.
  * gak ada enemy / item / runtime object dots.
  *
- * Scale: 1 tile = 1 px minimap grid.
+ * Grid texture dibuild di MINIMAP_TILE_PX px per tile (high-res),
+ * fog di render texture resolusi sama, DrawTexturePro dengan PANEL_SCALE.
  */
 
 #include "raylib.h"
@@ -23,14 +24,21 @@
 
 /// 1 tile map = 1 px pada minimap grid
 constexpr int MINIMAP_TILE_TO_PX   = 1;
+/// Pixels per tile in grid texture (detail level — build constant)
+constexpr int MINIMAP_TILE_PX     = 16;
+/// Fixed zoom multiplier (no dynamic zoom, float) — PANEL_SCALE = TILE_PX * ZOOM
+constexpr float MINIMAP_ZOOM      = 0.7f;
 /// Radius reveal fog of war (dalam tile map)
 constexpr int MINIMAP_REVEAL_RADIUS = 10;
-/// Alpha untuk fog explored (pernah visible, sekarang gelap lagi)
-constexpr float MINIMAP_FOG_EXPLORED_ALPHA = 0.6f;
-/// Scale factor pas render grid ke layar (1 grid px = N screen px)
-constexpr int MINIMAP_PANEL_SCALE = 4;
+/// Warna dasar fog (beige) — UNEXPLORED & EXPLORED pake warna ini
+#define FOG_COLOR_BEIGE 255, 215, 152, 255
+/// Scale factor pas render grid ke layar (TILE_PX * ZOOM pixel per tile)
+constexpr float MINIMAP_PANEL_SCALE = (float)MINIMAP_TILE_PX * MINIMAP_ZOOM;
 /// Padding dalam panel (px)
 constexpr int MINIMAP_PANEL_PADDING = 10;
+/// Radius player marker (screen pixels) — independen dari PANEL_SCALE
+constexpr float MINIMAP_MARKER_RADIUS = 4.0f;
+
 /// Ukuran tetap viewport minimap (screen pixels)
 constexpr int MINIMAP_VIEWPORT_WIDTH  = 500;
 constexpr int MINIMAP_VIEWPORT_HEIGHT = 460;
@@ -159,6 +167,9 @@ private:
     /** @brief Handle drag untuk pan */
     void HandlePan(Vector2 mousePosition, bool mouseClicked);
 
+    /** @brief Gambar legend (close hint + drag/center hints) */
+    void DrawLegend() const;
+
     /** @brief Hitung layout panel berdasarkan grid size */
     void CalculateLayout();
 
@@ -173,8 +184,17 @@ private:
      * Textures
      *----------------------------------------------------------------------*/
 
-    Texture2D gridTexture;   ///< Static grid (build sekali dari tilesonMap)
-    RenderTexture2D fogRT;   ///< Fog layer (update tiap frame)
+    Texture2D gridTexture;    ///< Static grid (build sekali dari tilesonMap)
+    RenderTexture2D fogRT;    ///< Fog render texture (full resolution, per-tile fog drawing)
+    Texture2D bgArtwork;      ///< Panel background decoration (mapBG.png)
+
+    /*----------------------------------------------------------------------
+     * Fog Render Shader — state sampling + circular reveal
+     *----------------------------------------------------------------------*/
+
+    Shader fogRenderShader = {0};  ///< Fragment shader: state→beige mapping + circle mask
+    int fogCenterLoc = -1;         ///< Uniform: circleCenter (vec2, texel coords)
+    int fogRadiusLoc = -1;         ///< Uniform: circleRadius (float, texel radius)
 
     /*----------------------------------------------------------------------
      * Pan (manual offset, gak pake Camera2D)
@@ -183,6 +203,7 @@ private:
     Vector2 panOffset;   ///< Offset panning dalam screen pixels
     Vector2 dragStart;
     bool isDragging;
+    bool followPlayer;   ///< Auto-follow player (dijeda pas manual drag)
 
     /*----------------------------------------------------------------------
      * Layout (screen coordinates, virtual 640x360)

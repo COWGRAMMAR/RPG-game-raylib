@@ -1,9 +1,9 @@
 /**
  * @file minimap.cpp
- * @brief Implementasi minimap navigation aid.
+ * @brief Implementasi minimap navigation aid — high-res grid + fog of war.
  *
- * Scale: 1 tile map = 1 px grid minimap.
- * Render: 1x Texture2D (grid static) + 1x RenderTexture2D (fog overlay), single DrawTexturePro tiap layer.
+ * Grid texture dibuild di MINIMAP_TILE_PX px per tile dari tileset asli,
+ * fog dirender di render texture resolusi sama, single DrawTexturePro tiap layer.
  *
  * === ISOLATED BUILD ===
  * File ini gak nyentuh file existing lain (hanya include header existing).
@@ -13,11 +13,14 @@
 #include "map/minimap.h"
 #include "entities/player.h"    // PlayerInstance.GetPosition()
 #include "map/map.h"            // tilesonMap, GetCurrentMapPath()
-#include "map/mapLogic.h"       // gCollisionCache
+
 #include "systems/input.h"      // InputInstance.IsToggleMap()
+#include "systems/keybindManager.h"  // keybindManager
+#include "rendering/fonts.h"    // FontId
 #include "rendering/animation.h"
 #include <cmath>
 #include <algorithm>
+#include <unordered_set>
 
 /*==============================================================================
  * Globals
@@ -27,75 +30,170 @@ MinimapData g_Minimap;
 MinimapScreen g_MinimapScreen;
 
 /*==============================================================================
- * Color Mapping
- *==============================================================================*/
-
-Color MapGidToColor(int gid)
-{
-    // DEBUG: pake warna kontras biar keliatan
-    if (gid <= 0)
-        return {255, 0, 0, 255};    // RED — void
-    return {0, 0, 255, 255};         // BLUE — tile
-}
-
-/*==============================================================================
- * Grid Texture — Build dari tilesonMap + gCollisionCache
+ * Grid Texture — Build dari tilesonMap (multi-layer composite, high-res)
  *==============================================================================*/
 
 void MinimapScreen::BuildGridTexture()
 {
     if (!tilesonMap || tilesonMap->width <= 0 || tilesonMap->height <= 0 || tilesonMap->layerCount <= 0)
-    {
-        TraceLog(LOG_WARNING, "MINIMAP DBG: BuildGridTexture skipped — tilesonMap invalid (layers=%d)",
-                 tilesonMap ? tilesonMap->layerCount : -1);
         return;
-    }
     if (tilesonMap->tiles[0] == nullptr)
-    {
-        TraceLog(LOG_WARNING, "MINIMAP DBG: BuildGridTexture skipped — tiles[0] is null");
         return;
-    }
 
     int mapW = tilesonMap->width;
     int mapH = tilesonMap->height;
     int gw = g_Minimap.gridWidth;
     int gh = g_Minimap.gridHeight;
     if (gw <= 0 || gh <= 0)
-    {
-        TraceLog(LOG_WARNING, "MINIMAP DBG: BuildGridTexture skipped — gw/gh invalid (%dx%d)", gw, gh);
         return;
-    }
 
-    // Hitung sample GIDs untuk debugging
-    int nonZeroGids = 0;
-    int totalCells  = gw * gh;
-
-    Image img = GenImageColor(gw, gh, BLANK);
+    // High-res grid: tiap tile diwakili MINIMAP_TILE_PX x MINIMAP_TILE_PX pixel
+    int texW = gw * MINIMAP_TILE_PX;
+    int texH = gh * MINIMAP_TILE_PX;
+    Image img = GenImageColor(texW, texH, BLANK);
     if (img.data == nullptr)
-    {
-        TraceLog(LOG_WARNING, "MINIMAP DBG: GenImageColor failed (%dx%d)", gw, gh);
         return;
+
+    Color* dstPixels = (Color*)img.data;
+
+    // ── Phase 1: Pre-sample unique GIDs ──
+    // Kumpulin GID unik dari SEMUA layer, lalu sample TILE_PX×TILE_PX block-nya
+    std::unordered_map<int, std::vector<Color>> tileSampleCache;
+    std::unordered_map<std::string, Image> loadedImages;
+    {
+        std::unordered_set<int> uniqueGids;
+        for (int l = 0; l < tilesonMap->layerCount; l++)
+        {
+            for (int i = 0; i < mapW * mapH; i++)
+            {
+                int gid = tilesonMap->tiles[l][i];
+                if (gid > 0)
+                    uniqueGids.insert(gid);
+            }
+        }
+
+        for (int gid : uniqueGids)
+        {
+            const TilesetInfo* ts = nullptr;
+            for (const auto& group : tilesonMap->tilesets)
+            {
+                for (const auto& t : group)
+                {
+                    if (gid >= t.firstgid && gid <= t.lastgid)
+                    { ts = &t; break; }
+                }
+                if (ts) break;
+            }
+            if (!ts) continue;
+
+            // Load tileset image (cached per file path)
+            Image tsImg = {0};
+            auto it = loadedImages.find(ts->imagePath);
+            if (it != loadedImages.end())
+                tsImg = it->second;
+            else
+            {
+                tsImg = LoadImage(ts->imagePath.c_str());
+                if (tsImg.data == nullptr) continue;
+                loadedImages[ts->imagePath] = tsImg;
+            }
+
+            // Posisi tile di spritesheet
+            int adjustedId = gid - ts->firstgid;
+            int imgX = (adjustedId % ts->cols) * (FRAME_SIZE + ts->spacing);
+            int imgY = (adjustedId / ts->cols) * (FRAME_SIZE + ts->spacing);
+            if (imgX + FRAME_SIZE > tsImg.width || imgY + FRAME_SIZE > tsImg.height)
+                continue;
+
+            // Sample TILE_PX×TILE_PX block (nearest-neighbor subsample)
+            std::vector<Color> block(MINIMAP_TILE_PX * MINIMAP_TILE_PX);
+            Color* srcPx = (Color*)tsImg.data;
+            for (int py = 0; py < MINIMAP_TILE_PX; py++)
+            {
+                for (int px = 0; px < MINIMAP_TILE_PX; px++)
+                {
+                    int sx = imgX + (px * FRAME_SIZE) / MINIMAP_TILE_PX;
+                    int sy = imgY + (py * FRAME_SIZE) / MINIMAP_TILE_PX;
+                    block[py * MINIMAP_TILE_PX + px] = srcPx[sy * tsImg.width + sx];
+                }
+            }
+            tileSampleCache[gid] = std::move(block);
+        }
+
+        for (auto& [path, tsImg] : loadedImages)
+        {
+            if (tsImg.data != nullptr)
+                UnloadImage(tsImg);
+        }
+        loadedImages.clear();
     }
 
-    Color* pixels = (Color*)img.data;
+    // ── Phase 2: Composite per-pixel, bottom-up ──
+    // Tiap pixel: layer bawah diisi dulu, layer atas overwrite kalo alpha-nya solid
+    const int ALPHA_THRESHOLD = 128;
 
     for (int ty = 0; ty < gh; ty++)
     {
         for (int tx = 0; tx < gw; tx++)
         {
-            int idx  = ty * gw + tx;
-            int gid  = tilesonMap->tiles[0][ty * mapW + tx];
-            pixels[idx] = MapGidToColor(gid);
-            if (gid > 0) nonZeroGids++;
-
-            Rectangle tileRect = {(float)(tx * FRAME_SIZE), (float)(ty * FRAME_SIZE),
-                                  (float)FRAME_SIZE, (float)FRAME_SIZE};
-            for (const auto& obs : gCollisionCache.rects)
+            int cellGids[32];
+            int activeLayers = 0;
+            for (int l = 0; l < tilesonMap->layerCount; l++)
             {
-                if (CheckCollisionRecs(tileRect, obs))
+                int gid = tilesonMap->tiles[l][ty * mapW + tx];
+                cellGids[l] = gid;
+                if (gid > 0) activeLayers++;
+            }
+
+            // Kalo cuma 1 layer aktif — langsung blit (fast path)
+            if (activeLayers == 1)
+            {
+                int topGid = 0;
+                for (int l = tilesonMap->layerCount - 1; l >= 0; l--)
                 {
-                    pixels[idx] = {255, 0, 0, 255};
-                    break;
+                    if (cellGids[l] > 0) { topGid = cellGids[l]; break; }
+                }
+
+                auto it = tileSampleCache.find(topGid);
+                if (it == tileSampleCache.end()) continue;
+
+                const auto& block = it->second;
+                for (int py = 0; py < MINIMAP_TILE_PX; py++)
+                {
+                    for (int px = 0; px < MINIMAP_TILE_PX; px++)
+                    {
+                        int dstIdx = (ty * MINIMAP_TILE_PX + py) * texW
+                                     + (tx * MINIMAP_TILE_PX + px);
+                        dstPixels[dstIdx] = block[py * MINIMAP_TILE_PX + px];
+                    }
+                }
+                continue;
+            }
+
+            // Kalo multi-layer — composite per-pixel bottom-up
+            for (int py = 0; py < MINIMAP_TILE_PX; py++)
+            {
+                for (int px = 0; px < MINIMAP_TILE_PX; px++)
+                {
+                    int dstIdx = (ty * MINIMAP_TILE_PX + py) * texW
+                                 + (tx * MINIMAP_TILE_PX + px);
+                    Color finalColor = {0, 0, 0, 0};
+
+                    // Bottom → top: layer atas overwrite kalo alpha >= threshold
+                    for (int l = 0; l < tilesonMap->layerCount; l++)
+                    {
+                        int gid = cellGids[l];
+                        if (gid <= 0) continue;
+
+                        auto it = tileSampleCache.find(gid);
+                        if (it == tileSampleCache.end()) continue;
+
+                        Color c = it->second[py * MINIMAP_TILE_PX + px];
+                        if (c.a >= ALPHA_THRESHOLD)
+                            finalColor = c;
+                    }
+
+                    dstPixels[dstIdx] = finalColor;
                 }
             }
         }
@@ -104,12 +202,9 @@ void MinimapScreen::BuildGridTexture()
     gridTexture = LoadTextureFromImage(img);
     UnloadImage(img);
 
-    TraceLog(LOG_INFO, "MINIMAP DBG: BuildGridTexture gw=%d gh=%d mapW=%d mapH=%d layers=%d | nonZeroGids=%d/%d | gridTexID=%d",
-             gw, gh, mapW, mapH, tilesonMap->layerCount, nonZeroGids, totalCells, gridTexture.id);
-
     if (gridTexture.id > 0)
     {
-        SetTextureFilter(gridTexture, TEXTURE_FILTER_BILINEAR);
+        SetTextureFilter(gridTexture, TEXTURE_FILTER_POINT);
         SetTextureWrap(gridTexture, TEXTURE_WRAP_CLAMP);
     }
 }
@@ -205,7 +300,9 @@ MinimapScreen::MinimapScreen()
     , dragStart{0, 0}
 {
     gridTexture = {0};
-    fogRT  = {0};
+    fogRT = {0};
+    bgArtwork  = {0};
+    followPlayer = true;
 }
 
 MinimapScreen::~MinimapScreen()
@@ -227,21 +324,49 @@ void MinimapScreen::Init()
     if (w <= 0 || h <= 0)
         return;
 
-    fogRT  = LoadRenderTexture(w, h);
+    // Fog render texture: full resolution (1 tile = MINIMAP_TILE_PX pixel)
+    fogRT = LoadRenderTexture(w * MINIMAP_TILE_PX, h * MINIMAP_TILE_PX);
     if (fogRT.id <= 0)
     {
-        TraceLog(LOG_WARNING, "MINIMAP DBG: Init fogRT failed (%dx%d)", w, h);
+        TraceLog(LOG_WARNING, "MINIMAP: Init fogRT failed (%dx%d)", w * MINIMAP_TILE_PX, h * MINIMAP_TILE_PX);
         return;
     }
+    TraceLog(LOG_INFO, "MINIMAP: Init fogRT w=%d h=%d id=%d", w * MINIMAP_TILE_PX, h * MINIMAP_TILE_PX, fogRT.id);
 
-    TraceLog(LOG_INFO, "MINIMAP DBG: Init w=%d h=%d fogRTID=%d", w, h, fogRT.id);
-    SetTextureFilter(fogRT.texture, TEXTURE_FILTER_BILINEAR);
-    SetTextureWrap(fogRT.texture, TEXTURE_WRAP_CLAMP);
+    // Load background artwork
+    if (bgArtwork.id <= 0)
+    {
+        bgArtwork = LoadTexture("assets/textures/minimap/mapBG.png");
+        if (bgArtwork.id > 0)
+            TraceLog(LOG_INFO, "MINIMAP: Loaded mapBG.png (%dx%d)", bgArtwork.width, bgArtwork.height);
+        else
+            TraceLog(LOG_WARNING, "MINIMAP: mapBG.png not found");
+    }
+
+    // Load fog render shader (sekali aja, reuse antar map)
+    if (fogRenderShader.id == 0)
+    {
+        fogRenderShader = LoadShader(0, "assets/shaders/fog_render.fs");
+        if (fogRenderShader.id > 0)
+        {
+            fogCenterLoc = GetShaderLocation(fogRenderShader, "circleCenter");
+            fogRadiusLoc = GetShaderLocation(fogRenderShader, "circleRadius");
+            TraceLog(LOG_INFO, "MINIMAP: fog_render.fs loaded (centerLoc=%d radiusLoc=%d)",
+                     fogCenterLoc, fogRadiusLoc);
+        }
+        else
+        {
+            TraceLog(LOG_WARNING, "MINIMAP: fog_render.fs failed to load — fog disabled");
+            fogCenterLoc = -1;
+            fogRadiusLoc = -1;
+        }
+    }
 
     CalculateLayout();
     BuildGridTexture();
 
     initialized = true;
+    UpdateView();
 }
 
 void MinimapScreen::Shutdown()
@@ -250,9 +375,19 @@ void MinimapScreen::Shutdown()
         UnloadTexture(gridTexture);
     if (fogRT.id > 0)
         UnloadRenderTexture(fogRT);
+    if (bgArtwork.id > 0)
+        UnloadTexture(bgArtwork);
+    if (fogRenderShader.id > 0)
+    {
+        UnloadShader(fogRenderShader);
+        fogRenderShader = {0};
+    }
 
     gridTexture = {0};
-    fogRT  = {0};
+    fogRT = {0};
+    bgArtwork   = {0};
+    fogCenterLoc = -1;
+    fogRadiusLoc = -1;
     initialized = false;
     active = false;
 }
@@ -269,6 +404,7 @@ void MinimapScreen::Show()
         return;
 
     active = true;
+    UpdateView();
 }
 
 void MinimapScreen::Hide()
@@ -312,6 +448,9 @@ void MinimapScreen::RenderFogLayer()
     if (w <= 0 || h <= 0 || fogRT.id <= 0)
         return;
 
+    Color fogColor = {FOG_COLOR_BEIGE};
+    int tilePx = MINIMAP_TILE_PX;
+
     BeginTextureMode(fogRT);
     ClearBackground(BLANK);
 
@@ -320,12 +459,14 @@ void MinimapScreen::RenderFogLayer()
         for (int x = 0; x < w; x++)
         {
             FogState state = (FogState)g_Minimap.fog[y * w + x];
-
-            if (state == FogState::UNEXPLORED)
-                DrawRectangle(x, y, 1, 1, {20, 20, 20, 255});
-            else if (state == FogState::EXPLORED)
-                DrawRectangle(x, y, 1, 1, Fade(BLACK, MINIMAP_FOG_EXPLORED_ALPHA));
-            // VISIBLE: BLANK (transparan)
+            Color c;
+            switch (state)
+            {
+                case FogState::UNEXPLORED: c = fogColor; break;
+                case FogState::VISIBLE:    c = Fade(fogColor, 0.4f); break;
+                case FogState::EXPLORED:   c = Fade(fogColor, 0.55f); break;
+            }
+            DrawRectangle(x * tilePx, y * tilePx, tilePx, tilePx, c);
         }
     }
 
@@ -336,15 +477,39 @@ void MinimapScreen::DrawFogLayer() const
 {
     if (fogRT.id <= 0) return;
 
+    int tilePx = MINIMAP_TILE_PX;
+    int w = g_Minimap.gridWidth;
+    int h = g_Minimap.gridHeight;
+
+    if (fogRenderShader.id > 0)
+    {
+        Vector2 pc = PlayerInstance.GetCenter();
+        float fogH = (float)h * tilePx;
+        // Circle center dalam fogRT pixel coords (Y-flip buat RenderTexture2D)
+        Vector2 center = {
+            pc.x / (float)FRAME_SIZE * tilePx,
+            fogH - (pc.y / (float)FRAME_SIZE * tilePx)
+        };
+        float radius = (float)MINIMAP_REVEAL_RADIUS * tilePx;
+
+        SetShaderValue(fogRenderShader, fogCenterLoc, &center, SHADER_UNIFORM_VEC2);
+        SetShaderValue(fogRenderShader, fogRadiusLoc, &radius, SHADER_UNIFORM_FLOAT);
+        BeginShaderMode(fogRenderShader);
+    }
+
+    // Source: fogRT.texture — RenderTexture2D, Y-flip via negative height
     Rectangle src = {0, 0,
-                     (float)g_Minimap.gridWidth,
-                     -(float)g_Minimap.gridHeight};  // flip Y
+                     (float)w * tilePx,
+                     (float)-h * tilePx};
     Rectangle dst = {viewRect.x + panOffset.x,
                      viewRect.y + panOffset.y,
-                     (float)g_Minimap.gridWidth  * MINIMAP_PANEL_SCALE,
-                     (float)g_Minimap.gridHeight * MINIMAP_PANEL_SCALE};
+                     (float)w * MINIMAP_PANEL_SCALE,
+                     (float)h * MINIMAP_PANEL_SCALE};
 
     DrawTexturePro(fogRT.texture, src, dst, {0, 0}, 0.0f, WHITE);
+
+    if (fogRenderShader.id > 0)
+        EndShaderMode();
 }
 
 /*==============================================================================
@@ -353,19 +518,17 @@ void MinimapScreen::DrawFogLayer() const
 
 void MinimapScreen::DrawPlayerMarker() const
 {
-    Vector2 playerPos = PlayerInstance.GetPosition();
-    int tileSize = FRAME_SIZE;
+    Vector2 playerCenter = PlayerInstance.GetCenter();
 
-    int gridX = ((int)playerPos.x / tileSize) / MINIMAP_TILE_TO_PX;
-    int gridY = ((int)playerPos.y / tileSize) / MINIMAP_TILE_TO_PX;
+    // Posisi marker kontinu (sama kek UpdateView) biar gak jitter
+    float markX = playerCenter.x / (float)FRAME_SIZE * MINIMAP_PANEL_SCALE;
+    float markY = playerCenter.y / (float)FRAME_SIZE * MINIMAP_PANEL_SCALE;
 
-    float sx = viewRect.x + panOffset.x
-               + (float)gridX * MINIMAP_PANEL_SCALE + MINIMAP_PANEL_SCALE / 2.0f;
-    float sy = viewRect.y + panOffset.y
-               + (float)gridY * MINIMAP_PANEL_SCALE + MINIMAP_PANEL_SCALE / 2.0f;
+    float sx = viewRect.x + panOffset.x + markX;
+    float sy = viewRect.y + panOffset.y + markY;
 
-    // Marker radius scaling proporsional sama PANEL_SCALE
-    float innerR = fmaxf(MINIMAP_PANEL_SCALE * 1.0f, 4.0f);
+    // Marker radius — pakai konstanta independen
+    float innerR = MINIMAP_MARKER_RADIUS;
     float outerR = innerR * 1.5f;
     DrawCircle((int)sx, (int)sy, innerR, {100, 255, 100, 255});
     DrawCircle((int)sx, (int)sy, outerR, {100, 255, 100, 80});  // outer glow
@@ -377,20 +540,24 @@ void MinimapScreen::DrawPlayerMarker() const
 
 void MinimapScreen::UpdateView()
 {
-    if (!active || !initialized)
+    if (!initialized)
         return;
 
     float scaledW = (float)g_Minimap.gridWidth  * MINIMAP_PANEL_SCALE;
     float scaledH = (float)g_Minimap.gridHeight * MINIMAP_PANEL_SCALE;
 
     Vector2 playerPos = PlayerInstance.GetPosition();
-    int playerGridX = ((int)playerPos.x / FRAME_SIZE) / MINIMAP_TILE_TO_PX;
-    int playerGridY = ((int)playerPos.y / FRAME_SIZE) / MINIMAP_TILE_TO_PX;
+
+    // Continuous (sub-tile) player position in minimap screen-pixel space
+    // — sama kaya main camera follow: langsung pake pixel position, bukan tile grid
+    float playerCenterX = (playerPos.x + FRAME_SIZE / 2.0f) / (float)FRAME_SIZE
+                          * MINIMAP_PANEL_SCALE;
+    float playerCenterY = (playerPos.y + FRAME_SIZE / 2.0f) / (float)FRAME_SIZE
+                          * MINIMAP_PANEL_SCALE;
 
     if (scaledW > viewRect.width)
     {
-        panOffset.x = (viewRect.width / 2.0f)
-            - ((float)playerGridX * MINIMAP_PANEL_SCALE) - (MINIMAP_PANEL_SCALE / 2.0f);
+        panOffset.x = (viewRect.width / 2.0f) - playerCenterX;
         panOffset.x = std::clamp(panOffset.x, viewRect.width - scaledW, 0.0f);
     }
     else
@@ -400,8 +567,7 @@ void MinimapScreen::UpdateView()
 
     if (scaledH > viewRect.height)
     {
-        panOffset.y = (viewRect.height / 2.0f)
-            - ((float)playerGridY * MINIMAP_PANEL_SCALE) - (MINIMAP_PANEL_SCALE / 2.0f);
+        panOffset.y = (viewRect.height / 2.0f) - playerCenterY;
         panOffset.y = std::clamp(panOffset.y, viewRect.height - scaledH, 0.0f);
     }
     else
@@ -419,6 +585,7 @@ void MinimapScreen::HandlePan(Vector2 mousePosition, bool mouseClicked)
     if (mouseClicked && CheckCollisionPointRec(mousePosition, viewRect))
     {
         isDragging = true;
+        followPlayer = false;
         dragStart = mousePosition;
         return;
     }
@@ -466,6 +633,62 @@ void MinimapScreen::HandlePan(Vector2 mousePosition, bool mouseClicked)
 }
 
 /*==============================================================================
+ * MinimapScreen - Legend
+ *==============================================================================*/
+
+void MinimapScreen::DrawLegend() const
+{
+    Font font = GetOrLoad(FontId::MINIMAP_UI);
+
+    // 1. Close hint — centered below panel
+    {
+        const char *closeKey = keybindManager.GetKeyDisplayName(TOGGLE_MAP);
+        char closeBuf[64];
+        snprintf(closeBuf, sizeof(closeBuf), "Press '%s' to Close", closeKey);
+        float drawW = (float)bgArtwork.width  * 1.0f;
+        float drawH = (float)bgArtwork.height * 1.0f;
+        float ax = ((float)GameScreenWidth  - drawW) / 2.0f;
+        float ay = ((float)GameScreenHeight - drawH) / 2.0f;
+
+        int closeSz = 24;
+        Vector2 textSz = MeasureTextEx(font, closeBuf, (float)closeSz, 0);
+        float tx = ((float)GameScreenWidth - textSz.x) / 2.0f;
+        float ty = ay + drawH - 50.0f;  
+        DrawTextEx(font, closeBuf, {tx, ty}, (float)closeSz, 0, WHITE);
+    }
+
+    // 2. Drag / Center hints — bottom-right corner (kaya DrawMergeSplitLegend)
+    {
+        int hintSz = 18;
+        const char *dragHint  = "[Left-Click Drag] Pan";
+        const char *centerHint = "[Right-Click] Center to Player";
+
+        Vector2 dragSz   = MeasureTextEx(font, dragHint, (float)hintSz, 0);
+        Vector2 centerSz = MeasureTextEx(font, centerHint, (float)hintSz, 0);
+
+        const float rightPad = 12.0f;
+        float rightEdge = (float)GameScreenWidth - rightPad;
+        float baseY = (float)GameScreenHeight - 30.0f;
+
+        float dragX   = rightEdge - dragSz.x;
+        float dragY   = baseY - dragSz.y;
+        float centerX = rightEdge - centerSz.x;
+        float centerY = dragY - 4.0f - centerSz.y;
+
+        float legendY = centerY;
+        float legendH = (dragY + dragSz.y) - centerY;
+        float legendW = (dragSz.x > centerSz.x) ? dragSz.x : centerSz.x;
+
+        DrawRectangleRounded(
+            {rightEdge - legendW - 8, legendY - 4, legendW + 16, legendH + 8},
+            0.4f, 8, ColorAlpha(BLACK, 0.8f));
+
+        DrawTextEx(font, centerHint, {centerX, centerY}, (float)hintSz, 0, WHITE);
+        DrawTextEx(font, dragHint,   {dragX, dragY},     (float)hintSz, 0, WHITE);
+    }
+}
+
+/*==============================================================================
  * MinimapScreen - Update / Draw
  *==============================================================================*/
 
@@ -476,12 +699,21 @@ void MinimapScreen::Update(GameState* state, Vector2 mousePosition, bool mouseCl
 
     (void)state;
 
-    // Kalo user lagi drag, jangan auto-follow — biar manual pan dulu
-    if (!isDragging)
+    // Auto-follow player (dijeda pas manual drag)
+    if (followPlayer && !isDragging)
         UpdateView();
 
+    if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT))
+    {
+        followPlayer = true;
+        UpdateView();
+    }
+
     HandlePan(mousePosition, mouseClicked);
-    UpdateMinimapFog(PlayerInstance.GetPosition().x, PlayerInstance.GetPosition().y, FRAME_SIZE);
+    UpdateMinimapFog((int)PlayerInstance.GetCenter().x, (int)PlayerInstance.GetCenter().y, FRAME_SIZE);
+
+    // Render fog ke fogRT — di Update (bukan Draw) biar gak corrupt state render
+    RenderFogLayer();
 }
 
 void MinimapScreen::Draw(Vector2 mousePosition)
@@ -491,31 +723,43 @@ void MinimapScreen::Draw(Vector2 mousePosition)
 
     (void)mousePosition;
 
+    // Full screen black tint
+    DrawRectangle(0, 0, GameScreenWidth, GameScreenHeight, ColorAlpha(BLACK, 0.7f));
 
-    // Background panel
-    DrawRectangleRec(panelRect, {25, 25, 30, 220});
-    DrawRectangleLinesEx(panelRect, 1, {80, 78, 75, 255});
-
-    // FOG DISABLED — debugging
-    // RenderFogLayer();
+    // Background artwork (decorative, behind panel)
+    if (bgArtwork.id > 0)
+    {
+        float artScale = 1.1f;
+        float drawW = (float)bgArtwork.width  * artScale;
+        float drawH = (float)bgArtwork.height * artScale;
+        float ax = ((float)GameScreenWidth  - drawW) / 2.0f;
+        float ay = ((float)GameScreenHeight - drawH) / 2.0f;
+        DrawTexturePro(bgArtwork,
+                       {0, 0, (float)bgArtwork.width, (float)bgArtwork.height},
+                       {ax, ay, drawW, drawH},
+                       {0, 0}, 0.0f, WHITE);
+    }
 
     BeginScissorMode((int)viewRect.x, (int)viewRect.y,
                      (int)viewRect.width, (int)viewRect.height);
 
     // Grid texture (regular Texture2D — positive height, bukan render texture)
     Rectangle srcGrid = {0, 0,
-                         (float)g_Minimap.gridWidth,
-                         (float)g_Minimap.gridHeight};
+                         (float)(g_Minimap.gridWidth  * MINIMAP_TILE_PX),
+                         (float)(g_Minimap.gridHeight * MINIMAP_TILE_PX)};
     Rectangle dst = {viewRect.x + panOffset.x,
                      viewRect.y + panOffset.y,
                      (float)g_Minimap.gridWidth  * MINIMAP_PANEL_SCALE,
                      (float)g_Minimap.gridHeight * MINIMAP_PANEL_SCALE};
 
     DrawTexturePro(gridTexture, srcGrid, dst, {0, 0}, 0.0f, WHITE);
-    // DrawFogLayer();
+    DrawFogLayer();
     DrawPlayerMarker();
 
     EndScissorMode();
+
+    // Legend
+    DrawLegend();
 }
 
 /*==============================================================================
@@ -524,11 +768,6 @@ void MinimapScreen::Draw(Vector2 mousePosition)
 
 void MinimapSystem::InitWithMap()
 {
-    // Simpan fog current map ke cache sebelum ganti
-    const char* oldPath = GetCurrentMapPath();
-    if (oldPath && oldPath[0] != '\0')
-        SaveMinimapFogToCache(oldPath);
-
     // Shutdown jika sebelumnya sudah initialized
     g_MinimapScreen.Shutdown();
 
@@ -549,13 +788,17 @@ void MinimapSystem::InitWithMap()
     g_Minimap.gridHeight = std::max(1, mapH / MINIMAP_TILE_TO_PX);
     g_Minimap.fog.resize(g_Minimap.gridWidth * g_Minimap.gridHeight,
                          (unsigned char)FogState::UNEXPLORED);
+    ResetMinimapFog();
 
-    // Restore fog untuk map baru
-    const char* newPath = GetCurrentMapPath();
-    if (newPath && newPath[0] != '\0')
-        RestoreMinimapFogFromCache(newPath);
-    else
-        ResetMinimapFog();
+    // Restore fog dari cache kalo ada data untuk map ini
+    // sizeof dicek biar aman kalo dimensi map berubah antar session
+    const char* mapPath = GetCurrentMapPath();
+    if (mapPath && mapPath[0] != '\0')
+    {
+        auto it = g_Minimap.fogCache.find(std::string(mapPath));
+        if (it != g_Minimap.fogCache.end() && it->second.size() == g_Minimap.fog.size())
+            g_Minimap.fog = it->second;
+    }
 
     g_MinimapScreen.Init();
 }
@@ -571,7 +814,7 @@ void MinimapSystem::Shutdown()
 void MinimapSystem::Update()
 {
     // Update fog tiap frame berdasarkan posisi player
-    UpdateMinimapFog(PlayerInstance.GetPosition().x, PlayerInstance.GetPosition().y, FRAME_SIZE);
+    UpdateMinimapFog((int)PlayerInstance.GetCenter().x, (int)PlayerInstance.GetCenter().y, FRAME_SIZE);
 
     // Toggle minimap via M key — skip kalo inventory lagi buka
     if (InputInstance.IsToggleMap() && !InputInstance.IsInventoryOpen())

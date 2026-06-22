@@ -1,0 +1,21 @@
+docs/worldgeneration.md
+  s_0ee2af2fc9ffe9::t_0964cd9746a543 1
+docs/save-system.md
+  s_0ee2af2fc9ffe9::t_0964cd9746a543 1,12-13,32-33
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.9",
+  "base_commit_sha": "9980a7f47258107b3f06e59a672fa5dceaad6504",
+  "prompts": {},
+  "sessions": {
+    "s_0ee2af2fc9ffe9": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_12174ed8dffeQT3WRIoy8BfpB3",
+        "model": "unknown"
+      },
+      "human_author": "NiskoDT <65821447+NiskoDT@users.noreply.github.com>"
+    }
+  }
+}

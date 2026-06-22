@@ -19,7 +19,8 @@ Pasang alat-alat berikut untuk membangun proyek:
 | **Compiler (gcc)** | `scoop install gcc` atau `scoop install mingw-mstorsjo-llvm-ucrt` (Clang) | Xcode CLT (Apple Clang, otomatis terdeteksi CMake) atau `brew install gcc` sebagai opsi | `apt install gcc` |
 | **CMake** | `scoop install cmake` | `brew install cmake` | `apt install cmake` |
 | **Ninja** | `scoop install ninja` | `brew install ninja` | `apt install ninja-build` |
-| **ccache** | `scoop install ccache` | `brew install ccache` | `apt install ccache` |
+| **ccache** (opsional) | `scoop install ccache` | `brew install ccache` | `apt install ccache` |
+| **OpenGL / X11** | (disediakan Windows SDK / MinGW) | (disediakan Xcode CLT / macOS framework) | `apt install libgl1-mesa-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev` |
 | **FFmpeg** | (bundel melalui `setup.ps1`) | `brew install ffmpeg` | `apt install libavcodec-dev libavformat-dev libavutil-dev libswresample-dev libswscale-dev` |
 
 ### Pengaturan Pertama
@@ -39,7 +40,7 @@ Pasang alat-alat berikut untuk membangun proyek:
    bash setup.sh
    ```
 
-> **CATATAN**: Dukungan untuk sistem Unix (Linux/macOS) telah diuji pada Ubuntu, Debian, dan macOS. Skrip `setup.sh` telah disediakan dan `run-linux.sh` tersedia untuk menjalankan permainan.
+> **CATATAN**: Dukungan untuk sistem Unix (Linux/macOS) telah diuji pada Ubuntu, Debian, dan macOS. Kolom "Linux (apt)" menggunakan nama paket Debian/Ubuntu -- untuk distro lain (Fedora, Arch, openSUSE), cari nama paket setara dengan package manager masing-masing (dnf, pacman, zypper). Skrip `setup.sh` telah disediakan dan `run-linux.sh` tersedia untuk menjalankan permainan.
 
 ---
 

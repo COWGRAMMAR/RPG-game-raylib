@@ -282,12 +282,22 @@ bool WriteSaveFile(const std::string &path)
 
     root["map"] = mapJson;
 
-    // Atomic write: write to .tmp then rename
+    // Atomic write: dump tanpa hash → hitung CRC32 → inject hash → dump ulang
     std::string tmpPath = path + ".tmp";
     if (std::filesystem::exists(tmpPath))
         std::filesystem::remove(tmpPath);
+
+    std::string content = root.dump(4);
+    unsigned int crc = ComputeCRC32(
+        reinterpret_cast<unsigned char *>(content.data()),
+        static_cast<int>(content.size()));
+
+    json rootWithHash = root;
+    rootWithHash["hash"] = crc;
+    std::string finalContent = rootWithHash.dump(4);
+
     std::ofstream file(tmpPath);
-    file << root.dump(4);
+    file << finalContent;
     file.close();
 
     std::filesystem::rename(tmpPath, path);
@@ -313,6 +323,26 @@ bool ReadSaveFile(const std::string &path)
     {
         std::ifstream file(path);
         json root = json::parse(file);
+
+        // Verifikasi CRC32 hash kalo ada (backward-compat: save lama tanpa hash skip check)
+        auto hashIt = root.find("hash");
+        if (hashIt != root.end())
+        {
+            unsigned int storedHash = hashIt->get<unsigned int>();
+            root.erase(hashIt);
+
+            std::string content = root.dump(4);
+            unsigned int computedHash = ComputeCRC32(
+                reinterpret_cast<unsigned char *>(content.data()),
+                static_cast<int>(content.size()));
+
+            if (computedHash != storedHash)
+            {
+                TraceLog(LOG_WARNING, "Save file CRC32 mismatch (computed=%u stored=%u): %s",
+                         computedHash, storedHash, path.c_str());
+                return false;
+            }
+        }
 
         // Validate required fields exist
         if (!root.contains("version") || !root.contains("player") || !root.contains("map"))

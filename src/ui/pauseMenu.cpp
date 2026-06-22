@@ -44,7 +44,7 @@ static Popup savePopup("Game Saved!", "OK", 0.7F);
 static Popup saveErrorPopup("Failed to save game.", "OK", 0.7F);
 static Popup loadConfirmPopup("Load from save? Current progress will be lost.", "Load Save", "Cancel", 0.7f);
 static Popup noSavePopup("No save file found.", "OK", 0.7F);
-static Popup pauseCorruptPopup("Save file corrupted or unreadable.", "OK", 0.7f);
+static Popup pauseCorruptPopup("Save data is corrupted or incompatible.", "Yes, Delete", "No", 0.7f);
 static Popup returnConfirmPopup("Return to main menu?", "Continue", "Cancel", 0.7f);
 static Popup restartConfirmPopup("Restart Run?", "Restart", "Cancel", 0.7f);
 
@@ -560,7 +560,6 @@ void PauseMenu::HandleButtonClick(int buttonIndex, GameState *state)
         returnConfirmPopup.Show();
         break;
     case 6: // Exit Game
-        SaveGameState(state);
         WorldgenIO::CleanupOrphanedSlots();
         CloseWindow();
         break;
@@ -599,7 +598,15 @@ void PauseMenu::Update(GameState *state, Vector2 mousePosition, bool mouseClicke
         loadConfirmPopup.Update(mousePosition, mouseClicked);
         if (loadConfirmPopup.IsConfirmClicked())
         {
-            if (ReadSaveFile(GetSlotPath(g_ActiveSaveSlot, "manual")))
+        {
+            bool snapshotValid = SaveManager::HasManual(g_ActiveSaveSlot);
+            if (snapshotValid)
+            {
+                GameSnapshot snap = SaveManager::LoadManual(g_ActiveSaveSlot);
+                snapshotValid = (snap.version == GameSnapshot::SNAPSHOT_VERSION);
+            }
+
+            if (snapshotValid)
             {
                 loadConfirmPopup.Hide();
                 state->enteredLoading = false;
@@ -612,9 +619,10 @@ void PauseMenu::Update(GameState *state, Vector2 mousePosition, bool mouseClicke
             else
             {
                 loadConfirmPopup.Hide();
-                DeleteSaveFile(GetSlotPath(g_ActiveSaveSlot, "manual"));
+                pauseCorruptPopup.SetSubMessage("Data ini akan dihapus.");
                 pauseCorruptPopup.Show();
             }
+        }
         }
         return;
     }
@@ -628,6 +636,8 @@ void PauseMenu::Update(GameState *state, Vector2 mousePosition, bool mouseClicke
     if (pauseCorruptPopup.IsActive())
     {
         pauseCorruptPopup.Update(mousePosition, mouseClicked);
+        if (pauseCorruptPopup.IsConfirmClicked())
+            SaveManager::DeleteSlot(g_ActiveSaveSlot);
         return;
     }
 

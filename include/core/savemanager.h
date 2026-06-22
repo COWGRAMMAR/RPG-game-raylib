@@ -49,7 +49,12 @@
  * - Initial snapshot (restart cache replacement)
  */
 struct GameSnapshot {
-    static constexpr int SNAPSHOT_VERSION = 1;
+    /**
+     * @brief Save file format version.
+     * 1 = initial format
+     * 2 = added CRC32 integrity hash in "hash" field (via AtomicWrite)
+     */
+    static constexpr int SNAPSHOT_VERSION = 2;
 
     /*=== Player ===*/
     Vector2 playerPosition = {0, 0};

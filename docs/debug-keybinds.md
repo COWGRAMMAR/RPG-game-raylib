@@ -72,7 +72,7 @@ Kombinasi ini men toggle `isDebugMode` di `Debug::Toggle()` (baris 276). Ketiga 
 | Map bounds | GREEN (rectangle) | debugmode.cpp:548 |
 | Item hitboxes | PINK (outline + label) | debugmode.cpp:551-558 |
 
-Player hurtbox overlay (YELLOW) ditambahkan di PR #82 (akbarazy — enemy hitbox/hurtbox combat rework).
+Player hurtbox overlay (YELLOW) ditambahkan di PR #82 (akbarazy -- enemy hitbox/hurtbox combat rework).
 
 ### Sub-toggle (hanya berfungsi saat debug mode ON)
 

@@ -1,4 +1,4 @@
-# Sign System — Panduan UI Designer
+# Sign System -- Panduan UI Designer
 
 ## Cara Pasang Sign di Tiled
 
@@ -24,7 +24,7 @@ Selamat datang di dungeon.
 Waspada dengan monster di depan!
 ```
 
-Kalo gamau pake `|`, bisa pake Enter langsung di Tiled (multiline) — nanti otomatis split per baris.
+Kalo gamau pake `|`, bisa pake Enter langsung di Tiled (multiline) -- nanti otomatis split per baris.
 
 ---
 
@@ -33,10 +33,10 @@ Kalo gamau pake `|`, bisa pake Enter langsung di Tiled (multiline) — nanti oto
 1. Player arahkan mouse ke sign (raycast) → muncul prompt interaksi
 2. Player tekan **E** → dialog terbuka
 3. Layar game nge-freeze total (kayak pause), muncul overlay:
-   - **Screen dim** — semi-transparent black
-   - **Dialog box** — rounded rectangle di bagian bawah layar
-   - **Text** — baris-baris dialog
-   - **Hint** — "[Klik kiri] untuk tutup"
+   - **Screen dim** -- semi-transparent black
+   - **Dialog box** -- rounded rectangle di bagian bawah layar
+   - **Text** -- baris-baris dialog
+   - **Hint** -- "[Klik kiri] untuk tutup"
 4. Player klik **kiri di mana aja** → dialog tutup, game lanjut
 
 ---
@@ -45,12 +45,12 @@ Kalo gamau pake `|`, bisa pake Enter langsung di Tiled (multiline) — nanti oto
 
 ### 1. Screen Dim
 
-Sekarang: `ColorAlpha(BLACK, 0.4f)` — 40% hitam full screen
+Sekarang: `ColorAlpha(BLACK, 0.4f)` -- 40% hitam full screen
 
 | Bisa diubah | Keterangan |
 | --- | --- |
 | Warna | Ganti dari hitam ke warna lain |
-| Intensitas | 0.0 — 1.0 |
+| Intensitas | 0.0 -- 1.0 |
 | Efek | Bisa pake blur atau gradient |
 
 ### 2. Dialog Box
@@ -103,7 +103,7 @@ signManager.GetActiveDialogLines()      → const std::vector<std::string>&
 signManager.DismissDialog()
 ```
 
-**Catatan:** Dismiss dialog udah di-handle otomatis di `main.cpp`. UI designer gak perlu mikirin logika dismiss — cukup render aja pas `IsDialogActive() == true`.
+**Catatan:** Dismiss dialog udah di-handle otomatis di `main.cpp`. UI designer gak perlu mikirin logika dismiss -- cukup render aja pas `IsDialogActive() == true`.
 
 ---
 

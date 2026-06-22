@@ -6,7 +6,7 @@
 
 ## 1. First-Time Setup
 
-> Langkah satu kali — selesaikan ini sebelum build pertama.
+> Langkah satu kali -- selesaikan ini sebelum build pertama.
 
 ### Alat yang Diperlukan
 

@@ -52,14 +52,21 @@ saves/
     └── autosave/
 ```
 
-### Atomic Writes
+### Atomic Writes + CRC32 Integrity
 
-Semua write menggunakan file sementara (`.tmp`) + rename:
-1. Write ke `snapshot.json.tmp`
-2. Flush + close
-3. Rename `snapshot.json.tmp` → `snapshot.json`
+Semua write menggunakan file sementara (`.tmp`) + rename + CRC32 hash injection:
 
-Ini mencegah file korup jika crash di tengah write. `CleanupTmpFiles()` tersedia untuk membersihkan file `.tmp` orphan.
+1. Dump JSON tanpa hash → hitung `ComputeCRC32()` dari string dump
+2. Inject hash sebagai field `"hash"` di JSON → dump ulang (2 pass untuk deterministic hash)
+3. Write ke `snapshot.json.tmp`
+4. Flush + close
+5. Rename `snapshot.json.tmp` → `snapshot.json`
+
+Ini mencegah file korup jika crash di tengah write, **dan** mendeteksi korupsi data via CRC32 mismatch.
+
+**Baca**: `ReadSnapshot()` mengekstrak hash, menghapusnya dari JSON, re-hitung CRC32 dari sisa JSON, dan verifikasi cocok. Backward-compat: save lama tanpa field `hash` skip check (tidak diverifikasi).
+
+`CleanupTmpFiles()` tersedia untuk membersihkan file `.tmp` orphan.
 
 ---
 
@@ -72,7 +79,7 @@ Struct `GameSnapshot` merepresentasikan **seluruh state runtime game** pada satu
 | Field | Tipe | Deskripsi |
 |---|---|---|
 | **Version** | | |
-| `version` | int | Default `-1`, diset ke `SNAPSHOT_VERSION=1` hanya saat capture/load berhasil |
+| `version` | int | Default `-1`, diset ke `SNAPSHOT_VERSION=2` hanya saat capture/load berhasil |
 | **Player** | | |
 | `playerPosition` | Vector2 | Posisi player di world |
 | `playerHealth` | float | HP saat ini |
@@ -113,8 +120,9 @@ Struct `GameSnapshot` merepresentasikan **seluruh state runtime game** pada satu
 
 ### Snapshot Versioning
 
-- **`SNAPSHOT_VERSION = 1`** — format saat ini
+- **`SNAPSHOT_VERSION = 2`** — format saat ini (v1 = initial, v2 = added CRC32 integrity hash)
 - Validasi ketat: file dengan version mismatch langsung return `GameSnapshot()` kosong
+- Setiap file JSON berisi field `"hash"` (unsigned int CRC32) yang diverifikasi saat `ReadSnapshot()`
 
 ---
 
@@ -128,6 +136,11 @@ static GameSnapshot CaptureSnapshot();
 
 // Capture initial snapshot (setelah spawn pertama, untuk restart)
 static bool CaptureInitialSnapshot(int slot);
+
+// Raw snapshot write/read (atomic write + CRC32 hash)
+static bool WriteSnapshot(const GameSnapshot& snap, const std::string& path);
+static GameSnapshot ReadSnapshot(const std::string& path);
+static bool HasSnapshot(const std::string& path);
 
 // Manual save/load (source of truth untuk full save/load)
 static bool SaveManual(const GameSnapshot& snap, int slot);
@@ -491,6 +504,16 @@ Restore: `ApplyPreSpawn` memanggil `SetConsumedPositions()` pada masing-masing m
 | loading_screen.cpp:332 | HandleFastPath new game |
 | loading_screen.cpp:444 | HandleInitialLoad new game |
 
+### Corruption Popup (SaveLoadScreen)
+
+Saat load slot, `SaveLoadScreen` memeriksa validitas snapshot (`slot->validSnapshot` dihitung dari `SaveManager::ReadSnapshot()`). Jika CRC32 mismatch, version mismatch, atau parse error → `m_corruptionPopup` ditampilkan:
+
+```cpp
+m_corruptionPopup("Save data in this slot is corrupted or incompatible.\nPlease choose another slot.", "OK", 0.7f)
+```
+
+Popup hanya punya tombol OK — user harus memilih slot lain. File: `src/ui/saveLoadScreen.cpp:176-191`.
+
 ---
 
 ## 10. Bug History (Save System)
@@ -568,3 +591,12 @@ Commit `fc58754`
 - Functions: `ClearWorkspaceManual()`, `ClearWorkspaceAutosave()`, `CopyWorkspaceTo()`
 - MirrorToWorkspace: ClearWorkspaceManual + Autosave + Checkpoints → copy dari source
 - Crate/bomb respawn fix: ApplyPreSpawn di worldgen branch
+
+### CRC32 Hash Integrity (2026-06-22 — PR #83 hashed-saves)
+- `SNAPSHOT_VERSION` 1 → 2
+- `AtomicWrite()`: 2-pass dump — compute CRC32 dari JSON tanpa hash, inject `"hash"` field, dump ulang
+- `ReadSnapshot()`: ekstrak hash, erase, re-compute CRC32, verifikasi cocok (return kosong jika mismatch)
+- Backward-compat: save lama tanpa field `hash` skip CRC32 check (tetap di-load)
+- Method baru: `HasSnapshot(path)` — cek file exists + non-empty
+- `SaveLoadScreen`: corruption popup muncul jika `ReadSnapshot()` gagal (CRC32/version/parse error)
+- `CleanupOrphanedSlots()`: hapus old-format scan (`manual/manual.json`) — hanya new format (`GetManualPath(i) → snapshot.json`)

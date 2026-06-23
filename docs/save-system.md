@@ -103,6 +103,8 @@ Struct `GameSnapshot` merepresentasikan **seluruh state runtime game** pada satu
 | `bombConsumed` | unordered_set\<string\> | Posisi bomb yang sudah hancur (key `"x_y"`) |
 | `crateConsumed` | unordered_set\<string\> | Posisi crate yang sudah hancur (key `"x_y"`) |
 | `barrierMap` | unordered_map\<string, bool\> | `barrierMap[mapPath] = cleared?` |
+| **Fog (minimap)** | | |
+| `fogCache` | unordered_map\<string, vector\<uint8_t\>\> | Persistence fog of war: key=mapPath, value=row-major fog grid (0=hidden, 2=explored). Di-capture di `CaptureSnapshot()`, di-restore di `ApplyPostSpawn()`. |
 | **Dead Entities** | | |
 | `deadEntities` | set\<string\> | Entity UUID yang mati permanen |
 | **Map** | | |

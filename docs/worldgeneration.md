@@ -93,7 +93,20 @@ Loading screen mendeteksi `isSwitchingMap = false` dan `assetsLoaded = false`, m
 
 Jika save game ditemukan (`HasSavedState()` true), maka `LoadMap(savedMap)` dipanggil dan untuk worldgen saves akan memanggil `LoadWorldgenForSave()` untuk restore seeds + regenerate world.
 
-### 2b. Worldgen Stage Entry (door trigger)
+### 2b. Worldgen Stage Entry (door trigger) — Boss Stage
+
+Saat player mencapai stage terakhir (boss) dan menyelesaikannya:
+
+**`src/map/worldgenio.cpp:186-188`** — setelah boss dikalahkan:
+```cpp
+InputInstance.ResetMenuFlags();
+g_SeedManager.ResetRun();
+InitMainMenu(gState);        // <-- baru: re-init main menu state
+gState->currentScreen = MAIN_MENU;
+return;
+```
+
+`InitMainMenu(gState)` memastikan state main menu di-reset sebelum kembali — mencegah stale state dari sesi sebelumnya.
 
 Saat player memasuki door yang terhubung ke stage worldgen, fungsi `NextStage()` atau `PrevStage()` dipanggil:
 

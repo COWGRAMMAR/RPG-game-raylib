@@ -43,6 +43,29 @@ Satu-satunya fungsi Escape yang benar-benar hardcoded adalah di `keybindsTab.cpp
 
 Jika suatu saat ingin mengekspos PAUSE_MENU atau TOGGLE_FULLSCREEN ke UI, caranya dengan menambahkan index-nya ke array `sections[]` di `keybindsTab.cpp`.
 
+### Keybind Texture Cleanup (Main Merge)
+
+Keybind textures (`keybindReplace.png`, `keybindRead.png`, `scrollBar.png`) diubah dari function-local `static` menjadi file-static untuk memungkinkan unload eksplisit:
+
+```cpp
+// src/ui/keybindsTab.cpp
+static Texture2D g_ReplaceTex = {0};
+static Texture2D g_ListenTex = {0};
+static Texture2D g_ThumbTex = {0};
+
+void UnloadKeybindsTextures();  // Panggil saat shutdown game
+```
+
+Fungsi baru `UnloadKeybindsTextures()` me-unload ketiga texture tersebut. Dipanggil dari shutdown flow.
+
+### Input-Minimap Interaction (Main Merge)
+
+Dua perubahan di `input.cpp`:
+
+1. **Inventory toggle** diblokir saat minimap aktif: `if (Current.toggleInventory && !g_MinimapScreen.IsActive())`
+2. **Map toggle** diblokir saat inventory terbuka: `if (Current.toggleMap && !InventoryOpen)`
+3. **`ResetMenuFlags()`** sekarang juga memanggil `g_MinimapScreen.Hide()` untuk menutup minimap saat kembali ke menu.
+
 ## Debug Toggle -- Hardcoded, Bukan Action Enum
 
 Ini adalah bagian yang paling banyak berubah dari dokumen lama. Tidak ada action khusus debug di enum Action. Semua fungsi debug di-handle oleh `Debug::Toggle()` di `debugmode.cpp` dengan input yang hardcoded.

@@ -724,10 +724,11 @@ TileObject *BombManager::FindBomb(Vector2 hitPos, float threshold)
  * @param playerBounds Bounding box player
  * @param player Pointer ke player
  */
-void BombManager::HitByAttack(Rectangle attackHitbox, Rectangle playerBounds, Player *player,
+bool BombManager::HitByAttack(Rectangle attackHitbox, Rectangle playerBounds, Player *player,
                               const std::vector<Rectangle> &solidObstacles)
 {
     Vector2 playerCenter = {playerBounds.x + playerBounds.width / 2.0f, playerBounds.y + playerBounds.height / 2.0f};
+    bool anyHit = false;
 
     for (auto &bomb : bombs)
     {
@@ -747,7 +748,9 @@ void BombManager::HitByAttack(Rectangle attackHitbox, Rectangle playerBounds, Pl
         }
 
         Explode(bomb, playerBounds, player);
+        anyHit = true;
     }
+    return anyHit;
 }
 
 /**

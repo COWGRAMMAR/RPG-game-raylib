@@ -303,7 +303,7 @@ public:
      * @param playerBounds Bounding box player
      * @param player Pointer ke player
      */
-    void HitByAttack(Rectangle attackHitbox, Rectangle playerBounds, Player *player,
+    bool HitByAttack(Rectangle attackHitbox, Rectangle playerBounds, Player *player,
                      const std::vector<Rectangle> &solidObstacles = {});
 
     /**

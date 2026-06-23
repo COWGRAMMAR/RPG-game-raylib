@@ -12,7 +12,7 @@
         "damage": 5.0,
         "baseDetectionRange": 120.0,
         "chaseDetectionRange": 240.0,
-        "attackRange": 40.0,
+        "attackRange": 18.0,
         "healthRegenRate": 10.0,
         "healthRegenDelay": 2.0,
         "patrolRadius": 128.0,
@@ -22,6 +22,10 @@
       "hitbox": {
         "size": { "x": 16.0, "y": 12.0 },
         "offset": { "x": 8.0, "y": 14.0 }
+      },
+      "hurtbox": {
+        "size": { "x": 15.0, "y": 9.0 },
+        "offset": { "x": 9.0, "y": 20.0 }
       }
     },
     "skeleton": {
@@ -36,7 +40,7 @@
         "damage": 10.0,
         "baseDetectionRange": 120.0,
         "chaseDetectionRange": 240.0,
-        "attackRange": 40.0,
+        "attackRange": 21.0,
         "healthRegenRate": 10.0,
         "healthRegenDelay": 2.0,
         "patrolRadius": 128.0,
@@ -46,6 +50,10 @@
       "hitbox": {
         "size": { "x": 20.0, "y": 16.0 },
         "offset": { "x": 6.0, "y": 12.0 }
+      },
+      "hurtbox": {
+        "size": { "x": 22.0, "y": 26.0 },
+        "offset": { "x": 6.0, "y": 5.0 }
       }
     },
     "wolf": {
@@ -60,7 +68,7 @@
         "damage": 20.0,
         "baseDetectionRange": 120.0,
         "chaseDetectionRange": 240.0,
-        "attackRange": 40.0,
+        "attackRange": 18.0,
         "healthRegenRate": 10.0,
         "healthRegenDelay": 2.0,
         "patrolRadius": 128.0,
@@ -70,6 +78,10 @@
       "hitbox": {
         "size": { "x": 24.0, "y": 16.0 },
         "offset": { "x": 4.0, "y": 12.0 }
+      },
+      "hurtbox": {
+        "size": { "x": 30.0, "y": 23.0 },
+        "offset": { "x": 2.0, "y": 8.0 }
       }
     },
     "orc": {
@@ -85,7 +97,7 @@
         "damage": 12.0,
         "baseDetectionRange": 140.0,
         "chaseDetectionRange": 260.0,
-        "attackRange": 40.0,
+        "attackRange": 20.0,
         "healthRegenRate": 15.0,
         "healthRegenDelay": 1.5,
         "patrolRadius": 160.0,
@@ -95,6 +107,10 @@
       "hitbox": {
         "size": { "x": 16.0, "y": 12.0 },
         "offset": { "x": 8.0, "y": 14.0 }
+      },
+      "hurtbox": {
+        "size": { "x": 32.0, "y": 32.0 },
+        "offset": { "x": 0.0, "y": 0.0 }
       }
     },
     "Manticore": {
@@ -110,7 +126,7 @@
         "damage": 18.0,
         "baseDetectionRange": 140.0,
         "chaseDetectionRange": 260.0,
-        "attackRange": 40.0,
+        "attackRange": 23.0,
         "healthRegenRate": 15.0,
         "healthRegenDelay": 1.5,
         "patrolRadius": 160.0,
@@ -120,6 +136,10 @@
       "hitbox": {
         "size": { "x": 20.0, "y": 16.0 },
         "offset": { "x": 6.0, "y": 12.0 }
+      },
+      "hurtbox": {
+        "size": { "x": 30.0, "y": 26.0 },
+        "offset": { "x": 2.0, "y": 5.0 }
       }
     },
     "Minotaur": {
@@ -135,7 +155,7 @@
         "damage": 30.0,
         "baseDetectionRange": 180.0,
         "chaseDetectionRange": 320.0,
-        "attackRange": 40.0,
+        "attackRange": 25.0,
         "healthRegenRate": 20.0,
         "healthRegenDelay": 1.0,
         "patrolRadius": 200.0,
@@ -145,6 +165,10 @@
       "hitbox": {
         "size": { "x": 24.0, "y": 16.0 },
         "offset": { "x": 4.0, "y": 12.0 }
+      },
+      "hurtbox": {
+        "size": { "x": 32.0, "y": 32.0 },
+        "offset": { "x": 0.0, "y": 0.0 }
       }
     }
   }

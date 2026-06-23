@@ -126,14 +126,27 @@ private:
      */
     void RefreshSlotMetadata(void);
 
+    /**
+     * @brief Muat semua texture UI dari file
+     * @remarks basch-3: Memuat saveloadBG, saveTitle/loadTitle/deleteTitle,
+     *          emptyBox, savedBox, dan overLoadNotifBG untuk popup
+     */
+    void LoadTextures();
+
+    /**
+     * @brief Bongkar semua texture UI
+     * @remarks basch-3: Bongkar semua texture tambahan
+     */
+    void UnloadTextures();
+
     /// Jumlah slot manual (0-4)
     static constexpr int MANUAL_SLOT_COUNT = 6;
     /// Jumlah slot autosave (0-4)
     static constexpr int AUTOSAVE_SLOT_COUNT = 6;
-    /// Slot box width in pixels
-    static constexpr int SLOT_WIDTH = 250;
-    /// Slot box height in pixels
-    static constexpr int SLOT_HEIGHT = 70;
+    /// Slot box width in pixels (basch-3: 264 = emptyBox.png, savedBox dekorasi overflow kanan)
+    static constexpr int SLOT_WIDTH = 264;
+    /// Slot box height in pixels (basch-3: 74 = emptyBox.png, savedBox dekorasi overflow atas)
+    static constexpr int SLOT_HEIGHT = 74;
     /// Gap between slot boxes
     static constexpr int SLOT_GAP = 10;
 
@@ -146,8 +159,8 @@ private:
     /// Layar tujuan saat tombol BACK diklik
     ScreenState returnScreen;
 
-    /// Tombol BACK untuk kembali ke layar sebelumnya
-    buttonTxt backButton;
+    /// Tombol BACK untuk kembali ke layar sebelumnya (basch-3: buttonImage pakai saveloadBack.png)
+    buttonImage backButton;
 
     /// Lebar area save/load
     int width;
@@ -167,6 +180,15 @@ private:
     /// Texture background
     Texture2D bgTexture;
 
+    /// Title textures (basch-3: saveTitle.png / loadTitle.png / deleteTitle.png)
+    Texture2D saveTitleTex;
+    Texture2D loadTitleTex;
+    Texture2D deleteTitleTex;
+
+    /// Slot textures (basch-3: emptyBox.png / savedBox.png)
+    Texture2D emptySlotTex;
+    Texture2D savedSlotTex;
+
     /// Array status okupansi slot (true=terisi)
     bool slotOccupied[MANUAL_SLOT_COUNT + AUTOSAVE_SLOT_COUNT];
 
@@ -181,14 +203,16 @@ private:
 
     /// Mode sebelumnya — digunakan untuk kembali dari DELETE_MODE ke mode asal
     SaveLoadMode m_previousMode;
-    Popup m_overwritePopup;   ///< Popup konfirmasi timpa save
-    Popup m_loadPopup;        ///< Popup konfirmasi load game
-    Popup m_deletePopup;      ///< Popup konfirmasi hapus slot
-    bool m_showOverwritePopup; ///< Flag tampilkan overwrite popup
-    bool m_showLoadPopup;      ///< Flag tampilkan load popup
-    bool m_showDeletePopup;    ///< Flag tampilkan delete popup
-    int m_selectedSlot;        ///< Slot yang dipilih untuk save/load
+    Popup m_overwritePopup;      ///< Popup konfirmasi timpa save
+    Popup m_loadPopup;           ///< Popup konfirmasi load game
+    Popup m_deletePopup;         ///< Popup konfirmasi hapus slot
+    Popup m_corruptionPopup;     ///< Popup peringatan save corrupt
+    bool m_showOverwritePopup;   ///< Flag tampilkan overwrite popup
+    bool m_showLoadPopup;        ///< Flag tampilkan load popup
+    bool m_showDeletePopup;      ///< Flag tampilkan delete popup
+    bool m_showCorruptionPopup;  ///< Flag tampilkan corruption popup
+    int m_selectedSlot;          ///< Slot yang dipilih untuk save/load
 
-    /// Tombol DELETE untuk masuk mode hapus slot
-    buttonTxt deleteButton;
+    /// Tombol DELETE untuk masuk mode hapus slot (basch-3: buttonImage pakai saveloadDelete.png)
+    buttonImage deleteButton;
 };

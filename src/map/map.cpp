@@ -470,7 +470,7 @@ void SwitchMap(const char *newMapPath, const char *targetDoorName)
     if (!currentMapPath.empty())
     {
         GameSnapshot chkSnap = SaveManager::CaptureSnapshot();
-        SaveManager::SaveCheckpoint(chkSnap, currentMapPath, g_ActiveSaveSlot);
+        SaveManager::SaveCheckpoint(chkSnap, currentMapPath, -1);
         mapHistoryStack.Push(currentMapPath, "");
     }
 
@@ -489,43 +489,6 @@ void SwitchMap(const char *newMapPath, const char *targetDoorName)
     gState->currentScreen = LOADING;
 
     TraceLog(LOG_INFO, "SwitchMap: transitioning to LOADING screen for map: %s", newMapPath);
-}
-
-/**
- * @brief Kembali ke map sebelumnya dari history
- *
- * Fungsi ini memuat ulang map sebelumnya lalu mengatur ulang posisi player dan camera.
- */
-void GoBack(void)
-{
-    if (mapHistoryStack.IsEmpty())
-    {
-        TraceLog(LOG_WARNING, "GoBack: no map history to go back to");
-        return;
-    }
-
-    // Simpan state map sekarang
-    {
-        GameSnapshot chkSnap = SaveManager::CaptureSnapshot();
-        SaveManager::SaveCheckpoint(chkSnap, currentMapPath, g_ActiveSaveSlot);
-    }
-
-    // Ambil history teratas dan pop dari stack
-    MapSystem::MapHistoryEntry prev = mapHistoryStack.Pop();
-
-    // Set pending map switch - loading screen akan menangani sisanya
-    gState->isGoingBack = true;
-    gState->pendingMapPath = prev.mapPath;
-    gState->pendingDoorName = prev.doorName.empty() ? SPAWN_OBJECT_NAME : prev.doorName;
-    // Reset loading state agar InitLoadingScreen() dipanggil ulang
-    gState->enteredLoading = false;
-    gState->loadingStage = 0;
-    gState->loadingProgress = 0.0F;
-    gState->loadingComplete = false;
-    gState->loadingText = "Returning to previous map...";
-    gState->currentScreen = LOADING;
-
-    TraceLog(LOG_INFO, "GoBack: transitioning to LOADING screen for map: %s", prev.mapPath.c_str());
 }
 
 /**

@@ -178,7 +178,7 @@
          "name":"obstacle",
          "objects":[
                 {
-                 "height":32,
+                 "height":64,
                  "id":30,
                  "name":"",
                  "opacity":1,
@@ -187,10 +187,10 @@
                  "visible":true,
                  "width":768,
                  "x":96,
-                 "y":320
+                 "y":288
                 }, 
                 {
-                 "height":32,
+                 "height":64,
                  "id":31,
                  "name":"",
                  "opacity":1,
@@ -202,7 +202,7 @@
                  "y":576
                 }, 
                 {
-                 "height":32,
+                 "height":64,
                  "id":32,
                  "name":"",
                  "opacity":1,
@@ -214,7 +214,7 @@
                  "y":544
                 }, 
                 {
-                 "height":32,
+                 "height":64,
                  "id":33,
                  "name":"",
                  "opacity":1,
@@ -223,10 +223,10 @@
                  "visible":true,
                  "width":64,
                  "x":832,
-                 "y":352
+                 "y":320
                 }, 
                 {
-                 "height":32,
+                 "height":64,
                  "id":34,
                  "name":"",
                  "opacity":1,
@@ -235,10 +235,10 @@
                  "visible":true,
                  "width":64,
                  "x":64,
-                 "y":352
+                 "y":320
                 }, 
                 {
-                 "height":32,
+                 "height":64,
                  "id":35,
                  "name":"",
                  "opacity":1,
@@ -257,8 +257,8 @@
                  "rotation":0,
                  "type":"",
                  "visible":true,
-                 "width":32,
-                 "x":64,
+                 "width":64,
+                 "x":32,
                  "y":352
                 }, 
                 {
@@ -269,7 +269,7 @@
                  "rotation":0,
                  "type":"",
                  "visible":true,
-                 "width":32,
+                 "width":64,
                  "x":864,
                  "y":352
                 }],

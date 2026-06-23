@@ -13,7 +13,7 @@
  */
 
 #include "propsbehavior.h"
-#include "../../include/systems/audioManager.h"
+#include "systems/audioManager.h"
 #include "item.h"
 #include "enemy.h"
 #include "enemy_ai.h"
@@ -143,21 +143,9 @@ void HitPropsByAttack(Rectangle attackHitbox, Rectangle playerBounds, Player *pl
  * Helper: Spawn loot aman di sekitar object
  *==============================================================================*/
 
-/**
- * @brief Spawn item di posisi random aman di sekitar pusat object
- *
- * Cari posisi dengan IsPositionSafe (hitbox 20×20 = ukuran item), retry
- * beberapa kali. Fallback ke pusat object jika semua gagal.
- * Final safety net tetap ada di ItemDataManager::CreateItem.
- *
- * @param center Posisi pusat object (chest/crate)
- * @param itemCount Jumlah item yang di-spawn
- * @param rng Random generator
- * @param spread Radius pencarian posisi dari center
- * @param category Kategori item yang di-spawn
- */
 static void SpawnLootSafe(Vector2 center, int itemCount, std::mt19937 &rng,
-                          float spread, ItemCategory category, Vector2 hitboxSize)
+                          float spread, ItemCategory category, Vector2 hitboxSize,
+                          const std::map<ItemRarity, int> &weights)
 {
     float halfW = hitboxSize.x / 2.0f;
     float halfH = hitboxSize.y / 2.0f;
@@ -178,7 +166,7 @@ static void SpawnLootSafe(Vector2 center, int itemCount, std::mt19937 &rng,
                 break;
             }
         }
-        itemData.SpawnItemAtLocation(spawnPos, &rng, category);
+        itemData.SpawnItemAtLocation(spawnPos, weights, category);
     }
 }
 
@@ -280,7 +268,7 @@ void ChestManager::TriggerLoot(TileObject &chest)
     std::mt19937 rng(static_cast<unsigned int>(time(nullptr)));
 
     Vector2 itemSize = itemDefs.GetMaxHitboxForCategory(ITEM_ANY);
-    SpawnLootSafe(chest.position, jumlahLoot, rng, chestSpread, ITEM_ANY, itemSize);
+    SpawnLootSafe(chest.position, jumlahLoot, rng, chestSpread, ITEM_ANY, itemSize, WORLD_WEIGHTS);
 }
 
 /**
@@ -1205,7 +1193,7 @@ void CrateManager::TriggerLoot(TileObject &crate)
     std::mt19937 rng(static_cast<unsigned int>(time(nullptr)));
 
     Vector2 itemSize = itemDefs.GetMaxHitboxForCategory(ITEM_POTION);
-    SpawnLootSafe(crate.position, 1, rng, crateSpread, ITEM_POTION, itemSize);
+    SpawnLootSafe(crate.position, 1, rng, crateSpread, ITEM_POTION, itemSize, WORLD_WEIGHTS);
 }
 
 /**
@@ -1288,13 +1276,8 @@ void BarrierManager::SpawnBarriers(const std::vector<MapObject *> &barrierObject
     totalEnemyCount = 0;
     hasCapturedCount = false;
 
-    // JANGAN reset cleared/hasReLocked — state ini bisa di-set oleh LoadRuntimeState sebelumnya
-    // Kalo sudah cleared (dari save load), skip spawn barrier sama sekali
-    if (cleared)
-    {
-        TraceLog(LOG_INFO, "BarrierManager: stage already cleared, skipping barrier spawn");
-        return;
-    }
+    // Spawn barrier selalu jalan — ApplyPostSpawn/ApplyCheckpointData yang RemoveAllBarriers
+    // kalo stage ini udah cleared (dari saved checkpoint / manual save)
 
     for (auto *obj : barrierObjects)
     {
@@ -1673,7 +1656,7 @@ void SignManager::SpawnSigns(const std::vector<MapObject *> &signObjects)
         if (it != obj->properties.end())
             d.lines = SplitDialog(it->second.getValue<std::string>());
         else
-            d.lines = {"(tidak ada teks)"};
+            d.lines = {"(no text)"};
 
         signs.push_back(d);
         DynamicObstacles.push_back(d.tile.bounds);

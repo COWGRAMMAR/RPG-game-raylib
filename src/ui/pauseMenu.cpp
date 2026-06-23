@@ -9,18 +9,18 @@
 #include <filesystem>
 #include <system_error>
 
-#include "../../include/systems/keybindManager.h"
-#include "../../include/rendering/fonts.h"
-#include "../../include/ui/pauseMenu.h"
-#include "../../include/ui/popup.h"
-#include "../../include/ui/videoTab.h"
-#include "../../include/ui/audioTab.h"
-#include "../../include/ui/keybindsTab.h"
-#include "../../include/ui/saveLoadScreen.h"
-#include "../../include/core/game_state_saver.h"
-#include "../../include/core/savemanager.h"
-#include "../../include/map/worldgenio.h"
-#include "../../include/core/seedmanager.h"
+#include "systems/keybindManager.h"
+#include "rendering/fonts.h"
+#include "ui/pauseMenu.h"
+#include "ui/popup.h"
+#include "ui/videoTab.h"
+#include "ui/audioTab.h"
+#include "ui/keybindsTab.h"
+#include "ui/saveLoadScreen.h"
+#include "core/game_state_saver.h"
+#include "core/savemanager.h"
+#include "map/worldgenio.h"
+#include "core/seedmanager.h"
 #include "entities.h"
 #include "item.h"
 #include "propsbehavior.h"
@@ -28,7 +28,7 @@
 #include "enemy_ai.h"
 #include "map.h"
 #include "mapLogic.h"
-#include "../../include/systems/combatTurn.h"
+#include "systems/combatTurn.h"
 
 /*==============================================================================
  * External References
@@ -44,7 +44,7 @@ static Popup savePopup("Game Saved!", "OK", 0.7F);
 static Popup saveErrorPopup("Failed to save game.", "OK", 0.7F);
 static Popup loadConfirmPopup("Load from save? Current progress will be lost.", "Load Save", "Cancel", 0.7f);
 static Popup noSavePopup("No save file found.", "OK", 0.7F);
-static Popup pauseCorruptPopup("Save file corrupted or unreadable.", "OK", 0.7f);
+static Popup pauseCorruptPopup("Save data is corrupted or incompatible.", "Yes, Delete", "No", 0.7f);
 static Popup returnConfirmPopup("Return to main menu?", "Continue", "Cancel", 0.7f);
 static Popup restartConfirmPopup("Restart Run?", "Restart", "Cancel", 0.7f);
 
@@ -210,24 +210,17 @@ void OptionsScreen::CalculateDimensions()
         0.7F,
         GetOrLoad(FontId::LOADING_TITLE));
 
-    // tombol Reset Tab / Reset All pakai GetOrLoad(FontId::LOADING_TITLE) (bold)
-    resetTabButton = buttonTxt(
-        "Reset Tab",
-        startX + 60,
-        startY + height - 70,
-        20,
-        ORANGE,
-        0.7F,
-        GetOrLoad(FontId::LOADING_TITLE));
+    resetTabButton = buttonImage( // basch-3: diganti dari buttonTxt ke buttonImage
+        "assets/textures/settingsButt/resetTab.png",
+        Vector2{static_cast<float>(startX + 121),
+                static_cast<float>(startY + height - 54)},
+        1.0F, 0.7F);
 
-    resetOptionsButton = buttonTxt(
-        "Reset All",
-        startX + 220,
-        startY + height - 70,
-        20,
-        ORANGE,
-        0.7F,
-        GetOrLoad(FontId::LOADING_TITLE));
+    resetOptionsButton = buttonImage( // basch-3: diganti dari buttonTxt ke buttonImage
+        "assets/textures/settingsButt/resetAll.png",
+        Vector2{static_cast<float>(startX + 282),
+                static_cast<float>(startY + height - 54)},
+        1.0F, 0.7F);
 }
 
 /**
@@ -381,25 +374,7 @@ void OptionsScreen::Draw(Vector2 mousePosition)
         break;
     }
 
-    // background hitam di belakang tombol Reset Tab / Reset All agar terbaca
-    {
-        Rectangle tabRect = resetTabButton.GetBounds();
-        Rectangle resetAllRect = resetOptionsButton.GetBounds();
-        int pad = 6;
-        DrawRectangle(
-            static_cast<int>(tabRect.x) - pad,
-            static_cast<int>(tabRect.y) - pad,
-            static_cast<int>(tabRect.width) + pad * 2,
-            static_cast<int>(tabRect.height) + pad * 2,
-            BLACK);
-        DrawRectangle(
-            static_cast<int>(resetAllRect.x) - pad,
-            static_cast<int>(resetAllRect.y) - pad,
-            static_cast<int>(resetAllRect.width) + pad * 2,
-            static_cast<int>(resetAllRect.height) + pad * 2,
-            BLACK);
-    }
-
+    // basch-3: background hitam di belakang tombol dihapus (tidak perlu untuk buttonImage)
     resetTabButton.Draw(mousePosition);
     resetOptionsButton.Draw(mousePosition);
 }
@@ -453,9 +428,11 @@ void PauseMenu::LoadTextures()
     restartConfirmPopup.SetBackgroundTexture("assets/textures/pauseButt/load-notif.png");
     restartConfirmPopup.SetTextYOffset(15);
     restartConfirmPopup.SetButtonYOffset(-20);
+    restartConfirmPopup.SetTextColor(BLACK); // basch-3: teks hitam
     // offset khusus returnConfirmPopup agar teks & tombol sejajar
     returnConfirmPopup.SetTextYOffset(15);
     returnConfirmPopup.SetButtonYOffset(-15);
+    returnConfirmPopup.SetTextColor(BLACK); // basch-3: teks hitam
 
     Image img = LoadImage("assets/textures/pauseButt/pause-bg.png");
     bgTexture = LoadTextureFromImage(img);
@@ -474,7 +451,7 @@ void PauseMenu::LoadTextures()
     float pairGap = 105.0F;
     float totalBtnHeight = 5.0F * btnHeight + 4.0F * gap;
     // startY ditambah 40px agar tombol pause lebih ke bawah (25 → 65)
-    float startY = position.y + (height - totalBtnHeight) / 2.0F + 65.0F;
+    float startY = position.y + (height - totalBtnHeight) / 2.0F + 35.0F;
 
     // Row 0: Resume (wide, centered)
     {
@@ -583,7 +560,6 @@ void PauseMenu::HandleButtonClick(int buttonIndex, GameState *state)
         returnConfirmPopup.Show();
         break;
     case 6: // Exit Game
-        SaveGameState(state);
         WorldgenIO::CleanupOrphanedSlots();
         CloseWindow();
         break;
@@ -622,7 +598,15 @@ void PauseMenu::Update(GameState *state, Vector2 mousePosition, bool mouseClicke
         loadConfirmPopup.Update(mousePosition, mouseClicked);
         if (loadConfirmPopup.IsConfirmClicked())
         {
-            if (ReadSaveFile(GetSlotPath(g_ActiveSaveSlot, "manual")))
+        {
+            bool snapshotValid = SaveManager::HasManual(g_ActiveSaveSlot);
+            if (snapshotValid)
+            {
+                GameSnapshot snap = SaveManager::LoadManual(g_ActiveSaveSlot);
+                snapshotValid = (snap.version == GameSnapshot::SNAPSHOT_VERSION);
+            }
+
+            if (snapshotValid)
             {
                 loadConfirmPopup.Hide();
                 state->enteredLoading = false;
@@ -635,9 +619,10 @@ void PauseMenu::Update(GameState *state, Vector2 mousePosition, bool mouseClicke
             else
             {
                 loadConfirmPopup.Hide();
-                DeleteSaveFile(GetSlotPath(g_ActiveSaveSlot, "manual"));
+                pauseCorruptPopup.SetSubMessage("This save data will be deleted.");
                 pauseCorruptPopup.Show();
             }
+        }
         }
         return;
     }
@@ -651,6 +636,8 @@ void PauseMenu::Update(GameState *state, Vector2 mousePosition, bool mouseClicke
     if (pauseCorruptPopup.IsActive())
     {
         pauseCorruptPopup.Update(mousePosition, mouseClicked);
+        if (pauseCorruptPopup.IsConfirmClicked())
+            SaveManager::DeleteSlot(g_ActiveSaveSlot);
         return;
     }
 
@@ -690,6 +677,9 @@ void PauseMenu::Update(GameState *state, Vector2 mousePosition, bool mouseClicke
             crateManager.ResetConsumed();
             barrierManager.Clear();
             mapHistoryStack.Clear();
+
+            // Bersihin checkpoint basi dari session sebelumnya
+            SaveManager::ClearWorkspaceCheckpoints();
 
             // ── Load snapshot: pure runtime workspace (-1) ──
             GameSnapshot snap;

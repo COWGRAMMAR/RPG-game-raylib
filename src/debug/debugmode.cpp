@@ -11,7 +11,6 @@
 
 #include "game_debug.h"
 #include "raylib.h"
-#include "input.h"
 #include "fonts.h"
 #include "raymath.h"
 #include "screen.h"
@@ -267,22 +266,25 @@ void Debug::DrawEnemySpawnOverlay(void)
  *==============================================================================*/
 
 /**
- * @brief Toggle debug mode saat tombol TAB ditekan
+ * @brief Toggle debug mode — LCtrl+LShift+\ untuk mode utama, [ ] untuk sub-toggle
  */
 void Debug::Toggle(void)
 {
-    const InputState &in = InputInstance.GetState();
+    bool ctrlHeld = IsKeyDown(KEY_LEFT_CONTROL) || IsKeyDown(KEY_RIGHT_CONTROL);
+    bool shiftHeld = IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT);
 
-    if (in.debugToggle)
+    if (ctrlHeld && shiftHeld && IsKeyPressed(KEY_BACKSLASH))
     {
         isDebugMode = !isDebugMode;
         TraceLog(LOG_INFO, "Debug mode: %s", isDebugMode ? "ON" : "OFF");
     }
-    if (in.debugToggleEnemy)
+
+    if (isDebugMode && IsKeyPressed(KEY_RIGHT_BRACKET))
     {
         showFlowFieldOverlay = !showFlowFieldOverlay;
     }
-    if (in.debugTogglePlayer)
+
+    if (isDebugMode && IsKeyPressed(KEY_LEFT_BRACKET))
     {
         showFlowFieldOverlayPlayer = !showFlowFieldOverlayPlayer;
     }
@@ -499,6 +501,7 @@ void Debug::DrawWorldOverlay(void)
     Rectangle playerHitbox = PlayerInstance.GetHitbox();
 
     DrawRectangleLinesEx(playerHitbox, 2.0f, LIME);
+    DrawRectangleLinesEx(PlayerInstance.GetHurtbox(), 2.0f, YELLOW);
 
     // Magnet radius overlay
     Vector2 playerCenter = PlayerInstance.GetCenter();

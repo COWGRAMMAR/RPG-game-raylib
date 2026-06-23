@@ -24,6 +24,7 @@
 #include "map.h"
 #include <vector>
 #include <string>
+#include <unordered_map>
 #include <unordered_set>
 #include <set>
 #include <nlohmann/json.hpp>
@@ -48,7 +49,12 @@
  * - Initial snapshot (restart cache replacement)
  */
 struct GameSnapshot {
-    static constexpr int SNAPSHOT_VERSION = 1;
+    /**
+     * @brief Save file format version.
+     * 1 = initial format
+     * 2 = added CRC32 integrity hash in "hash" field (via AtomicWrite)
+     */
+    static constexpr int SNAPSHOT_VERSION = 2;
 
     /*=== Player ===*/
     Vector2 playerPosition = {0, 0};
@@ -79,8 +85,9 @@ struct GameSnapshot {
     std::unordered_set<std::string> chestConsumed;
     std::unordered_set<std::string> bombConsumed;
     std::unordered_set<std::string> crateConsumed;
-    bool barrierCleared = false;
-    bool barrierHasReLocked = false;
+
+    /** @brief barrierMap[mapPath] = true kalo barrier udah di-clear */
+    std::unordered_map<std::string, bool> barrierMap;
 
     /*=== Dead Entities ===*/
     std::set<std::string> deadEntities;
@@ -289,6 +296,47 @@ public:
      * @return true jika ada
      */
     static bool HasInitial(int slot);
+
+    /**
+     * @brief Mirror checkpoint + manual dari slot sumber ke runtime workspace (-1)
+     * @param sourceSlot Slot sumber (misal 0, 1, dst)
+     * @return true jika sukses
+     *
+     * Plan mode: runtime workspace harus punya data lengkap kayak slot_N.
+     * Dipanggil pas loading save dari slot tertentu.
+     */
+    static bool MirrorToWorkspace(int sourceSlot);
+
+    /**
+     * @brief Hapus semua file checkpoint di slot_-1/checkpoints/
+     *
+     * Dipanggil pas new game biar folder checkpoint kosong,
+     * gak bawa sisa checkpoint dari sesi sebelumnya.
+     */
+    static void ClearWorkspaceCheckpoints();
+
+    /**
+     * @brief Hapus semua file di -1/manual/ (snapshot.json + snapshot_initial.json)
+     *
+     * Dipanggil pas SaveManual() sebelum regenerate snapshot.
+     */
+    static void ClearWorkspaceManual();
+
+    /**
+     * @brief Hapus semua file di -1/autosave/
+     *
+     * Dipanggil pas SaveManual() biar autosave lama gak ikut ke slot tujuan.
+     */
+    static void ClearWorkspaceAutosave();
+
+    /**
+     * @brief Copy seluruh workspace (-1) ke slot tujuan
+     * @param slot Slot tujuan (0-4)
+     *
+     * Copy checkpoints/, manual/, autosave/ dari -1 ke slot_N.
+     * Dipanggil di akhir SaveManual() setelah semua write ke -1 selesai.
+     */
+    static void CopyWorkspaceTo(int slot);
 
     /*=== Serialization ===*/
 

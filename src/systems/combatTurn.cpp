@@ -443,7 +443,7 @@ void TurnCombat::Update()
             if (critical)
                 snprintf(buf, sizeof(buf), "CRITICAL! %.0f damage! (%.0f -> %.0f)", dmg, oldHp, state.boss->Health);
             else
-                snprintf(buf, sizeof(buf), "You attack dealing %.0f damage! (%.0f -> %.0f)", dmg, oldHp, state.boss->Health);
+                snprintf(buf, sizeof(buf), "You deal %.0f damage! (%.0f -> %.0f)", dmg, oldHp, state.boss->Health);
             state.message = buf;
             state.keyProcessed = true;
             state.timer = 1.0f;
@@ -930,17 +930,17 @@ void TurnCombat::Draw()
         DrawRectangle(0, 0, GameScreenWidth, GameScreenHeight, ColorAlpha(BLACK, 0.5f));
 
         // Big MENANG text with yellow outline
-        const char *menangText = "VICTORY";
+        const char *victoryText = "VICTORY";
         int fontSize = 80;
-        int textW = MeasureText(menangText, fontSize);
+        int textW = MeasureText(victoryText, fontSize);
         int textX = (GameScreenWidth - textW) / 2;
         int textY = GameScreenHeight / 2 - fontSize / 2 - 40;
 
-        DrawDefaultText(menangText, textX - 3, textY, fontSize, YELLOW);
-        DrawDefaultText(menangText, textX + 3, textY, fontSize, YELLOW);
-        DrawDefaultText(menangText, textX, textY - 3, fontSize, YELLOW);
-        DrawDefaultText(menangText, textX, textY + 3, fontSize, YELLOW);
-        DrawDefaultText(menangText, textX, textY, fontSize, WHITE);
+        DrawDefaultText(victoryText, textX - 3, textY, fontSize, YELLOW);
+        DrawDefaultText(victoryText, textX + 3, textY, fontSize, YELLOW);
+        DrawDefaultText(victoryText, textX, textY - 3, fontSize, YELLOW);
+        DrawDefaultText(victoryText, textX, textY + 3, fontSize, YELLOW);
+        DrawDefaultText(victoryText, textX, textY, fontSize, WHITE);
 
         // Loot list below the title (icon + text centered as group)
         int lootY = textY + fontSize + 20;

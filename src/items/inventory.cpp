@@ -92,7 +92,7 @@ namespace Inventory
         InventoryItem &slot = player.GetHotbarItem(slotIndex);
         if (slot.definitionId == -1 || slot.amount <= 0)
         {
-            Effects::AddLog("Potion Telah Habis!");
+            Effects::AddLog("No potions left!");
             return;
         }
 
@@ -106,7 +106,7 @@ namespace Inventory
         PotionCategory cat = potion.potionCategory;
         if (player.PotionCategoryCooldowns[cat] > 0.0f)
         {
-            Effects::AddLog("Potion Sedang Cooldown!");
+            Effects::AddLog("Potion on cooldown!");
             return;
         }
 
@@ -117,12 +117,12 @@ namespace Inventory
         {
             if (potion.isMana && player.Mana >= player.MaxMana)
             {
-                Effects::AddLog("Mana Sudah Penuh!");
+                Effects::AddLog("Mana Already Full!");
                 return;
             }
             if (!potion.isMana && player.Health >= player.MaxHealth)
             {
-                Effects::AddLog("Health Sudah Penuh!");
+                Effects::AddLog("Health Already Full!");
                 return;
             }
         }
@@ -132,13 +132,13 @@ namespace Inventory
             if (potion.isMana)
             {
                 if (player.Mana < player.MaxMana)
-                    Effects::AddLog("Mana Pulih!");
+                    Effects::AddLog("Mana Restored!");
                 player.Mana = std::min(player.Mana + (float)potion.healValue, player.MaxMana);
             }
             else
             {
                 if (player.Health < player.MaxHealth)
-                    Effects::AddLog("Health Pulih!");
+                    Effects::AddLog("Health Restored!");
                 player.Health = std::min(player.Health + (float)potion.healValue, player.MaxHealth);
             }
         }
@@ -148,7 +148,7 @@ namespace Inventory
             player.BuffDamageMultiplier = potion.damageMultiplier;
             player.BuffDamageTimer = potion.duration;
             player.BuffDamageTimerMax = potion.duration;
-            Effects::AddLog("Damage Meningkat!");
+            Effects::AddLog("Damage Increased!");
         }
 
         if (potion.speedMultiplier > 1.0f)
@@ -156,14 +156,14 @@ namespace Inventory
             player.BuffSpeedMultiplier = potion.speedMultiplier;
             player.BuffSpeedTimer = potion.duration;
             player.BuffSpeedTimerMax = potion.duration;
-            Effects::AddLog("Speed Meningkat!");
+            Effects::AddLog("Speed Increased!");
         }
 
         if (potion.invincibilityDuration > 0.0f)
         {
             player.InvincibilityTimer = potion.invincibilityDuration;
             player.InvincibilityTimerMax = potion.invincibilityDuration;
-            Effects::AddLog("Kebal Aktif!");
+            Effects::AddLog("Invincible!");
         }
         // Set cooldown per-kategori
         player.PotionCategoryCooldownMax[cat] = potion.cooldown;

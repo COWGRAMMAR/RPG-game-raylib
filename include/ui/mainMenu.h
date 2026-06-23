@@ -49,6 +49,8 @@ void RenderMainMenuToVirtualScreen(GameState* state);
  * @brief Enum buat jenis-jenis tombol di main menu
  * @note Dipake buat identifikasi tombol yang diklik atau aktif
  */
+void DestroyMainMenu();
+
 enum MenuButton : std::uint8_t {
     BTN_START = 0,   /**< Tombol Start Game - mulai game baru */
     BTN_LOAD,        /**< Tombol Load Game - load save game */

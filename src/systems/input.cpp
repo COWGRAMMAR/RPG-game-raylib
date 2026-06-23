@@ -124,7 +124,7 @@ void PlayerInput::ResetMenuFlags()
 {
     InventoryOpen = false;
     MapOpen = false;
-    g_MinimapScreen.Shutdown();
+    g_MinimapScreen.Hide();
 }
 
 PlayerAction PlayerInput::ResolveAction() const

@@ -365,6 +365,9 @@ void MinimapScreen::Init()
     CalculateLayout();
     BuildGridTexture();
 
+    // Full fog render sekali — after this, Update() hanya render visible tiles
+    RenderFogFull();
+
     initialized = true;
     UpdateView();
 }
@@ -441,7 +444,7 @@ void MinimapScreen::CalculateLayout()
  * MinimapScreen - Fog Layer
  *==============================================================================*/
 
-void MinimapScreen::RenderFogLayer()
+void MinimapScreen::RenderFogFull()
 {
     int w = g_Minimap.gridWidth;
     int h = g_Minimap.gridHeight;
@@ -457,6 +460,49 @@ void MinimapScreen::RenderFogLayer()
     for (int y = 0; y < h; y++)
     {
         for (int x = 0; x < w; x++)
+        {
+            FogState state = (FogState)g_Minimap.fog[y * w + x];
+            Color c;
+            switch (state)
+            {
+                case FogState::UNEXPLORED: c = fogColor; break;
+                case FogState::VISIBLE:    c = Fade(fogColor, 0.4f); break;
+                case FogState::EXPLORED:   c = Fade(fogColor, 0.55f); break;
+            }
+            DrawRectangle(x * tilePx, y * tilePx, tilePx, tilePx, c);
+        }
+    }
+
+    EndTextureMode();
+}
+
+void MinimapScreen::RenderFogVisible()
+{
+    int w = g_Minimap.gridWidth;
+    int h = g_Minimap.gridHeight;
+    if (w <= 0 || h <= 0 || fogRT.id <= 0)
+        return;
+
+    // Visible tile bounds from panOffset & viewRect (screen → tile)
+    //   tile_x = (screen_x - viewRect.x - panOffset.x) / PANEL_SCALE
+    //   tile visible kalo: screen_x ∈ [viewRect.x, viewRect.x + viewRect.width]
+    int tileStartX = std::max(0,      (int)floorf(-panOffset.x / MINIMAP_PANEL_SCALE));
+    int tileStartY = std::max(0,      (int)floorf(-panOffset.y / MINIMAP_PANEL_SCALE));
+    int tileEndX   = std::min(w, (int)ceilf((viewRect.width  - panOffset.x) / MINIMAP_PANEL_SCALE));
+    int tileEndY   = std::min(h, (int)ceilf((viewRect.height - panOffset.y) / MINIMAP_PANEL_SCALE));
+
+    if (tileStartX >= tileEndX || tileStartY >= tileEndY)
+        return;
+
+    Color fogColor = {FOG_COLOR_BEIGE};
+    int tilePx = MINIMAP_TILE_PX;
+
+    BeginTextureMode(fogRT);
+    // NO ClearBackground — tile di luar viewport retain fog state lama
+
+    for (int y = tileStartY; y < tileEndY; y++)
+    {
+        for (int x = tileStartX; x < tileEndX; x++)
         {
             FogState state = (FogState)g_Minimap.fog[y * w + x];
             Color c;
@@ -713,7 +759,7 @@ void MinimapScreen::Update(GameState* state, Vector2 mousePosition, bool mouseCl
     UpdateMinimapFog((int)PlayerInstance.GetCenter().x, (int)PlayerInstance.GetCenter().y, FRAME_SIZE);
 
     // Render fog ke fogRT — di Update (bukan Draw) biar gak corrupt state render
-    RenderFogLayer();
+    RenderFogVisible();
 }
 
 void MinimapScreen::Draw(Vector2 mousePosition)

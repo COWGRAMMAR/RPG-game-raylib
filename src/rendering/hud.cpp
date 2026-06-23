@@ -48,6 +48,9 @@ static Texture2D hudSettingsIcon = {0};
 static Texture2D hudKillCount = {0};
 static bool hudTexLoaded = false;
 
+// Dialog sign texture
+static Texture2D dialogTex = {0};
+
 // Grid bounds untuk deteksi drop zone (di-set per frame di DrawInventory)
 static Rectangle g_gridBagRect = {0};
 static Rectangle g_gridHotbarRect = {0};
@@ -1277,7 +1280,6 @@ void DrawSignDialog()
     if (!signManager.IsDialogActive())
         return;
 
-    static Texture2D dialogTex = {0};
     if (dialogTex.id == 0)
     {
         Image img = LoadImage("assets/textures/dialogBox.png");
@@ -1523,4 +1525,40 @@ void DrawBossHPBar()
     DrawTextEx(GetOrLoad(FontId::HUD_PLAYER), hpBuf,
                Vector2{centerX + barWidth / 2.0f + 12.0f, barY + (barHeight - (float)hpFontSize) / 2.0f},
                hpFontSize, 0, WHITE);
+}
+
+void UnloadHUDTextures()
+{
+    if (invBgTex.id != 0)
+    {
+        UnloadTexture(invBgTex);
+        invBgTex = {0};
+    }
+    if (invSlotGridTex.id != 0)
+    {
+        UnloadTexture(invSlotGridTex);
+        invSlotGridTex = {0};
+    }
+    if (hudBagIcon.id != 0)
+    {
+        UnloadTexture(hudBagIcon);
+        hudBagIcon = {0};
+    }
+    if (hudSettingsIcon.id != 0)
+    {
+        UnloadTexture(hudSettingsIcon);
+        hudSettingsIcon = {0};
+    }
+    if (hudKillCount.id != 0)
+    {
+        UnloadTexture(hudKillCount);
+        hudKillCount = {0};
+    }
+    if (dialogTex.id != 0)
+    {
+        UnloadTexture(dialogTex);
+        dialogTex = {0};
+    }
+    invTexLoaded = false;
+    hudTexLoaded = false;
 }

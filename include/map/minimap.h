@@ -152,8 +152,11 @@ private:
     /** @brief Build grid texture dari tilesonMap + collision (panggil sekali pas Init) */
     void BuildGridTexture();
 
-    /** @brief Render fog layer ke fogRT (panggil tiap frame) */
-    void RenderFogLayer();
+    /** @brief Render full map fog ke fogRT (ClearBackground + semua tile) — panggil sekali pas Init */
+    void RenderFogFull();
+
+    /** @brief Update fogRT cuma untuk tile yang visible di viewport — panggil tiap frame di Update */
+    void RenderFogVisible();
 
     /** @brief Gambar fog RT ke panel */
     void DrawFogLayer() const;

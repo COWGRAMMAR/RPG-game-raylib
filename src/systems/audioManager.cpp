@@ -403,6 +403,9 @@ static void LoadSFXToPool(const std::string &name, const char *path)
 
 void AudioManager::InitSFX()
 {
+    // Unload dulu kalo ada sisa dari game sebelumnya (safety buat future restart)
+    CloseSFX();
+
     LoadSFXToPool("thrust", "assets/audio/sfx/thrust.mp3");
     LoadSFXToPool("arrow", "assets/audio/sfx/arrow.mp3");
     LoadSFXToPool("attack", "assets/audio/sfx/attack.mp3");

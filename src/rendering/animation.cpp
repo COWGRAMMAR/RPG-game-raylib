@@ -31,7 +31,8 @@ static TextureSlot ResolveTextureSlot(const std::string &str)
         {"SPRITESHEET_ENEMIES", SPRITESHEET_ENEMIES},
         {"SPRITESHEET_EFFECTS", SPRITESHEET_EFFECTS},
         {"SPRITESHEET_ENEMIES_ELITE", SPRITESHEET_ENEMIES_ELITE},
-        {"SPRITESHEET_ENEMY_BOSS", SPRITESHEET_ENEMY_BOSS}};
+        {"SPRITESHEET_ENEMY_BOSS", SPRITESHEET_ENEMY_BOSS},
+        {"TILESET_GRASS", TILESET_GRASS}};
     auto it = mapping.find(str);
     if (it != mapping.end())
         return it->second;

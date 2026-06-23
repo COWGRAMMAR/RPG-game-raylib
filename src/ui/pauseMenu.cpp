@@ -11,6 +11,7 @@
 
 #include "systems/keybindManager.h"
 #include "rendering/fonts.h"
+#include "rendering/hud.h"
 #include "ui/pauseMenu.h"
 #include "ui/popup.h"
 #include "ui/videoTab.h"
@@ -98,6 +99,8 @@ void OptionsScreen::Show(GameState *state)
 void OptionsScreen::Hide()
 {
     active = false;
+    UnloadKeybindsTextures();
+    UnloadAudioTextures();
 }
 
 /**
@@ -637,6 +640,7 @@ void PauseMenu::Update(GameState *state, Vector2 mousePosition, bool mouseClicke
         if (returnConfirmPopup.IsConfirmClicked())
         {
             InputInstance.ResetMenuFlags();
+            UnloadHUDTextures();
             state->enteredLoading = false;
             state->loadingStage = 0;
             state->loadingProgress = 0.0F;

@@ -2,6 +2,7 @@
 #include "player.h"
 #include "item.h"
 #include "inventory.h"
+#include "rendering/hud.h"
 #include "raylib.h"
 #include "button.h"
 
@@ -84,6 +85,8 @@ void UpdateGameOverScreen(GameState *state)
     if (goToMain.isClicked(mousePos, mouseClicked))
     {
         InputInstance.ResetMenuFlags();
+        UnloadHUDTextures();
+        DestroyGameOverScreen();
         state->enteredLoading = false;
         state->loadingStage = 0;
         state->loadingProgress = 0.0F;
@@ -111,4 +114,14 @@ void RenderGameOverScreen(GameState *state)
     goToMain.Draw(mousePos);
 
     EndTextureMode();
+}
+
+void DestroyGameOverScreen()
+{
+    if (goTitle.id != 0)
+    {
+        UnloadTexture(goTitle);
+        goTitle = {0};
+    }
+    goLoaded = false;
 }

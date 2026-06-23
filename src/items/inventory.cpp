@@ -92,7 +92,7 @@ namespace Inventory
         InventoryItem &slot = player.GetHotbarItem(slotIndex);
         if (slot.definitionId == -1 || slot.amount <= 0)
         {
-            Effects::AddLog("No potions left!");
+            Effects::AddLog("No Potions Left!");
             return;
         }
 
@@ -106,7 +106,7 @@ namespace Inventory
         PotionCategory cat = potion.potionCategory;
         if (player.PotionCategoryCooldowns[cat] > 0.0f)
         {
-            Effects::AddLog("Potion on cooldown!");
+            Effects::AddLog("Potion On Cooldown!");
             return;
         }
 

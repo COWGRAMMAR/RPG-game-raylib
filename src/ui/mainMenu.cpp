@@ -29,6 +29,9 @@ static std::array<buttonImage, 4> buttons;
 /** Logo texture untuk main menu */
 static Texture2D logoTexture;
 
+/** Flag kalo texture lagi dipake (biar gak double unload) */
+static bool menuTexLoaded = false;
+
 /** Save/Load popups */
 static Popup loadPopup("Load saved game?", "Load Save", "Cancel", 0.7f);
 static Popup mainNoSavePopup("No save file found.", "OK", 0.7f);
@@ -49,6 +52,10 @@ void InitMainMenu(GameState *state)
 {
     (void)state; // unused parameter, buat future use
 
+    // Safety: kalo udah pernah di-init, unload dulu biar gak leak
+    if (menuTexLoaded)
+        DestroyMainMenu();
+
     // set texture background load-notif untuk semua popup main menu
     loadPopup.SetBackgroundTexture("assets/textures/pauseButt/load-notif.png");
     mainNoSavePopup.SetBackgroundTexture("assets/textures/pauseButt/load-notif.png");
@@ -61,6 +68,7 @@ void InitMainMenu(GameState *state)
     ImageResize(&logoImg, targetWidth, targetHeight);
     logoTexture = LoadTextureFromImage(logoImg);
     UnloadImage(logoImg);
+    menuTexLoaded = true;
 
     // Konfigurasi individu untuk setiap tombol (path, scale, yOffset)
     struct
@@ -100,6 +108,7 @@ void UpdateMainMenu(GameState *state)
     {
         if (buttons[i].isClicked(mousePosition, mouseClicked))
         {
+            DestroyMainMenu();
             switch (i)
             {
             case 0: // Start Game - langsung mulai baru tanpa popup
@@ -213,4 +222,16 @@ void RenderMainMenuToVirtualScreen(GameState *state)
     }
 
     EndTextureMode();
+}
+
+void DestroyMainMenu()
+{
+    if (!menuTexLoaded)
+        return;
+    if (logoTexture.id != 0)
+    {
+        UnloadTexture(logoTexture);
+        logoTexture = {0};
+    }
+    menuTexLoaded = false;
 }

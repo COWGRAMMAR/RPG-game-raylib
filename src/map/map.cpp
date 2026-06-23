@@ -202,6 +202,7 @@ void LoadMap(const char *mapPath)
             UnloadImage(img);
         }
 
+        info.imagePath = imagePath;
         info.cols = tileset->getColumns();
         info.spacing = tileset->getSpacing();
         info.firstgid = tileset->getFirstgid();
@@ -279,7 +280,7 @@ void UnloadMap(void)
  */
 void InitMap(void)
 {
-    currentMapPath = "assets/maps/main_hub.json";
+    currentMapPath = "assets/maps/tutorial.json";
     LoadMap(currentMapPath.c_str());
     BuildMapObjectIndex();
 }

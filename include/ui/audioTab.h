@@ -34,6 +34,8 @@ extern SliderState g_sliders;
  * @param startX Posisi X awal area options
  * @param startY Posisi Y awal area options
  */
+void UnloadAudioTextures();
+
 void DrawAudioTab(
     Vector2 mousePosition,
     int startX,

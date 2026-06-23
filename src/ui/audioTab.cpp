@@ -72,20 +72,30 @@ static const char *SLIDER_LABELS[4] = {
  * Knob Texture Helper
  *==============================================================================*/
 
+static Texture2D g_KnobTex = {0};
+
+void UnloadAudioTextures()
+{
+    if (g_KnobTex.id != 0)
+    {
+        UnloadTexture(g_KnobTex);
+        g_KnobTex = {0};
+    }
+}
+
 static Texture2D GetKnobTex()
 {
-    static Texture2D knobTex = {0};
-    if (knobTex.id == 0)
+    if (g_KnobTex.id == 0)
     {
         Image img = LoadImage("assets/textures/settingsButt/knobAudio.png");
         if (img.data != nullptr)
         {
-            knobTex = LoadTextureFromImage(img);
+            g_KnobTex = LoadTextureFromImage(img);
             UnloadImage(img);
-            TraceLog(LOG_INFO, "AUDIO: Knob texture loaded (%dx%d)", knobTex.width, knobTex.height);
+            TraceLog(LOG_INFO, "AUDIO: Knob texture loaded (%dx%d)", g_KnobTex.width, g_KnobTex.height);
         }
     }
-    return knobTex;
+    return g_KnobTex;
 }
 
 /*==============================================================================
@@ -170,8 +180,8 @@ void DrawAudioTab(
     {
         int barY = contentStartY + ROW_OFFSETS[i];
         int value = (i == 0) ? g_sliders.masterVolume : (i == 1) ? g_sliders.musicVolume
-                                                     : (i == 2)   ? g_sliders.sfxVolume
-                                                                  : g_sliders.videoVolume;
+                                                    : (i == 2)   ? g_sliders.sfxVolume
+                                                                 : g_sliders.videoVolume;
 
         DrawSliderBar(SLIDER_LABELS[i], value, barX, barY, mousePosition, knobTex);
     }
@@ -211,9 +221,11 @@ bool UpdateAudioTab(
         for (int i = 0; i < 4; i++)
         {
             int value = (i == 0) ? sliders.masterVolume : (i == 1) ? sliders.musicVolume
-                        : (i == 2) ? sliders.sfxVolume : sliders.videoVolume;
+                                                      : (i == 2)   ? sliders.sfxVolume
+                                                                   : sliders.videoVolume;
             int fillWidth = (value * SLIDER_WIDTH) / 100;
-            if (fillWidth <= 0 || knobTex.id <= 0) continue;
+            if (fillWidth <= 0 || knobTex.id <= 0)
+                continue;
 
             int barY = contentStartY + ROW_OFFSETS[i];
             float knobX = barX + fillWidth - knobTex.width * 0.5f;

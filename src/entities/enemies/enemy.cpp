@@ -244,7 +244,7 @@ void Enemy::Update()
     if (Health <= 0)
     {
         isTurnBasedMode = false; // Prevent re-trigger turn-based jika mati kena bomb dll
-        HealthBarTimer = 0.0f; // Langsung matikan health bar sebelum death anim
+        HealthBarTimer = 0.0f;   // Langsung matikan health bar sebelum death anim
 
         if (Anim.state != DEAD)
         {
@@ -516,8 +516,8 @@ void Enemy::HandleIdle()
 
     float maxDistPatrol = 6.0f * FRAME_SIZE;
     bool tooFarFromSpawn = (SpawnRect.width > 0)
-        ? !CheckCollisionPointRec(GetCenter(), SpawnRect)
-        : Vector2Distance(GetCenter(), SpawnPoint) > maxDistPatrol;
+                               ? !CheckCollisionPointRec(GetCenter(), SpawnRect)
+                               : Vector2Distance(GetCenter(), SpawnPoint) > maxDistPatrol;
 
     if (tooFarFromSpawn)
     {
@@ -789,8 +789,8 @@ void Enemy::HandleAbility2()
         float worldW = (float)tilesonMap->width * FRAME_SIZE;
         float worldH = (float)tilesonMap->height * FRAME_SIZE;
         blocked = !IsWithinWorldBounds(hitbox, worldW, worldH) ||
-                   CheckCollisionAgainstRects(hitbox, gCollisionCache.rects) ||
-                   CheckCollisionAgainstPolygons(hitbox, gCollisionCache.polygons);
+                  CheckCollisionAgainstRects(hitbox, gCollisionCache.rects) ||
+                  CheckCollisionAgainstPolygons(hitbox, gCollisionCache.polygons);
     }
     if (blocked)
     {
@@ -1369,7 +1369,8 @@ void SpawnAtPoint(const MapObject *obj, EnemyRank rank)
         BuildSpawnFlowFields(center, obj->id, tilesonMap->width, tilesonMap->height);
 
     uint64_t dSeed = g_SeedManager.IsRunActive()
-        ? (uint64_t)g_SeedManager.GetSeed(g_SeedManager.GetCurrentStage()) : 0;
+                         ? (uint64_t)g_SeedManager.GetSeed(g_SeedManager.GetCurrentStage())
+                         : 0;
 
     for (int i = 0; i < count; i++)
     {
@@ -1417,7 +1418,8 @@ void SpawnInRect(const MapObject *obj, const std::string &enemyName, float ratio
         BuildSpawnFlowFields(rectCenter, obj->id, tilesonMap->width, tilesonMap->height);
 
     uint64_t dSeed = g_SeedManager.IsRunActive()
-        ? (uint64_t)g_SeedManager.GetSeed(g_SeedManager.GetCurrentStage()) : 0;
+                         ? (uint64_t)g_SeedManager.GetSeed(g_SeedManager.GetCurrentStage())
+                         : 0;
 
     for (int i = 0; i < count; i++)
     {
@@ -1429,9 +1431,9 @@ void SpawnInRect(const MapObject *obj, const std::string &enemyName, float ratio
             spawnPos = {xDist(rng), yDist(rng)};
             // Convert center (Enemy::Init expectation) ke Entity::Position (IsPositionSafe expectation)
             Vector2 entityPos = {spawnPos.x - def.hitbox.size.x / 2.0f - def.hitbox.offset.x,
-                                  spawnPos.y - def.hitbox.size.y / 2.0f - def.hitbox.offset.y};
+                                 spawnPos.y - def.hitbox.size.y / 2.0f - def.hitbox.offset.y};
             if (IsPositionSafe(entityPos, def.hitbox.size.x, def.hitbox.size.y,
-                                def.hitbox.offset.x, def.hitbox.offset.y))
+                               def.hitbox.offset.x, def.hitbox.offset.y))
             {
                 valid = true;
                 break;
@@ -1478,7 +1480,8 @@ void SpawnBoss(const MapObject *obj)
         BuildSpawnFlowFields(spawnPos, obj->id, tilesonMap->width, tilesonMap->height);
 
     uint64_t dSeed = g_SeedManager.IsRunActive()
-        ? (uint64_t)g_SeedManager.GetSeed(g_SeedManager.GetCurrentStage()) : 0;
+                         ? (uint64_t)g_SeedManager.GetSeed(g_SeedManager.GetCurrentStage())
+                         : 0;
 
     Enemy *enemy = new Enemy();
     enemy->Init(spawnPos, picked.c_str(), obj->id, def);
@@ -1517,7 +1520,8 @@ void SpawnTutorialEnemy(const MapObject *obj)
         BuildSpawnFlowFields(center, obj->id, tilesonMap->width, tilesonMap->height);
 
     uint64_t dSeed = g_SeedManager.IsRunActive()
-        ? (uint64_t)g_SeedManager.GetSeed(g_SeedManager.GetCurrentStage()) : 0;
+                         ? (uint64_t)g_SeedManager.GetSeed(g_SeedManager.GetCurrentStage())
+                         : 0;
 
     for (int i = 0; i < count; i++)
     {

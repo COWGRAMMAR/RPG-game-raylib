@@ -616,8 +616,16 @@ bool IsLineBlockedByObstacles(
                 return true;
         }
 
-        if (stepX) { err -= dy; x += sx; }
-        if (stepY) { err += dx; y += sy; }
+        if (stepX)
+        {
+            err -= dy;
+            x += sx;
+        }
+        if (stepY)
+        {
+            err += dx;
+            y += sy;
+        }
         isStart = false;
     }
 
@@ -816,9 +824,8 @@ void BombManager::Explode(BombData &bomb, Rectangle playerBounds, Player *player
     std::vector<Vector2> chainCenters;
     chainCenters.reserve(chain.size());
     for (auto *cb : chain)
-        chainCenters.push_back({
-            cb->tile.position.x + FRAME_SIZE / 2.0f,
-            cb->tile.position.y + FRAME_SIZE / 2.0f});
+        chainCenters.push_back({cb->tile.position.x + FRAME_SIZE / 2.0f,
+                                cb->tile.position.y + FRAME_SIZE / 2.0f});
 
     auto clusters = ExplosionUtils::ClusterByDistance(chainCenters, BOMB_EXPLOSION_RADIUS * 2.0f);
 
@@ -947,7 +954,6 @@ void BombManager::Update(float deltaTime, Rectangle playerBounds, Player *player
         std::remove_if(bombs.begin(), bombs.end(), [](const BombData &bomb)
                        { return !bomb.isAlive; }),
         bombs.end());
-
 }
 
 /**

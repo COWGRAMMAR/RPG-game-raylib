@@ -5,9 +5,7 @@
 /**@{*/
 
 VideoScreen::VideoScreen()
-    : m_videoPath("assets/video/intro/IntroIntroductions.mkv")
-    , m_skipRequested(false)
-    , m_loaded(false)
+    : m_videoPath("assets/video/intro/IntroIntroductions.mkv"), m_skipRequested(false), m_loaded(false)
 {
 }
 

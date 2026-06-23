@@ -214,12 +214,20 @@ namespace
                 info.texture = textures[TILESET_ITEMS];
                 // TraceLog(LOG_INFO, "Tileson: Reusing cached texture for items.png");
             }
+            else if (textures[TILESET_GRASS].id != 0 && imagePath == "assets/textures/grass-terrain.png")
+            {
+                info.texture = textures[TILESET_GRASS];
+            }
             else
             {
                 // Load texture baru dari file
                 Image img = LoadImage(imagePath.c_str());
                 info.texture = LoadTextureFromImage(img);
                 UnloadImage(img);
+
+                // Cache grass-terrain.png biar gak duplicate load 80x
+                if (imagePath == "assets/textures/grass-terrain.png")
+                    textures[TILESET_GRASS] = info.texture;
             }
 
             info.cols = tileset->getColumns();

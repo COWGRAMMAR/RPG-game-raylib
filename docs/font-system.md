@@ -1,4 +1,4 @@
-# Font System — Atlas Resolution Cache
+# Font System -- Atlas Resolution Cache
 
 > Dokumentasi ini menjelaskan pipeline font system yang udah kita bikin ulang.
 > Cocok buat temen-temen yang mau pake font di screen/module baru.
@@ -26,7 +26,7 @@ Dulu kita panggil `LoadFontEx()` berkali-kali di tempat beda tanpa cache. Akibat
 - Atlas resolution gak konsisten antar screen
 - Glyph set di-render ulang tiap ganti screen
 
-**Solusi**: Font system baru dengan cache key `(FontId << 16) | AtlasRes`. Font di-load **lazy** — cuma sekali, terus di-cache.
+**Solusi**: Font system baru dengan cache key `(FontId << 16) | AtlasRes`. Font di-load **lazy** -- cuma sekali, terus di-cache.
 
 ---
 
@@ -34,7 +34,7 @@ Dulu kita panggil `LoadFontEx()` berkali-kali di tempat beda tanpa cache. Akibat
 
 ### Pipeline
 
-```
+```txt
 ┌──────────┐      ┌──────────────┐      ┌─────────────┐      ┌────────────┐
 │ FontId   │ ──→  │ FontDef      │ ──→  │ GetOrLoad() │ ──→  │ CachedFont │
 │ (enum)   │      │ (filename +  │      │ (lazy load) │      │ (cache)    │
@@ -49,19 +49,22 @@ FontHandle            AtlasRes          DrawTextCached()
 ### Komponen Utama
 
 | Komponen | File | Fungsi |
-|----------|------|--------|
-| `FontId` | `include/rendering/fonts.h` | Enum abstract role — gak nyentuh file path |
+| --- | --- | --- |
+| `FontId` | `include/rendering/fonts.h` | Enum abstract role -- gak nyentuh file path |
 | `AtlasRes` | `include/rendering/fonts.h` | Resolusi atlas font (128/256/512/1024) |
 | `FontDef` | `include/rendering/fonts.h` | Mapping dari FontId ke filename + default resolution |
 | `FontHandle` | `include/rendering/fonts.h` | Struct buat nge-pass FontId + AtlasRes sebagai 1 parameter |
 | `GetOrLoad()` | `src/rendering/fonts.cpp` | Lazy load + cache lookup |
-| `DrawTextCached()` | `src/rendering/fonts.cpp` | DrawTextEx wrapper — otomatis get dari cache |
+| `DrawTextCached()` | `src/rendering/fonts.cpp` | DrawTextEx wrapper -- otomatis get dari cache |
 | `DrawDefaultText()` | `src/rendering/fonts.cpp` | DrawText sederhana pake FontId::DEFAULT |
+| `MeasureTextCached()` | `src/rendering/fonts.cpp` | MeasureTextEx wrapper -- ngukur ukuran text pake font dari cache |
+| `UnloadFonts()` | `src/rendering/fonts.cpp` | Unload semua font dari cache |
 
 ### Cache Key
 
 Cache pake `std::unordered_map` dengan key `uint32_t`:
-```
+
+```txt
 key = (FontId << 16) | AtlasRes
 ```
 
@@ -70,14 +73,15 @@ Jadi `FontId::KEYBIND_HEADER (1)` + `AtlasRes::RES_256 (256)` = key `0x00010100`
 ### Search Path
 
 Font file dicari di 2 path secara berurutan:
-1. `assets/fonts/` — path development
-2. `build/bin/assets/fonts/` — path setelah build
+
+1. `assets/fonts/` -- path development
+2. `build/bin/assets/fonts/` -- path setelah build
 
 ---
 
 ## 3. API Reference
 
-### #1 — `GetOrLoad(FontId id, AtlasRes res)`
+### #1 -- `GetOrLoad(FontId id, AtlasRes res)`
 
 Load font dari cache. Kalo belum ada, di-load dari file.
 
@@ -87,17 +91,17 @@ Font font = GetOrLoad(FontId::LOADING_TITLE);
 Font font = GetOrLoad(FontId::LOADING_TITLE, AtlasRes::RES_512);
 ```
 
-### #2 — `GetOrLoad(FontId id)`
+### #2 -- `GetOrLoad(FontId id)`
 
-Overload — pake default resolution dari `FontDef`.
+Overload -- pake default resolution dari `FontDef`.
 
 ```cpp
 Font font = GetOrLoad(FontId::KEYBIND_HEADER);
 ```
 
-### #3 — `DrawTextCached(FontHandle fh, const char* text, Vector2 pos, float fontSize, float spacing, Color tint)`
+### #3 -- `DrawTextCached(FontHandle fh, const char* text, Vector2 pos, float fontSize, float spacing, Color tint)`
 
-DrawTextEx wrapper — otomatis get font dari cache berdasarkan `FontHandle`.
+DrawTextEx wrapper -- otomatis get font dari cache berdasarkan `FontHandle`.
 
 ```cpp
 DrawTextCached(
@@ -110,9 +114,9 @@ DrawTextCached(
 );
 ```
 
-### #4 — `MeasureTextCached(FontHandle fh, const char* text, float fontSize, float spacing)`
+### #4 -- `MeasureTextCached(FontHandle fh, const char* text, float fontSize, float spacing)`
 
-MeasureTextEx wrapper — ngukur ukuran text pake font dari cache.
+MeasureTextEx wrapper -- ngukur ukuran text pake font dari cache.
 
 ```cpp
 Vector2 size = MeasureTextCached(
@@ -121,15 +125,15 @@ Vector2 size = MeasureTextCached(
 );
 ```
 
-### #5 — `DrawDefaultText(const char* text, int posX, int posY, int fontSize, Color color)`
+### #5 -- `DrawDefaultText(const char* text, int posX, int posY, int fontSize, Color color)`
 
-Convenience function — signature sama persis kayak raylib `DrawText()`, tapi pake `FontId::DEFAULT` (Poppins-Bold).
+Convenience function -- signature sama persis kayak raylib `DrawText()`, tapi pake `FontId::DEFAULT` (Poppins-Bold).
 
 ```cpp
 DrawDefaultText("Score: 100", 10, 10, 20, WHITE);
 ```
 
-### #6 — `UnloadFonts()`
+### #6 -- `UnloadFonts()`
 
 Unload semua font dari cache. Panggil pas game shutdown.
 
@@ -143,7 +147,7 @@ UnloadFonts();
 
 ### A. Mau nulis text simpel (gak peduli font)?
 
-Pake `DrawDefaultText()` — signature sama kayak raylib lama, gak perlu edit banyak.
+Pake `DrawDefaultText()` -- signature sama kayak raylib lama, gak perlu edit banyak.
 
 ```cpp
 // DULU:
@@ -219,11 +223,13 @@ Makin tinggi atlas resolution → makin tajam text ukuran besar, tapi makin bera
 ## 5. Daftar Font Tersedia
 
 | FontId | File | Default Res | Kegunaan |
-|--------|------|-------------|----------|
+| --- | --- | --- | --- |
 | `DEFAULT` | Poppins-Bold.ttf | RES_256 | Font default UI |
 | `KEYBIND_HEADER` | NewDawn.ttf | RES_256 | Header keybind list |
-| `KEYBIND_ENTRY` | Poppins-Regular.ttf | RES_256 | Entry keybind list |
+| `KEYBIND_ENTRY` | Quicksand-Bold.ttf | RES_256 | Entry keybind list |
 | `LOADING_TITLE` | Poppins-Bold.ttf | RES_256 | Alias DEFAULT buat loading screen |
+| `HUD_PLAYER` | Poppins-Bold.ttf | RES_256 | Font HUD player (HP bar, buff indicator) |
+| `INVENTORY_UI` | Poppins-Bold.ttf | RES_256 | Font inventory UI |
 | `MEDIEVAL_SHARP` | MedievalSharp-Regular.ttf | RES_256 | Font tematik medieval |
 | `QUICKSAND_BOLD` | Quicksand-Bold.ttf | RES_256 | Bold sans-serif |
 | `QUICKSAND_SEMIBOLD` | Quicksand-SemiBold.ttf | RES_256 | Semi-bold sans-serif |
@@ -232,6 +238,11 @@ Makin tinggi atlas resolution → makin tajam text ukuran besar, tapi makin bera
 | `QUICKSAND_LIGHT` | Quicksand-Light.ttf | RES_256 | Light sans-serif |
 | `NORSE_BOLD` | Norsebold.otf | RES_256 | Norse bold display |
 | `NORSE` | Norse.otf | RES_256 | Norse regular display |
+| `AUDIOSETTS_HEADER` | NewDawn.ttf | **RES_512** | Header slider audio -- resolusi tinggi biar tajam |
+| `AUDIOSETTS_VALUE` | Poppins-Regular.ttf | RES_256 | Value text audio settings |
+| `VIDEOSETTS_LABEL` | NewDawn.ttf | **RES_512** | Label video settings — resolusi tinggi biar tajam |
+| `MINIMAP_UI` | Poppins-Bold.ttf | RES_256 | Font minimap UI (legend, hint) |
+| `SAVESLOT_TEXT` | Poppins-Regular.ttf | RES_256 | Font teks save slot UI |
 
 Semua file font ada di `assets/fonts/`.
 
@@ -245,17 +256,17 @@ Semua file font ada di `assets/fonts/`.
 #include "fonts.h"
 
 void DrawMyScreen() {
-    // Header — pake LOADING_TITLE
+    // Header -- pake LOADING_TITLE
     DrawTextCached(
         {FontId::LOADING_TITLE, AtlasRes::RES_256},
         "INVENTORY", {50, 30}, 28, 1, WHITE
     );
 
-    // Body — pake DEFAULT
+    // Body -- pake DEFAULT
     DrawDefaultText("Item 1: Sword", 60, 80, 18, LIGHTGRAY);
     DrawDefaultText("Item 2: Shield", 60, 105, 18, LIGHTGRAY);
 
-    // Footer — pake QUICKSAND_LIGHT
+    // Footer -- pake QUICKSAND_LIGHT
     Font light = GetOrLoad(FontId::QUICKSAND_LIGHT);
     DrawTextEx(light, "Press I to close", {50, 300}, 14, 1, GRAY);
 }
@@ -287,7 +298,7 @@ void DrawCenteredText(const char* text, int y, int fontSize, Color color) {
         {FontId::LOADING_TITLE, AtlasRes::RES_256},
         text, (float)fontSize, 1
     );
-    int x = (640 - (int)size.x) / 2;  // 640 = virtual screen width
+    int x = (GameScreenWidth - (int)size.x) / 2;
     DrawTextCached(
         {FontId::LOADING_TITLE, AtlasRes::RES_256},
         text, {(float)x, (float)y}, (float)fontSize, 1, color
@@ -300,7 +311,7 @@ void DrawCenteredText(const char* text, int y, int fontSize, Color color) {
 ## 7. Best Practices
 
 | Situasi | Pake |
-|----------|------|
+| --- | --- |
 | Text biasa (gak perlu font khusus) | `DrawDefaultText()` |
 | Satu screen pake font yang sama berulang | Simpen `Font font = GetOrLoad(FontId::X)` di awal fungsi |
 | Cuma 1-2 kali draw | `DrawTextCached()` langsung |
@@ -319,7 +330,7 @@ void DrawCenteredText(const char* text, int y, int fontSize, Color color) {
 Kalo text kamu di `fontSize` di atas 40-50px dan keliatan pecah/pixelated, naikin `AtlasRes`:
 
 ```cpp
-// fontSize 60 — butuh atlas tinggi biar tajam
+// fontSize 60 -- butuh atlas tinggi biar tajam
 GetOrLoad(FontId::DEFAULT, AtlasRes::RES_512);
 ```
 
@@ -330,6 +341,7 @@ GetOrLoad(FontId::DEFAULT, AtlasRes::RES_512);
 ### Font gak muncul / ke load?
 
 Cek:
+
 1. File font ada di `assets/fonts/`? (cek list di section 5)
 2. Path `build/bin/assets/fonts/` juga perlu di-copy kalo build beda direktori
 3. TraceLog bakal nampilin `"FONTS: %s not found..."` kalo gagal
@@ -337,6 +349,7 @@ Cek:
 ### Font keliatan pecah?
 
 Naikin atlas resolution:
+
 ```cpp
 // Daripada RES_256, pake RES_512
 GetOrLoad(FontId::X, AtlasRes::RES_512);

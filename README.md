@@ -18,7 +18,7 @@
         <img src="docs/assets/readme/sshots/screenshot-1_mainMenu.webp" width="100%">
       </td>
       <td align="center" width="50%">
-        <img src="docs/assets/readme/sshots/screenshot-2_explosion.webp" width="100%">
+        <img src="docs/assets/readme/sshots/screenshot-2_inventory_system.webp" width="100%">
       </td>
     </tr>
     <tr>

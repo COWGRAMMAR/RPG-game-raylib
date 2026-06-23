@@ -56,7 +56,7 @@ static struct
     int buffDamageTurns = 0;
     int buffInvincibilityTurns = 0;
     float buffDamageMultiplier = 1.0f;
-    int itemCategory = -1;  // -1=select category, 0=health, 1=damage, 2=invincibility
+    int itemCategory = -1; // -1=select category, 0=health, 1=damage, 2=invincibility
 
 } state;
 
@@ -68,7 +68,7 @@ void TurnCombat::Init(Enemy *boss, Player *player)
     state.phase = TurnPhase::PLAYER_CHOICE;
     state.boss = boss;
     state.player = player;
-            state.message = "Choose action (1-3), then press ENTER to confirm!";
+    state.message = "Choose action (1-3), then ENTER to confirm!";
     state.timer = 0.0f;
     state.lastBossAction = BossActionType::CLAW;
     state.playerDefending = false;
@@ -199,7 +199,7 @@ static bool UsePotion(int defId)
         if (item.amount <= 0)
             item = {-1, 0};
         char buf[64];
-        snprintf(buf, sizeof(buf), "Used %s! +%.0f HP (%.0f -> %.0f)", def.name.c_str(), heal, oldHp, p.Health);
+        snprintf(buf, sizeof(buf), "Using %s! +%.0f HP (%.0f -> %.0f)", def.name.c_str(), heal, oldHp, p.Health);
         state.message = buf;
         return true;
     };
@@ -353,7 +353,7 @@ static void ExecuteBossTurn()
     if (state.buffInvincibilityTurns > 0)
     {
         damage = 0;
-        state.message = "INVINCIBLE! The boss cannot hurt you!";
+        state.message = "INVINCIBLE! Boss can't hurt you!";
     }
 
     state.player->TakeDamage(damage, {0, 0});
@@ -406,7 +406,7 @@ void TurnCombat::Update()
         }
         else
         {
-    state.message = "Choose action (1-3), then press ENTER to confirm!";
+            state.message = "Choose action (1-3), then ENTER to confirm!";
         }
 
         if (IsKeyPressed(KEY_ENTER) && state.selectedAction >= 0)
@@ -531,11 +531,11 @@ void TurnCombat::Update()
             }
             else if (state.selectedAction == 3)
             {
-                state.message = "Return to main menu. Press ENTER to confirm.";
+                state.message = "Back to main menu. Press ENTER to confirm.";
             }
             else
             {
-                state.message = "Select item category (1-3), [4] Back, then ENTER to confirm!";
+                state.message = "Choose item category (1-3), [4] Back, then ENTER to confirm!";
             }
 
             if (IsKeyPressed(KEY_ENTER) && state.selectedAction >= 0)
@@ -549,7 +549,7 @@ void TurnCombat::Update()
                 state.itemCategory = state.selectedAction;
                 state.selectedAction = -1;
                 state.selectedPotionId = -1;
-                state.message = "Select potion (1-2/3), [4] Back, then ENTER";
+                state.message = "Choose potion (1-2/3), [4] Back, then ENTER";
             }
         }
         else
@@ -557,9 +557,25 @@ void TurnCombat::Update()
             // Potion selection within chosen category
             int ids[3] = {-1, -1, -1};
             int count = 0;
-            if (state.itemCategory == 0) { ids[0] = 2; ids[1] = 5; ids[2] = 7; count = 3; }
-            else if (state.itemCategory == 1) { ids[0] = 9; ids[1] = 10; count = 2; }
-            else if (state.itemCategory == 2) { ids[0] = 13; ids[1] = 14; count = 2; }
+            if (state.itemCategory == 0)
+            {
+                ids[0] = 2;
+                ids[1] = 5;
+                ids[2] = 7;
+                count = 3;
+            }
+            else if (state.itemCategory == 1)
+            {
+                ids[0] = 9;
+                ids[1] = 10;
+                count = 2;
+            }
+            else if (state.itemCategory == 2)
+            {
+                ids[0] = 13;
+                ids[1] = 14;
+                count = 2;
+            }
 
             if (IsKeyPressed(KEY_ONE))
             {
@@ -586,11 +602,11 @@ void TurnCombat::Update()
             }
             else if (state.selectedAction == 99)
             {
-                state.message = "Return to category. Press ENTER to confirm.";
+                state.message = "Back to category. Press ENTER to confirm.";
             }
             else
             {
-                state.message = TextFormat("Select potion (1-%d), [4] Back, then ENTER", count);
+                state.message = TextFormat("Choose potion (1-%d), [4] Back, then ENTER", count);
             }
 
             if (IsKeyPressed(KEY_ENTER) && state.selectedAction == 99)
@@ -598,7 +614,7 @@ void TurnCombat::Update()
                 state.itemCategory = -1;
                 state.selectedPotionId = -1;
                 state.selectedAction = -1;
-                state.message = "Select item category (1-3), [4] Back, then ENTER to confirm!";
+                state.message = "Choose item category (1-3), [4] Back, then ENTER to confirm!";
                 break;
             }
             if (IsKeyPressed(KEY_ENTER) && state.selectedPotionId >= 0)
@@ -640,7 +656,7 @@ void TurnCombat::Update()
                 else
                 {
                     const ItemDefinition &def = itemDefs.GetById(state.selectedPotionId);
-                    state.message = TextFormat("No %s!", def.name.c_str());
+                    state.message = TextFormat("No %s available!", def.name.c_str());
                     state.selectedPotionId = -1;
                     state.timer = 1.0f;
                 }
@@ -974,26 +990,26 @@ void TurnCombat::Draw()
     switch (state.phase)
     {
     case TurnPhase::PLAYER_CHOICE:
-        phaseText = "Your Turn";
+        phaseText = "Your turn";
         break;
     case TurnPhase::PLAYER_ATTACK:
         phaseText = "Attacking...";
         break;
     case TurnPhase::PLAYER_ITEM:
         if (state.itemCategory == -1)
-            phaseText = "Select Item Category";
+            phaseText = "Choose Item Category";
         else if (state.itemCategory == 0)
-            phaseText = "Select Health Potion";
+            phaseText = "Choose Health Potion";
         else if (state.itemCategory == 1)
-            phaseText = "Select Damage Buff";
+            phaseText = "Choose Damage Buff";
         else
-            phaseText = "Select Invincibility";
+            phaseText = "Choose Invincibility";
         break;
     case TurnPhase::PLAYER_DEFEND:
         phaseText = "Defending...";
         break;
     case TurnPhase::SHOW_RESULT:
-        phaseText = "Boss is attacking!";
+        phaseText = "Boss Is Attacking!";
         break;
     case TurnPhase::BOSS_TURN:
         phaseText = "Boss's Turn";

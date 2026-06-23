@@ -20,10 +20,11 @@
 #include <fstream>
 
 /// Mode operasi SaveLoadScreen
-enum class SaveLoadMode {
-    SAVE_MODE,    ///< Mode menyimpan game (pilih slot)
-    LOAD_MODE,    ///< Mode memuat game (pilih slot)
-    DELETE_MODE   ///< Mode menghapus slot (pilih slot untuk dihapus)
+enum class SaveLoadMode
+{
+    SAVE_MODE,  ///< Mode menyimpan game (pilih slot)
+    LOAD_MODE,  ///< Mode memuat game (pilih slot)
+    DELETE_MODE ///< Mode menghapus slot (pilih slot untuk dihapus)
 };
 
 /*==============================================================================
@@ -38,7 +39,8 @@ enum class SaveLoadMode {
  * Di-render di atas game screen dengan latar belakang gelap.
  * Menggunakan tombol berbasis teks untuk navigasi.
  */
-class SaveLoadScreen {
+class SaveLoadScreen
+{
 public:
     /**
      * @brief Constructor
@@ -71,7 +73,7 @@ public:
      * @param mousePosition Posisi mouse saat ini
      * @param mouseClicked Status klik mouse
      */
-    void Update(GameState* state, Vector2 mousePosition, bool mouseClicked);
+    void Update(GameState *state, Vector2 mousePosition, bool mouseClicked);
 
     /**
      * @brief Me-render layar save/load
@@ -109,7 +111,7 @@ private:
      * @param mousePosition Posisi mouse untuk efek hover
      * @param enabled Apakah slot dapat diinteraksi
      */
-    void DrawSlotBox(int slotIndex, int posX, int posY, bool occupied, const std::string& mapName, const std::string& timestamp, Vector2 mousePosition, bool enabled);
+    void DrawSlotBox(int slotIndex, int posX, int posY, bool occupied, const std::string &mapName, const std::string &timestamp, Vector2 mousePosition, bool enabled);
 
     /**
      * @brief Gambar grid slot manual dan autosave
@@ -203,15 +205,15 @@ private:
 
     /// Mode sebelumnya — digunakan untuk kembali dari DELETE_MODE ke mode asal
     SaveLoadMode m_previousMode;
-    Popup m_overwritePopup;      ///< Popup konfirmasi timpa save
-    Popup m_loadPopup;           ///< Popup konfirmasi load game
-    Popup m_deletePopup;         ///< Popup konfirmasi hapus slot
-    Popup m_corruptionPopup;     ///< Popup peringatan save corrupt
-    bool m_showOverwritePopup;   ///< Flag tampilkan overwrite popup
-    bool m_showLoadPopup;        ///< Flag tampilkan load popup
-    bool m_showDeletePopup;      ///< Flag tampilkan delete popup
-    bool m_showCorruptionPopup;  ///< Flag tampilkan corruption popup
-    int m_selectedSlot;          ///< Slot yang dipilih untuk save/load
+    Popup m_overwritePopup;     ///< Popup konfirmasi timpa save
+    Popup m_loadPopup;          ///< Popup konfirmasi load game
+    Popup m_deletePopup;        ///< Popup konfirmasi hapus slot
+    Popup m_corruptionPopup;    ///< Popup peringatan save corrupt
+    bool m_showOverwritePopup;  ///< Flag tampilkan overwrite popup
+    bool m_showLoadPopup;       ///< Flag tampilkan load popup
+    bool m_showDeletePopup;     ///< Flag tampilkan delete popup
+    bool m_showCorruptionPopup; ///< Flag tampilkan corruption popup
+    int m_selectedSlot;         ///< Slot yang dipilih untuk save/load
 
     /// Tombol DELETE untuk masuk mode hapus slot (basch-3: buttonImage pakai saveloadDelete.png)
     buttonImage deleteButton;

@@ -1,18 +1,32 @@
 {
     "configurations": [
         {
-            "name": "windows-gcc-x64",
+            "name": "windows-clang-x64",
             "includePath": [
-                "${workspaceFolder}/**",
-                "${workspaceFolder}/lib/json/include"
+                "${workspaceFolder}/include",
+                "${workspaceFolder}/include/core",
+                "${workspaceFolder}/include/entities",
+                "${workspaceFolder}/include/items",
+                "${workspaceFolder}/include/map",
+                "${workspaceFolder}/include/systems",
+                "${workspaceFolder}/include/rendering",
+                "${workspaceFolder}/include/ui",
+                "${workspaceFolder}/include/debug",
+                "${workspaceFolder}/include/utils",
+                "${workspaceFolder}/lib/tileson",
+                "${workspaceFolder}/lib/json/include",
+                "${workspaceFolder}/lib/raylib-windows/include",
+                "${workspaceFolder}/lib/raylib-media",
+                "${workspaceFolder}/lib/ffmpeg/include"
             ],
-            "compilerPath": "gcc",
-            "cStandard": "${default}",
-            "cppStandard": "c++23",
+            "compilerPath": "clang++",
+            "cStandard": "c17",
+            "cppStandard": "c++17",
             "intelliSenseMode": "windows-clang-x64",
             "compileCommands": "${workspaceFolder}/build/compile_commands.json",
-            "compilerArgs": [
-                ""
+            "forcedInclude": [
+                "cstdint",
+                "algorithm"
             ]
         }
     ],

@@ -16,6 +16,7 @@
 #include "mapLogic.h"
 #include "propsbehavior.h"
 #include "item.h"
+#include "map/minimap.h"
 
 namespace Combat
 {
@@ -27,7 +28,7 @@ namespace Combat
 
         HandleStamina(player);
 
-        if (InputInstance.IsInventoryOpen())
+        if (InputInstance.IsInventoryOpen() || g_MinimapScreen.IsActive())
             return;
 
         HandleAttack(player);
@@ -498,16 +499,15 @@ namespace Combat
                     attackCenter.x - reach,
                     attackCenter.y - reach,
                     size,
-                    size
-                };
-                if (CheckCollisionRecs(slamAABB, entity->GetHurtbox()))
+                    size};
+                if (CheckCollisionRecs(slamAABB, entity->GetHitbox()))
                 {
                     hit = true;
                 }
             }
             else
             {
-                if (CheckRadialCollision(attackCenter, attackAngle, reach, breadth, attackerRadius, entity->GetHurtbox()))
+                if (CheckRadialCollision(attackCenter, attackAngle, reach, breadth, attackerRadius, entity->GetHitbox()))
                 {
                     hit = true;
                 }
@@ -548,8 +548,7 @@ namespace Combat
                 attackCenter.x - reach,
                 attackCenter.y - reach,
                 size,
-                size
-            };
+                size};
         }
         else
         {
@@ -709,25 +708,6 @@ namespace Combat
     }
 }
 
-static bool CheckCollisionLineRec(Vector2 startPos, Vector2 endPos, Rectangle rec)
-{
-    if (CheckCollisionPointRec(startPos, rec) || CheckCollisionPointRec(endPos, rec))
-        return true;
-
-    Vector2 collisionPoint;
-    Vector2 topLeft = {rec.x, rec.y};
-    Vector2 topRight = {rec.x + rec.width, rec.y};
-    Vector2 bottomLeft = {rec.x, rec.y + rec.height};
-    Vector2 bottomRight = {rec.x + rec.width, rec.y + rec.height};
-
-    if (CheckCollisionLines(startPos, endPos, topLeft, topRight, &collisionPoint)) return true;
-    if (CheckCollisionLines(startPos, endPos, topRight, bottomRight, &collisionPoint)) return true;
-    if (CheckCollisionLines(startPos, endPos, bottomRight, bottomLeft, &collisionPoint)) return true;
-    if (CheckCollisionLines(startPos, endPos, bottomLeft, topLeft, &collisionPoint)) return true;
-
-    return false;
-}
-
 Arrow::Arrow(Vector2 pos, Vector2 dir, float speed, float damage, float reach, float rotation, Entity *owner, float knockbackForce, std::string spriteKey)
 {
     StartPos = pos;
@@ -759,7 +739,6 @@ void Arrow::Update()
         return;
     }
 
-    Vector2 oldPos = Position;
     Position = Vector2Add(Position, Vector2Scale(Velocity, dt));
 
     if (Vector2Distance(StartPos, Position) >= Reach)
@@ -775,29 +754,22 @@ void Arrow::Update()
         if (entity == this || entity == Owner || !entity->IsActive || entity->Health <= 0)
             continue;
 
-        Rectangle hurtbox = entity->GetHurtbox();
-        Rectangle expandedHurtbox = {
-            hurtbox.x - 4,
-            hurtbox.y - 4,
-            hurtbox.width + 8,
-            hurtbox.height + 8
-        };
-
-        if (CheckCollisionRecs(hitbox, hurtbox) || CheckCollisionLineRec(oldPos, Position, expandedHurtbox))
+        if (CheckCollisionRecs(hitbox, entity->GetHitbox()))
         {
             Vector2 knockback = Vector2Scale(Vector2Normalize(Velocity), KnockbackForce);
             entity->TakeDamage(Damage, knockback);
 
             Vector2 center = entity->GetCenter();
             Effects::AddDamage(center, Damage);
-            
+
             Effects::AddCollision(Position);
             IsActive = false;
             break;
         }
     }
 
-    if (!IsActive) return;
+    if (!IsActive)
+        return;
 
     if (CheckCollisionAgainstRects(hitbox, PlayerInstance.CollisionRects) ||
         CheckCollisionAgainstPolygons(hitbox, PlayerInstance.CollisionPolygons))

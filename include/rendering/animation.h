@@ -10,7 +10,7 @@ constexpr int FRAME_SIZE = 32;
 /** @brief Gap antar frame di spritesheet */
 constexpr int FRAME_GAP = 4;
 /** @brief Jumlah maksimum texture slot */
-constexpr int MAX_TEXTURES = 9;
+constexpr int MAX_TEXTURES = 10;
 
 /** @brief Array global texture */
 extern Texture2D textures[MAX_TEXTURES];
@@ -26,7 +26,8 @@ enum TextureSlot
     SPRITESHEET_ENEMIES,        // Slot spritesheet enemies
     SPRITESHEET_EFFECTS,        // Slot spritesheet effects
     SPRITESHEET_ENEMIES_ELITE,  // Slot spritesheet elite enemies
-    SPRITESHEET_ENEMY_BOSS      // Slot spritesheet boss enemy
+    SPRITESHEET_ENEMY_BOSS,     // Slot spritesheet boss enemy
+    TILESET_GRASS               // Slot tileset grass-terrain
 };
 
 /** @brief Referensi ke satu frame dalam spritesheet */

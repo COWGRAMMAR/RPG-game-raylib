@@ -58,11 +58,12 @@ struct MapObject
  */
 struct TilesetInfo
 {
-    Texture2D texture; // Texture tileset yang sudah dimuat
-    int cols;          // Jumlah kolom tile dalam tileset
-    int spacing;       // Jarak antar tile dalam tileset
-    int firstgid;      // Global ID pertama dari tileset
-    int lastgid;       // Global ID terakhir dari tileset
+    Texture2D texture;   // Texture tileset yang sudah dimuat
+    std::string imagePath; // Path file gambar tileset (referensi Tiled JSON)
+    int cols;            // Jumlah kolom tile dalam tileset
+    int spacing;         // Jarak antar tile dalam tileset
+    int firstgid;        // Global ID pertama dari tileset
+    int lastgid;         // Global ID terakhir dari tileset
 };
 
 /*==============================================================================

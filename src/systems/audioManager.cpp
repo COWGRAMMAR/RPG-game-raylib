@@ -16,9 +16,9 @@
 static Music _tracks[7] = {};
 
 static float _masterVolume = 1.0f;
-static float _musicVolume  = 0.8f;
-static float _sfxVolume    = 1.0f;
-static float _videoVolume  = 1.0f;
+static float _musicVolume = 0.8f;
+static float _sfxVolume = 1.0f;
+static float _videoVolume = 1.0f;
 
 /** @brief Screen terakhir yang memicu music switch */
 static ScreenState _lastMusicScreen = MAIN_MENU;
@@ -46,15 +46,14 @@ static bool _blockAutoSwitch = false;
  * Index 5: BossMusic.mp3 — turn-based boss fight
  * Index 6: WinTheme.mp3 — turn-based victory
  */
-static const char* TRACK_FILES[] = {
+static const char *TRACK_FILES[] = {
     "assets/audio/music/MainMenu-Startup.mp3",
     "assets/audio/music/DungeonMusic.mp3",
     "assets/audio/music/GameOver.mp3",
     "assets/audio/music/MainMenu-Loop.mp3",
     "assets/audio/music/Minecraft Volume Alpha - 3 - Subwoofer Lullaby.mp3",
     "assets/audio/music/BossMusic.mp3",
-    "assets/audio/music/WinTheme.mp3"
-};
+    "assets/audio/music/WinTheme.mp3"};
 static const int MAINMENU_LOOP_INDEX = 3;
 static const int TRACK_COUNT = sizeof(TRACK_FILES) / sizeof(TRACK_FILES[0]);
 
@@ -372,7 +371,8 @@ void AudioManager::UnblockAutoSwitch()
 /** @name SFX */
 /**@{*/
 
-struct SoundPool {
+struct SoundPool
+{
     Sound sounds[4];
     int currentIndex;
 };
@@ -403,6 +403,9 @@ static void LoadSFXToPool(const std::string &name, const char *path)
 
 void AudioManager::InitSFX()
 {
+    // Unload dulu kalo ada sisa dari game sebelumnya (safety buat future restart)
+    CloseSFX();
+
     LoadSFXToPool("thrust", "assets/audio/sfx/thrust.mp3");
     LoadSFXToPool("arrow", "assets/audio/sfx/arrow.mp3");
     LoadSFXToPool("attack", "assets/audio/sfx/attack.mp3");

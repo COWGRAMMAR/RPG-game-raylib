@@ -303,7 +303,7 @@ public:
      * @param playerBounds Bounding box player
      * @param player Pointer ke player
      */
-    void HitByAttack(Rectangle attackHitbox, Rectangle playerBounds, Player *player,
+    bool HitByAttack(Rectangle attackHitbox, Rectangle playerBounds, Player *player,
                      const std::vector<Rectangle> &solidObstacles = {});
 
     /**
@@ -333,13 +333,13 @@ public:
      * @brief Dapatkan posisi bomb yang sudah meledak (consumed).
      * @return Const reference ke unordered_set posisi yang sudah dikonsumsi
      */
-    const std::unordered_set<std::string>& GetConsumedPositions() const { return consumedPositions; }
+    const std::unordered_set<std::string> &GetConsumedPositions() const { return consumedPositions; }
 
     /**
      * @brief Set posisi bomb yang sudah meledak (untuk restore save state).
      * @param positions Set posisi yang sudah dikonsumsi
      */
-    void SetConsumedPositions(const std::unordered_set<std::string>& positions) { consumedPositions = positions; }
+    void SetConsumedPositions(const std::unordered_set<std::string> &positions) { consumedPositions = positions; }
 
     // Konstanta bomb (public untuk unit test)
     static constexpr float BOMB_EXPLOSION_RADIUS = 80.0f;  // Radius area ledakan (pixel)
@@ -490,7 +490,7 @@ private:
     int prevDeadCount = 0;             // DeadCount sebelumnya — buat deteksi perubahan
     bool hasCapturedCount = false;     // Flag biar initial capture hanya sekali
     Rectangle bossStageBounds = {0};   // Bounds object "boss_stage" untuk deteksi area boss
-    void ReLockBarriers();    // Pasang ulang barrier (re-lock) — khusus boss room
+    void ReLockBarriers();             // Pasang ulang barrier (re-lock) — khusus boss room
 };
 
 /*==============================================================================

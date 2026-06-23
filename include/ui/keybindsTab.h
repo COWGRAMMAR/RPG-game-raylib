@@ -3,4 +3,5 @@
 #include "raylib.h"
 
 void DrawKeybindsTab(Vector2 mousePosition, int startX, int startY, int contentW);
-const char* GetKeybindsSettingsPath();
+void UnloadKeybindsTextures();
+const char *GetKeybindsSettingsPath();

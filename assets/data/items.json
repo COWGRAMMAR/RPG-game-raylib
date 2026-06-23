@@ -94,7 +94,7 @@
         "startAngleOffset": 0.0,
         "sweepAngle": 0.0,
         "centerOffset": { "x": 8.0, "y": 4.0 },
-        "manaCost": 3.0,
+        "manaCost": 5.0,
         "attackType": "pierce"
       }
     },

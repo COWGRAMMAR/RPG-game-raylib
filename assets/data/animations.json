@@ -120,7 +120,7 @@
     "skeleton": {
         "idle": {
             "right": {
-                "sprites": ["skeletonIdleLeft1", "skeletonIdleLeft2"],
+                "sprites": ["skeletonIdleRight1", "skeletonIdleRight2"],
                 "spriteCount": 2,
                 "spriteDuration": 0.5,
                 "loop": true
@@ -134,13 +134,13 @@
         },
         "walk": {
             "right": {
-                "sprites": ["skeletonIdleLeft1", "skeletonIdleLeft2"],
+                "sprites": ["skeletonWalkRight1", "skeletonWalkRight2"],
                 "spriteCount": 2,
                 "spriteDuration": 0.5,
                 "loop": true
             },
             "left": {
-                "sprites": ["skeletonIdleLeft1", "skeletonIdleLeft2"],
+                "sprites": ["skeletonWalkLeft1", "skeletonWalkLeft2"],
                 "spriteCount": 2,
                 "spriteDuration": 0.5,
                 "loop": true
@@ -148,13 +148,13 @@
         },
         "attack": {
             "right": {
-                "sprites": ["skeletonIdleLeft1", "skeletonIdleLeft2"],
+                "sprites": ["skeletonAttackRight", "skeletonAttackRight"],
                 "spriteCount": 2,
                 "spriteDuration": 0.5,
                 "loop": true
             },
             "left": {
-                "sprites": ["skeletonIdleLeft1", "skeletonIdleLeft2"],
+                "sprites": ["skeletonAttackLeft", "skeletonAttackLeft"],
                 "spriteCount": 2,
                 "spriteDuration": 0.5,
                 "loop": true
@@ -162,7 +162,7 @@
         },
         "dead": {
             "right": {
-                "sprites": ["skeletonDeadLeft"],
+                "sprites": ["skeletonDeadRight"],
                 "spriteCount": 1,
                 "spriteDuration": 1.0,
                 "loop": false
@@ -178,7 +178,7 @@
     "wolf": {
         "idle": {
             "right": {
-                "sprites": ["wolfIdleLeft1", "wolfIdleLeft2"],
+                "sprites": ["wolfIdleRight1", "wolfIdleRight2"],
                 "spriteCount": 2,
                 "spriteDuration": 0.5,
                 "loop": true
@@ -192,13 +192,13 @@
         },
         "walk": {
             "right": {
-                "sprites": ["wolfIdleLeft1", "wolfIdleLeft2"],
+                "sprites": ["wolfWalkRight1", "wolfWalkRight2"],
                 "spriteCount": 2,
                 "spriteDuration": 0.5,
                 "loop": true
             },
             "left": {
-                "sprites": ["wolfIdleLeft1", "wolfIdleLeft2"],
+                "sprites": ["wolfWalkLeft1", "wolfWalkLeft2"],
                 "spriteCount": 2,
                 "spriteDuration": 0.5,
                 "loop": true
@@ -206,21 +206,21 @@
         },
         "attack": {
             "right": {
-                "sprites": ["wolfIdleLeft1", "wolfIdleLeft2"],
+                "sprites": ["wolfAttackRight", "wolfAttackRight"],
                 "spriteCount": 2,
-                "spriteDuration": 0.5,
+                "spriteDuration": 1.0,
                 "loop": true
             },
             "left": {
-                "sprites": ["wolfIdleLeft1", "wolfIdleLeft2"],
+                "sprites": ["wolfAttackLeft", "wolfAttackLeft"],
                 "spriteCount": 2,
-                "spriteDuration": 0.5,
+                "spriteDuration": 1.0,
                 "loop": true
             }
         },
         "dead": {
             "right": {
-                "sprites": ["wolfDeadLeft"],
+                "sprites": ["wolfDeadRight"],
                 "spriteCount": 1,
                 "spriteDuration": 1.0,
                 "loop": false
@@ -264,13 +264,13 @@
         },
         "attack": {
             "left": {
-                "sprites": ["orcAttackLeft"],
+                "sprites": ["orcAttackLeft", "orcAttackLeft"],
                 "spriteCount": 1,
                 "spriteDuration": 1.0,
                 "loop": false
             },
             "right": {
-                "sprites": ["orcAttackRight"],
+                "sprites": ["orcAttackRight", "orcAttackRight"],
                 "spriteCount": 1,
                 "spriteDuration": 1.0,
                 "loop": false
@@ -336,13 +336,13 @@
         },
         "attack": {
             "left": {
-                "sprites": ["manticoreAttackLeft"],
+                "sprites": ["manticoreAttackLeft", "manticoreAttackLeft"],
                 "spriteCount": 1,
                 "spriteDuration": 1.0,
                 "loop": false
             },
             "right": {
-                "sprites": ["manticoreAttackRight"],
+                "sprites": ["manticoreAttackRight", "manticoreAttackRight"],
                 "spriteCount": 1,
                 "spriteDuration": 1.0,
                 "loop": false

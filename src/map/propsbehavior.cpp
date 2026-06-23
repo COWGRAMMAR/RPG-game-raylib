@@ -616,8 +616,16 @@ bool IsLineBlockedByObstacles(
                 return true;
         }
 
-        if (stepX) { err -= dy; x += sx; }
-        if (stepY) { err += dx; y += sy; }
+        if (stepX)
+        {
+            err -= dy;
+            x += sx;
+        }
+        if (stepY)
+        {
+            err += dx;
+            y += sy;
+        }
         isStart = false;
     }
 
@@ -724,10 +732,11 @@ TileObject *BombManager::FindBomb(Vector2 hitPos, float threshold)
  * @param playerBounds Bounding box player
  * @param player Pointer ke player
  */
-void BombManager::HitByAttack(Rectangle attackHitbox, Rectangle playerBounds, Player *player,
+bool BombManager::HitByAttack(Rectangle attackHitbox, Rectangle playerBounds, Player *player,
                               const std::vector<Rectangle> &solidObstacles)
 {
     Vector2 playerCenter = {playerBounds.x + playerBounds.width / 2.0f, playerBounds.y + playerBounds.height / 2.0f};
+    bool anyHit = false;
 
     for (auto &bomb : bombs)
     {
@@ -747,7 +756,9 @@ void BombManager::HitByAttack(Rectangle attackHitbox, Rectangle playerBounds, Pl
         }
 
         Explode(bomb, playerBounds, player);
+        anyHit = true;
     }
+    return anyHit;
 }
 
 /**
@@ -813,9 +824,8 @@ void BombManager::Explode(BombData &bomb, Rectangle playerBounds, Player *player
     std::vector<Vector2> chainCenters;
     chainCenters.reserve(chain.size());
     for (auto *cb : chain)
-        chainCenters.push_back({
-            cb->tile.position.x + FRAME_SIZE / 2.0f,
-            cb->tile.position.y + FRAME_SIZE / 2.0f});
+        chainCenters.push_back({cb->tile.position.x + FRAME_SIZE / 2.0f,
+                                cb->tile.position.y + FRAME_SIZE / 2.0f});
 
     auto clusters = ExplosionUtils::ClusterByDistance(chainCenters, BOMB_EXPLOSION_RADIUS * 2.0f);
 
@@ -944,7 +954,6 @@ void BombManager::Update(float deltaTime, Rectangle playerBounds, Player *player
         std::remove_if(bombs.begin(), bombs.end(), [](const BombData &bomb)
                        { return !bomb.isAlive; }),
         bombs.end());
-
 }
 
 /**

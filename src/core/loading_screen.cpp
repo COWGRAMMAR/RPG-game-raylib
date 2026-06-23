@@ -8,6 +8,7 @@
  */
 
 #include "core/loading_screen.h"
+#include "map/minimap.h"
 #include "map/map.h"
 #include "entities/player.h"
 #include "entities/enemy.h"
@@ -191,6 +192,7 @@ static void HandleMapSwitch(GameState *state)
         }
         SpawnObject();
         RebuildObstacleCache();
+        MinimapSystem::InitWithMap();
         globalFlowField.Invalidate();
         state->loadingStage++;
         state->loadingProgress = (float)state->loadingStage / MAP_SWITCH_STAGES * 100.0F;
@@ -447,17 +449,17 @@ static void HandleInitialLoad(GameState *state)
 
         Entities::PruneDeadEntities();
 
-    // Save initial state untuk restart (runtime workspace only)
-    {
-        GameSnapshot initial = SaveManager::CaptureSnapshot();
-        SaveManager::SaveInitial(initial, -1);
-        SaveManager::CaptureInitialSnapshot(-1);
-    }
+        // Save initial state untuk restart (runtime workspace only)
+        {
+            GameSnapshot initial = SaveManager::CaptureSnapshot();
+            SaveManager::SaveInitial(initial, -1);
+            SaveManager::CaptureInitialSnapshot(-1);
+        }
 
-    if (HasSavedState())
-        SaveManager::MirrorToWorkspace(g_ActiveSaveSlot);
+        if (HasSavedState())
+            SaveManager::MirrorToWorkspace(g_ActiveSaveSlot);
 
-    InitMainMenu(state);
+        InitMainMenu(state);
         break;
     }
 }

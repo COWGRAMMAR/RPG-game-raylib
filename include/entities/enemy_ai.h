@@ -190,8 +190,8 @@ const float RETURN_SCAN_INTERVAL = 2.0f;
 /** @brief Entry spawn dengan flow field return */
 struct SpawnFlowFieldEntry
 {
-    Vector2 spawnPos; // posisi spawn atau pusat area spawn
-    FlowField field;  // flow field return menuju spawnPos
+    Vector2 spawnPos;     // posisi spawn atau pusat area spawn
+    FlowField field;      // flow field return menuju spawnPos
     bool isDirty = false; // flag agar tidak duplicate masuk queue
 };
 

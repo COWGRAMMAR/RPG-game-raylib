@@ -29,6 +29,7 @@
 #include "systems/audioManager.h"
 #include "rendering/hud.h"
 #include "map/propsbehavior.h"
+#include "map/minimap.h"
 #include "raylib.h"
 #include "raymath.h"
 #include <cstdio>
@@ -173,7 +174,11 @@ int main()
         // State: VIDEO (intro saat startup)
         if (state.currentScreen == VIDEO)
         {
-            enum class VPhase : uint8_t { INTRODUCTION, DONE };
+            enum class VPhase : uint8_t
+            {
+                INTRODUCTION,
+                DONE
+            };
             static VPhase videoPhase = VPhase::INTRODUCTION;
             static bool videoStarted = false;
 
@@ -246,6 +251,8 @@ int main()
             UpdateGame(&state);
             bool mouseClicked = IsMouseButtonPressed(MOUSE_LEFT_BUTTON);
             optionsScreen.Update(&state, GetVirtualMousePosition(&state), mouseClicked);
+            if (state.currentScreen == MAIN_MENU)
+                InitMainMenu(&state);
             if (WindowShouldClose())
                 break;
             BeginTextureMode(state.Dungeon);
@@ -325,6 +332,9 @@ int main()
                 signManager.DismissDialog();
             }
 
+            // Update minimap setelah logic player — biar UpdateView pake posisi player terbaru
+            MinimapSystem::Update();
+
             // render hanya jika masih dalam PLAY state
             if (state.currentScreen == PLAY)
             {
@@ -352,6 +362,8 @@ int main()
             UpdateGame(&state);
             bool mouseClicked = IsMouseButtonPressed(MOUSE_LEFT_BUTTON);
             saveLoadScreen.Update(&state, GetVirtualMousePosition(&state), mouseClicked);
+            if (state.currentScreen == MAIN_MENU)
+                InitMainMenu(&state);
             if (WindowShouldClose())
                 break;
             BeginTextureMode(state.Dungeon);
@@ -370,6 +382,9 @@ int main()
 
     // Shutdown audio sebelum close audio device
     AudioManager::Shutdown();
+
+    // Shutdown sistem tersier (sebelum GameShutDown)
+    MinimapSystem::Shutdown();
 
     // Shutdown
     GameShutDown(&state);

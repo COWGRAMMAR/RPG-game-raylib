@@ -1,7 +1,7 @@
 #pragma once
 
 #include "raylib.h"
-#include "buttonTxt.h"
+#include "button.h"
 #include <string>
 
 /**

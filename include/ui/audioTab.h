@@ -8,7 +8,7 @@
  */
 
 #include "raylib.h"
-#include "buttonTxt.h"
+#include "button.h"
 #include "../systems/audioManager.h"
 
 static const char* AUDIO_SETTINGS_PATH = "saves/settings/audioTab.json";

@@ -18,6 +18,7 @@
 #include "ui/audioTab.h"
 #include "ui/keybindsTab.h"
 #include "ui/saveLoadScreen.h"
+#include "ui/mainMenu.h"
 #include "core/game_state_saver.h"
 #include "core/savemanager.h"
 #include "map/worldgenio.h"
@@ -47,7 +48,7 @@ static Popup loadConfirmPopup("Load from save? Current progress will be lost.", 
 static Popup noSavePopup("No save file found.", "OK", 0.7F);
 static Popup pauseCorruptPopup("Save data is corrupted or incompatible.", "Yes, Delete", "No", 0.7f);
 static Popup returnConfirmPopup("Return to main menu?", "Continue", "Cancel", 0.7f);
-static Popup restartConfirmPopup("Restart Run?", "Restart", "Cancel", 0.7f);
+static Popup restartConfirmPopup("Restart run?", "Restart", "Cancel", 0.7f);
 
 /*==============================================================================
  * OptionsScreen Implementation
@@ -601,31 +602,31 @@ void PauseMenu::Update(GameState *state, Vector2 mousePosition, bool mouseClicke
         loadConfirmPopup.Update(mousePosition, mouseClicked);
         if (loadConfirmPopup.IsConfirmClicked())
         {
-        {
-            bool snapshotValid = SaveManager::HasManual(g_ActiveSaveSlot);
-            if (snapshotValid)
             {
-                GameSnapshot snap = SaveManager::LoadManual(g_ActiveSaveSlot);
-                snapshotValid = (snap.version == GameSnapshot::SNAPSHOT_VERSION);
-            }
+                bool snapshotValid = SaveManager::HasManual(g_ActiveSaveSlot);
+                if (snapshotValid)
+                {
+                    GameSnapshot snap = SaveManager::LoadManual(g_ActiveSaveSlot);
+                    snapshotValid = (snap.version == GameSnapshot::SNAPSHOT_VERSION);
+                }
 
-            if (snapshotValid)
-            {
-                loadConfirmPopup.Hide();
-                state->enteredLoading = false;
-                state->loadingStage = 0;
-                state->loadingProgress = 0.0F;
-                state->loadingComplete = false;
-                state->currentScreen = LOADING;
-                Hide();
+                if (snapshotValid)
+                {
+                    loadConfirmPopup.Hide();
+                    state->enteredLoading = false;
+                    state->loadingStage = 0;
+                    state->loadingProgress = 0.0F;
+                    state->loadingComplete = false;
+                    state->currentScreen = LOADING;
+                    Hide();
+                }
+                else
+                {
+                    loadConfirmPopup.Hide();
+                    pauseCorruptPopup.SetSubMessage("This save data will be deleted.");
+                    pauseCorruptPopup.Show();
+                }
             }
-            else
-            {
-                loadConfirmPopup.Hide();
-                pauseCorruptPopup.SetSubMessage("This save data will be deleted.");
-                pauseCorruptPopup.Show();
-            }
-        }
         }
         return;
     }
@@ -656,6 +657,7 @@ void PauseMenu::Update(GameState *state, Vector2 mousePosition, bool mouseClicke
             state->loadingProgress = 0.0F;
             state->loadingComplete = false;
             WorldgenIO::CleanupOrphanedSlots();
+            InitMainMenu(state);
             state->currentScreen = MAIN_MENU;
             Hide();
         }

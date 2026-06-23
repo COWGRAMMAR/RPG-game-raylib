@@ -3,6 +3,7 @@
 #include "item.h"
 #include "inventory.h"
 #include "rendering/hud.h"
+#include "ui/mainMenu.h"
 #include "raylib.h"
 #include "button.h"
 
@@ -91,6 +92,7 @@ void UpdateGameOverScreen(GameState *state)
         state->loadingStage = 0;
         state->loadingProgress = 0.0F;
         state->loadingComplete = false;
+        InitMainMenu(state);
         state->currentScreen = MAIN_MENU;
     }
 }

@@ -420,7 +420,7 @@ void Collision(Vector2 centerPosition, float progress, float scaleTiles)
     display.position = centerPosition;
     display.size = (int)(32.0f * scaleTiles);
     display.offset = {0, 0};
-    display.origin = { (float)display.size / 2.0f, (float)display.size / 2.0f };
+    display.origin = {(float)display.size / 2.0f, (float)display.size / 2.0f};
     display.tint = WHITE;
     display.rotation = 0.0f;
     display.flip = false;
@@ -444,7 +444,7 @@ void GroundSlam(Vector2 centerPosition, float progress, float scaleTiles)
     display.position = centerPosition;
     display.size = (int)(32.0f * scaleTiles);
     display.offset = {0, -8.0f}; // Menaikkan posisi animasi 8 pixel
-    display.origin = { (float)frame.width * display.size / 2.0f, (float)frame.height * display.size / 2.0f };
+    display.origin = {(float)frame.width * display.size / 2.0f, (float)frame.height * display.size / 2.0f};
     display.tint = WHITE;
     display.rotation = 0.0f;
     display.flip = false;

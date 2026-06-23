@@ -56,7 +56,7 @@ static struct
     int buffDamageTurns = 0;
     int buffInvincibilityTurns = 0;
     float buffDamageMultiplier = 1.0f;
-    int itemCategory = -1;  // -1=select category, 0=health, 1=damage, 2=invincibility
+    int itemCategory = -1; // -1=select category, 0=health, 1=damage, 2=invincibility
 
 } state;
 
@@ -68,7 +68,7 @@ void TurnCombat::Init(Enemy *boss, Player *player)
     state.phase = TurnPhase::PLAYER_CHOICE;
     state.boss = boss;
     state.player = player;
-            state.message = "Choose action (1-3), then press ENTER to confirm!";
+    state.message = "Choose action (1-3), then press ENTER to confirm!";
     state.timer = 0.0f;
     state.lastBossAction = BossActionType::CLAW;
     state.playerDefending = false;
@@ -406,7 +406,7 @@ void TurnCombat::Update()
         }
         else
         {
-    state.message = "Choose action (1-3), then press ENTER to confirm!";
+            state.message = "Choose action (1-3), then press ENTER to confirm!";
         }
 
         if (IsKeyPressed(KEY_ENTER) && state.selectedAction >= 0)
@@ -557,9 +557,25 @@ void TurnCombat::Update()
             // Potion selection within chosen category
             int ids[3] = {-1, -1, -1};
             int count = 0;
-            if (state.itemCategory == 0) { ids[0] = 2; ids[1] = 5; ids[2] = 7; count = 3; }
-            else if (state.itemCategory == 1) { ids[0] = 9; ids[1] = 10; count = 2; }
-            else if (state.itemCategory == 2) { ids[0] = 13; ids[1] = 14; count = 2; }
+            if (state.itemCategory == 0)
+            {
+                ids[0] = 2;
+                ids[1] = 5;
+                ids[2] = 7;
+                count = 3;
+            }
+            else if (state.itemCategory == 1)
+            {
+                ids[0] = 9;
+                ids[1] = 10;
+                count = 2;
+            }
+            else if (state.itemCategory == 2)
+            {
+                ids[0] = 13;
+                ids[1] = 14;
+                count = 2;
+            }
 
             if (IsKeyPressed(KEY_ONE))
             {
@@ -993,7 +1009,7 @@ void TurnCombat::Draw()
         phaseText = "Defending...";
         break;
     case TurnPhase::SHOW_RESULT:
-        phaseText = "Boss is attacking!";
+        phaseText = "Boss Is Attacking!";
         break;
     case TurnPhase::BOSS_TURN:
         phaseText = "Boss's Turn";

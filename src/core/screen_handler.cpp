@@ -432,13 +432,17 @@ void DrawUIOverlay(GameState *state)
     DrawPlayerHUD();
     DrawBossHPBar();
 
-    // 2. FPS Counter (if enabled)
+    // 2. FPS Counter (if enabled) — rata kiri icon pause, di bawah [Esc]
     if (state->showFPS)
     {
         int fps = GetFPS();
         char fpsText[16];
         snprintf(fpsText, sizeof(fpsText), "FPS: %d", fps);
-        DrawDefaultText(fpsText, 190, 10, 20, GREEN);
+        DrawTextCached(
+            {FontId::VIDEOSETTS_LABEL, AtlasRes::RES_256},
+            fpsText,
+            Vector2{15.0f, 110.0f},
+            20.0f, 1, GREEN);
     }
 
     // 3. Sign dialog overlay (placeholder UI)

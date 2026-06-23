@@ -174,7 +174,11 @@ int main()
         // State: VIDEO (intro saat startup)
         if (state.currentScreen == VIDEO)
         {
-            enum class VPhase : uint8_t { INTRODUCTION, DONE };
+            enum class VPhase : uint8_t
+            {
+                INTRODUCTION,
+                DONE
+            };
             static VPhase videoPhase = VPhase::INTRODUCTION;
             static bool videoStarted = false;
 
@@ -247,6 +251,8 @@ int main()
             UpdateGame(&state);
             bool mouseClicked = IsMouseButtonPressed(MOUSE_LEFT_BUTTON);
             optionsScreen.Update(&state, GetVirtualMousePosition(&state), mouseClicked);
+            if (state.currentScreen == MAIN_MENU)
+                InitMainMenu(&state);
             if (WindowShouldClose())
                 break;
             BeginTextureMode(state.Dungeon);
@@ -356,6 +362,8 @@ int main()
             UpdateGame(&state);
             bool mouseClicked = IsMouseButtonPressed(MOUSE_LEFT_BUTTON);
             saveLoadScreen.Update(&state, GetVirtualMousePosition(&state), mouseClicked);
+            if (state.currentScreen == MAIN_MENU)
+                InitMainMenu(&state);
             if (WindowShouldClose())
                 break;
             BeginTextureMode(state.Dungeon);

@@ -52,6 +52,10 @@ void InitMainMenu(GameState *state)
 {
     (void)state; // unused parameter, buat future use
 
+    // Safety: kalo udah pernah di-init, unload dulu biar gak leak
+    if (menuTexLoaded)
+        DestroyMainMenu();
+
     // set texture background load-notif untuk semua popup main menu
     loadPopup.SetBackgroundTexture("assets/textures/pauseButt/load-notif.png");
     mainNoSavePopup.SetBackgroundTexture("assets/textures/pauseButt/load-notif.png");

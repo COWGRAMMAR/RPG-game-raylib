@@ -11,12 +11,12 @@
  */
 
 #include "map/minimap.h"
-#include "entities/player.h"    // PlayerInstance.GetPosition()
-#include "map/map.h"            // tilesonMap, GetCurrentMapPath()
+#include "entities/player.h" // PlayerInstance.GetPosition()
+#include "map/map.h"         // tilesonMap, GetCurrentMapPath()
 
-#include "systems/input.h"      // InputInstance.IsToggleMap()
-#include "systems/keybindManager.h"  // keybindManager
-#include "rendering/fonts.h"    // FontId
+#include "systems/input.h"          // InputInstance.IsToggleMap()
+#include "systems/keybindManager.h" // keybindManager
+#include "rendering/fonts.h"        // FontId
 #include "rendering/animation.h"
 #include <cmath>
 #include <algorithm>
@@ -54,7 +54,7 @@ void MinimapScreen::BuildGridTexture()
     if (img.data == nullptr)
         return;
 
-    Color* dstPixels = (Color*)img.data;
+    Color *dstPixels = (Color *)img.data;
 
     // ── Phase 1: Pre-sample unique GIDs ──
     // Kumpulin GID unik dari SEMUA layer, lalu sample TILE_PX×TILE_PX block-nya
@@ -74,17 +74,22 @@ void MinimapScreen::BuildGridTexture()
 
         for (int gid : uniqueGids)
         {
-            const TilesetInfo* ts = nullptr;
-            for (const auto& group : tilesonMap->tilesets)
+            const TilesetInfo *ts = nullptr;
+            for (const auto &group : tilesonMap->tilesets)
             {
-                for (const auto& t : group)
+                for (const auto &t : group)
                 {
                     if (gid >= t.firstgid && gid <= t.lastgid)
-                    { ts = &t; break; }
+                    {
+                        ts = &t;
+                        break;
+                    }
                 }
-                if (ts) break;
+                if (ts)
+                    break;
             }
-            if (!ts) continue;
+            if (!ts)
+                continue;
 
             // Load tileset image (cached per file path)
             Image tsImg = {0};
@@ -94,7 +99,8 @@ void MinimapScreen::BuildGridTexture()
             else
             {
                 tsImg = LoadImage(ts->imagePath.c_str());
-                if (tsImg.data == nullptr) continue;
+                if (tsImg.data == nullptr)
+                    continue;
                 loadedImages[ts->imagePath] = tsImg;
             }
 
@@ -107,7 +113,7 @@ void MinimapScreen::BuildGridTexture()
 
             // Sample TILE_PX×TILE_PX block (nearest-neighbor subsample)
             std::vector<Color> block(MINIMAP_TILE_PX * MINIMAP_TILE_PX);
-            Color* srcPx = (Color*)tsImg.data;
+            Color *srcPx = (Color *)tsImg.data;
             for (int py = 0; py < MINIMAP_TILE_PX; py++)
             {
                 for (int px = 0; px < MINIMAP_TILE_PX; px++)
@@ -120,7 +126,7 @@ void MinimapScreen::BuildGridTexture()
             tileSampleCache[gid] = std::move(block);
         }
 
-        for (auto& [path, tsImg] : loadedImages)
+        for (auto &[path, tsImg] : loadedImages)
         {
             if (tsImg.data != nullptr)
                 UnloadImage(tsImg);
@@ -142,7 +148,8 @@ void MinimapScreen::BuildGridTexture()
             {
                 int gid = tilesonMap->tiles[l][ty * mapW + tx];
                 cellGids[l] = gid;
-                if (gid > 0) activeLayers++;
+                if (gid > 0)
+                    activeLayers++;
             }
 
             // Kalo cuma 1 layer aktif — langsung blit (fast path)
@@ -151,19 +158,23 @@ void MinimapScreen::BuildGridTexture()
                 int topGid = 0;
                 for (int l = tilesonMap->layerCount - 1; l >= 0; l--)
                 {
-                    if (cellGids[l] > 0) { topGid = cellGids[l]; break; }
+                    if (cellGids[l] > 0)
+                    {
+                        topGid = cellGids[l];
+                        break;
+                    }
                 }
 
                 auto it = tileSampleCache.find(topGid);
-                if (it == tileSampleCache.end()) continue;
+                if (it == tileSampleCache.end())
+                    continue;
 
-                const auto& block = it->second;
+                const auto &block = it->second;
                 for (int py = 0; py < MINIMAP_TILE_PX; py++)
                 {
                     for (int px = 0; px < MINIMAP_TILE_PX; px++)
                     {
-                        int dstIdx = (ty * MINIMAP_TILE_PX + py) * texW
-                                     + (tx * MINIMAP_TILE_PX + px);
+                        int dstIdx = (ty * MINIMAP_TILE_PX + py) * texW + (tx * MINIMAP_TILE_PX + px);
                         dstPixels[dstIdx] = block[py * MINIMAP_TILE_PX + px];
                     }
                 }
@@ -175,18 +186,19 @@ void MinimapScreen::BuildGridTexture()
             {
                 for (int px = 0; px < MINIMAP_TILE_PX; px++)
                 {
-                    int dstIdx = (ty * MINIMAP_TILE_PX + py) * texW
-                                 + (tx * MINIMAP_TILE_PX + px);
+                    int dstIdx = (ty * MINIMAP_TILE_PX + py) * texW + (tx * MINIMAP_TILE_PX + px);
                     Color finalColor = {0, 0, 0, 0};
 
                     // Bottom → top: layer atas overwrite kalo alpha >= threshold
                     for (int l = 0; l < tilesonMap->layerCount; l++)
                     {
                         int gid = cellGids[l];
-                        if (gid <= 0) continue;
+                        if (gid <= 0)
+                            continue;
 
                         auto it = tileSampleCache.find(gid);
-                        if (it == tileSampleCache.end()) continue;
+                        if (it == tileSampleCache.end())
+                            continue;
 
                         Color c = it->second[py * MINIMAP_TILE_PX + px];
                         if (c.a >= ALPHA_THRESHOLD)
@@ -229,7 +241,8 @@ void UpdateMinimapFog(float worldX, float worldY, int tileSize)
 
     int w = g_Minimap.gridWidth;
     int h = g_Minimap.gridHeight;
-    if (w <= 0 || h <= 0) return;
+    if (w <= 0 || h <= 0)
+        return;
 
     // Step 1: visible sebelumnya -> explored (fogged)
     for (int i = 0; i < w * h; i++)
@@ -257,7 +270,7 @@ void UpdateMinimapFog(float worldX, float worldY, int tileSize)
     }
 }
 
-void SaveMinimapFogToCache(const std::string& mapPath)
+void SaveMinimapFogToCache(const std::string &mapPath)
 {
     if (g_Minimap.gridWidth <= 0 || g_Minimap.gridHeight <= 0)
         return;
@@ -265,7 +278,7 @@ void SaveMinimapFogToCache(const std::string& mapPath)
     g_Minimap.fogCache[mapPath] = g_Minimap.fog;
 }
 
-void RestoreMinimapFogFromCache(const std::string& mapPath)
+void RestoreMinimapFogFromCache(const std::string &mapPath)
 {
     auto it = g_Minimap.fogCache.find(mapPath);
     if (it != g_Minimap.fogCache.end())
@@ -276,7 +289,7 @@ void RestoreMinimapFogFromCache(const std::string& mapPath)
         if ((int)g_Minimap.fog.size() != expectedSize)
             g_Minimap.fog.resize(expectedSize, (unsigned char)FogState::UNEXPLORED);
 
-        for (auto& f : g_Minimap.fog)
+        for (auto &f : g_Minimap.fog)
         {
             if (f == (unsigned char)FogState::VISIBLE)
                 f = (unsigned char)FogState::EXPLORED;
@@ -293,15 +306,11 @@ void RestoreMinimapFogFromCache(const std::string& mapPath)
  *==============================================================================*/
 
 MinimapScreen::MinimapScreen()
-    : active(false)
-    , initialized(false)
-    , isDragging(false)
-    , panOffset{0, 0}
-    , dragStart{0, 0}
+    : active(false), initialized(false), isDragging(false), panOffset{0, 0}, dragStart{0, 0}
 {
     gridTexture = {0};
     fogRT = {0};
-    bgArtwork  = {0};
+    bgArtwork = {0};
     followPlayer = true;
 }
 
@@ -388,7 +397,7 @@ void MinimapScreen::Shutdown()
 
     gridTexture = {0};
     fogRT = {0};
-    bgArtwork   = {0};
+    bgArtwork = {0};
     fogCenterLoc = -1;
     fogRadiusLoc = -1;
     initialized = false;
@@ -427,18 +436,16 @@ bool MinimapScreen::IsActive() const
 void MinimapScreen::CalculateLayout()
 {
     // Panel dan viewport pake ukuran FIXED — gak tergantung ukuran map
-    int panelW = MINIMAP_VIEWPORT_WIDTH  + MINIMAP_PANEL_PADDING * 2;
+    int panelW = MINIMAP_VIEWPORT_WIDTH + MINIMAP_PANEL_PADDING * 2;
     int panelH = MINIMAP_VIEWPORT_HEIGHT + MINIMAP_PANEL_PADDING * 2;
 
-    float px = (GameScreenWidth  - panelW) / 2.0f;
+    float px = (GameScreenWidth - panelW) / 2.0f;
     float py = (GameScreenHeight - panelH) / 2.0f;
 
     panelRect = {px, py, (float)panelW, (float)panelH};
-    viewRect  = {px + MINIMAP_PANEL_PADDING, py + MINIMAP_PANEL_PADDING,
-                 (float)MINIMAP_VIEWPORT_WIDTH, (float)MINIMAP_VIEWPORT_HEIGHT};
+    viewRect = {px + MINIMAP_PANEL_PADDING, py + MINIMAP_PANEL_PADDING,
+                (float)MINIMAP_VIEWPORT_WIDTH, (float)MINIMAP_VIEWPORT_HEIGHT};
 }
-
-
 
 /*==============================================================================
  * MinimapScreen - Fog Layer
@@ -465,9 +472,15 @@ void MinimapScreen::RenderFogFull()
             Color c;
             switch (state)
             {
-                case FogState::UNEXPLORED: c = fogColor; break;
-                case FogState::VISIBLE:    c = Fade(fogColor, 0.4f); break;
-                case FogState::EXPLORED:   c = Fade(fogColor, 0.55f); break;
+            case FogState::UNEXPLORED:
+                c = fogColor;
+                break;
+            case FogState::VISIBLE:
+                c = Fade(fogColor, 0.4f);
+                break;
+            case FogState::EXPLORED:
+                c = Fade(fogColor, 0.55f);
+                break;
             }
             DrawRectangle(x * tilePx, y * tilePx, tilePx, tilePx, c);
         }
@@ -486,10 +499,10 @@ void MinimapScreen::RenderFogVisible()
     // Visible tile bounds from panOffset & viewRect (screen → tile)
     //   tile_x = (screen_x - viewRect.x - panOffset.x) / PANEL_SCALE
     //   tile visible kalo: screen_x ∈ [viewRect.x, viewRect.x + viewRect.width]
-    int tileStartX = std::max(0,      (int)floorf(-panOffset.x / MINIMAP_PANEL_SCALE));
-    int tileStartY = std::max(0,      (int)floorf(-panOffset.y / MINIMAP_PANEL_SCALE));
-    int tileEndX   = std::min(w, (int)ceilf((viewRect.width  - panOffset.x) / MINIMAP_PANEL_SCALE));
-    int tileEndY   = std::min(h, (int)ceilf((viewRect.height - panOffset.y) / MINIMAP_PANEL_SCALE));
+    int tileStartX = std::max(0, (int)floorf(-panOffset.x / MINIMAP_PANEL_SCALE));
+    int tileStartY = std::max(0, (int)floorf(-panOffset.y / MINIMAP_PANEL_SCALE));
+    int tileEndX = std::min(w, (int)ceilf((viewRect.width - panOffset.x) / MINIMAP_PANEL_SCALE));
+    int tileEndY = std::min(h, (int)ceilf((viewRect.height - panOffset.y) / MINIMAP_PANEL_SCALE));
 
     if (tileStartX >= tileEndX || tileStartY >= tileEndY)
         return;
@@ -508,9 +521,15 @@ void MinimapScreen::RenderFogVisible()
             Color c;
             switch (state)
             {
-                case FogState::UNEXPLORED: c = fogColor; break;
-                case FogState::VISIBLE:    c = Fade(fogColor, 0.4f); break;
-                case FogState::EXPLORED:   c = Fade(fogColor, 0.55f); break;
+            case FogState::UNEXPLORED:
+                c = fogColor;
+                break;
+            case FogState::VISIBLE:
+                c = Fade(fogColor, 0.4f);
+                break;
+            case FogState::EXPLORED:
+                c = Fade(fogColor, 0.55f);
+                break;
             }
             DrawRectangle(x * tilePx, y * tilePx, tilePx, tilePx, c);
         }
@@ -521,7 +540,8 @@ void MinimapScreen::RenderFogVisible()
 
 void MinimapScreen::DrawFogLayer() const
 {
-    if (fogRT.id <= 0) return;
+    if (fogRT.id <= 0)
+        return;
 
     int tilePx = MINIMAP_TILE_PX;
     int w = g_Minimap.gridWidth;
@@ -534,8 +554,7 @@ void MinimapScreen::DrawFogLayer() const
         // Circle center dalam fogRT pixel coords (Y-flip buat RenderTexture2D)
         Vector2 center = {
             pc.x / (float)FRAME_SIZE * tilePx,
-            fogH - (pc.y / (float)FRAME_SIZE * tilePx)
-        };
+            fogH - (pc.y / (float)FRAME_SIZE * tilePx)};
         float radius = (float)MINIMAP_REVEAL_RADIUS * tilePx;
 
         SetShaderValue(fogRenderShader, fogCenterLoc, &center, SHADER_UNIFORM_VEC2);
@@ -577,7 +596,7 @@ void MinimapScreen::DrawPlayerMarker() const
     float innerR = MINIMAP_MARKER_RADIUS;
     float outerR = innerR * 1.5f;
     DrawCircle((int)sx, (int)sy, innerR, {100, 255, 100, 255});
-    DrawCircle((int)sx, (int)sy, outerR, {100, 255, 100, 80});  // outer glow
+    DrawCircle((int)sx, (int)sy, outerR, {100, 255, 100, 80}); // outer glow
 }
 
 /*==============================================================================
@@ -589,17 +608,15 @@ void MinimapScreen::UpdateView()
     if (!initialized)
         return;
 
-    float scaledW = (float)g_Minimap.gridWidth  * MINIMAP_PANEL_SCALE;
+    float scaledW = (float)g_Minimap.gridWidth * MINIMAP_PANEL_SCALE;
     float scaledH = (float)g_Minimap.gridHeight * MINIMAP_PANEL_SCALE;
 
     Vector2 playerPos = PlayerInstance.GetPosition();
 
     // Continuous (sub-tile) player position in minimap screen-pixel space
     // — sama kaya main camera follow: langsung pake pixel position, bukan tile grid
-    float playerCenterX = (playerPos.x + FRAME_SIZE / 2.0f) / (float)FRAME_SIZE
-                          * MINIMAP_PANEL_SCALE;
-    float playerCenterY = (playerPos.y + FRAME_SIZE / 2.0f) / (float)FRAME_SIZE
-                          * MINIMAP_PANEL_SCALE;
+    float playerCenterX = (playerPos.x + FRAME_SIZE / 2.0f) / (float)FRAME_SIZE * MINIMAP_PANEL_SCALE;
+    float playerCenterY = (playerPos.y + FRAME_SIZE / 2.0f) / (float)FRAME_SIZE * MINIMAP_PANEL_SCALE;
 
     if (scaledW > viewRect.width)
     {
@@ -640,14 +657,13 @@ void MinimapScreen::HandlePan(Vector2 mousePosition, bool mouseClicked)
     {
         Vector2 delta = {
             mousePosition.x - dragStart.x,
-            mousePosition.y - dragStart.y
-        };
+            mousePosition.y - dragStart.y};
 
         panOffset.x += delta.x;
         panOffset.y += delta.y;
         dragStart = mousePosition;
 
-        float scaledW = (float)g_Minimap.gridWidth  * MINIMAP_PANEL_SCALE;
+        float scaledW = (float)g_Minimap.gridWidth * MINIMAP_PANEL_SCALE;
         float scaledH = (float)g_Minimap.gridHeight * MINIMAP_PANEL_SCALE;
 
         if (scaledW > viewRect.width)
@@ -690,34 +706,34 @@ void MinimapScreen::DrawLegend() const
     {
         const char *closeKey = keybindManager.GetKeyDisplayName(TOGGLE_MAP);
         char closeBuf[64];
-        snprintf(closeBuf, sizeof(closeBuf), "Press '%s' to Close", closeKey);
-        float drawW = (float)bgArtwork.width  * 1.0f;
+        snprintf(closeBuf, sizeof(closeBuf), "Press '%s' To Close", closeKey);
+        float drawW = (float)bgArtwork.width * 1.0f;
         float drawH = (float)bgArtwork.height * 1.0f;
-        float ax = ((float)GameScreenWidth  - drawW) / 2.0f;
+        float ax = ((float)GameScreenWidth - drawW) / 2.0f;
         float ay = ((float)GameScreenHeight - drawH) / 2.0f;
 
         int closeSz = 24;
         Vector2 textSz = MeasureTextEx(font, closeBuf, (float)closeSz, 0);
         float tx = ((float)GameScreenWidth - textSz.x) / 2.0f;
-        float ty = ay + drawH - 50.0f;  
+        float ty = ay + drawH - 50.0f;
         DrawTextEx(font, closeBuf, {tx, ty}, (float)closeSz, 0, WHITE);
     }
 
     // 2. Drag / Center hints — bottom-right corner (kaya DrawMergeSplitLegend)
     {
         int hintSz = 18;
-        const char *dragHint  = "[Left-Click Drag] Pan";
+        const char *dragHint = "[Left-Click Drag] Pan";
         const char *centerHint = "[Right-Click] Center to Player";
 
-        Vector2 dragSz   = MeasureTextEx(font, dragHint, (float)hintSz, 0);
+        Vector2 dragSz = MeasureTextEx(font, dragHint, (float)hintSz, 0);
         Vector2 centerSz = MeasureTextEx(font, centerHint, (float)hintSz, 0);
 
         const float rightPad = 12.0f;
         float rightEdge = (float)GameScreenWidth - rightPad;
         float baseY = (float)GameScreenHeight - 30.0f;
 
-        float dragX   = rightEdge - dragSz.x;
-        float dragY   = baseY - dragSz.y;
+        float dragX = rightEdge - dragSz.x;
+        float dragY = baseY - dragSz.y;
         float centerX = rightEdge - centerSz.x;
         float centerY = dragY - 4.0f - centerSz.y;
 
@@ -730,7 +746,7 @@ void MinimapScreen::DrawLegend() const
             0.4f, 8, ColorAlpha(BLACK, 0.8f));
 
         DrawTextEx(font, centerHint, {centerX, centerY}, (float)hintSz, 0, WHITE);
-        DrawTextEx(font, dragHint,   {dragX, dragY},     (float)hintSz, 0, WHITE);
+        DrawTextEx(font, dragHint, {dragX, dragY}, (float)hintSz, 0, WHITE);
     }
 }
 
@@ -738,7 +754,7 @@ void MinimapScreen::DrawLegend() const
  * MinimapScreen - Update / Draw
  *==============================================================================*/
 
-void MinimapScreen::Update(GameState* state, Vector2 mousePosition, bool mouseClicked)
+void MinimapScreen::Update(GameState *state, Vector2 mousePosition, bool mouseClicked)
 {
     if (!active || !initialized)
         return;
@@ -776,9 +792,9 @@ void MinimapScreen::Draw(Vector2 mousePosition)
     if (bgArtwork.id > 0)
     {
         float artScale = 1.1f;
-        float drawW = (float)bgArtwork.width  * artScale;
+        float drawW = (float)bgArtwork.width * artScale;
         float drawH = (float)bgArtwork.height * artScale;
-        float ax = ((float)GameScreenWidth  - drawW) / 2.0f;
+        float ax = ((float)GameScreenWidth - drawW) / 2.0f;
         float ay = ((float)GameScreenHeight - drawH) / 2.0f;
         DrawTexturePro(bgArtwork,
                        {0, 0, (float)bgArtwork.width, (float)bgArtwork.height},
@@ -791,11 +807,11 @@ void MinimapScreen::Draw(Vector2 mousePosition)
 
     // Grid texture (regular Texture2D — positive height, bukan render texture)
     Rectangle srcGrid = {0, 0,
-                         (float)(g_Minimap.gridWidth  * MINIMAP_TILE_PX),
+                         (float)(g_Minimap.gridWidth * MINIMAP_TILE_PX),
                          (float)(g_Minimap.gridHeight * MINIMAP_TILE_PX)};
     Rectangle dst = {viewRect.x + panOffset.x,
                      viewRect.y + panOffset.y,
-                     (float)g_Minimap.gridWidth  * MINIMAP_PANEL_SCALE,
+                     (float)g_Minimap.gridWidth * MINIMAP_PANEL_SCALE,
                      (float)g_Minimap.gridHeight * MINIMAP_PANEL_SCALE};
 
     DrawTexturePro(gridTexture, srcGrid, dst, {0, 0}, 0.0f, WHITE);
@@ -828,9 +844,9 @@ void MinimapSystem::InitWithMap()
     int mapH = tilesonMap->height;
 
     // Set dimensi grid → sampling langsung dari tilesonMap tiap Init/rebuild
-    g_Minimap.mapTileWidth  = mapW;
+    g_Minimap.mapTileWidth = mapW;
     g_Minimap.mapTileHeight = mapH;
-    g_Minimap.gridWidth  = std::max(1, mapW / MINIMAP_TILE_TO_PX);
+    g_Minimap.gridWidth = std::max(1, mapW / MINIMAP_TILE_TO_PX);
     g_Minimap.gridHeight = std::max(1, mapH / MINIMAP_TILE_TO_PX);
     g_Minimap.fog.resize(g_Minimap.gridWidth * g_Minimap.gridHeight,
                          (unsigned char)FogState::UNEXPLORED);
@@ -838,7 +854,7 @@ void MinimapSystem::InitWithMap()
 
     // Restore fog dari cache kalo ada data untuk map ini
     // sizeof dicek biar aman kalo dimensi map berubah antar session
-    const char* mapPath = GetCurrentMapPath();
+    const char *mapPath = GetCurrentMapPath();
     if (mapPath && mapPath[0] != '\0')
     {
         auto it = g_Minimap.fogCache.find(std::string(mapPath));
@@ -851,7 +867,7 @@ void MinimapSystem::InitWithMap()
 
 void MinimapSystem::Shutdown()
 {
-    const char* path = GetCurrentMapPath();
+    const char *path = GetCurrentMapPath();
     if (path && path[0] != '\0')
         SaveMinimapFogToCache(path);
     g_MinimapScreen.Shutdown();

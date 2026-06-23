@@ -11,6 +11,7 @@
 #include "entities.h"
 #include "raymath.h"
 #include "map/minimap.h"
+#include "ui/mainMenu.h"
 
 namespace Interaction
 {
@@ -143,6 +144,7 @@ namespace Interaction
                 {
                     InputInstance.ResetMenuFlags();
                     g_SeedManager.ResetRun();
+                    InitMainMenu(gState);
                     gState->currentScreen = MAIN_MENU;
                 }
                 return;

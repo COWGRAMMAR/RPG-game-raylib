@@ -3,7 +3,7 @@
 /**
  * @file pausemenu.h
  * @brief Pause Menu System Module
- * 
+ *
  * Handle pause menu UI pas game di-pause.
  * Muncul di tengah layar dengan tombol-tombol:
  * - Resume, Save, Load, Options, Controls, Quit
@@ -23,13 +23,14 @@
 /**
  * @struct ResOption
  * @brief Struktur untuk menyimpan resolusi yang tersedia
- * 
+ *
  * Setiap opsi berisi lebar, tinggi, dan label tampilan.
  */
-struct ResOption {
+struct ResOption
+{
     int width;
     int height;
-    const char* label;
+    const char *label;
 };
 
 /*==============================================================================
@@ -39,15 +40,16 @@ struct ResOption {
 /**
  * @class OptionsScreen
  * @brief Class untuk menangani layar Options standalone
- * 
+ *
  * Memiliki 3 tab: Video, Audio, Keybinds.
  * Dapat diakses dari Main Menu atau Pause Menu.
  */
-class OptionsScreen {
+class OptionsScreen
+{
 public:
     /**
      * @brief Constructor
-     * 
+     *
      * Menginisialisasi semua tombol dan dimensi awal.
      */
     OptionsScreen();
@@ -61,7 +63,7 @@ public:
      * @brief Menampilkan layar options
      * @param state Pointer ke GameState (untuk sync variabel)
      */
-    void Show(GameState* state);
+    void Show(GameState *state);
 
     /**
      * @brief Menyembunyikan layar options
@@ -77,7 +79,7 @@ public:
      * @param mousePosition Posisi mouse saat ini
      * @param mouseClicked Status klik mouse
      */
-    void Update(GameState* state, Vector2 mousePosition, bool mouseClicked);
+    void Update(GameState *state, Vector2 mousePosition, bool mouseClicked);
 
     /**
      * @brief Me-render layar options
@@ -156,10 +158,10 @@ private:
 /**
  * @class PauseMenu
  * @brief Class untuk menangani pause menu
- * 
+ *
  * Menu yang muncul saat player menjeda game.
  * Di-render di atas game screen (overlay) dengan background semi-transparan.
- * 
+ *
  * Tombol-tombol yang tersedia:
  * - Resume      → melanjutkan game
  * - Save        → menyimpan state game
@@ -168,15 +170,16 @@ private:
  * - Controls    → melihat kontrol
  * - Quit        → kembali ke main menu
  */
-class PauseMenu {
+class PauseMenu
+{
 public:
     /**
      * @brief Constructor
-     * 
+     *
      * Menginisialisasi menu dan semua tombol.
      */
     PauseMenu();
-    
+
     /**
      * @brief Destructor
      */
@@ -187,13 +190,13 @@ public:
      * @note Set active = true, game logic harus berhenti
      */
     void Show();
-    
+
     /**
      * @brief Menyembunyikan pause menu
      * @note Set active = false, game logic lanjut lagi
      */
     void Hide();
-    
+
     /**
      * @brief Memeriksa apakah pause menu sedang aktif
      * @return true jika menu muncul, false jika tidak
@@ -206,8 +209,8 @@ public:
      * @param mousePosition Posisi mouse saat ini
      * @param mouseClicked Apakah tombol mouse ditekan
      */
-    void Update(GameState* state, Vector2 mousePosition, bool mouseClicked);
-    
+    void Update(GameState *state, Vector2 mousePosition, bool mouseClicked);
+
     /**
      * @brief Me-render pause menu ke layar
      * @param mousePosition Posisi mouse saat ini untuk efek hover
@@ -219,13 +222,13 @@ private:
      * @brief Menghitung dimensi menu berdasarkan layar
      */
     void CalculateDimensions();
-    
+
     /**
      * @brief Handle klik pada tombol berdasarkan index
      * @param buttonIndex Index tombol yang diklik (0-5)
      * @param state Pointer ke GameState
      */
-    void HandleButtonClick(int buttonIndex, GameState* state);
+    void HandleButtonClick(int buttonIndex, GameState *state);
 
     /**
      * @brief Memuat texture button dari disk (lazy, sekali saja)
@@ -235,7 +238,7 @@ private:
     /*==========================================================================
      * Private Members
      *==========================================================================*/
-    
+
     /// Status aktif menu
     bool active;
 

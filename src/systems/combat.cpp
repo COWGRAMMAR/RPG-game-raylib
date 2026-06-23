@@ -499,8 +499,7 @@ namespace Combat
                     attackCenter.x - reach,
                     attackCenter.y - reach,
                     size,
-                    size
-                };
+                    size};
                 if (CheckCollisionRecs(slamAABB, entity->GetHitbox()))
                 {
                     hit = true;
@@ -549,8 +548,7 @@ namespace Combat
                 attackCenter.x - reach,
                 attackCenter.y - reach,
                 size,
-                size
-            };
+                size};
         }
         else
         {
@@ -763,14 +761,15 @@ void Arrow::Update()
 
             Vector2 center = entity->GetCenter();
             Effects::AddDamage(center, Damage);
-            
+
             Effects::AddCollision(Position);
             IsActive = false;
             break;
         }
     }
 
-    if (!IsActive) return;
+    if (!IsActive)
+        return;
 
     if (CheckCollisionAgainstRects(hitbox, PlayerInstance.CollisionRects) ||
         CheckCollisionAgainstPolygons(hitbox, PlayerInstance.CollisionPolygons))

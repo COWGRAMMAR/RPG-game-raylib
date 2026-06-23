@@ -240,7 +240,7 @@ void Enemy::Update()
     if (Health <= 0)
     {
         isTurnBasedMode = false; // Prevent re-trigger turn-based jika mati kena bomb dll
-        HealthBarTimer = 0.0f; // Langsung matikan health bar sebelum death anim
+        HealthBarTimer = 0.0f;   // Langsung matikan health bar sebelum death anim
 
         if (Anim.state != DEAD)
         {
@@ -485,8 +485,8 @@ void Enemy::HandleIdle()
 
     float maxDistPatrol = 6.0f * FRAME_SIZE;
     bool tooFarFromSpawn = (SpawnRect.width > 0)
-        ? !CheckCollisionPointRec(GetCenter(), SpawnRect)
-        : Vector2Distance(GetCenter(), SpawnPoint) > maxDistPatrol;
+                               ? !CheckCollisionPointRec(GetCenter(), SpawnRect)
+                               : Vector2Distance(GetCenter(), SpawnPoint) > maxDistPatrol;
 
     if (tooFarFromSpawn)
     {
@@ -739,10 +739,14 @@ void Enemy::HandleAbility2()
     // Wind-up selesai: inisialisasi charge direction & distance
     if (ChargeDistanceRemaining <= 0)
     {
-        if (Anim.direction == LEFT)  ChargeDir = {-1, 0};
-        if (Anim.direction == RIGHT) ChargeDir = {1, 0};
-        if (Anim.direction == UP)    ChargeDir = {0, -1};
-        if (Anim.direction == DOWN)  ChargeDir = {0, 1};
+        if (Anim.direction == LEFT)
+            ChargeDir = {-1, 0};
+        if (Anim.direction == RIGHT)
+            ChargeDir = {1, 0};
+        if (Anim.direction == UP)
+            ChargeDir = {0, -1};
+        if (Anim.direction == DOWN)
+            ChargeDir = {0, 1};
         ChargeDistanceRemaining = 200.0f;
         ChargeHitPlayer = false;
     }
@@ -757,8 +761,8 @@ void Enemy::HandleAbility2()
         float worldW = (float)tilesonMap->width * FRAME_SIZE;
         float worldH = (float)tilesonMap->height * FRAME_SIZE;
         blocked = !IsWithinWorldBounds(hitbox, worldW, worldH) ||
-                   CheckCollisionAgainstRects(hitbox, gCollisionCache.rects) ||
-                   CheckCollisionAgainstPolygons(hitbox, gCollisionCache.polygons);
+                  CheckCollisionAgainstRects(hitbox, gCollisionCache.rects) ||
+                  CheckCollisionAgainstPolygons(hitbox, gCollisionCache.polygons);
     }
     if (blocked)
     {
@@ -795,10 +799,14 @@ Rectangle Enemy::GetAbilityZone() const
     float zx = center.x - zoneW / 2.0f;
     float zy = center.y - zoneH / 2.0f;
     float offset = 22.0f;
-    if (Anim.direction == LEFT)  zx -= offset;
-    if (Anim.direction == RIGHT) zx += offset;
-    if (Anim.direction == UP)    zy -= offset;
-    if (Anim.direction == DOWN)  zy += offset;
+    if (Anim.direction == LEFT)
+        zx -= offset;
+    if (Anim.direction == RIGHT)
+        zx += offset;
+    if (Anim.direction == UP)
+        zy -= offset;
+    if (Anim.direction == DOWN)
+        zy += offset;
     return {zx, zy, zoneW, zoneH};
 }
 
@@ -1029,10 +1037,14 @@ void Enemy::Render()
             // Visual charge direction
             Vector2 ctr = GetCenter();
             Vector2 d = {0, 0};
-            if (Anim.direction == LEFT)  d.x = -1;
-            if (Anim.direction == RIGHT) d.x = 1;
-            if (Anim.direction == UP)    d.y = -1;
-            if (Anim.direction == DOWN)  d.y = 1;
+            if (Anim.direction == LEFT)
+                d.x = -1;
+            if (Anim.direction == RIGHT)
+                d.x = 1;
+            if (Anim.direction == UP)
+                d.y = -1;
+            if (Anim.direction == DOWN)
+                d.y = 1;
             Vector2 end = Vector2Add(ctr, Vector2Scale(d, 200.0f));
             DrawLineEx(ctr, end, 6.0f, ColorAlpha(YELLOW, 0.5f));
             DrawCircleV(end, 8.0f, ColorAlpha(RED, 0.7f));
@@ -1220,7 +1232,8 @@ void SpawnAtPoint(const MapObject *obj, EnemyRank rank)
         BuildSpawnFlowFields(center, obj->id, tilesonMap->width, tilesonMap->height);
 
     uint64_t dSeed = g_SeedManager.IsRunActive()
-        ? (uint64_t)g_SeedManager.GetSeed(g_SeedManager.GetCurrentStage()) : 0;
+                         ? (uint64_t)g_SeedManager.GetSeed(g_SeedManager.GetCurrentStage())
+                         : 0;
 
     for (int i = 0; i < count; i++)
     {
@@ -1267,7 +1280,8 @@ void SpawnInRect(const MapObject *obj, const std::string &enemyName, float ratio
         BuildSpawnFlowFields(rectCenter, obj->id, tilesonMap->width, tilesonMap->height);
 
     uint64_t dSeed = g_SeedManager.IsRunActive()
-        ? (uint64_t)g_SeedManager.GetSeed(g_SeedManager.GetCurrentStage()) : 0;
+                         ? (uint64_t)g_SeedManager.GetSeed(g_SeedManager.GetCurrentStage())
+                         : 0;
 
     for (int i = 0; i < count; i++)
     {
@@ -1279,9 +1293,9 @@ void SpawnInRect(const MapObject *obj, const std::string &enemyName, float ratio
             spawnPos = {xDist(rng), yDist(rng)};
             // Convert center (Enemy::Init expectation) ke Entity::Position (IsPositionSafe expectation)
             Vector2 entityPos = {spawnPos.x - def.hitbox.size.x / 2.0f - def.hitbox.offset.x,
-                                  spawnPos.y - def.hitbox.size.y / 2.0f - def.hitbox.offset.y};
+                                 spawnPos.y - def.hitbox.size.y / 2.0f - def.hitbox.offset.y};
             if (IsPositionSafe(entityPos, def.hitbox.size.x, def.hitbox.size.y,
-                                def.hitbox.offset.x, def.hitbox.offset.y))
+                               def.hitbox.offset.x, def.hitbox.offset.y))
             {
                 valid = true;
                 break;
@@ -1327,7 +1341,8 @@ void SpawnBoss(const MapObject *obj)
         BuildSpawnFlowFields(spawnPos, obj->id, tilesonMap->width, tilesonMap->height);
 
     uint64_t dSeed = g_SeedManager.IsRunActive()
-        ? (uint64_t)g_SeedManager.GetSeed(g_SeedManager.GetCurrentStage()) : 0;
+                         ? (uint64_t)g_SeedManager.GetSeed(g_SeedManager.GetCurrentStage())
+                         : 0;
 
     Enemy *enemy = new Enemy();
     enemy->Init(spawnPos, picked.c_str(), obj->id, def);
@@ -1365,7 +1380,8 @@ void SpawnTutorialEnemy(const MapObject *obj)
         BuildSpawnFlowFields(center, obj->id, tilesonMap->width, tilesonMap->height);
 
     uint64_t dSeed = g_SeedManager.IsRunActive()
-        ? (uint64_t)g_SeedManager.GetSeed(g_SeedManager.GetCurrentStage()) : 0;
+                         ? (uint64_t)g_SeedManager.GetSeed(g_SeedManager.GetCurrentStage())
+                         : 0;
 
     for (int i = 0; i < count; i++)
     {

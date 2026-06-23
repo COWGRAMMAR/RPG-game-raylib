@@ -562,7 +562,8 @@ bool SaveManager::HasSnapshot(const std::string &path)
 
 bool SaveManager::SaveManual(const GameSnapshot &snap, int slot)
 {
-    if (slot < 0) return false;
+    if (slot < 0)
+        return false;
 
     // 1. Bersihkan workspace manual (snapshot.json + snapshot_initial.json)
     //    Autosave DIKEEP — biar ikut di-copy ke slot via CopyWorkspaceTo()
@@ -676,7 +677,8 @@ bool SaveManager::HasInitial(int slot)
 
 bool SaveManager::MirrorToWorkspace(int sourceSlot)
 {
-    if (sourceSlot < 0) return false;
+    if (sourceSlot < 0)
+        return false;
     constexpr int WORKSPACE = -1;
 
     EnsureDirs(WORKSPACE);
@@ -780,7 +782,8 @@ void SaveManager::ClearWorkspaceAutosave()
 
 void SaveManager::CopyWorkspaceTo(int slot)
 {
-    if (slot < 0) return;
+    if (slot < 0)
+        return;
     EnsureDirs(slot);
 
     auto copyDir = [&](const std::string &subdir)
@@ -789,7 +792,8 @@ void SaveManager::CopyWorkspaceTo(int slot)
         std::string src = GetSlotDir(WORKSPACE) + "/" + subdir;
         std::string dst = GetSlotDir(slot) + "/" + subdir;
 
-        if (!fs::exists(src)) return;
+        if (!fs::exists(src))
+            return;
 
         try
         {

@@ -449,17 +449,17 @@ static void HandleInitialLoad(GameState *state)
 
         Entities::PruneDeadEntities();
 
-    // Save initial state untuk restart (runtime workspace only)
-    {
-        GameSnapshot initial = SaveManager::CaptureSnapshot();
-        SaveManager::SaveInitial(initial, -1);
-        SaveManager::CaptureInitialSnapshot(-1);
-    }
+        // Save initial state untuk restart (runtime workspace only)
+        {
+            GameSnapshot initial = SaveManager::CaptureSnapshot();
+            SaveManager::SaveInitial(initial, -1);
+            SaveManager::CaptureInitialSnapshot(-1);
+        }
 
-    if (HasSavedState())
-        SaveManager::MirrorToWorkspace(g_ActiveSaveSlot);
+        if (HasSavedState())
+            SaveManager::MirrorToWorkspace(g_ActiveSaveSlot);
 
-    InitMainMenu(state);
+        InitMainMenu(state);
         break;
     }
 }

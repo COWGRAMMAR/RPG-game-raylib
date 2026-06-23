@@ -708,7 +708,7 @@ void DrawInventory()
     {
         const char *closeKey = keybindManager.GetKeyDisplayName(TOGGLE_INVENTORY);
         char closeBuf[64];
-        snprintf(closeBuf, sizeof(closeBuf), "Press '%s' to Close", closeKey);
+        snprintf(closeBuf, sizeof(closeBuf), "Press '%s' To Close", closeKey);
         int closeFontSize = 24;
         Vector2 closeSz = MeasureTextEx(GetOrLoad(FontId::INVENTORY_UI), closeBuf, closeFontSize, 0);
         DrawTextEx(GetOrLoad(FontId::INVENTORY_UI), closeBuf,
@@ -1314,21 +1314,22 @@ void DrawSignDialog()
         GameScreenWidth * 0.8f,
         GameScreenHeight * 0.3f};
     const auto &lines = signManager.GetActiveDialogLines();
+    static const int SIGN_DIALOG_FONT_SIZE = 22;
     float lineY = box.y + 36; // basch-3: teks diturunkan 20px
 
     if (dialogTex.id != 0) // basch-3: word-wrap teks agar tidak melebihi area konten (83px dekorasi kanan)
     {
         int texX = (GameScreenWidth - dialogTex.width) / 2;
         int maxW = dialogTex.width - 83 - ((int)box.x + 16 - texX);
-        Font df = GetOrLoad(FontId::DEFAULT);
+        Font df = GetOrLoad(FontId::HUD_PLAYER);
         for (const auto &line : lines)
         {
             const char *p = line.c_str();
             while (*p != '\0')
             {
-                if (MeasureTextEx(df, p, 22, 1).x <= maxW)
+                if (MeasureTextEx(df, p, SIGN_DIALOG_FONT_SIZE, 1).x <= maxW)
                 {
-                    DrawTextEx(df, p, Vector2{(float)box.x + 16, lineY}, 22, 1, BLACK);
+                    DrawTextEx(df, p, Vector2{(float)box.x + 16, lineY}, SIGN_DIALOG_FONT_SIZE, 1, BLACK);
                     lineY += 30;
                     break;
                 }
@@ -1336,12 +1337,13 @@ void DrawSignDialog()
                 int i = 0;
                 for (; p[i] != '\0'; i++)
                 {
-                    if (p[i] == ' ') lastSpace = i;
-                    if (MeasureTextEx(df, TextSubtext(p, 0, i + 1), 22, 1).x > maxW)
+                    if (p[i] == ' ')
+                        lastSpace = i;
+                    if (MeasureTextEx(df, TextSubtext(p, 0, i + 1), SIGN_DIALOG_FONT_SIZE, 1).x > maxW)
                         break;
                 }
                 int cut = (lastSpace > 0) ? lastSpace : (i > 0 ? i : 1);
-                DrawTextEx(df, TextSubtext(p, 0, cut), Vector2{(float)box.x + 16, lineY}, 22, 1, BLACK);
+                DrawTextEx(df, TextSubtext(p, 0, cut), Vector2{(float)box.x + 16, lineY}, SIGN_DIALOG_FONT_SIZE, 1, BLACK);
                 p += cut + (lastSpace > 0 ? 1 : 0);
                 lineY += 30;
             }
@@ -1357,14 +1359,15 @@ void DrawSignDialog()
     }
 
     // basch-3: teks tutup — posisi berbeda tergantung ketersediaan texture
+    static const int CLOSE_HINT_FONT_SIZE = 16;
     if (dialogTex.id != 0)
     {
         int contentRight = (GameScreenWidth - dialogTex.width) / 2 + dialogTex.width - 83;
-        DrawDefaultText("[Left click] to close", contentRight - 140, (int)box.y + (int)box.height - 20, 14, BLACK);
+        DrawDefaultText("[Left-Click] To Close", contentRight - 150, (int)box.y + (int)box.height - 20, CLOSE_HINT_FONT_SIZE, BLACK);
     }
     else // basch-3: fallback — posisi & gaya asli
     {
-        DrawDefaultText("[Left click] to close", (int)box.x + (int)box.width - 140, (int)box.y + (int)box.height - 20, 10, GRAY);
+        DrawDefaultText("[Left-Click] To Close", (int)box.x + (int)box.width - 150, (int)box.y + (int)box.height - 20, CLOSE_HINT_FONT_SIZE, GRAY);
     }
 }
 

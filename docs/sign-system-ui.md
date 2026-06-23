@@ -33,7 +33,7 @@ Kalo gamau pake `|`, bisa pake Enter langsung di Tiled (multiline) — nanti oto
 1. Player arahkan mouse ke sign (raycast) → muncul prompt interaksi
 2. Player tekan **E** → dialog terbuka
 3. Layar game nge-freeze total (kayak pause), muncul overlay:
-   - **Dialog box** — render dengan texture `assets/textures/dialogBox.png` (posisi tengah layar, horizontal & vertical centering)
+   - **Dialog box** — render dengan texture `assets/textures/dialogBox.png` (posisi horizontal tengah, centered di 75% tinggi layar (texY = GameScreenHeight * 0.6f + GameScreenHeight * 0.15f - dialogTex.height / 2))
    - **Text** — baris-baris dialog, font **`HUD_PLAYER`** (Poppins-Bold, 22px, hitam), word-wrap otomatis dalam area konten texture (dikurangi 83px dekorasi kanan)
    - **Hint** — `"[Left-Click] To Close"` (font 16px, hitam)
    - **Tidak ada screen dim** — game terlihat di belakang texture transparan
@@ -42,7 +42,7 @@ Kalo gamau pake `|`, bisa pake Enter langsung di Tiled (multiline) — nanti oto
 > **Fallback**: Jika `dialogBox.png` gagal di-load (`dialogTex.id == 0`), system fallback ke:
 > - Screen dim: `ColorAlpha(BLACK, 0.4f)` full screen
 > - Dialog box: `DrawRectangleRounded()` — DARKGRAY 95% alpha, border WHITE
-> - Text: default font raylib, 16px, WHITE
+> - Text: FontId::DEFAULT (Poppins-Bold), 16px, WHITE
 > - Hint: `[Left-Click] To Close` (16px, GRAY)
 
 ---

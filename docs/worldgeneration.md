@@ -65,11 +65,11 @@ Door trigger → NextStage() / PrevStage()
 
 Button index 0 di main menu:
 
-**`src/ui/mainMenu.cpp:105-113`**
+**`src/ui/mainMenu.cpp:114-122`**
 
 ```cpp
 case 0:  // Start Game
-    SetActiveSlot(0);
+    SetActiveSlot(-1);
     ResetMemoryState();
     WorldgenIO::CleanupOrphanedSlots();  // GC: hapus worldseed slot yg tidak terpakai
     Entities::ClearDeadEntities();
@@ -238,15 +238,15 @@ Saat player kembali dari main menu atau OPTIONS tanpa perlu reload assets (`asse
 
 | Fungsi | Line | Deskripsi |
 | --- | --- | --- |
-| `GetMetaPath(slot)` | 40 | Return `worldseed/save_{slot}/meta.json` |
-| `GetStagePath(idx)` | 51 | Return `worldseed/save_{slot}/maps/stage_{idx+1}.json` |
-| `GetNextAvailableSlot()` | 62 | Scan folder `save_*`, return max+1 |
-| `GetTopSlot()` | 85 | Scan folder `save_*`, return max (untuk Load) |
-| `ClearCache()` | 113 | Hapus file `.cache` dari `saves/cache/enemies` dan `saves/cache/items` |
-| `InitRun(slot)` | 130 | ClearCache, generate worldgen, buat folder slot, copy BG map per stage, fix texture paths, save meta |
-| `NextStage()` | 178 | Boss-check → increment stage → SaveMeta → SwitchMap → TrimStageStack |
-| `PrevStage()` | 203 | CanGoBack → GoBackStage → SetCurrentStage → SaveMeta → SwitchMap("finish") → TrimStageStack |
-| `CleanupOrphanedSlots()` | 240 | Hapus worldseed `save_N/` yang tidak direferensi oleh save manual manapun (hanya scan new format `manual/snapshot.json` via `SaveManager::GetManualPath()`) |
+| `GetMetaPath(slot)` | 41 | Return `worldseed/save_{slot}/meta.json` |
+| `GetStagePath(idx)` | 52 | Return `worldseed/save_{slot}/maps/stage_{idx+1}.json` |
+| `GetNextAvailableSlot()` | 63 | Scan folder `save_*`, return max+1 |
+| `GetTopSlot()` | 86 | Scan folder `save_*`, return max (untuk Load) |
+| `ClearCache()` | 114 | Hapus file `.cache` dari `saves/cache/enemies` dan `saves/cache/items` |
+| `InitRun(slot)` | 131 | ClearCache, generate worldgen, buat folder slot, copy BG map per stage, fix texture paths, save meta |
+| `NextStage()` | 179 | Boss-check → increment stage → SaveMeta → SwitchMap → TrimStageStack |
+| `PrevStage()` | 205 | CanGoBack → GoBackStage → SetCurrentStage → SaveMeta → SwitchMap("finish") → TrimStageStack |
+| `CleanupOrphanedSlots()` | 242 | Hapus worldseed `save_N/` yang tidak direferensi oleh save manual manapun (hanya scan new format `manual/snapshot.json` via `SaveManager::GetManualPath()`) |
 
 **Catatan:** `HandleMapSwitch` dan `LoadRuntimeState` sudah tidak ada. Map switch handling sekarang ada di `loading_screen.cpp:133` (`HandleMapSwitch`). Runtime state dikelola oleh SaveManager.
 
@@ -267,9 +267,9 @@ Saat player kembali dari main menu atau OPTIONS tanpa perlu reload assets (`asse
 
 | Fungsi | Line | Deskripsi |
 | --- | --- | --- |
-| `InitLoadingScreen(state)` | 51-70 | Reset loadingStage/Progress, set text sesuai mode (map-switch / fast-path / initial) |
-| `ExtractStageFromPath(mapPath)` | 77-90 | Ekstrak index stage (0-based) dari map path worldgen |
-| `LoadWorldgenForSave(mapPath, slot)` | 96-128 | LoadMeta + extract stage + RunWorldgen + itemDefs.Load |
+| `InitLoadingScreen(state)` | 52-70 | Reset loadingStage/Progress, set text sesuai mode (map-switch / fast-path / initial) |
+| `ExtractStageFromPath(mapPath)` | 78-90 | Ekstrak index stage (0-based) dari map path worldgen |
+| `LoadWorldgenForSave(mapPath, slot)` | 97-128 | LoadMeta + extract stage + RunWorldgen + itemDefs.Load |
 | `HandleMapSwitch(state)` | 133-266 | Eksekusi 4-stage map switch (Unload → Load+Worldgen → Player/Entities → Finalize) |
 | `HandleFastPath(state)` | 270-350 | Eksekusi fast path saat assets sudah ter-load (kembali dari menu) |
 | `HandleInitialLoad(state)` | 354-464 | Eksekusi 3-stage initial load (InitTextures → Map → InitAll) |
@@ -281,17 +281,17 @@ Saat player kembali dari main menu atau OPTIONS tanpa perlu reload assets (`asse
 
 | Area | Line | Deskripsi |
 | --- | --- | --- |
-| MAIN_MENU handler | 214-222 | UpdateGame + UpdateMainMenu + RenderMainMenuToVirtualScreen |
-| LOADING handler | 223-237 | InitLoadingScreen (jika enteredLoading false atau loadingComplete) → Update → Render |
-| PLAY handler | 258-334 | Fixed timestep gameplay loop dengan pause menu, autosave timer (60 detik), dan death check |
-| SAVE_LOAD handler | 345-361 | Display SaveLoadScreen, handle user input untuk save/load slot |
-| Auto-save on exit | 365-369 | Jika run aktif: `CaptureSnapshot()` + `SaveManual()` ke slot aktif saat `CloseWindow()` |
+| MAIN_MENU handler | 219-227 | UpdateGame + UpdateMainMenu + RenderMainMenuToVirtualScreen |
+| LOADING handler | 228-242 | InitLoadingScreen (jika enteredLoading false atau loadingComplete) → Update → Render |
+| PLAY handler | 265-344 | Fixed timestep gameplay loop dengan pause menu, autosave timer (60 detik), dan death check |
+| SAVE_LOAD handler | 355-374 | Display SaveLoadScreen, handle user input untuk save/load slot |
+| Auto-save on exit | 377-381 | Jika run aktif: `CaptureSnapshot()` + `SaveManual()` ke slot aktif saat `CloseWindow()` |
 
 ### 3f. Main Menu (`src/ui/mainMenu.cpp`)
 
 | Button | Line | Aksi |
 | --- | --- | --- |
-| Start (index 0) | 105-113 | `SetActiveSlot(0)`, `ResetMemoryState()`, `CleanupOrphanedSlots()`, `ClearDeadEntities()`, set `enteredLoading=false`, `currentScreen = LOADING` |
+| Start (index 0) | 114-122 | `SetActiveSlot(-1)`, `ResetMemoryState()`, `CleanupOrphanedSlots()`, `ClearDeadEntities()`, set `enteredLoading=false`, `currentScreen = LOADING` |
 | **Load (index 1)** | **114-118** | **Set `previousScreen = MAIN_MENU`, buka `SaveLoadScreen` dalam `LOAD_MODE`, `currentScreen = SAVE_LOAD`** |
 | Options (index 2) | 119-122 | Set `previousScreen`, switch ke OPTIONS |
 | Quit (index 3) | 123-125 | CloseWindow |

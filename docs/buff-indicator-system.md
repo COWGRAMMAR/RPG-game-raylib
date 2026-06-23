@@ -34,7 +34,7 @@ Fungsi `UsePotion()` di-invoke pas player minum potion dari hotbar. Urutan:
    - Invincibility: set `InvincibilityTimer`, `InvincibilityTimerMax`
 4. **Set cooldown** (baris 168-170) — per-kategori
 
-### 2. Tick: Player::Update() — `src/entities/player.cpp:199-229`
+### 2. Tick: Player::Update() — `src/entities/player.cpp:200-230`
 
 Dipanggil tiap frame di `Player::Update()`. Tiap buff:
 
@@ -51,7 +51,7 @@ if (BuffDamageTimer > 0) {
 
 Hal yang sama untuk Speed dan Invincibility.
 
-### 3. Reset on Death — `src/ui/gameOverScreen.cpp:66-71`
+### 3. Reset on Death — `src/ui/gameOverScreen.cpp:68-73`
 
 Pas player mati (game over screen), buff di-reset:
 
@@ -64,9 +64,9 @@ PlayerInstance.InvincibilityTimer = 0.0f;
 PlayerInstance.InvincibilityTimerMax = 0.0f;
 ```
 
-### 4. Render: DrawBuffIndicators() — `src/rendering/hud.cpp:916-1008`
+### 4. Render: DrawBuffIndicators() — `src/rendering/hud.cpp:920-1012`
 
-Static function, dipanggil dari `DrawPlayerHUD()` (baris 1239).
+Static function, dipanggil dari `DrawPlayerHUD()` (baris 1243).
 
 ## Detail Implementasi DrawBuffIndicators()
 
@@ -74,7 +74,7 @@ Static function, dipanggil dari `DrawPlayerHUD()` (baris 1239).
 
 - **File**: `src/rendering/hud.cpp`
 - **Fungsi**: `static void DrawBuffIndicators()` (static — cuma dipake di file ini)
-- **Dipanggil dari**: `DrawPlayerHUD()` baris 1239 — SEBELUM `DrawHotbar()`
+- **Dipanggil dari**: `DrawPlayerHUD()` baris 1243 — SEBELUM `DrawHotbar()`
 - **Posisi render**: Dihitung dari health bar position, stack ke ATAS (dari dash bar → mana bar → health bar → buff bars)
 
 ### Struktur Visual

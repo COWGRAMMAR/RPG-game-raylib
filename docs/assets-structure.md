@@ -115,7 +115,22 @@ Sprite sheet PNG dan aset UI di root folder:
 
 `autotiles.png`, `bg-dungeon.png`, `bg-forest.png`, `boss-enemies.png`, `dialogBox.png`, `effects.png`, `elite-enemies.png`, `enemies.png`, `grass-terrain.png`, `items.png`, `knight (1).png`, `logo.png`, `props.png`, `test.png`, `tiles.png`
 
-Subdirektori UI:
+Subdirektori:
+
+| Subfolder | Jumlah File | Konten |
+| --- | --- | --- |
+| `minimap/` | 1 | Aset minimap: `mapBG.png` — background map untuk layer minimap |
+| `settingsButt/` | 13 | Tombol dan elemen UI screen settings (audio, video, keybinds, scrollbar, knob, back) |
+| `saveloadAsset/` | 9 | Aset UI screen save/load (box kosong, box terisi, tombol delete, title, background) |
+| `pauseButt/` | 11 | Tombol pause menu (resume, save, load, settings, restart, exit, background, notifikasi) |
+| `mainMenuButt/` | 4 | Tombol main menu (start, load, settings, quit) |
+| `inventory/` | 3 | UI inventory (background, full-grid, complete indicator) |
+| `gameOver/` | 4 | UI game over (gameover.png, revive, settings, to-main menu) |
+| `hudPlayer/` | 3 | HUD player (ikon tas, kill count, ikon settings) |
+
+Root textures:
+
+`autotiles.png`, `bg-dungeon.png`, `bg-forest.png`, `boss-enemies.png`, `dialogBox.png`, `effects.png`, `elite-enemies.png`, `enemies.png`, `grass-terrain.png`, `items.png`, `knight (1).png`, `logo.png`, `props.png`, `test.png`, `tiles.png`
 
 | Subfolder | Jumlah File | Konten |
 | --- | --- | --- |

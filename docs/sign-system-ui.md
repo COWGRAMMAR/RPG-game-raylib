@@ -34,9 +34,9 @@ Kalo gamau pake `|`, bisa pake Enter langsung di Tiled (multiline) — nanti oto
 2. Player tekan **E** → dialog terbuka
 3. Layar game nge-freeze total (kayak pause), muncul overlay:
    - **Screen dim** — semi-transparent black
-   - **Dialog box** — rounded rectangle di bagian bawah layar
-   - **Text** — baris-baris dialog
-   - **Hint** — "[Klik kiri] untuk tutup"
+   - **Dialog box** — render dengan texture `assets/textures/dialogBox.png`
+   - **Text** — baris-baris dialog, font **`HUD_PLAYER`** (Poppins-Bold, 22px)
+   - **Hint** — `"[Left-Click] To Close"` (font 16px)
 4. Player klik **kiri di mana aja** → dialog tutup, game lanjut
 
 ---
@@ -71,20 +71,20 @@ Bisa diganti: ukuran, posisi, warna, border, background texture, font, dll.
 
 ### 3. Teks Dialog
 
-Sekarang: font default raylib, size 16, putih, pake loop per baris
+Sekarang: font `HUD_PLAYER` (Poppins-Bold), size 22, hitam, dengan texture `dialogBox.png`. Word-wrap otomatis di dalam area konten texture (dikurangi 83px dekorasi kanan).
 
 | Properti | Nilai Sekarang |
 | --- | --- |
-| Font | Default raylib |
-| Size | 16 |
-| Color | WHITE |
-| Padding kiri | 16 px dari border box |
-| Padding atas | 16 px dari border box |
-| Line spacing | 22 px |
+| Font | `HUD_PLAYER` (`GetOrLoad(FontId::HUD_PLAYER)`) |
+| Size | `SIGN_DIALOG_FONT_SIZE = 22` |
+| Color | BLACK |
+| Texture | `dialogBox.png` (file-static `dialogTex`) — posisi tengah layar |
+| Line spacing | 30 px |
+| Font size close hint | `CLOSE_HINT_FONT_SIZE = 16` |
 
 ### 4. Hint Dismiss
 
-Sekarang: text `[Klik kiri] untuk tutup` di pojok kanan bawah box
+Sekarang: text `[Left-Click] To Close` di pojok kanan bawah box
 
 ---
 

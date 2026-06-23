@@ -1,38 +1,40 @@
 <h1 align="center">BREACH &amp; LOOT</h1>
 
 <!-- Game logo -->
-![Game Logo](assets/images/readme/logo/logoTitle.png)
+<div align="center">
+  <img src="docs/assets/readme/logo/logoTitle.webp" alt="Game Logo">
+</div>
 
 <!-- Screenshot gameplay grid: 1 full-width + 3 rows of 2 -->
 <div align="center">
-  <table>
+  <table width="100%">
     <tr>
       <td align="center" colspan="2">
-        <img src="assets/images/readme/sshots/gameplay_0.webp" alt="Gameplay Preview Loop" width="100%">
+        <img src="docs/assets/readme/sshots/gameplay_0.webp" width="100%">
       </td>
     </tr>
     <tr>
       <td align="center" width="50%">
-        <img src="assets/images/gameplayScreenshots/screenshot_gameplay1.png" alt="Gameplay" width="100%">
+        <img src="docs/assets/readme/sshots/screenshot-1_mainMenu.webp" width="100%">
       </td>
       <td align="center" width="50%">
-        <img src="assets/images/gameplayScreenshots/screenshot_turnbased.png" alt="Turn-Based Combat" width="100%">
-      </td>
-    </tr>
-    <tr>
-      <td align="center" width="50%">
-        <img src="assets/images/gameplayScreenshots/screenshot_bossgameplay.png" alt="Boss Combat" width="100%">
-      </td>
-      <td align="center" width="50%">
-        <img src="assets/images/gameplayScreenshots/screenshot_explosion.png" alt="Explosion Effects" width="100%">
+        <img src="docs/assets/readme/sshots/screenshot-2_explosion.webp" width="100%">
       </td>
     </tr>
     <tr>
       <td align="center" width="50%">
-        <img src="assets/images/gameplayScreenshots/screenshot_attackbow.png" alt="Bow Attack" width="100%">
+        <img src="docs/assets/readme/sshots/screenshot-3_bossgameplay.webp" width="100%">
       </td>
       <td align="center" width="50%">
-        <!-- placeholder for future screenshot -->
+        <img src="docs/assets/readme/sshots/screenshot-4_bossturnbased.webp" width="100%">
+      </td>
+    </tr>
+    <tr>
+      <td align="center" width="50%">
+        <img src="docs/assets/readme/sshots/screenshot-5_worldgen_explode.webp" width="100%">
+      </td>
+      <td align="center" width="50%">
+        <img src="docs/assets/readme/sshots/screenshot-6_worldgen_crowd.webp" width="100%">
       </td>
     </tr>
   </table>

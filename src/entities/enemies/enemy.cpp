@@ -219,6 +219,7 @@ void Enemy::Init(Vector2 pos, const char *name, int mapId, const EnemyDefinition
     DeathTimer = 0.0f;
     PlayerWasInRange = false;
     AIState = ENEMY_IDLE;
+    ResetStuck();
 
     // Posisi disesuaikan agar hitbox center-nya tepat di pos spawn
     Position.x = pos.x - (HitboxWidth / 2.0f) - HitboxOffsetX;
@@ -232,6 +233,9 @@ void Enemy::Init(Vector2 pos, const char *name, int mapId, const EnemyDefinition
 /**
  * @brief Update lifecycle enemy, termasuk death state, knockback, AI, dan animasi.
  */
+static void PushOutOfWalls(Enemy *enemy);  // forward decl
+static void RandomEscape(Enemy *enemy);    // forward decl
+
 void Enemy::Update()
 {
     if (!IsActive)
@@ -240,7 +244,7 @@ void Enemy::Update()
     if (Health <= 0)
     {
         isTurnBasedMode = false; // Prevent re-trigger turn-based jika mati kena bomb dll
-        HealthBarTimer = 0.0f; // Langsung matikan health bar sebelum death anim
+        HealthBarTimer = 0.0f;   // Langsung matikan health bar sebelum death anim
 
         if (Anim.state != DEAD)
         {
@@ -350,7 +354,30 @@ void Enemy::Update()
     const float AI_UPDATE_RANGE = FRAME_SIZE * aiUpdateRangeMul;
 
     if (Vector2Distance(Position, PlayerInstance.GetPosition()) <= AI_UPDATE_RANGE)
+    {
         UpdateAI();
+
+        // Cek 4 arah — kalo semua terhalang > 3 detik, enemy stuck, push out
+        float step = 35.0f;
+        auto safe = [&](Vector2 p) {
+            return IsPositionSafe(p, HitboxWidth, HitboxHeight, HitboxOffsetX, HitboxOffsetY);
+        };
+        bool blockedUp    = !safe({Position.x, Position.y - step});
+        bool blockedDown  = !safe({Position.x, Position.y + step});
+        bool blockedLeft  = !safe({Position.x - step, Position.y});
+        bool blockedRight = !safe({Position.x + step, Position.y});
+
+        if (blockedUp && blockedDown && blockedLeft && blockedRight)
+            StuckTimer += Time::DELTA_TIME;
+        else
+            StuckTimer = 0.0f;
+
+        if (StuckTimer >= 3.0f)
+        {
+            StuckTimer = 0.0f;
+            RandomEscape(this);
+        }
+    }
 
     Anim.position = Position;
     UpdateAnimation(Anim, Time::DELTA_TIME);
@@ -400,22 +427,26 @@ void Enemy::UpdateAI()
             Health = MaxHealth;
     }
 
-    // Boss ability triggers (hanya saat player dalam range)
+    // Boss ability triggers: 5s cooldown, 50/50 random, aktif cuma dalam range ability
     if (rank == ENEMY_BOSS && AIState != ENEMY_ABILITY1 && AIState != ENEMY_ABILITY2 && AIState != ENEMY_ATTACK)
     {
-        float range = fmaxf(Def->stats.chaseDetectionRange, FRAME_SIZE * 2.0f);
         float dist = Vector2Distance(GetCenter(), PlayerInstance.GetCenter());
-        if (dist <= range)
+        if (BossAbilityTimer <= 0)
         {
-            if (BossAbilityTimer <= 0)
+            BossAbilityTimer = 5.0f;
+            bool inSlamRange = dist <= 160.0f;
+            bool inChargeRange = dist <= 250.0f;
+            if (inSlamRange && inChargeRange)
+            {
+                AIState = (GetRandomValue(0, 1) == 0) ? ENEMY_ABILITY1 : ENEMY_ABILITY2;
+            }
+            else if (inSlamRange)
             {
                 AIState = ENEMY_ABILITY1;
-                BossAbilityTimer = 5.0f;
             }
-            else if (BossAbility2Timer <= 0)
+            else if (inChargeRange)
             {
                 AIState = ENEMY_ABILITY2;
-                BossAbility2Timer = 7.0f;
             }
         }
     }
@@ -485,8 +516,8 @@ void Enemy::HandleIdle()
 
     float maxDistPatrol = 6.0f * FRAME_SIZE;
     bool tooFarFromSpawn = (SpawnRect.width > 0)
-        ? !CheckCollisionPointRec(GetCenter(), SpawnRect)
-        : Vector2Distance(GetCenter(), SpawnPoint) > maxDistPatrol;
+                               ? !CheckCollisionPointRec(GetCenter(), SpawnRect)
+                               : Vector2Distance(GetCenter(), SpawnPoint) > maxDistPatrol;
 
     if (tooFarFromSpawn)
     {
@@ -587,8 +618,7 @@ void Enemy::HandlePatrol()
     }
 
     MoveTowards(PatrolTarget, Def->stats.speed);
-    if (Anim.state != WALK)
-        PlayAnimation(Anim, WALK, Anim.direction);
+    PlayAnimation(Anim, WALK, Anim.direction);
 }
 
 float Enemy::GetEffectiveAttackRange() const
@@ -608,8 +638,8 @@ void Enemy::HandleChase()
 
     if (AttackCooldownTimer > 0)
     {
-        if (Anim.state != IDLE)
-            PlayAnimation(Anim, IDLE, Anim.direction);
+        if (Anim.state != ATTACK)
+            PlayAnimation(Anim, ATTACK, Anim.direction);
         return;
     }
 
@@ -667,8 +697,10 @@ void Enemy::HandleChase()
             MoveTowards(playerCenter, Def->stats.chaseSpeed);
     }
 
-    if (Anim.state != WALK)
-        PlayAnimation(Anim, WALK, Anim.direction);
+    // Arah visual selalu ke player saat chase (abaikan steering target)
+    Vector2 toPlayer = Vector2Normalize(Vector2Subtract(PlayerInstance.GetCenter(), GetCenter()));
+    Anim.direction = (toPlayer.x > 0) ? RIGHT : LEFT;
+    PlayAnimation(Anim, WALK, Anim.direction);
 }
 
 /**
@@ -683,6 +715,9 @@ void Enemy::HandleAbility1()
         PlayAnimation(Anim, ABILITY1, Anim.direction);
         AttackWindUpTimer = windupDuration;
         Anim.isAttacking = true;
+        // Simpan arah ability di awal (ga tracking player terus)
+        Vector2 toPlayer = Vector2Subtract(PlayerInstance.GetCenter(), GetCenter());
+        AbilityDir = Vector2Normalize(toPlayer);
     }
 
     if (AttackWindUpTimer > 0)
@@ -697,7 +732,7 @@ void Enemy::HandleAbility1()
     {
         // Boss AOE slam selesai
         Vector2 ctr = GetCenter();
-        float radius = 190.0f;
+        float radius = 160.0f;
         if (CheckCollisionCircleRec(ctr, radius, PlayerInstance.GetHitbox()))
         {
             PlayerInstance.TakeDamage(40.0f, Vector2Normalize(Vector2Subtract(PlayerInstance.GetCenter(), ctr)));
@@ -709,14 +744,13 @@ void Enemy::HandleAbility1()
         Rectangle zone = GetAbilityZone();
         if (CheckCollisionPointRec(PlayerInstance.GetCenter(), zone))
         {
-            Vector2 dir = Vector2Normalize(Vector2Subtract(PlayerInstance.GetCenter(), GetCenter()));
+            Vector2 kbDir = (AbilityDir.x != 0 || AbilityDir.y != 0) ? AbilityDir : Vector2{1, 0};
             float abilityDamage = Def->stats.damage * 2.5f;
-            PlayerInstance.TakeDamage(abilityDamage, dir);
+            PlayerInstance.TakeDamage(abilityDamage, kbDir);
         }
-        AttackCooldownTimer = AttackCooldown;
     }
 
-    AIState = ENEMY_ATTACK;
+    AIState = ENEMY_CHASE;
 }
 
 void Enemy::HandleAbility2()
@@ -726,6 +760,9 @@ void Enemy::HandleAbility2()
         PlayAnimation(Anim, ABILITY2, Anim.direction);
         AttackWindUpTimer = 0.8f;
         Anim.isAttacking = true;
+        Vector2 toPlayer = Vector2Subtract(PlayerInstance.GetCenter(), GetCenter());
+        ChargeDir = Vector2Normalize(toPlayer);
+        Anim.direction = (ChargeDir.x > 0) ? RIGHT : LEFT;
     }
 
     if (AttackWindUpTimer > 0)
@@ -736,13 +773,8 @@ void Enemy::HandleAbility2()
         return;
     }
 
-    // Wind-up selesai: inisialisasi charge direction & distance
     if (ChargeDistanceRemaining <= 0)
     {
-        if (Anim.direction == LEFT)  ChargeDir = {-1, 0};
-        if (Anim.direction == RIGHT) ChargeDir = {1, 0};
-        if (Anim.direction == UP)    ChargeDir = {0, -1};
-        if (Anim.direction == DOWN)  ChargeDir = {0, 1};
         ChargeDistanceRemaining = 200.0f;
         ChargeHitPlayer = false;
     }
@@ -757,8 +789,8 @@ void Enemy::HandleAbility2()
         float worldW = (float)tilesonMap->width * FRAME_SIZE;
         float worldH = (float)tilesonMap->height * FRAME_SIZE;
         blocked = !IsWithinWorldBounds(hitbox, worldW, worldH) ||
-                   CheckCollisionAgainstRects(hitbox, gCollisionCache.rects) ||
-                   CheckCollisionAgainstPolygons(hitbox, gCollisionCache.polygons);
+                  CheckCollisionAgainstRects(hitbox, gCollisionCache.rects) ||
+                  CheckCollisionAgainstPolygons(hitbox, gCollisionCache.polygons);
     }
     if (blocked)
     {
@@ -769,9 +801,10 @@ void Enemy::HandleAbility2()
         Position = next;
         ChargeDistanceRemaining -= step;
 
-        // Collision dengan bom saat charge
+        // Collision dengan bom saat charge — berhenti kalo kena bom
         Rectangle bossHitbox = {next.x + HitboxOffsetX, next.y + HitboxOffsetY, HitboxWidth, HitboxHeight};
-        bombManager.HitByAttack(bossHitbox, PlayerInstance.GetHitbox(), &PlayerInstance);
+        if (bombManager.HitByAttack(bossHitbox, PlayerInstance.GetHitbox(), &PlayerInstance))
+            ChargeDistanceRemaining = 0;
 
         if (!ChargeHitPlayer && CheckCollisionRecs(bossHitbox, PlayerInstance.GetHitbox()))
         {
@@ -792,13 +825,10 @@ Rectangle Enemy::GetAbilityZone() const
 {
     Vector2 center = GetCenter();
     float zoneW = 44.0f, zoneH = 44.0f;
-    float zx = center.x - zoneW / 2.0f;
-    float zy = center.y - zoneH / 2.0f;
+    Vector2 dir = (AbilityDir.x != 0 || AbilityDir.y != 0) ? AbilityDir : Vector2{1, 0};
     float offset = 22.0f;
-    if (Anim.direction == LEFT)  zx -= offset;
-    if (Anim.direction == RIGHT) zx += offset;
-    if (Anim.direction == UP)    zy -= offset;
-    if (Anim.direction == DOWN)  zy += offset;
+    float zx = center.x + dir.x * offset - zoneW / 2.0f;
+    float zy = center.y + dir.y * offset - zoneH / 2.0f;
     return {zx, zy, zoneW, zoneH};
 }
 
@@ -862,8 +892,7 @@ void Enemy::HandleReturn()
     else
         MoveTowards(SpawnPoint, Def->stats.speed);
 
-    if (Anim.state != WALK)
-        PlayAnimation(Anim, WALK, Anim.direction);
+    PlayAnimation(Anim, WALK, Anim.direction);
 }
 
 /**
@@ -889,8 +918,14 @@ void Enemy::HandleAttack()
     }
 
     // After wind-up, keep attack sprite visible during cooldown
-    if (rank == ENEMY_ELITE && AIState == ENEMY_ATTACK && Anim.state != ATTACK)
+    if (AIState == ENEMY_ATTACK && Anim.state != ATTACK)
         PlayAnimation(Anim, ATTACK, Anim.direction);
+
+    if (AttackCooldownTimer > 0 && Anim.state == ATTACK && Anim.currentConfig && !Anim.currentConfig->loop)
+    {
+        if (Anim.timer >= Anim.currentConfig->speed)
+            Anim.timer = Anim.currentConfig->speed - 0.001f;
+    }
 
     Vector2 enemyCenter = GetCenter();
     Vector2 playerCenter = PlayerInstance.GetCenter();
@@ -903,8 +938,8 @@ void Enemy::HandleAttack()
         {
             if (rank == ENEMY_ELITE)
             {
-                // Elite wind-up: stand still for 0.6s playing attack animation, then deal damage
-                AttackWindUpTimer = 0.6f;
+                // Elite wind-up: stand still playing attack animation, then deal damage
+                AttackWindUpTimer = 1.0f;
                 PlayAnimation(Anim, ATTACK, Anim.direction);
                 Anim.isAttacking = true;
             }
@@ -1014,26 +1049,22 @@ void Enemy::Render()
         {
             if (rank == ENEMY_ELITE)
             {
-                Rectangle zone = GetAbilityZone();
-                DrawRectangleRec(zone, ColorAlpha(RED, 0.55f));
+                Vector2 ctr = GetCenter();
+                Vector2 end = Vector2Add(ctr, Vector2Scale(AbilityDir, 44.0f));
+                DrawLineEx(ctr, end, 15.0f, ColorAlpha(RED, 0.5f));
             }
             else if (rank == ENEMY_BOSS)
             {
                 Vector2 ctr = GetCenter();
-                DrawCircleV(ctr, 190.0f, ColorAlpha(ORANGE, 0.35f));
-                DrawCircleLinesV(ctr, 190.0f, ColorAlpha(RED, 0.7f));
+                DrawCircleV(ctr, 160.0f, ColorAlpha(ORANGE, 0.35f));
+                DrawCircleLinesV(ctr, 160.0f, ColorAlpha(RED, 0.7f));
             }
         }
         else if (AIState == ENEMY_ABILITY2 && rank == ENEMY_BOSS)
         {
-            // Visual charge direction
+            // Visual charge direction (pake ChargeDir, bukan Anim.direction 4 axis)
             Vector2 ctr = GetCenter();
-            Vector2 d = {0, 0};
-            if (Anim.direction == LEFT)  d.x = -1;
-            if (Anim.direction == RIGHT) d.x = 1;
-            if (Anim.direction == UP)    d.y = -1;
-            if (Anim.direction == DOWN)  d.y = 1;
-            Vector2 end = Vector2Add(ctr, Vector2Scale(d, 200.0f));
+            Vector2 end = Vector2Add(ctr, Vector2Scale(ChargeDir, 200.0f));
             DrawLineEx(ctr, end, 6.0f, ColorAlpha(YELLOW, 0.5f));
             DrawCircleV(end, 8.0f, ColorAlpha(RED, 0.7f));
         }
@@ -1107,10 +1138,9 @@ void Enemy::MoveTowards(Vector2 target, float speed)
     if (IsPositionSafe({Position.x, Position.y + move.y}, HitboxWidth, HitboxHeight, HitboxOffsetX, HitboxOffsetY))
         Position.y += move.y;
 
-    if (std::abs(dir.x) > std::abs(dir.y))
-        Anim.direction = (dir.x > 0) ? RIGHT : LEFT;
-    else
-        Anim.direction = (dir.y > 0) ? DOWN : UP;
+    // Direction berdasarkan center-to-center biar akurat
+    Vector2 dirToTarget = Vector2Normalize(Vector2Subtract(target, GetCenter()));
+    Anim.direction = (dirToTarget.x > 0) ? RIGHT : LEFT;
 }
 
 /**
@@ -1148,18 +1178,37 @@ const AnimationSet *ResolveAnimSet(const std::string &name)
 }
 
 /**
- * @brief Push enemy keluar dari collision dinding setelah spawn.
- * Coba offset bertahap dalam pola cross sampai dapat posisi aman.
+ * @brief Push enemy keluar dari area macet (dinding atau celah sempit).
+ * Coba offset bertahap dalam pola 8 arah, dari kecil hingga besar.
+ * Kalau posisi aman ditemukan dan ada ruang gerak, enemy dipindahkan.
  */
 static void PushOutOfWalls(Enemy *enemy)
 {
     if (!enemy)
         return;
     Vector2 pos = enemy->Position;
-    if (IsPositionSafe(pos, enemy->HitboxWidth, enemy->HitboxHeight, enemy->HitboxOffsetX, enemy->HitboxOffsetY))
+
+    // Cek apakah posisi punya ruang gerak minimal (step tertentu)
+    auto hasRoom = [&](Vector2 p, float step) -> bool {
+        Vector2 dirs[] = {{step, 0}, {-step, 0}, {0, step}, {0, -step}};
+        for (auto &d : dirs)
+        {
+            Vector2 n = {p.x + d.x, p.y + d.y};
+            if (IsPositionSafe(n, enemy->HitboxWidth, enemy->HitboxHeight, enemy->HitboxOffsetX, enemy->HitboxOffsetY))
+                return true;
+        }
+        return false;
+    };
+
+    auto isSafe = [&](Vector2 p) {
+        return IsPositionSafe(p, enemy->HitboxWidth, enemy->HitboxHeight, enemy->HitboxOffsetX, enemy->HitboxOffsetY);
+    };
+
+    // Kalo posisi aman & bisa gerak > 35px = beneran gak stuck
+    if (isSafe(pos) && hasRoom(pos, 35.0f))
         return;
 
-    float offsets[] = {4, 8, 12, 16, 20, 24, 28, 32, 40, 48};
+    float offsets[] = {4, 8, 12, 16, 20, 24, 28, 32, 40, 48, 64, 80, 96, 128, 160, 192};
     for (float o : offsets)
     {
         Vector2 tries[] = {
@@ -1174,14 +1223,114 @@ static void PushOutOfWalls(Enemy *enemy)
         };
         for (Vector2 t : tries)
         {
-            if (IsPositionSafe(t, enemy->HitboxWidth, enemy->HitboxHeight, enemy->HitboxOffsetX, enemy->HitboxOffsetY))
+            if (isSafe(t))
             {
-                enemy->Position = t;
-                enemy->Anim.position = t;
-                enemy->SpawnPoint = {t.x + enemy->HitboxWidth / 2.0f + enemy->HitboxOffsetX,
-                                     t.y + enemy->HitboxHeight / 2.0f + enemy->HitboxOffsetY};
-                return;
+                if (hasRoom(t, 4.0f))  // prefer kandidat yg ada ruang gerak
+                {
+                    enemy->Position = t;
+                    enemy->Anim.position = t;
+                    enemy->SpawnPoint = {t.x + enemy->HitboxWidth / 2.0f + enemy->HitboxOffsetX,
+                                         t.y + enemy->HitboxHeight / 2.0f + enemy->HitboxOffsetY};
+                    return;
+                }
             }
+        }
+    }
+
+    // Fallback: cari posisi aman doang (tanpa hasRoom) di offset lebih besar
+    for (float o : {96, 128, 160, 192})
+    {
+        for (int dx = -1; dx <= 1; dx++)
+        {
+            for (int dy = -1; dy <= 1; dy++)
+            {
+                if (dx == 0 && dy == 0) continue;
+                Vector2 t = {pos.x + dx * o, pos.y + dy * o};
+                if (isSafe(t))
+                {
+                    enemy->Position = t;
+                    enemy->Anim.position = t;
+                    enemy->SpawnPoint = {t.x + enemy->HitboxWidth / 2.0f + enemy->HitboxOffsetX,
+                                         t.y + enemy->HitboxHeight / 2.0f + enemy->HitboxOffsetY};
+                    return;
+                }
+            }
+        }
+    }
+}
+
+/**
+ * @brief Cek spawn dead end: kalo 4 arah (35px) semua tembok, push out.
+ */
+static void CheckSpawnDeadEnd(Enemy *enemy)
+{
+    if (!enemy) return;
+    Vector2 pos = enemy->Position;
+    const float step = 35.0f;
+    auto safe = [&](Vector2 p) {
+        return IsPositionSafe(p, enemy->HitboxWidth, enemy->HitboxHeight, enemy->HitboxOffsetX, enemy->HitboxOffsetY);
+    };
+    bool blockedUp    = !safe({pos.x, pos.y - step});
+    bool blockedDown  = !safe({pos.x, pos.y + step});
+    bool blockedLeft  = !safe({pos.x - step, pos.y});
+    bool blockedRight = !safe({pos.x + step, pos.y});
+
+    if (blockedUp && blockedDown && blockedLeft && blockedRight)
+        RandomEscape(enemy);
+}
+
+/**
+ * @brief Random escape: coba 50 random posisi dalam radius 200px, ambil yang aman & punya ruang.
+ */
+static void RandomEscape(Enemy *enemy)
+{
+    if (!enemy) return;
+    Vector2 pos = enemy->Position;
+
+    auto isSafe = [&](Vector2 p) {
+        return IsPositionSafe(p, enemy->HitboxWidth, enemy->HitboxHeight,
+                              enemy->HitboxOffsetX, enemy->HitboxOffsetY);
+    };
+    auto hasRoom = [&](Vector2 p) -> bool {
+        float step = 4.0f;
+        Vector2 dirs[] = {{step,0},{-step,0},{0,step},{0,-step}};
+        for (auto &d : dirs)
+            if (isSafe({p.x + d.x, p.y + d.y})) return true;
+        return false;
+    };
+
+    const int MAX_ATTEMPTS = 50;
+    const float RADIUS = 200.0f;
+
+    // Pass 1: cari yang safe + hasRoom
+    for (int i = 0; i < MAX_ATTEMPTS; i++)
+    {
+        float angle = (float)GetRandomValue(0, 3600) / 10.0f * DEG2RAD;
+        float dist = (float)GetRandomValue(20, (int)RADIUS);
+        Vector2 t = {pos.x + cosf(angle) * dist, pos.y + sinf(angle) * dist};
+        if (isSafe(t) && hasRoom(t))
+        {
+            enemy->Position = t;
+            enemy->Anim.position = t;
+            enemy->SpawnPoint = {t.x + enemy->HitboxWidth / 2.0f + enemy->HitboxOffsetX,
+                                 t.y + enemy->HitboxHeight / 2.0f + enemy->HitboxOffsetY};
+            return;
+        }
+    }
+
+    // Pass 2: fallback — safe aja cukup
+    for (int i = 0; i < MAX_ATTEMPTS; i++)
+    {
+        float angle = (float)GetRandomValue(0, 3600) / 10.0f * DEG2RAD;
+        float dist = (float)GetRandomValue(20, (int)RADIUS);
+        Vector2 t = {pos.x + cosf(angle) * dist, pos.y + sinf(angle) * dist};
+        if (isSafe(t))
+        {
+            enemy->Position = t;
+            enemy->Anim.position = t;
+            enemy->SpawnPoint = {t.x + enemy->HitboxWidth / 2.0f + enemy->HitboxOffsetX,
+                                 t.y + enemy->HitboxHeight / 2.0f + enemy->HitboxOffsetY};
+            return;
         }
     }
 }
@@ -1220,7 +1369,8 @@ void SpawnAtPoint(const MapObject *obj, EnemyRank rank)
         BuildSpawnFlowFields(center, obj->id, tilesonMap->width, tilesonMap->height);
 
     uint64_t dSeed = g_SeedManager.IsRunActive()
-        ? (uint64_t)g_SeedManager.GetSeed(g_SeedManager.GetCurrentStage()) : 0;
+                         ? (uint64_t)g_SeedManager.GetSeed(g_SeedManager.GetCurrentStage())
+                         : 0;
 
     for (int i = 0; i < count; i++)
     {
@@ -1233,6 +1383,7 @@ void SpawnAtPoint(const MapObject *obj, EnemyRank rank)
         enemy->Init(spawnPos, picked.c_str(), obj->id, def);
         enemy->SetUUID(GenerateDeterministicUUID(dSeed, obj->id, picked, i));
         PushOutOfWalls(enemy);
+        CheckSpawnDeadEnd(enemy);
         enemy->SetReturnFlowField(&spawnFlowFields[obj->id].field);
         Entities::AddDynamic(enemy);
     }
@@ -1267,7 +1418,8 @@ void SpawnInRect(const MapObject *obj, const std::string &enemyName, float ratio
         BuildSpawnFlowFields(rectCenter, obj->id, tilesonMap->width, tilesonMap->height);
 
     uint64_t dSeed = g_SeedManager.IsRunActive()
-        ? (uint64_t)g_SeedManager.GetSeed(g_SeedManager.GetCurrentStage()) : 0;
+                         ? (uint64_t)g_SeedManager.GetSeed(g_SeedManager.GetCurrentStage())
+                         : 0;
 
     for (int i = 0; i < count; i++)
     {
@@ -1279,9 +1431,9 @@ void SpawnInRect(const MapObject *obj, const std::string &enemyName, float ratio
             spawnPos = {xDist(rng), yDist(rng)};
             // Convert center (Enemy::Init expectation) ke Entity::Position (IsPositionSafe expectation)
             Vector2 entityPos = {spawnPos.x - def.hitbox.size.x / 2.0f - def.hitbox.offset.x,
-                                  spawnPos.y - def.hitbox.size.y / 2.0f - def.hitbox.offset.y};
+                                 spawnPos.y - def.hitbox.size.y / 2.0f - def.hitbox.offset.y};
             if (IsPositionSafe(entityPos, def.hitbox.size.x, def.hitbox.size.y,
-                                def.hitbox.offset.x, def.hitbox.offset.y))
+                               def.hitbox.offset.x, def.hitbox.offset.y))
             {
                 valid = true;
                 break;
@@ -1293,6 +1445,7 @@ void SpawnInRect(const MapObject *obj, const std::string &enemyName, float ratio
 
         Enemy *enemy = new Enemy();
         enemy->Init(spawnPos, enemyName.c_str(), obj->id, def);
+        CheckSpawnDeadEnd(enemy);
         enemy->SetUUID(GenerateDeterministicUUID(dSeed, obj->id, enemyName, i));
         enemy->SpawnRect = obj->bounds;
         enemy->SetReturnFlowField(&spawnFlowFields[obj->id].field);
@@ -1327,12 +1480,14 @@ void SpawnBoss(const MapObject *obj)
         BuildSpawnFlowFields(spawnPos, obj->id, tilesonMap->width, tilesonMap->height);
 
     uint64_t dSeed = g_SeedManager.IsRunActive()
-        ? (uint64_t)g_SeedManager.GetSeed(g_SeedManager.GetCurrentStage()) : 0;
+                         ? (uint64_t)g_SeedManager.GetSeed(g_SeedManager.GetCurrentStage())
+                         : 0;
 
     Enemy *enemy = new Enemy();
     enemy->Init(spawnPos, picked.c_str(), obj->id, def);
     enemy->SetUUID(GenerateDeterministicUUID(dSeed, obj->id, picked, 0));
     PushOutOfWalls(enemy);
+    CheckSpawnDeadEnd(enemy);
     enemy->SetReturnFlowField(&spawnFlowFields[obj->id].field);
     Entities::AddDynamic(enemy);
 }
@@ -1365,7 +1520,8 @@ void SpawnTutorialEnemy(const MapObject *obj)
         BuildSpawnFlowFields(center, obj->id, tilesonMap->width, tilesonMap->height);
 
     uint64_t dSeed = g_SeedManager.IsRunActive()
-        ? (uint64_t)g_SeedManager.GetSeed(g_SeedManager.GetCurrentStage()) : 0;
+                         ? (uint64_t)g_SeedManager.GetSeed(g_SeedManager.GetCurrentStage())
+                         : 0;
 
     for (int i = 0; i < count; i++)
     {

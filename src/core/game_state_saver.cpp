@@ -728,27 +728,27 @@ bool HasSavedState(void)
         {
             hasSavedState = true;
             // Populate globals from snapshot for loading_screen.cpp compat
-            savedPlayerState.position      = snap.playerPosition;
-            savedPlayerState.health        = snap.playerHealth;
-            savedPlayerState.maxHealth     = snap.playerMaxHealth;
-            savedPlayerState.mana          = snap.playerMana;
-            savedPlayerState.maxMana       = snap.playerMaxMana;
-            savedPlayerState.worldgenSlot  = snap.worldgenSlot;
+            savedPlayerState.position = snap.playerPosition;
+            savedPlayerState.health = snap.playerHealth;
+            savedPlayerState.maxHealth = snap.playerMaxHealth;
+            savedPlayerState.mana = snap.playerMana;
+            savedPlayerState.maxMana = snap.playerMaxMana;
+            savedPlayerState.worldgenSlot = snap.worldgenSlot;
             savedPlayerState.mapDisplayName = snap.mapDisplayName;
 
-            savedMapState.mapPath         = snap.mapPath;
-            savedMapState.cameraTarget    = snap.cameraTarget;
-            savedMapState.cameraZoom      = snap.cameraZoom;
+            savedMapState.mapPath = snap.mapPath;
+            savedMapState.cameraTarget = snap.cameraTarget;
+            savedMapState.cameraZoom = snap.cameraZoom;
             savedMapState.deadEntities.assign(snap.deadEntities.begin(),
                                               snap.deadEntities.end());
             savedMapState.chestsOpened.assign(snap.chestConsumed.begin(),
                                               snap.chestConsumed.end());
-            savedMapState.mapHistory      = snap.mapHistory;
+            savedMapState.mapHistory = snap.mapHistory;
             savedMapState.bombConsumedPositions = snap.bombConsumed;
             savedMapState.crateConsumedPositions = snap.crateConsumed;
 
             savedEnemyStates = snap.enemies;
-            savedItemStates  = snap.items;
+            savedItemStates = snap.items;
 
             // Convert unordered_set → JSON array for old-format globals
             savedMapState.bombConsumedPositions = nlohmann::json::array();

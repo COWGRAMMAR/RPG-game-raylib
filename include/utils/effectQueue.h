@@ -4,9 +4,10 @@
  * @brief Generic Node for EffectQueue
  */
 template <typename T>
-struct EffectNode {
+struct EffectNode
+{
     T data;
-    EffectNode* next;
+    EffectNode *next;
 };
 
 /**
@@ -14,22 +15,28 @@ struct EffectNode {
  * Implemented as a linked list to match the project's existing style.
  */
 template <typename T>
-class EffectQueue {
+class EffectQueue
+{
 public:
     /** @brief Constructor */
     EffectQueue() : head(nullptr), tail(nullptr), count(0) {}
-    
+
     /** @brief Destructor */
-    ~EffectQueue() {
+    ~EffectQueue()
+    {
         Clear();
     }
 
     /** @brief Tambah data ke antrian */
-    void Enqueue(T data) {
-        EffectNode<T>* newNode = new EffectNode<T>{data, nullptr};
-        if (tail == nullptr) {
+    void Enqueue(T data)
+    {
+        EffectNode<T> *newNode = new EffectNode<T>{data, nullptr};
+        if (tail == nullptr)
+        {
             head = tail = newNode;
-        } else {
+        }
+        else
+        {
             tail->next = newNode;
             tail = newNode;
         }
@@ -37,12 +44,15 @@ public:
     }
 
     /** @brief Hapus data dari depan antrian */
-    void Dequeue() {
-        if (head == nullptr) return;
+    void Dequeue()
+    {
+        if (head == nullptr)
+            return;
 
-        EffectNode<T>* temp = head;
+        EffectNode<T> *temp = head;
         head = head->next;
-        if (head == nullptr) {
+        if (head == nullptr)
+        {
             tail = nullptr;
         }
         delete temp;
@@ -50,29 +60,34 @@ public:
     }
 
     /** @brief Cek apakah antrian kosong */
-    bool IsEmpty() const {
+    bool IsEmpty() const
+    {
         return head == nullptr;
     }
 
     /** @brief Kosongkan seluruh antrian */
-    void Clear() {
-        while (!IsEmpty()) {
+    void Clear()
+    {
+        while (!IsEmpty())
+        {
             Dequeue();
         }
     }
 
     /** @brief Ambil jumlah data dalam antrian */
-    int Size() const {
+    int Size() const
+    {
         return count;
     }
 
     /** @brief Ambil node paling depan */
-    EffectNode<T>* GetHead() const {
+    EffectNode<T> *GetHead() const
+    {
         return head;
     }
 
 private:
-    EffectNode<T>* head;
-    EffectNode<T>* tail;
+    EffectNode<T> *head;
+    EffectNode<T> *tail;
     int count;
 };

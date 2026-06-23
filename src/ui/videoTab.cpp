@@ -15,6 +15,27 @@
 
 using json = nlohmann::json;
 
+/*==============================================================================
+ * Constants
+ *==============================================================================*/
+
+/** @brief Warna teks label settings (dark brown, sama kayak audio/keybind tab) */
+static const Color LABEL_COLOR = {31, 31, 28, 255};
+
+/** @brief Posisi X label */
+static const int LABEL_X_OFFSET = 40;
+
+/** @brief Font size untuk label */
+static const int FONT_SIZE = 34;
+
+/** @brief Row Y offsets dari contentStartY */
+static const int ROW_OFFSETS[2] = {12, 72};
+
+/** @brief Label teks untuk tiap toggle */
+static const char *TOGGLE_LABELS[2] = {
+    "FULLSCREEN",
+    "SHOW FPS"};
+
 void DrawVideoTab(
     buttonTxt &fullscreenButton,
     buttonTxt &fpsButton,
@@ -23,16 +44,17 @@ void DrawVideoTab(
     int startY)
 {
     int contentStartY = startY + 100;
-    // ukuran font dinaikkan dari 28 → 34 agar lebih terbaca
-    const int fontSize = 34;
-    int labelX = startX + 40;
+    int labelX = startX + LABEL_X_OFFSET;
+    FontHandle vfxFont = {FontId::VIDEOSETTS_LABEL, AtlasRes::RES_512};
 
-    DrawTextEx(GetOrLoad(FontId::LOADING_TITLE), "Fullscreen",
-               Vector2{static_cast<float>(labelX), static_cast<float>(contentStartY + 12)},
-               fontSize, 0, WHITE);
-    DrawTextEx(GetOrLoad(FontId::LOADING_TITLE), "Show FPS",
-               Vector2{static_cast<float>(labelX), static_cast<float>(contentStartY + 72)},
-               fontSize, 0, WHITE);
+    for (int i = 0; i < 2; i++)
+    {
+        DrawTextCached(
+            vfxFont,
+            TOGGLE_LABELS[i],
+            Vector2{(float)labelX, (float)(contentStartY + ROW_OFFSETS[i])},
+            FONT_SIZE, 0, LABEL_COLOR);
+    }
 
     fullscreenButton.Draw(mousePosition);
     fpsButton.Draw(mousePosition);

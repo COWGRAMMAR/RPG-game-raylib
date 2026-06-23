@@ -186,8 +186,8 @@ void Popup::CalculateDimensions()
     {
         Vector2 cancelSize = MeasureTextEx(GetOrLoad(FontId::LOADING_TITLE), cancelText, fontSize, 0);
         int cancelWidth = static_cast<int>(cancelSize.x);
-        int effBtnWidth = buttonWidth - buttonTrim;   // basch-3: trim lebar tombol
-        int effCancelWidth = cancelWidth - buttonTrim; // basch-3: trim lebar cancel
+        int effBtnWidth = buttonWidth - buttonTrim;                // basch-3: trim lebar tombol
+        int effCancelWidth = cancelWidth - buttonTrim;             // basch-3: trim lebar cancel
         int buttonsTotalWidth = effBtnWidth + 25 + effCancelWidth; // basch-3: gap 20→25
 
         int contentWidth = std::max({textWidth, subWidth, buttonsTotalWidth});

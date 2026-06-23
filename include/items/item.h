@@ -95,7 +95,8 @@ struct WeaponData
 /**
  * @brief Kategori potion untuk cooldown per-kategori.
  */
-enum PotionCategory {
+enum PotionCategory
+{
     POTION_HEALTH = 0,
     POTION_STAMINA,
     POTION_DAMAGE,
@@ -109,13 +110,13 @@ enum PotionCategory {
  */
 struct PotionData
 {
-    int healValue; // Jumlah HP atau mana yang dipulihkan
-    bool isMana;   // True jika potion memulihkan mana, bukan HP
-    float damageMultiplier;      // (optional) misal 1.0 = normal, 1.2 = +20%
-    float speedMultiplier;       // (optional) misal 1.0 = normal, 1.3 = +30%
-    float invincibilityDuration; // waktu kebal dalam detik
-    float duration;              // durasi efek potion
-    float cooldown;              // waktu tunggu sebelum potion berikutnya bisa digunakan
+    int healValue;                 // Jumlah HP atau mana yang dipulihkan
+    bool isMana;                   // True jika potion memulihkan mana, bukan HP
+    float damageMultiplier;        // (optional) misal 1.0 = normal, 1.2 = +20%
+    float speedMultiplier;         // (optional) misal 1.0 = normal, 1.3 = +30%
+    float invincibilityDuration;   // waktu kebal dalam detik
+    float duration;                // durasi efek potion
+    float cooldown;                // waktu tunggu sebelum potion berikutnya bisa digunakan
     PotionCategory potionCategory; // Kategori potion (default POTION_HEALTH)
 };
 
@@ -159,11 +160,11 @@ struct ItemDefinition
  */
 struct ItemSpawn
 {
-    int definitionId; // Merujuk ke ItemDefinition::id
-    Vector2 position; // Posisi item di world space
-    Rectangle hitbox; // Hitbox untuk deteksi pickup oleh player
-    bool isPickedUp;  // True jika item sudah diambil player
-    bool isAdded;     // True jika item sudah ditambahkan ke inventory
+    int definitionId;       // Merujuk ke ItemDefinition::id
+    Vector2 position;       // Posisi item di world space
+    Rectangle hitbox;       // Hitbox untuk deteksi pickup oleh player
+    bool isPickedUp;        // True jika item sudah diambil player
+    bool isAdded;           // True jika item sudah ditambahkan ke inventory
     float spawnTime;        // Timestamp saat item di-spawn (untuk efek atau despawn)
     float dropImmunity = 0; // Sisa waktu immunity setelah di-drop (Minecraft style, default 0)
     int amount = 1;         ///< Jumlah item dalam satu spawn (untuk stackable item)

@@ -32,6 +32,7 @@
 #include "combat.h"
 #include "interaction.h"
 #include "input.h"
+#include "map/minimap.h"
 #include <cstdio>
 #include "enemy_ai.h"
 #include "raylib.h"
@@ -112,6 +113,7 @@ void InitAll()
 
     SpawnObject();
     RebuildObstacleCache();
+    MinimapSystem::InitWithMap();
     globalFlowField.Invalidate(); // nanti diganti kalo nambah method ai nya
     // Spawn musuh dari map aktif
     SpawnEnemiesFromMap();
@@ -373,7 +375,7 @@ void UpdateLogicAll()
                 float currentTime = (float)GetTime();
                 if (currentTime - lastInventoryFullTime > 2.0f)
                 {
-                    Effects::AddLog("Inventori Penuh");
+                    Effects::AddLog("Inventory Full");
                     lastInventoryFullTime = currentTime;
                 }
             }
@@ -430,13 +432,17 @@ void DrawUIOverlay(GameState *state)
     DrawPlayerHUD();
     DrawBossHPBar();
 
-    // 2. FPS Counter (if enabled)
+    // 2. FPS Counter (if enabled) — rata kiri icon pause, di bawah [Esc]
     if (state->showFPS)
     {
         int fps = GetFPS();
         char fpsText[16];
         snprintf(fpsText, sizeof(fpsText), "FPS: %d", fps);
-        DrawDefaultText(fpsText, 190, 10, 20, GREEN);
+        DrawTextCached(
+            {FontId::VIDEOSETTS_LABEL, AtlasRes::RES_256},
+            fpsText,
+            Vector2{15.0f, 110.0f},
+            20.0f, 1, GREEN);
     }
 
     // 3. Sign dialog overlay (placeholder UI)

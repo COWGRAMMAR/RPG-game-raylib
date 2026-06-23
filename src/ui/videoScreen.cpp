@@ -5,9 +5,7 @@
 /**@{*/
 
 VideoScreen::VideoScreen()
-    : m_videoPath("assets/video/intro/IntroIntroductions.mkv")
-    , m_skipRequested(false)
-    , m_loaded(false)
+    : m_videoPath("assets/video/intro/IntroIntroductions.mkv"), m_skipRequested(false), m_loaded(false)
 {
 }
 
@@ -145,7 +143,7 @@ void VideoScreen::Draw()
     }
     else if (!m_loaded)
     {
-        const char *loadingText = "Memuat video...";
+        const char *loadingText = "Loading video...";
         const int fontSize = 20;
         const int textW = MeasureText(loadingText, fontSize);
         const int screenW = GetScreenWidth();
@@ -160,7 +158,7 @@ void VideoScreen::Draw()
     }
 
     {
-        const char *skipText = "Tekan SPACE untuk skip";
+        const char *skipText = "Press SPACE to skip";
         const int fontSize = 20;
         const int textW = MeasureText(skipText, fontSize);
         const int screenW = GetScreenWidth();

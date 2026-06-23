@@ -4,7 +4,7 @@
 #include "screen.h"
 #include "input.h"
 #include "animation.h"
-#include "../../include/systems/audioManager.h"
+#include "systems/audioManager.h"
 #include "game_debug.h"
 #include "effects.h"
 #include "raymath.h"
@@ -30,7 +30,7 @@ namespace Movement
         {
             isThrustDashing = true;
             float rad = player.attack.raycastAngle * (PI / 180.0f);
-            thrustDir = { cosf(rad), sinf(rad) };
+            thrustDir = {cosf(rad), sinf(rad)};
         }
 
         // Mengambil vektor input mentah
@@ -44,25 +44,29 @@ namespace Movement
             if (InputInstance.IsMoveUp())
             {
                 player.Velocity.y -= 1;
-                if (!player.Anim.isAttacking) nextDir = UP;
+                if (!player.Anim.isAttacking)
+                    nextDir = UP;
                 moving = true;
             }
             if (InputInstance.IsMoveDown())
             {
                 player.Velocity.y += 1;
-                if (!player.Anim.isAttacking) nextDir = DOWN;
+                if (!player.Anim.isAttacking)
+                    nextDir = DOWN;
                 moving = true;
             }
             if (InputInstance.IsMoveLeft())
             {
                 player.Velocity.x -= 1;
-                if (!player.Anim.isAttacking) nextDir = LEFT;
+                if (!player.Anim.isAttacking)
+                    nextDir = LEFT;
                 moving = true;
             }
             if (InputInstance.IsMoveRight())
             {
                 player.Velocity.x += 1;
-                if (!player.Anim.isAttacking) nextDir = RIGHT;
+                if (!player.Anim.isAttacking)
+                    nextDir = RIGHT;
                 moving = true;
             }
         }
@@ -71,7 +75,7 @@ namespace Movement
         if (InputInstance.IsRightClickPressed() && player.DashCooldown <= 0.0f && !player.IsDashing && player.Mana < player.DashManaCost)
         {
             TraceLog(LOG_WARNING, "DASH: Mana tidak cukup! Mana: %.2f, Cost: %.2f", player.Mana, player.DashManaCost);
-            Effects::AddLog("Stamina tidak cukup!");
+            Effects::AddLog("Not enough stamina!");
             return;
         }
 

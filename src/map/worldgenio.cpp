@@ -15,6 +15,7 @@
 #include "entities.h"
 #include "item.h"
 #include "screen.h"
+#include "ui/mainMenu.h"
 #include <nlohmann/json.hpp>
 #include <fstream>
 #include <filesystem>
@@ -130,8 +131,8 @@ namespace WorldgenIO
     bool InitRun(int saveSlot)
     {
         ClearCache();
+
         g_SeedManager.InitRun(saveSlot);
-        CleanupOrphanedSlots();
 
         std::string slotDir = GetSlotDir(saveSlot);
         std::string mapsDir = slotDir + "/maps";
@@ -184,7 +185,9 @@ namespace WorldgenIO
         if (oldStage >= SeedManager::SEED_COUNT - 1)
         {
             // Sudah stage terakhir (boss) — balik lobby, reset run
+            InputInstance.ResetMenuFlags();
             g_SeedManager.ResetRun();
+            InitMainMenu(gState);
             gState->currentScreen = MAIN_MENU;
             return;
         }
@@ -219,9 +222,10 @@ namespace WorldgenIO
     }
 
     /** @brief Helper baca worldgenSlot dari file JSON manapun */
-    static int ReadWorldgenSlotFromFile(const std::string& filePath)
+    static int ReadWorldgenSlotFromFile(const std::string &filePath)
     {
-        if (!fs::exists(filePath)) return -1;
+        if (!fs::exists(filePath))
+            return -1;
         try
         {
             std::ifstream in(filePath);
@@ -229,56 +233,27 @@ namespace WorldgenIO
             in >> root;
             return root.value("worldgenSlot", -1);
         }
-        catch (...) { return -1; }
+        catch (...)
+        {
+            return -1;
+        }
     }
 
     void CleanupOrphanedSlots()
     {
-        const int TOTAL_SAVE_SLOTS = 12; // 6 manual + 6 autosave
+        const int TOTAL_SAVE_SLOTS = 6; // Hanya manual saves (slot 0-5)
         std::unordered_set<int> activeSlots;
 
         // Current active run
         if (g_SeedManager.IsRunActive())
             activeSlots.insert(g_SeedManager.GetCurrentSlot());
 
-        // Scan save files — old format (manual/manual.json) + new format (manual/snapshot.json)
+        // Scan save files; new format (manual/snapshot.json)
         for (int i = 0; i < TOTAL_SAVE_SLOTS; i++)
         {
-            // Old format
-            int ws = ReadWorldgenSlotFromFile(GetSlotPath(i, "manual"));
-            if (ws >= 0) activeSlots.insert(ws);
-
-            // New format
-            ws = ReadWorldgenSlotFromFile(SaveManager::GetManualPath(i));
-            if (ws >= 0) activeSlots.insert(ws);
-        }
-
-        // Scan autosave files — both old (saves/slot_N/autosave/) and new (saves/slot_N/autosave/snapshot_*.json)
-        for (int i = 0; i < TOTAL_SAVE_SLOTS; i++)
-        {
-            // Old format autosave dir
-            std::string oldDir = GetSlotPath(i, "autosave");
-            if (fs::exists(oldDir))
-            {
-                for (auto &entry : fs::directory_iterator(oldDir))
-                {
-                    if (entry.path().extension() != ".json") continue;
-                    int ws = ReadWorldgenSlotFromFile(entry.path().string());
-                    if (ws >= 0) activeSlots.insert(ws);
-                }
-            }
-
-            // New format autosave dir
-            std::string newDir = SaveManager::GetAutosaveDir(i);
-            if (fs::exists(newDir))
-            {
-                for (auto &entry : fs::directory_iterator(newDir))
-                {
-                    if (entry.path().extension() != ".json") continue;
-                    int ws = ReadWorldgenSlotFromFile(entry.path().string());
-                    if (ws >= 0) activeSlots.insert(ws);
-                }
-            }
+            int ws = ReadWorldgenSlotFromFile(SaveManager::GetManualPath(i));
+            if (ws >= 0)
+                activeSlots.insert(ws);
         }
 
         // Delete orphaned worldseed save directories

@@ -9,6 +9,7 @@
  */
 
 #include "raylib.h"
+#include "fonts.h"
 #include <string>
 #include <iostream>
 #include <type_traits>
@@ -36,16 +37,16 @@ struct TextPolicy
     TextPolicy() : text(nullptr), posX(0), posY(0), fontSize(0), textColor(BLANK), textWidth(0), hoverAmount(1.0F), font(GetFontDefault()) {}
 
     /** @brief Construct dengan text, posisi, font, warna, hover */
-    TextPolicy(const char *text, int posX, int posY, int fontSize, Color color, float hover, Font font = GetFontDefault())
+    TextPolicy(const char *text, int posX, int posY, int fontSize, Color color, float hover, Font font = GetOrLoad(FontId::DEFAULT))
         : text(text), posX(posX), posY(posY), fontSize(fontSize), textColor(color), hoverAmount(hover), font(font)
     {
-        textWidth = MeasureText(text, fontSize);
+        textWidth = static_cast<int>(MeasureTextEx(font, text, static_cast<float>(fontSize), 0).x);
     }
 
     /** @brief Dapatkan bounds button text */
     [[nodiscard]] Rectangle GetBounds() const
     {
-        return {static_cast<float>(posX), static_cast<float>(posY), 
+        return {static_cast<float>(posX), static_cast<float>(posY),
                 static_cast<float>(textWidth), static_cast<float>(fontSize)};
     }
 };
@@ -76,16 +77,16 @@ struct ImagePolicy
         hoverAmount = hover;
     }
 
-    ImagePolicy(const ImagePolicy&) = delete;
-    ImagePolicy& operator=(const ImagePolicy&) = delete;
+    ImagePolicy(const ImagePolicy &) = delete;
+    ImagePolicy &operator=(const ImagePolicy &) = delete;
 
-    ImagePolicy(ImagePolicy&& other) noexcept
+    ImagePolicy(ImagePolicy &&other) noexcept
         : texture(other.texture), position(other.position), hoverAmount(other.hoverAmount)
     {
         other.texture = {0};
     }
 
-    ImagePolicy& operator=(ImagePolicy&& other) noexcept
+    ImagePolicy &operator=(ImagePolicy &&other) noexcept
     {
         if (this != &other)
         {
@@ -133,7 +134,7 @@ struct ImagePolicy
  * Template class yang bisa handle berbagai tipe button content.
  * Gunakan policy buat define cara render dan collision detection.
  */
-template<typename PolicyType>
+template <typename PolicyType>
 class Button
 {
 public:
@@ -141,15 +142,15 @@ public:
     Button() : policy() {}
 
     /** @brief Construct button dengan args untuk policy */
-    template<typename... Args>
+    template <typename... Args>
     Button(Args... args) : policy(args...)
     {
     }
 
-    Button(const Button&) = delete;
-    Button& operator=(const Button&) = delete;
-    Button(Button&&) = default;
-    Button& operator=(Button&&) = default;
+    Button(const Button &) = delete;
+    Button &operator=(const Button &) = delete;
+    Button(Button &&) = default;
+    Button &operator=(Button &&) = default;
 
     /** @brief Destructor (unload texture kalo ImagePolicy) */
     ~Button()
@@ -251,15 +252,14 @@ private:
         if constexpr (std::is_same_v<PolicyType, TextPolicy>)
         {
             DrawTextEx(policy.font, policy.text,
-                Vector2{static_cast<float>(policy.posX), static_cast<float>(policy.posY)},
-                policy.fontSize, 0, color);
+                       Vector2{static_cast<float>(policy.posX), static_cast<float>(policy.posY)},
+                       policy.fontSize, 0, color);
         }
         else
         {
             Vector2 drawPos = {
                 policy.position.x - static_cast<float>(policy.texture.width) / 2.0F,
-                policy.position.y - static_cast<float>(policy.texture.height) / 2.0F
-            };
+                policy.position.y - static_cast<float>(policy.texture.height) / 2.0F};
             DrawTextureV(policy.texture, drawPos, color);
         }
     }
@@ -271,8 +271,7 @@ private:
             static_cast<unsigned char>(color.r * amount),
             static_cast<unsigned char>(color.g * amount),
             static_cast<unsigned char>(color.b * amount),
-            color.a
-        };
+            color.a};
     }
 
     PolicyType policy; // Policy instance
@@ -296,47 +295,47 @@ using buttonImage = Button<ImagePolicy>;
  * Function Overloading Demonstration
  *==============================================================================*/
 
-template<typename PolicyType>
+template <typename PolicyType>
 class Button;
 
 namespace ButtonHelper
 {
-inline void print(int value)
-{
-    DrawText(TextFormat("Int: %d", value), 0, 0, 20, WHITE);
-}
+    inline void print(int value)
+    {
+        DrawText(TextFormat("Int: %d", value), 0, 0, 20, WHITE);
+    }
 
-inline void print(float value)
-{
-    DrawText(TextFormat("Float: %.2f", value), 0, 0, 20, WHITE);
-}
+    inline void print(float value)
+    {
+        DrawText(TextFormat("Float: %.2f", value), 0, 0, 20, WHITE);
+    }
 
-inline void print(double value)
-{
-    DrawText(TextFormat("Double: %.2f", value), 0, 0, 20, WHITE);
-}
+    inline void print(double value)
+    {
+        DrawText(TextFormat("Double: %.2f", value), 0, 0, 20, WHITE);
+    }
 
-inline void print(const char *text)
-{
-    DrawText(text, 0, 0, 20, WHITE);
-}
+    inline void print(const char *text)
+    {
+        DrawText(text, 0, 0, 20, WHITE);
+    }
 
-template<typename PolicyType>
-inline void print(const Button<PolicyType> &btn)
-{
-    Rectangle bounds = btn.GetBounds();
-    DrawText(TextFormat("Button at (%.0f, %.0f) size (%.0f x %.0f)",
-           bounds.x, bounds.y, bounds.width, bounds.height),
-           0, 0, 20, WHITE);
-}
+    template <typename PolicyType>
+    inline void print(const Button<PolicyType> &btn)
+    {
+        Rectangle bounds = btn.GetBounds();
+        DrawText(TextFormat("Button at (%.0f, %.0f) size (%.0f x %.0f)",
+                            bounds.x, bounds.y, bounds.width, bounds.height),
+                 0, 0, 20, WHITE);
+    }
 
-template<typename PolicyType>
-inline std::ostream &operator<<(std::ostream &os, const Button<PolicyType> &btn)
-{
-    Rectangle bounds = btn.GetBounds();
-    os << "Button<" << (std::is_same_v<PolicyType, TextPolicy> ? "TextPolicy" : "ImagePolicy") << ">{";
-    os << "pos=(" << bounds.x << "," << bounds.y << "), "
-       << "size=" << bounds.width << "x" << bounds.height << "}";
-    return os;
-}
+    template <typename PolicyType>
+    inline std::ostream &operator<<(std::ostream &os, const Button<PolicyType> &btn)
+    {
+        Rectangle bounds = btn.GetBounds();
+        os << "Button<" << (std::is_same_v<PolicyType, TextPolicy> ? "TextPolicy" : "ImagePolicy") << ">{";
+        os << "pos=(" << bounds.x << "," << bounds.y << "), "
+           << "size=" << bounds.width << "x" << bounds.height << "}";
+        return os;
+    }
 } // namespace ButtonHelper

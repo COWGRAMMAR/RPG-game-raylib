@@ -3,6 +3,8 @@
     "slime": {
       "id": 0,
       "rank": "normal",
+      "potionWeight": 9,
+      "weaponWeight": 1,
       "stats": {
         "maxHealth": 100.0,
         "speed": 1.0,
@@ -10,7 +12,7 @@
         "damage": 5.0,
         "baseDetectionRange": 120.0,
         "chaseDetectionRange": 240.0,
-        "attackRange": 32.0,
+        "attackRange": 18.0,
         "healthRegenRate": 10.0,
         "healthRegenDelay": 2.0,
         "patrolRadius": 128.0,
@@ -20,11 +22,17 @@
       "hitbox": {
         "size": { "x": 16.0, "y": 12.0 },
         "offset": { "x": 8.0, "y": 14.0 }
+      },
+      "hurtbox": {
+        "size": { "x": 15.0, "y": 9.0 },
+        "offset": { "x": 9.0, "y": 20.0 }
       }
     },
     "skeleton": {
       "id": 1,
       "rank": "normal",
+      "potionWeight": 2,
+      "weaponWeight": 8,
       "stats": {
         "maxHealth": 100.0,
         "speed": 1.3,
@@ -32,7 +40,7 @@
         "damage": 10.0,
         "baseDetectionRange": 120.0,
         "chaseDetectionRange": 240.0,
-        "attackRange": 32.0,
+        "attackRange": 21.0,
         "healthRegenRate": 10.0,
         "healthRegenDelay": 2.0,
         "patrolRadius": 128.0,
@@ -42,11 +50,17 @@
       "hitbox": {
         "size": { "x": 20.0, "y": 16.0 },
         "offset": { "x": 6.0, "y": 12.0 }
+      },
+      "hurtbox": {
+        "size": { "x": 22.0, "y": 26.0 },
+        "offset": { "x": 6.0, "y": 5.0 }
       }
     },
     "wolf": {
       "id": 2,
       "rank": "normal",
+      "potionWeight": 5,
+      "weaponWeight": 4,
       "stats": {
         "maxHealth": 150.0,
         "speed": 1.7,
@@ -54,7 +68,7 @@
         "damage": 20.0,
         "baseDetectionRange": 120.0,
         "chaseDetectionRange": 240.0,
-        "attackRange": 32.0,
+        "attackRange": 18.0,
         "healthRegenRate": 10.0,
         "healthRegenDelay": 2.0,
         "patrolRadius": 128.0,
@@ -64,14 +78,20 @@
       "hitbox": {
         "size": { "x": 24.0, "y": 16.0 },
         "offset": { "x": 4.0, "y": 12.0 }
+      },
+      "hurtbox": {
+        "size": { "x": 30.0, "y": 23.0 },
+        "offset": { "x": 2.0, "y": 8.0 }
       }
     },
-    "Slime_Elite": {
+    "orc": {
       "id": 10,
       "rank": "elite",
       "scale": 1.25,
+      "potionWeight": 9,
+      "weaponWeight": 1,
       "stats": {
-        "maxHealth": 250.0,
+        "maxHealth": 450.0,
         "speed": 1.2,
         "chaseSpeed": 1.5,
         "damage": 12.0,
@@ -87,20 +107,26 @@
       "hitbox": {
         "size": { "x": 16.0, "y": 12.0 },
         "offset": { "x": 8.0, "y": 14.0 }
+      },
+      "hurtbox": {
+        "size": { "x": 32.0, "y": 32.0 },
+        "offset": { "x": 0.0, "y": 0.0 }
       }
     },
-    "Skeleton_Elite": {
+    "Manticore": {
       "id": 11,
       "rank": "elite",
       "scale": 1.25,
+      "potionWeight": 2,
+      "weaponWeight": 8,
       "stats": {
-        "maxHealth": 250.0,
+        "maxHealth": 450.0,
         "speed": 1.2,
         "chaseSpeed": 1.6,
         "damage": 18.0,
         "baseDetectionRange": 140.0,
         "chaseDetectionRange": 260.0,
-        "attackRange": 36.0,
+        "attackRange": 23.0,
         "healthRegenRate": 15.0,
         "healthRegenDelay": 1.5,
         "patrolRadius": 160.0,
@@ -110,20 +136,26 @@
       "hitbox": {
         "size": { "x": 20.0, "y": 16.0 },
         "offset": { "x": 6.0, "y": 12.0 }
+      },
+      "hurtbox": {
+        "size": { "x": 30.0, "y": 26.0 },
+        "offset": { "x": 2.0, "y": 5.0 }
       }
     },
-    "Wolf_Boss": {
+    "Minotaur": {
       "id": 22,
       "rank": "boss",
       "scale": 1.75,
+      "potionWeight": 5,
+      "weaponWeight": 5,
       "stats": {
-        "maxHealth": 600.0,
+        "maxHealth": 1350.0,
         "speed": 1.0,
         "chaseSpeed": 2.0,
         "damage": 30.0,
         "baseDetectionRange": 180.0,
         "chaseDetectionRange": 320.0,
-        "attackRange": 28.0,
+        "attackRange": 25.0,
         "healthRegenRate": 20.0,
         "healthRegenDelay": 1.0,
         "patrolRadius": 200.0,
@@ -133,6 +165,10 @@
       "hitbox": {
         "size": { "x": 24.0, "y": 16.0 },
         "offset": { "x": 4.0, "y": 12.0 }
+      },
+      "hurtbox": {
+        "size": { "x": 32.0, "y": 32.0 },
+        "offset": { "x": 0.0, "y": 0.0 }
       }
     }
   }

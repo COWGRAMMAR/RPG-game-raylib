@@ -9,13 +9,14 @@
 #include "effects.h"
 #include "propsbehavior.h"
 #include "raymath.h"
-#include "../../include/systems/audioManager.h"
+#include "systems/audioManager.h"
 #include <algorithm>
 #include <cmath>
 #include <string>
 #include "mapLogic.h"
 #include "propsbehavior.h"
 #include "item.h"
+#include "map/minimap.h"
 
 namespace Combat
 {
@@ -25,10 +26,11 @@ namespace Combat
         if (player.Anim.isDead)
             return;
 
-        if (InputInstance.IsInventoryOpen())
+        HandleStamina(player);
+
+        if (InputInstance.IsInventoryOpen() || g_MinimapScreen.IsActive())
             return;
 
-        HandleStamina(player);
         HandleAttack(player);
     }
 
@@ -104,7 +106,7 @@ namespace Combat
                     InventoryItem activeItem = Inventory::GetActiveHotbarItem(player);
                     if (activeItem.definitionId == -1 || itemDefs.GetById(activeItem.definitionId).category != ITEM_WEAPON)
                     {
-                        Effects::AddLog("Tidak ada senjata!");
+                        Effects::AddLog("No Weapon!");
                         player.attack.pressHeld = false;
                         return;
                     }
@@ -120,6 +122,13 @@ namespace Combat
                     player.attack.raycastAngle = angle;
 
                     Inventory::SetupAttackStats(player, attackFaceDir);
+
+                    if (player.attack.weapon && player.attack.weapon->attackType == ATTACK_SLAM)
+                    {
+                        float rad = angle * (PI / 180.0f);
+                        player.attack.startCenter.x += cosf(rad) * player.attack.weapon->reach;
+                        player.attack.startCenter.y += sinf(rad) * player.attack.weapon->reach;
+                    }
 
                     if (player.attack.weapon && player.attack.weapon->attackType == ATTACK_THRUST)
                     {
@@ -163,17 +172,16 @@ namespace Combat
 
                     if (player.attack.weapon->attackType == ATTACK_PIERCE)
                     {
-                        float arrowSpeed = (player.attack.weapon->duration > 0.0f) ? 
-                            (player.attack.weapon->reach / player.attack.weapon->duration) : 300.0f;
+                        float arrowSpeed = (player.attack.weapon->duration > 0.0f) ? (player.attack.weapon->reach / player.attack.weapon->duration) : 300.0f;
                         std::string projSprite = (def.spriteKey == "ak47") ? "bullet" : "arrow";
                         float arrowDamage = player.attack.weapon->damage * player.BuffDamageMultiplier;
-                        Arrow* arrow = new Arrow(playerCenter, attackDir, arrowSpeed, arrowDamage, player.attack.weapon->reach, angle, &player, player.attack.weapon->knockbackForce, projSprite);
+                        Arrow *arrow = new Arrow(playerCenter, attackDir, arrowSpeed, arrowDamage, player.attack.weapon->reach, angle, &player, player.attack.weapon->knockbackForce, projSprite);
                         Entities::AddDynamic(arrow);
                     }
                 }
                 else
                 {
-                    Effects::AddLog("Stamina Tidak Cukup");
+                    Effects::AddLog("Not Enough Stamina");
                     player.attack.pressHeld = false;
                     TraceLog(LOG_WARNING, "PLAYER: Serangan gagal! Mana habis.");
                 }
@@ -264,21 +272,20 @@ namespace Combat
     {
         Vector2 targetCenter = {
             targetHitbox.x + targetHitbox.width / 2.0f,
-            targetHitbox.y + targetHitbox.height / 2.0f
-        };
+            targetHitbox.y + targetHitbox.height / 2.0f};
         float targetRadius = (targetHitbox.width + targetHitbox.height) / 4.0f;
 
         float dist = Vector2Distance(origin, targetCenter);
         float angleToTarget = atan2f(targetCenter.y - origin.y, targetCenter.x - origin.x) * (180.0f / PI);
-        
+
         float diff = fmodf(angleToTarget - attackAngle + 540.0f, 360.0f) - 180.0f;
         float angleDiff = fabsf(diff);
-        
+
         float forwardDist = dist * cosf(angleDiff * (PI / 180.0f));
         float lateralDist = dist * sinf(angleDiff * (PI / 180.0f));
 
-        if (forwardDist >= -targetRadius && 
-            forwardDist <= reach + attackerRadius + targetRadius && 
+        if (forwardDist >= -targetRadius &&
+            forwardDist <= reach + attackerRadius + targetRadius &&
             lateralDist <= (breadth / 2.0f) + targetRadius)
         {
             return true;
@@ -289,25 +296,24 @@ namespace Combat
     Rectangle GetAttackAABB(Vector2 center, float angle, float reach, float breadth, float attackerRadius)
     {
         float rad = angle * (PI / 180.0f);
-        Vector2 forward = { cosf(rad), sinf(rad) };
-        Vector2 right = { -sinf(rad), cosf(rad) };
-        
-        Vector2 edgeCenter = { 
-            center.x + forward.x * attackerRadius, 
-            center.y + forward.y * attackerRadius 
-        };
-        
-        Vector2 p1 = { edgeCenter.x + right.x * (breadth / 2.0f), edgeCenter.y + right.y * (breadth / 2.0f) };
-        Vector2 p2 = { edgeCenter.x - right.x * (breadth / 2.0f), edgeCenter.y - right.y * (breadth / 2.0f) };
-        Vector2 p3 = { p1.x + forward.x * reach, p1.y + forward.y * reach };
-        Vector2 p4 = { p2.x + forward.x * reach, p2.y + forward.y * reach };
-        
+        Vector2 forward = {cosf(rad), sinf(rad)};
+        Vector2 right = {-sinf(rad), cosf(rad)};
+
+        Vector2 edgeCenter = {
+            center.x + forward.x * attackerRadius,
+            center.y + forward.y * attackerRadius};
+
+        Vector2 p1 = {edgeCenter.x + right.x * (breadth / 2.0f), edgeCenter.y + right.y * (breadth / 2.0f)};
+        Vector2 p2 = {edgeCenter.x - right.x * (breadth / 2.0f), edgeCenter.y - right.y * (breadth / 2.0f)};
+        Vector2 p3 = {p1.x + forward.x * reach, p1.y + forward.y * reach};
+        Vector2 p4 = {p2.x + forward.x * reach, p2.y + forward.y * reach};
+
         float minX = std::min({p1.x, p2.x, p3.x, p4.x});
         float maxX = std::max({p1.x, p2.x, p3.x, p4.x});
         float minY = std::min({p1.y, p2.y, p3.y, p4.y});
         float maxY = std::max({p1.y, p2.y, p3.y, p4.y});
-        
-        return { minX, minY, maxX - minX, maxY - minY };
+
+        return {minX, minY, maxX - minX, maxY - minY};
     }
 
     void ApplyHitToEntity(Player &player, Entity *target, Vector2 playerCenter)
@@ -355,11 +361,15 @@ namespace Combat
         float progress = player.attack.timer / player.attack.weapon->duration;
         std::string effectSpriteKey;
 
-        if (progress >= 0.2f && progress < 0.5f) effectSpriteKey = "thrust0101";
-        else if (progress >= 0.5f && progress < 0.8f) effectSpriteKey = "thrust0102";
-        else if (progress >= 0.8f) effectSpriteKey = "thrust0103";
+        if (progress >= 0.2f && progress < 0.5f)
+            effectSpriteKey = "thrust0101";
+        else if (progress >= 0.5f && progress < 0.8f)
+            effectSpriteKey = "thrust0102";
+        else if (progress >= 0.8f)
+            effectSpriteKey = "thrust0103";
 
-        if (effectSpriteKey.empty()) return;
+        if (effectSpriteKey.empty())
+            return;
 
         const Frame &frame = GetFrame(effectSpriteKey);
         float radRay = rayAngle * (PI / 180.0f);
@@ -436,13 +446,13 @@ namespace Combat
         slashDisplay.origin = {
             (float)slashFrame.width * slashDisplay.size / 2.0f,
             (float)slashFrame.height * slashDisplay.size / 2.0f};
-        
+
         float renderAngle = rayAngle;
         if (progress >= 4.0f / 5.0f)
         {
             renderAngle = rayAngle + 90.0f * sign;
         }
-        
+
         slashDisplay.rotation = renderAngle;
         slashDisplay.tint = WHITE;
         slashDisplay.flip = !isRight;
@@ -461,6 +471,14 @@ namespace Combat
         float attackAngle = player.attack.raycastAngle;
         float attackerRadius = player.GetHitboxWidth() / 2.0f;
 
+        // Build solid obstacles (static collision tiles + dynamic minus crate/bomb)
+        std::vector<Rectangle> solidObstacles = gCollisionCache.rects;
+        for (const auto &obs : DynamicObstacles)
+        {
+            if (!crateManager.IsCratePos(obs) && !bombManager.IsBombPos(obs))
+                solidObstacles.push_back(obs);
+        }
+
         for (auto *entity : Entities::GetRegistry())
         {
             Entity *playerAsEntity = &player;
@@ -476,16 +494,12 @@ namespace Combat
             bool hit = false;
             if (player.attack.weapon->attackType == ATTACK_SLAM)
             {
-                float radiusTiles = std::floor(reach / 32.0f);
-                float gridSize = 2.0f * radiusTiles + 1.0f;
-                float tX = std::floor(attackCenter.x / 32.0f);
-                float tY = std::floor(attackCenter.y / 32.0f);
+                float size = reach * 2.0f;
                 Rectangle slamAABB = {
-                    (tX - radiusTiles) * 32.0f,
-                    (tY - radiusTiles) * 32.0f,
-                    gridSize * 32.0f,
-                    gridSize * 32.0f
-                };
+                    attackCenter.x - reach,
+                    attackCenter.y - reach,
+                    size,
+                    size};
                 if (CheckCollisionRecs(slamAABB, entity->GetHitbox()))
                 {
                     hit = true;
@@ -501,6 +515,27 @@ namespace Combat
 
             if (hit)
             {
+                // SLAM: obstacle check pake corridor hitbox (full DynamicObstacles)
+                if (player.attack.weapon->attackType == ATTACK_SLAM)
+                {
+                    Rectangle ph = player.GetHitbox();
+                    Rectangle eh = entity->GetHitbox();
+                    float l = fminf(ph.x, eh.x), t = fminf(ph.y, eh.y);
+                    float r = fmaxf(ph.x + ph.width, eh.x + eh.width);
+                    float b = fmaxf(ph.y + ph.height, eh.y + eh.height);
+                    if (CheckCollisionAgainstRects({l, t, r - l, b - t}, DynamicObstacles))
+                        continue;
+                }
+                // Non-SLAM: per-entity LOS dari attackCenter ke entity
+                else
+                {
+                    Vector2 entityCenter = {
+                        entity->Position.x + FRAME_SIZE / 2.0f,
+                        entity->Position.y + FRAME_SIZE / 2.0f};
+                    if (IsLineBlockedByObstacles(attackCenter, entityCenter, solidObstacles))
+                        continue;
+                }
+
                 ApplyHitToEntity(player, entity, attackCenter);
             }
         }
@@ -508,16 +543,12 @@ namespace Combat
         Rectangle attackAABB;
         if (player.attack.weapon->attackType == ATTACK_SLAM)
         {
-            float radiusTiles = std::floor(reach / 32.0f);
-            float gridSize = 2.0f * radiusTiles + 1.0f;
-            float tX = std::floor(attackCenter.x / 32.0f);
-            float tY = std::floor(attackCenter.y / 32.0f);
+            float size = reach * 2.0f;
             attackAABB = {
-                (tX - radiusTiles) * 32.0f,
-                (tY - radiusTiles) * 32.0f,
-                gridSize * 32.0f,
-                gridSize * 32.0f
-            };
+                attackCenter.x - reach,
+                attackCenter.y - reach,
+                size,
+                size};
         }
         else
         {
@@ -636,7 +667,7 @@ namespace Combat
             // {
             //     DrawThrustEffect(player, def.spriteKey, player.attack.raycastAngle);
             // }
-            
+
             // if (player.attack.weapon->attackType == ATTACK_SLAM)
             // {
             //     float progress = player.attack.timer / player.attack.weapon->duration;
@@ -651,7 +682,7 @@ namespace Combat
             //                 (tX + x) * 32.0f,
             //                 (tY + y) * 32.0f
             //             };
-            //             TileCollisionEffect(tilePos, progress);
+            //             Collision(tilePos, progress);
             //         }
             //     }
             // }
@@ -665,28 +696,19 @@ namespace Combat
             if (player.attack.weapon->attackType == ATTACK_SLAM)
             {
                 float progress = player.attack.timer / player.attack.weapon->duration;
-                float tX = std::floor(player.attack.startCenter.x / 32.0f);
-                float tY = std::floor(player.attack.startCenter.y / 32.0f);
                 float reach = player.attack.weapon->reach;
-                int radiusTiles = (int)std::floor(reach / 32.0f);
+                float scaleTiles = (reach * 2.0f) / 64.0f;
 
-                for (int x = -radiusTiles; x <= radiusTiles; ++x)
-                {
-                    for (int y = -radiusTiles; y <= radiusTiles; ++y)
-                    {
-                        Vector2 tilePos = {
-                            (tX + x) * 32.0f,
-                            (tY + y) * 32.0f
-                        };
-                        TileCollisionEffect(tilePos, progress);
-                    }
-                }
+                Vector2 effectPos = player.attack.startCenter;
+                effectPos.y -= 2.0f;
+
+                GroundSlam(effectPos, progress, scaleTiles);
             }
         }
     }
 }
 
-Arrow::Arrow(Vector2 pos, Vector2 dir, float speed, float damage, float reach, float rotation, Entity* owner, float knockbackForce, std::string spriteKey)
+Arrow::Arrow(Vector2 pos, Vector2 dir, float speed, float damage, float reach, float rotation, Entity *owner, float knockbackForce, std::string spriteKey)
 {
     StartPos = pos;
     Reach = reach;
@@ -706,7 +728,8 @@ Arrow::Arrow(Vector2 pos, Vector2 dir, float speed, float damage, float reach, f
 
 void Arrow::Update()
 {
-    if (!IsActive) return;
+    if (!IsActive)
+        return;
 
     float dt = Time::DELTA_TIME;
     LifeTime += dt;
@@ -720,26 +743,13 @@ void Arrow::Update()
 
     if (Vector2Distance(StartPos, Position) >= Reach)
     {
+        Effects::AddCollision(Position);
         IsActive = false;
         return;
     }
 
     Rectangle hitbox = GetHitbox();
-    if (CheckCollisionAgainstRects(hitbox, PlayerInstance.CollisionRects) || 
-        CheckCollisionAgainstPolygons(hitbox, PlayerInstance.CollisionPolygons))
-    {
-        IsActive = false;
-        return;
-    }
-    
-    if (CheckCollisionAgainstRects(hitbox, DynamicObstacles))
-    {
-        HitPropsByAttack(hitbox, PlayerInstance.GetHitbox(), &PlayerInstance);
-        IsActive = false;
-        return;
-    }
-
-    for (auto* entity : Entities::GetRegistry())
+    for (auto *entity : Entities::GetRegistry())
     {
         if (entity == this || entity == Owner || !entity->IsActive || entity->Health <= 0)
             continue;
@@ -748,19 +758,40 @@ void Arrow::Update()
         {
             Vector2 knockback = Vector2Scale(Vector2Normalize(Velocity), KnockbackForce);
             entity->TakeDamage(Damage, knockback);
-            
+
             Vector2 center = entity->GetCenter();
             Effects::AddDamage(center, Damage);
-            
+
+            Effects::AddCollision(Position);
             IsActive = false;
             break;
         }
+    }
+
+    if (!IsActive)
+        return;
+
+    if (CheckCollisionAgainstRects(hitbox, PlayerInstance.CollisionRects) ||
+        CheckCollisionAgainstPolygons(hitbox, PlayerInstance.CollisionPolygons))
+    {
+        Effects::AddCollision(Position);
+        IsActive = false;
+        return;
+    }
+
+    if (CheckCollisionAgainstRects(hitbox, DynamicObstacles))
+    {
+        HitPropsByAttack(hitbox, PlayerInstance.GetHitbox(), &PlayerInstance);
+        Effects::AddCollision(Position);
+        IsActive = false;
+        return;
     }
 }
 
 void Arrow::Render()
 {
-    if (!IsActive) return;
+    if (!IsActive)
+        return;
 
     Display display;
     display.position = Position;
@@ -775,5 +806,5 @@ void Arrow::Render()
 
 Rectangle Arrow::GetHitbox() const
 {
-    return { Position.x - 4, Position.y - 4, 8, 8 };
+    return {Position.x - 4, Position.y - 4, 8, 8};
 }

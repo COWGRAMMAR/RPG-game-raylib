@@ -10,7 +10,7 @@
  */
 
 #include "entities.h"
-#include "../../include/map/map.h"
+#include "map/map.h"
 #include "propsbehavior.h"
 #include <vector>
 #include <algorithm>
@@ -213,7 +213,8 @@ namespace Entities
         int pruned = 0;
         for (auto &enemy : EnemyRegistry)
         {
-            if (enemy == nullptr) continue;
+            if (enemy == nullptr)
+                continue;
             if (IsDeadByUUID(currentMap, enemy->GetUUID()) ||
                 IsAlreadyDead(currentMap, enemy->MapObjectID))
             {

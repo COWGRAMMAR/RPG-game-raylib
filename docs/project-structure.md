@@ -17,8 +17,6 @@ rpg-game-raylib/
 ├── setup.ps1        # Skrip setup dependensi (Windows)
 ├── setup.sh         # Skrip setup dependensi (Linux/macOS)
 ├── README.md        # Dokumentasi pengantar proyek
-├── AGENTS.md        # Instruksi untuk agen AI pengembang
-├── TODO.md          # Daftar tugas pengembangan
 └── .gitignore       # Konfigurasi abaikan file untuk Git
 ```
 

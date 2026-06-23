@@ -32,6 +32,7 @@
 #include "combat.h"
 #include "interaction.h"
 #include "input.h"
+#include "map/minimap.h"
 #include <cstdio>
 #include "enemy_ai.h"
 #include "raylib.h"
@@ -41,7 +42,7 @@
 #include <algorithm>
 #include <cctype>
 #include <filesystem>
-#include "../../include/systems/audioManager.h"
+#include "systems/audioManager.h"
 #include "hud.h"
 #include "propsbehavior.h"
 #include "combatTurn.h"
@@ -49,6 +50,7 @@
 #include "game_state_saver.h"
 #include "worldgenio.h"
 #include "worldgenenartion.h"
+#include "media/videoPlayer.h"
 
 /*==============================================================================
  * External Variables & Macros
@@ -59,6 +61,8 @@ GameState *gState;
 
 extern PauseMenu pauseMenu;
 
+static video::VideoPlayer bgVideoPlayer;
+static bool bgVideoLoaded = false;
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
 /*==============================================================================
@@ -109,6 +113,7 @@ void InitAll()
 
     SpawnObject();
     RebuildObstacleCache();
+    MinimapSystem::InitWithMap();
     globalFlowField.Invalidate(); // nanti diganti kalo nambah method ai nya
     // Spawn musuh dari map aktif
     SpawnEnemiesFromMap();
@@ -116,10 +121,10 @@ void InitAll()
     // Capture spawn pos start room buat revive
     TiledHelperFunction.TryGetObjectPositionByName(SPAWN_OBJECT_NAME, gState->startSpawnPos);
 
-    // Cache initial state buat restart
+    // Cache initial state buat restart (runtime workspace only)
     {
         GameSnapshot initial = SaveManager::CaptureSnapshot();
-        SaveManager::SaveInitial(initial, g_ActiveSaveSlot);
+        SaveManager::SaveInitial(initial, -1);
     }
 }
 
@@ -132,7 +137,6 @@ static std::string ToLower(std::string str)
                    { return std::tolower(c); });
     return str;
 }
-
 
 /**
  * @brief Inisialisasi window, audio, dan render texture virtual
@@ -151,8 +155,16 @@ GameState InitScreen()
 
     SetConfigFlags(FLAG_WINDOW_RESIZABLE);
     InitWindow(1280, 720, "Dungeon Game");
-    SetExitKey(0);  // ESC handled by keybindManager (pause toggle), not by raylib quit
+    SetExitKey(0); // ESC handled by keybindManager (pause toggle), not by raylib quit
     InitAudioDevice();
+
+    bgVideoLoaded = bgVideoPlayer.Load("assets/video/bg-main-menu.mp4");
+    if (bgVideoLoaded)
+    {
+        bgVideoPlayer.SetLooping(true);
+        bgVideoPlayer.SetVolume(0.0f); // Mute background video so it doesn't overlap with music
+        bgVideoPlayer.Play();
+    }
 
     state.WindowScreenWidth = (int)(GetMonitorWidth(0) * ScaleMultiplierMonitor);
     state.WindowScreenHeight = (int)(GetMonitorHeight(0) * ScaleMultiplierMonitor);
@@ -174,7 +186,6 @@ GameState InitScreen()
     state.currentScreen = MAIN_MENU;
     state.showFPS = false;
     state.isSwitchingMap = false;
-    state.isGoingBack = false;
     state.pendingMapPath.clear();
     state.pendingDoorName.clear();
 
@@ -218,7 +229,7 @@ void UpdateLogicAll()
     if (TurnCombat::IsActive())
     {
         TurnCombat::Update();
-        Effects::Update(GetFrameTime());
+        Effects::Update(Time::DELTA_TIME);
     }
     else
     {
@@ -270,7 +281,7 @@ void UpdateLogicAll()
         for (Entity *entity : Entities::GetRegistry())
         {
             Enemy *enemy = dynamic_cast<Enemy *>(entity);
-            if (enemy && enemy->IsActive && enemy->isTurnBasedMode)
+            if (enemy && enemy->IsActive && enemy->Health > 0 && enemy->isTurnBasedMode)
             {
                 if (PlayerInstance.Health <= 0)
                     continue;
@@ -296,7 +307,7 @@ void UpdateLogicAll()
 
     // Deteksi FINISH cell untuk stage transition (hanya di worldgen stage)
     // Guard isSwitchingMap — cegah double trigger dari grid + door detection
-    if (!gState->isSwitchingMap && !gState->isGoingBack)
+    if (!gState->isSwitchingMap)
     {
         const char *mapPath = GetCurrentMapPath();
         if (mapPath)
@@ -346,7 +357,7 @@ void UpdateLogicAll()
                 TraceLog(LOG_INFO, "PICKUP: added to inventory");
                 item.isAdded = true;
                 AudioManager::PlaySFX("pickup-item");
-                
+
                 const ItemDefinition &def = itemDefs.GetById(item.definitionId);
                 std::string logMsg = def.name;
                 if (item.amount > 1)
@@ -357,14 +368,14 @@ void UpdateLogicAll()
             }
             else
             {
-                TraceLog(LOG_INFO, "PICKUP: inventory full");
+                TraceLog(LOG_INFO, "PICKUP: Inventory full");
                 item.isPickedUp = false; // balik ke world
 
                 static float lastInventoryFullTime = 0.0f;
                 float currentTime = (float)GetTime();
                 if (currentTime - lastInventoryFullTime > 2.0f)
                 {
-                    Effects::AddLog("Inventori Penuh");
+                    Effects::AddLog("Inventory Full");
                     lastInventoryFullTime = currentTime;
                 }
             }
@@ -419,30 +430,35 @@ void DrawRenderTexture(GameState *state)
 void DrawUIOverlay(GameState *state)
 {
     DrawPlayerHUD();
+    DrawBossHPBar();
 
-    // 2. FPS Counter (if enabled)
+    // 2. FPS Counter (if enabled) — rata kiri icon pause, di bawah [Esc]
     if (state->showFPS)
     {
         int fps = GetFPS();
         char fpsText[16];
         snprintf(fpsText, sizeof(fpsText), "FPS: %d", fps);
-        DrawText(fpsText, 10, 10, 20, GREEN);
+        DrawTextCached(
+            {FontId::VIDEOSETTS_LABEL, AtlasRes::RES_256},
+            fpsText,
+            Vector2{15.0f, 110.0f},
+            20.0f, 1, GREEN);
     }
 
     // 3. Sign dialog overlay (placeholder UI)
     DrawSignDialog();
 
-    // 4. Menus
-    if (pauseMenu.IsActive())
-    {
-        Vector2 mousePos = GetVirtualMousePosition(state);
-        pauseMenu.Draw(mousePos);
-    }
-
     // 4. Turn-based combat overlay
     if (TurnCombat::IsActive())
     {
         TurnCombat::Draw();
+    }
+
+    // 5. Menus (paling depan, di atas turn base)
+    if (pauseMenu.IsActive())
+    {
+        Vector2 mousePos = GetVirtualMousePosition(state);
+        pauseMenu.Draw(mousePos);
     }
 }
 
@@ -502,6 +518,11 @@ void GameShutDown(GameState *state)
     Entities::Shutdown();
     UnloadMap();
     UnloadRenderTexture(state->Dungeon);
+
+    if (bgVideoLoaded)
+    {
+        bgVideoPlayer.Unload();
+    }
 
     CloseAudioDevice();
     CloseWindow();
@@ -566,10 +587,19 @@ bool IsFullscreen(void)
  */
 void DrawMenuBackground(void)
 {
-    DrawRectangleGradientV(
-        0, 0,
-        GameScreenWidth, GameScreenHeight,
-        {36, 28, 58, 255},   // top: muted dark purple-blue
-        {5, 5, 15, 255}      // bottom: near-black
-    );
+    if (bgVideoLoaded)
+    {
+        bgVideoPlayer.Update(GetFrameTime());
+        // Skala proporsional ke resolusi virtual screen
+        bgVideoPlayer.Draw(0, 0, GameScreenWidth, GameScreenHeight, WHITE);
+    }
+    else
+    {
+        DrawRectangleGradientV(
+            0, 0,
+            GameScreenWidth, GameScreenHeight,
+            {36, 28, 58, 255}, // top: muted dark purple-blue
+            {5, 5, 15, 255}    // bottom: near-black
+        );
+    }
 }

@@ -4,7 +4,7 @@
  "layers":[
         {
          "compression":"",
-         "data":"vgEAAL4BAAC+AQAAvgEAAL4BAAC7AQAAvgEAAA==",
+         "data":"vgEAALsBAAC+AQAAvgEAALsBAAC7AQAAvgEAAA==",
          "encoding":"base64",
          "height":7,
          "id":1,
@@ -38,7 +38,7 @@
          "name":"obstacle",
          "objects":[
                 {
-                 "height":32,
+                 "height":64,
                  "id":1,
                  "name":"",
                  "opacity":1,
@@ -47,11 +47,11 @@
                  "visible":true,
                  "width":32,
                  "x":0,
-                 "y":0
+                 "y":-32
                 },
             
                 {
-                 "height":32,
+                 "height":64,
                  "id":2,
                  "name":"",
                  "opacity":1,

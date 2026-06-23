@@ -5,11 +5,13 @@ HotbarList::HotbarList() : head(nullptr), currentNode(nullptr) {}
 
 HotbarList::~HotbarList()
 {
-    if (head == nullptr) return;
+    if (head == nullptr)
+        return;
 
-    SlotNode* temp = head;
-    do {
-        SlotNode* nextNode = temp->next;
+    SlotNode *temp = head;
+    do
+    {
+        SlotNode *nextNode = temp->next;
         delete temp;
         temp = nextNode;
     } while (temp != head);
@@ -17,25 +19,31 @@ HotbarList::~HotbarList()
 
 void HotbarList::Initialize()
 {
-    if (head != nullptr) {
-        SlotNode* temp = head;
-        do {
-            SlotNode* nextNode = temp->next;
+    if (head != nullptr)
+    {
+        SlotNode *temp = head;
+        do
+        {
+            SlotNode *nextNode = temp->next;
             delete temp;
             temp = nextNode;
         } while (temp != head);
         head = nullptr;
     }
 
-    SlotNode* node1 = CreateNode(SLOT_WEAPON_1);
-    SlotNode* node2 = CreateNode(SLOT_WEAPON_2);
-    SlotNode* node3 = CreateNode(SLOT_POTION_1);
-    SlotNode* node4 = CreateNode(SLOT_POTION_2);
+    SlotNode *node1 = CreateNode(SLOT_WEAPON_1);
+    SlotNode *node2 = CreateNode(SLOT_WEAPON_2);
+    SlotNode *node3 = CreateNode(SLOT_POTION_1);
+    SlotNode *node4 = CreateNode(SLOT_POTION_2);
 
-    node1->next = node2; node1->prev = node4;
-    node2->next = node3; node2->prev = node1;
-    node3->next = node4; node3->prev = node2;
-    node4->next = node1; node4->prev = node3;
+    node1->next = node2;
+    node1->prev = node4;
+    node2->next = node3;
+    node2->prev = node1;
+    node3->next = node4;
+    node3->prev = node2;
+    node4->next = node1;
+    node4->prev = node3;
 
     head = node1;
     currentNode = node1;
@@ -43,7 +51,8 @@ void HotbarList::Initialize()
 
 ItemSlot HotbarList::GetNext()
 {
-    if (currentNode) {
+    if (currentNode)
+    {
         currentNode = currentNode->next;
         return currentNode->slot;
     }
@@ -52,7 +61,8 @@ ItemSlot HotbarList::GetNext()
 
 ItemSlot HotbarList::GetPrev()
 {
-    if (currentNode) {
+    if (currentNode)
+    {
         currentNode = currentNode->prev;
         return currentNode->slot;
     }
@@ -61,11 +71,14 @@ ItemSlot HotbarList::GetPrev()
 
 void HotbarList::SetCurrentBySlot(ItemSlot slot)
 {
-    if (head == nullptr) return;
+    if (head == nullptr)
+        return;
 
-    SlotNode* temp = head;
-    do {
-        if (temp->slot == slot) {
+    SlotNode *temp = head;
+    do
+    {
+        if (temp->slot == slot)
+        {
             currentNode = temp;
             return;
         }
@@ -73,9 +86,9 @@ void HotbarList::SetCurrentBySlot(ItemSlot slot)
     } while (temp != head);
 }
 
-SlotNode* HotbarList::CreateNode(ItemSlot slot)
+SlotNode *HotbarList::CreateNode(ItemSlot slot)
 {
-    SlotNode* newNode = new SlotNode();
+    SlotNode *newNode = new SlotNode();
     newNode->slot = slot;
     newNode->next = nullptr;
     newNode->prev = nullptr;

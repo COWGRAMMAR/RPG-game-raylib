@@ -22,6 +22,19 @@
  * - Music track otomatis berganti sesuai ScreenState
  * - LOADING dan OPTIONS tidak memicu switch track (lanjut track sebelumnya)
  */
+/*------------------------------------------------------------------------------
+ * Volume Constants
+ *------------------------------------------------------------------------------*/
+
+/** @brief Persen maksimum volume */
+const int VOLUME_PCT_MAX = 100;
+
+/** @brief Persen maksimum volume (float) */
+const float VOLUME_PCT_MAX_F = 100.0f;
+
+/** @brief Pembulatan untuk konversi float ke persen */
+const float VOLUME_ROUND = 0.5f;
+
 namespace AudioManager {
 
 /*------------------------------------------------------------------------------
@@ -143,6 +156,18 @@ void StopMusic();
  * kembali otomatis.
  */
 void ResetToScreenTrack();
+
+/**
+ * @brief Blok auto-switch biar track yang sedang play gak di-overwrite
+ *
+ * Dipake pas VICTORY phase biar WinTheme gak dimatiin oleh auto-switch.
+ */
+void BlockAutoSwitch();
+
+/** @brief Unblock auto-switch, biar normal lagi */
+void UnblockAutoSwitch();
+
+
 
 /*------------------------------------------------------------------------------
  * SFX Control

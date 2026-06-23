@@ -93,17 +93,31 @@ struct WeaponData
 };
 
 /**
+ * @brief Kategori potion untuk cooldown per-kategori.
+ */
+enum PotionCategory
+{
+    POTION_HEALTH = 0,
+    POTION_STAMINA,
+    POTION_DAMAGE,
+    POTION_SPEED,
+    POTION_INVINCIBILITY,
+    POTION_CATEGORY_COUNT
+};
+
+/**
  * @brief Data spesifik untuk item bertipe potion.
  */
 struct PotionData
 {
-    int healValue; // Jumlah HP atau mana yang dipulihkan
-    bool isMana;   // True jika potion memulihkan mana, bukan HP
-    float damageMultiplier;      // (optional) misal 1.0 = normal, 1.2 = +20%
-    float speedMultiplier;       // (optional) misal 1.0 = normal, 1.3 = +30%
-    float invincibilityDuration; // waktu kebal dalam detik
-    float duration;              // durasi efek potion
-    float cooldown;              // waktu tunggu sebelum potion berikutnya bisa digunakan
+    int healValue;                 // Jumlah HP atau mana yang dipulihkan
+    bool isMana;                   // True jika potion memulihkan mana, bukan HP
+    float damageMultiplier;        // (optional) misal 1.0 = normal, 1.2 = +20%
+    float speedMultiplier;         // (optional) misal 1.0 = normal, 1.3 = +30%
+    float invincibilityDuration;   // waktu kebal dalam detik
+    float duration;                // durasi efek potion
+    float cooldown;                // waktu tunggu sebelum potion berikutnya bisa digunakan
+    PotionCategory potionCategory; // Kategori potion (default POTION_HEALTH)
 };
 
 /**
@@ -146,11 +160,11 @@ struct ItemDefinition
  */
 struct ItemSpawn
 {
-    int definitionId; // Merujuk ke ItemDefinition::id
-    Vector2 position; // Posisi item di world space
-    Rectangle hitbox; // Hitbox untuk deteksi pickup oleh player
-    bool isPickedUp;  // True jika item sudah diambil player
-    bool isAdded;     // True jika item sudah ditambahkan ke inventory
+    int definitionId;       // Merujuk ke ItemDefinition::id
+    Vector2 position;       // Posisi item di world space
+    Rectangle hitbox;       // Hitbox untuk deteksi pickup oleh player
+    bool isPickedUp;        // True jika item sudah diambil player
+    bool isAdded;           // True jika item sudah ditambahkan ke inventory
     float spawnTime;        // Timestamp saat item di-spawn (untuk efek atau despawn)
     float dropImmunity = 0; // Sisa waktu immunity setelah di-drop (Minecraft style, default 0)
     int amount = 1;         ///< Jumlah item dalam satu spawn (untuk stackable item)
@@ -252,6 +266,7 @@ public:
      */
     void SpawnItemAtLocation(Vector2 pos, std::mt19937 *rng = nullptr, ItemCategory category = ITEM_ANY);
     void SpawnItemAtLocation(Vector2 pos, const std::map<ItemRarity, int> &weights, std::mt19937 *rng = nullptr);
+    void SpawnItemAtLocation(Vector2 pos, const std::map<ItemRarity, int> &weights, ItemCategory category, std::mt19937 *rng = nullptr);
 
     /**
      * @brief Simpan state item aktif untuk map tertentu

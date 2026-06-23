@@ -2,6 +2,8 @@
 #include "player.h"
 #include "item.h"
 #include "inventory.h"
+#include "rendering/hud.h"
+#include "ui/mainMenu.h"
 #include "raylib.h"
 #include "button.h"
 
@@ -14,7 +16,8 @@ static bool goLoaded = false;
 
 void InitGameOverScreen()
 {
-    if (goLoaded) return;
+    if (goLoaded)
+        return;
 
     Image img = LoadImage("assets/textures/gameOver/gameover.png");
     goTitle = LoadTextureFromImage(img);
@@ -48,10 +51,12 @@ void UpdateGameOverScreen(GameState *state)
     Vector2 mousePos = GetVirtualMousePosition(state);
     bool mouseClicked = IsMouseButtonPressed(MOUSE_LEFT_BUTTON);
 
-    if (!goLoaded) InitGameOverScreen();
+    if (!goLoaded)
+        InitGameOverScreen();
 
     if (reviveBtn.isClicked(mousePos, mouseClicked))
     {
+        InputInstance.ResetMenuFlags();
         PlayerInstance.Anim.isDead = false;
         PlayerInstance.Anim.isAttacking = false;
         PlayAnimation(PlayerInstance.Anim, IDLE, PlayerInstance.Anim.direction);
@@ -60,6 +65,12 @@ void UpdateGameOverScreen(GameState *state)
         PlayerInstance.KnockbackVelocity = {0, 0};
         PlayerInstance.Position = state->startSpawnPos;
         PlayerInstance.hasDroppedItems = false;
+        PlayerInstance.BuffDamageTimer = 0.0f;
+        PlayerInstance.BuffDamageTimerMax = 0.0f;
+        PlayerInstance.BuffSpeedTimer = 0.0f;
+        PlayerInstance.BuffSpeedTimerMax = 0.0f;
+        PlayerInstance.InvincibilityTimer = 0.0f;
+        PlayerInstance.InvincibilityTimerMax = 0.0f;
         state->currentScreen = PLAY;
         return;
     }
@@ -74,17 +85,22 @@ void UpdateGameOverScreen(GameState *state)
 
     if (goToMain.isClicked(mousePos, mouseClicked))
     {
+        InputInstance.ResetMenuFlags();
+        UnloadHUDTextures();
+        DestroyGameOverScreen();
         state->enteredLoading = false;
         state->loadingStage = 0;
         state->loadingProgress = 0.0F;
         state->loadingComplete = false;
+        InitMainMenu(state);
         state->currentScreen = MAIN_MENU;
     }
 }
 
 void RenderGameOverScreen(GameState *state)
 {
-    if (!goLoaded) InitGameOverScreen();
+    if (!goLoaded)
+        InitGameOverScreen();
 
     DrawRenderTexture(state);
 
@@ -100,4 +116,14 @@ void RenderGameOverScreen(GameState *state)
     goToMain.Draw(mousePos);
 
     EndTextureMode();
+}
+
+void DestroyGameOverScreen()
+{
+    if (goTitle.id != 0)
+    {
+        UnloadTexture(goTitle);
+        goTitle = {0};
+    }
+    goLoaded = false;
 }

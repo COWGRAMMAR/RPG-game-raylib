@@ -2,6 +2,7 @@
 #include "player.h"
 #include "item.h"
 #include "keybindManager.h"
+#include "map/minimap.h"
 
 /** @brief Instance global input */
 PlayerInput InputInstance;
@@ -20,27 +21,27 @@ void PlayerInput::PollInput(void)
     }
 
     // Movement: primary from keybinds, arrows stay as secondary
-    Current.moveUp    = IsKeyDown(keybindManager.GetKeycode(MOVE_UP))    || IsKeyDown(KEY_UP);
-    Current.moveDown  = IsKeyDown(keybindManager.GetKeycode(MOVE_DOWN))  || IsKeyDown(KEY_DOWN);
-    Current.moveLeft  = IsKeyDown(keybindManager.GetKeycode(MOVE_LEFT))  || IsKeyDown(KEY_LEFT);
+    Current.moveUp = IsKeyDown(keybindManager.GetKeycode(MOVE_UP)) || IsKeyDown(KEY_UP);
+    Current.moveDown = IsKeyDown(keybindManager.GetKeycode(MOVE_DOWN)) || IsKeyDown(KEY_DOWN);
+    Current.moveLeft = IsKeyDown(keybindManager.GetKeycode(MOVE_LEFT)) || IsKeyDown(KEY_LEFT);
     Current.moveRight = IsKeyDown(keybindManager.GetKeycode(MOVE_RIGHT)) || IsKeyDown(KEY_RIGHT);
 
     // Actions (tap)
-    Current.interact        = IsKeyPressed(keybindManager.GetKeycode(INTERACT));
+    Current.interact = IsKeyPressed(keybindManager.GetKeycode(INTERACT));
     Current.toggleInventory = IsKeyPressed(keybindManager.GetKeycode(TOGGLE_INVENTORY));
-    Current.toggleMap       = IsKeyPressed(keybindManager.GetKeycode(TOGGLE_MAP));
-    Current.dropItem        = IsKeyPressed(keybindManager.GetKeycode(DROP_ITEM));
+    Current.toggleMap = IsKeyPressed(keybindManager.GetKeycode(TOGGLE_MAP));
+    Current.dropItem = IsKeyPressed(keybindManager.GetKeycode(DROP_ITEM));
 
     // Drop-all uses the DROP_ALL key + right Ctrl as secondary mirror
     int dropAllKey = keybindManager.GetKeycode(DROP_ALL);
     Current.dropItemAll = IsKeyDown(dropAllKey) || IsKeyDown(KEY_RIGHT_CONTROL);
 
     // Mouse (non-rebindable — always the same physical buttons)
-    Current.leftClickPressed  = IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
+    Current.leftClickPressed = IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
     Current.rightClickPressed = IsMouseButtonPressed(MOUSE_BUTTON_RIGHT);
-    Current.leftClickReleased  = IsMouseButtonReleased(MOUSE_BUTTON_LEFT);
+    Current.leftClickReleased = IsMouseButtonReleased(MOUSE_BUTTON_LEFT);
     Current.rightClickReleased = IsMouseButtonReleased(MOUSE_BUTTON_RIGHT);
-    Current.leftClickDown  = IsMouseButtonDown(MOUSE_BUTTON_LEFT);
+    Current.leftClickDown = IsMouseButtonDown(MOUSE_BUTTON_LEFT);
     Current.rightClickDown = IsMouseButtonDown(MOUSE_BUTTON_RIGHT);
 
     // Ctrl modifier follows DROP_ALL key + right Ctrl
@@ -53,18 +54,14 @@ void PlayerInput::PollInput(void)
     Current.selectSlot4 = IsKeyPressed(keybindManager.GetKeycode(HOTBAR_SLOT_4));
 
     // Rogue keys absorbed into InputState
-    Current.pauseMenu         = IsKeyPressed(keybindManager.GetKeycode(PAUSE_MENU));
-    Current.debugToggle       = IsKeyPressed(keybindManager.GetKeycode(DEBUG_TOGGLE));
-    Current.debugToggleEnemy  = IsKeyPressed(keybindManager.GetKeycode(DEBUG_TOGGLE_ENEMY));
-    Current.debugTogglePlayer = IsKeyPressed(keybindManager.GetKeycode(DEBUG_TOGGLE_PLAYER));
+    Current.pauseMenu = IsKeyPressed(keybindManager.GetKeycode(PAUSE_MENU));
 
     Current.mouseWheel = GetMouseWheelMove();
-    Current.goBack = IsKeyPressed(keybindManager.GetKeycode(GO_BACK));
 }
 
 void PlayerInput::UpdateState(void)
 {
-    if (Current.toggleInventory)
+    if (Current.toggleInventory && !g_MinimapScreen.IsActive())
     {
         InventoryOpen = !InventoryOpen;
         if (InventoryOpen)
@@ -73,7 +70,7 @@ void PlayerInput::UpdateState(void)
         TraceLog(LOG_INFO, "INPUT: Inventory %s", InventoryOpen ? "OPENED" : "CLOSED");
     }
 
-    if (Current.toggleMap)
+    if (Current.toggleMap && !InventoryOpen)
     {
         MapOpen = !MapOpen;
         if (MapOpen)
@@ -121,6 +118,13 @@ void PlayerInput::UpdateState(void)
     {
         TraceLog(LOG_INFO, "INPUT: Interact (E) pressed");
     }
+}
+
+void PlayerInput::ResetMenuFlags()
+{
+    InventoryOpen = false;
+    MapOpen = false;
+    g_MinimapScreen.Hide();
 }
 
 PlayerAction PlayerInput::ResolveAction() const

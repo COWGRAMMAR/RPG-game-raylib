@@ -1,13 +1,58 @@
-# Game RPG - Raylib
+<h1 align="center">BREACH &amp; LOOT</h1>
 
-Game RPG 2D yang dibuat dengan Raylib.
+<!-- Game logo -->
+<div align="center">
+  <img src="docs/assets/readme/logo/logoTitle.webp" alt="Game Logo">
+</div>
+
+<!-- Screenshot gameplay grid: 1 full-width + 3 rows of 2 -->
+<div align="center">
+  <table width="100%">
+    <tr>
+      <td align="center" colspan="2">
+        <img src="docs/assets/readme/sshots/gameplay_0.webp" width="100%">
+      </td>
+    </tr>
+    <tr>
+      <td align="center" width="50%">
+        <img src="docs/assets/readme/sshots/screenshot-1_mainMenu.webp" width="100%">
+      </td>
+      <td align="center" width="50%">
+        <img src="docs/assets/readme/sshots/screenshot-2_inventory_system.webp" width="100%">
+      </td>
+    </tr>
+    <tr>
+      <td align="center" width="50%">
+        <img src="docs/assets/readme/sshots/screenshot-3_nonworldgen_explosion.webp" width="100%">
+      </td>
+      <td align="center" width="50%">
+        <img src="docs/assets/readme/sshots/screenshot-4_nonworldgen_chaos.webp" width="100%">
+      </td>
+    </tr>
+    <tr>
+      <td align="center" width="50%">
+        <img src="docs/assets/readme/sshots/screenshot-5_worldgen_explode.webp" width="100%">
+      </td>
+      <td align="center" width="50%">
+        <img src="docs/assets/readme/sshots/screenshot-6_worldgen_crowd.webp" width="100%">
+      </td>
+    </tr>
+  </table>
+</div>
+
+Game RPG 2D bertema fantasi yang dibuat dengan Raylib (C++).
+<!-- TODO: tambah deskripsi lebih detail -- genre, setting, gameplay loop -->
 
 ## Fitur
 
-- Main menu dengan button components
-- Player movement system
-- Tilemap support (Tileson JSON)
-- Virtual screen rendering (640x360)
+- Movement & interaksi tilemap (Tileson JSON)
+- Combat turn-based dengan entity arrow & efek buff
+- Inventory management dengan BST sorting
+- Save/load system multi-slot (GameSnapshot + SaveManager)
+- UI settings: video, audio, keybind customization
+- World generation procedural
+- Font system dengan lazy-load atlas caching
+- Debug mode dengan overlay informasi
 
 ## Persyaratan
 
@@ -17,51 +62,38 @@ Game RPG 2D yang dibuat dengan Raylib.
 - **Ninja**
 - **Git**
 
-## Dependencies
+## Setup & Run (Satu Kali)
 
-- **Raylib 6.0**: Auto-download via `setup.ps1` (Windows) atau `setup.sh` (Linux/macOS)
-- **Tileson**: Download manual dari [GitHub Tileson](https://github.com/SSBMTonberry/tileson), copy `tileson.hpp` ke `lib/tileson/`
-
-> **PERHATIAN**: Dukungan untuk sistem Unix (Linux/macOS) bersifat eksperimental dan memerlukan pengujian lebih lanjut. Skrip `setup.sh` telah disediakan namun mungkin mengalami kendala pada beberapa distribusi.
-
-## Setup Pertama Kali
+Jalankan script sesuai OS kamu:
 
 ### Windows
 
-```powershell
-# Jalankan skrip setup untuk mengunduh dependensi
-.\setup.ps1
+1. Build project dari sumber kode, lalu otomatis menjalankan dengan ini.
 
-# Build project
-cmake --preset ninja && cmake --build --preset ninja
-```
+    ```powershell
+    .\run-windows.ps1
+    ```
+
+    Atau double-click `run-windows.bat`.
+
+2. Kemudian, agar tidak memakan waktu untuk build lagi, jalankan file berikut untuk langsung membuka program
+
+   ```batch
+   Breach&Loot.bat
+   ```
 
 ### Linux/macOS
 
-```bash
-# Jalankan skrip setup untuk mengunduh dependensi
-bash setup.sh
+1. Build project untuk membangun program dari sumber kode, lalu otomatis menjalankan dengan ini.
 
-# Build project
-cmake --preset ninja && cmake --build --preset ninja
-```
+    ```bash
+    bash run-linux.sh
+    ```
 
-Ini akan:
+2. Agar tidak membangun lagi, jalankan perintah berikut
 
-1. Download Raylib 6.0 ke direktori platform-specific (`lib/raylib-windows/` di Windows, `lib/raylib-linux/` di Linux, `lib/raylib-macos/` di macOS)
-2. Compile semua file .cpp (Unity build)
-3. Link dengan library
-4. Copy raylib.dll ke folder output (Windows)
+   ```bash
+   ./build-linux/bin/main
+   ```
 
-> **PERHATIAN**: Setup untuk Linux/macOS bersifat eksperimental dan memerlukan pengujian lebih lanjut.
-
-### Jalankan Game
-
-```bash
-./build/bin/main.exe   # Linux/macOS
-.\build\bin\main.exe   # Windows PowerShell
-```
-
-### Build
-
-Untuk instruksi build, lihat [Halaman Build](docs/build.md)
+> Untuk opsi build lanjutan, lihat [Panduan Build](docs/build.md). Untuk dokumentasi projek lainnya, lihat [Dokumentasi Projek](docs/README.md).

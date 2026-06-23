@@ -23,11 +23,21 @@ constexpr int SPAWN_PINPOINT_NORMAL_MIN = 9;
 constexpr int SPAWN_PINPOINT_NORMAL_MAX = 13;
 constexpr int SPAWN_PINPOINT_ELITE_MIN = 3;
 constexpr int SPAWN_PINPOINT_ELITE_MAX = 7;
+constexpr int SPAWN_PINPOINT_TUTORIAL_MIN = 2;
+constexpr int SPAWN_PINPOINT_TUTORIAL_MAX = 3;
 constexpr int SPAWN_RECT_NORMAL_MIN = 20;
 constexpr int SPAWN_RECT_NORMAL_MAX = 25;
 constexpr int SPAWN_RECT_ELITE_MIN = 10;
 constexpr int SPAWN_RECT_ELITE_MAX = 15;
 constexpr int SPAWN_RETRY_LIMIT = 200;
+
+// --- Loot drop tunable constants ---
+constexpr float LOOT_DROP_CHANCE_NORMAL = 0.25f;
+constexpr float LOOT_DROP_CHANCE_ELITE  = 0.50f;
+constexpr int LOOT_RARITY_COMMON   = 75;
+constexpr int LOOT_RARITY_UNCOMMON = 25;
+constexpr int LOOT_RARITY_ELITE_UNCOMMON = 70;
+constexpr int LOOT_RARITY_ELITE_RARE     = 30;
 
 /*==============================================================================
  * Enums
@@ -36,11 +46,13 @@ constexpr int SPAWN_RETRY_LIMIT = 200;
 /** @brief Status AI untuk perilaku musuh (FSM) */
 enum EnemyAIState
 {
-    ENEMY_IDLE,   // Berdiri diam atau menunggu
-    ENEMY_PATROL, // Bergerak antar titik acak di sekitar titik spawn
-    ENEMY_CHASE,  // Mengejar pemain
-    ENEMY_ATTACK, // Menjalankan animasi/logika serangan
-    ENEMY_RETURN  // Kembali ke titik spawn setelah kehilangan pemain
+    ENEMY_IDLE,     // Berdiri diam atau menunggu
+    ENEMY_PATROL,   // Bergerak antar titik acak di sekitar titik spawn
+    ENEMY_CHASE,    // Mengejar pemain
+    ENEMY_ATTACK,   // Menjalankan animasi/logika serangan
+    ENEMY_RETURN,   // Kembali ke titik spawn setelah kehilangan pemain
+    ENEMY_ABILITY1, // Menjalankan animasi/logika serangan khusus
+    ENEMY_ABILITY2  // Menjalankan animasi/logika serangan khusus
 };
 
 /** @brief Mode raycast untuk deteksi LoS enemy */
@@ -86,6 +98,13 @@ struct EnemyHitboxData
     Vector2 offset; // Offset hitbox relatif terhadap Position {offsetX, offsetY}
 };
 
+/** @brief Ukuran dan offset hurtbox enemy, di-load dari JSON */
+struct EnemyHurtboxData
+{
+    Vector2 size;   // Lebar dan tinggi hurtbox
+    Vector2 offset; // Offset X dan Y dari ujung kiri atas sprite
+};
+
 /** @brief Single source of truth untuk satu tipe enemy, di-load dari JSON */
 struct EnemyDefinition
 {
@@ -93,8 +112,11 @@ struct EnemyDefinition
     std::string name;            ///< Nama tipe enemy (e.g. "Slime", "Skeleton")
     EnemyStats stats;            ///< Statistik gameplay
     EnemyHitboxData hitbox;      ///< Konfigurasi hitbox
+    EnemyHurtboxData hurtbox;    ///< Konfigurasi hurtbox
     EnemyRank rank = ENEMY_NORMAL; ///< Rank untuk spawn/balance
     float Scale = 1.0f;           ///< Skala visual (1.0 = normal, 1.25 = elite, 1.75 = boss)
+    int potionWeight = 5;          ///< Bobot potion saat roll kategori loot (default 5)
+    int weaponWeight = 5;          ///< Bobot weapon saat roll kategori loot (default 5)
     std::string AnimSetName;      ///< Nama AnimationSet yang digunakan (e.g. "Slime", "Skeleton", "Wolf")
     const AnimationSet *animSet;  ///< Pointer ke AnimationSet global, di-resolve dari AnimSetName
 };
@@ -151,6 +173,7 @@ public:
 
     void UpdateAI();       // Titik masuk utama logika AI, dipanggil tiap frame
     bool CheckPlayerLoS(); // Cek Line of Sight ke pemain via raycasting
+    Rectangle GetAbilityZone() const; // Danger zone rectangle saat elite ability wind-up
 
     // --- Definisi ---
     const EnemyDefinition *Def = nullptr; // Pointer ke definisi tipe, di-assign saat Init
@@ -171,7 +194,7 @@ public:
     // --- Turn-Based ---
     bool isTurnBasedMode = false; // True jika sedang dalam mode combat turn-based
     bool isMyTurn = false;        // True jika giliran enemy di mode turn-based
-    bool bossMusicPlaying = false; // True jika boss music sedang diputar karena HP < 50%
+
 
     // --- Animasi ---
     Animation Anim;              // State animasi aktif (runtime)
@@ -183,6 +206,8 @@ public:
     Rectangle SpawnRect;               // Area spawn asal jika dari rectangle spawn
     float PatrolTimer;                 // Timer tunggu di titik patroli (runtime)
     const float PatrolWaitTime = 2.0f; // Durasi tunggu sebelum patroli ke titik berikutnya
+    int PatrolFailCount = 0;           // Counter gagal patrol berturut-turut — progressive backoff
+    float PatrolStuckTimer = 0;        // Timer deteksi macet di HandlePatrol
 
     // --- Hitbox ---
     float HitboxWidth;   // Lebar hitbox enemy
@@ -194,7 +219,24 @@ public:
         return {Position.x + HitboxOffsetX, Position.y + HitboxOffsetY, HitboxWidth, HitboxHeight};
     }
 
+    Rectangle GetHurtbox() const override
+    {
+        float scale = Def ? Def->Scale : 1.0f;
+        float hw = Def ? (Def->hurtbox.size.x * scale) : (32.0f * scale);
+        float hh = Def ? (Def->hurtbox.size.y * scale) : (32.0f * scale);
+        
+        float centeringOffset = (FRAME_SIZE - FRAME_SIZE * scale) / 2.0f;
+        
+        float ox = Def ? (Def->hurtbox.offset.x * scale) : 0.0f;
+        float oy = Def ? (Def->hurtbox.offset.y * scale) : 0.0f;
+
+        return {Position.x + centeringOffset + ox, Position.y + centeringOffset + oy, hw, hh};
+    }
+
     EnemySteering Steering; // helper steering untuk chase dan return pathfinding
+
+    /** @brief Hitung effective attack range edge-to-edge (attackRange + enemyRadius + playerRadius) */
+    float GetEffectiveAttackRange() const;
 
     /** @brief Ambil velocity enemy dari frame terakhir */
     Vector2 GetVelocity() { return Velocity; }
@@ -248,17 +290,21 @@ public:
 
     // --- Feedback Visual & Kematian (runtime, accessible externally) ---
     float HitFlashTimer = 0.0f;       // Timer tint merah saat terkena damage (runtime)
+    float HealthBarTimer = 0.0f;      // Timer health bar muncul setelah kena damage (runtime)
+    const float HealthBarDuration = 1.5f; // Durasi health bar muncul
     Vector2 KnockbackVelocity;        // Vektor knockback aktif (runtime)
     float DeathTimer = 0.0f;          // Timer animasi kematian (runtime)
     const float DeathDuration = 1.2f; // Durasi animasi kematian sebelum di-deactivate
 
 private:
-    void HandleIdle();    // Jalankan state idle
-    void HandlePatrol();  // Jalankan state patrol
-    void HandleChase();   // Jalankan state chase
-    void HandleAttack();  // Jalankan state attack
-    void HandleReturn();  // Jalankan state return
-    void PerformAttack(); // Eksekusi damage ke player
+    void HandleIdle();     // Jalankan state idle
+    void HandlePatrol();   // Jalankan state patrol
+    void HandleChase();    // Jalankan state chase
+    void HandleAttack();   // Jalankan state attack
+    void HandleAbility1(); // Jalankan state ability1 (elite special / boss AOE slam)
+    void HandleAbility2(); // Jalankan state ability2 (boss charge)
+    void HandleReturn();   // Jalankan state return
+    void PerformAttack();  // Eksekusi damage ke player
 
     FlowField *ReturnFlowField = nullptr; // Flow field untuk kembali ke spawn
 
@@ -273,7 +319,19 @@ private:
 
     float AttackCooldownTimer;         // Sisa waktu cooldown serangan (runtime)
     const float AttackCooldown = 1.0f; // Durasi cooldown antar serangan
+    float AttackWindUpTimer = 0.0f;    // Timer wind-up serangan elite sebelum damage (runtime)
+    float AbilityTimer = 0.0f;         // Timer periodik ability elite (4-5 detik)
+    float BossAbilityTimer = 0.0f;     // Timer periodik ability boss AOE slam (5 detik)
+    float BossAbility2Timer = 0.0f;    // Timer periodik ability boss charge (7 detik)
     bool PlayerWasInRange = false;     // Flag mencegah serangan ganda dalam satu frame
+    float ChargeDistanceRemaining = 0.0f;     // Sisa jarak charge ability2 (pixel)
+    Vector2 ChargeDir = {0, 0};              // Arah charge ability2
+    bool ChargeHitPlayer = false;            // Cegah multiple hit per charge
+    Vector2 AbilityDir = {0, 0};             // Arah ability elite (fix di cast awal, ga tracking)
+
+    Vector2 StuckOrigin = {0, 0};            // Posisi saat stuck timer mulai
+    float StuckTimer = 0.0f;                 // Timer stuck (ga ada progress > 32px selama > 3 detik)
+    void ResetStuck() { StuckTimer = 0.0f; StuckOrigin = Position; }
 
     void MoveTowards(Vector2 target, float speed); // Helper gerak ke target dengan collision check
 };

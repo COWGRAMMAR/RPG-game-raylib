@@ -181,6 +181,69 @@
         "width": 1,
         "height": 1
     },
+    "skeletonAttackLeft": {
+        "texture": "SPRITESHEET_ENEMIES",
+        "column": 3,
+        "row": 1,
+        "width": 1,
+        "height": 1
+    },
+    "skeletonWalkLeft1": {
+        "texture": "SPRITESHEET_ENEMIES",
+        "column": 4,
+        "row": 1,
+        "width": 1,
+        "height": 1
+    },
+    "skeletonWalkLeft2": {
+        "texture": "SPRITESHEET_ENEMIES",
+        "column": 5,
+        "row": 1,
+        "width": 1,
+        "height": 1
+    },
+    "skeletonIdleRight1": {
+        "texture": "SPRITESHEET_ENEMIES",
+        "column": 0,
+        "row": 3,
+        "width": 1,
+        "height": 1
+    },
+    "skeletonIdleRight2": {
+        "texture": "SPRITESHEET_ENEMIES",
+        "column": 1,
+        "row": 3,
+        "width": 1,
+        "height": 1
+    },
+    "skeletonDeadRight": {
+        "texture": "SPRITESHEET_ENEMIES",
+        "column": 2,
+        "row": 3,
+        "width": 1,
+        "height": 1
+    },
+    "skeletonAttackRight": {
+        "texture": "SPRITESHEET_ENEMIES",
+        "column": 3,
+        "row": 3,
+        "width": 1,
+        "height": 1
+    },
+    "skeletonWalkRight1": {
+        "texture": "SPRITESHEET_ENEMIES",
+        "column": 4,
+        "row": 3,
+        "width": 1,
+        "height": 1
+    },
+    "skeletonWalkRight2": {
+        "texture": "SPRITESHEET_ENEMIES",
+        "column": 5,
+        "row": 3,
+        "width": 1,
+        "height": 1
+    },
     "wolfIdleLeft1": {
         "texture": "SPRITESHEET_ENEMIES",
         "column": 0,
@@ -199,6 +262,433 @@
         "texture": "SPRITESHEET_ENEMIES",
         "column": 2,
         "row": 2,
+        "width": 1,
+        "height": 1
+    },
+    "wolfAttackLeft": {
+        "texture": "SPRITESHEET_ENEMIES",
+        "column": 3,
+        "row": 2,
+        "width": 1,
+        "height": 1
+    },
+    "wolfWalkLeft1": {
+        "texture": "SPRITESHEET_ENEMIES",
+        "column": 4,
+        "row": 2,
+        "width": 1,
+        "height": 1
+    },
+    "wolfWalkLeft2": {
+        "texture": "SPRITESHEET_ENEMIES",
+        "column": 5,
+        "row": 2,
+        "width": 1,
+        "height": 1
+    },
+    "wolfIdleRight1": {
+        "texture": "SPRITESHEET_ENEMIES",
+        "column": 0,
+        "row": 4,
+        "width": 1,
+        "height": 1
+    },
+    "wolfIdleRight2": {
+        "texture": "SPRITESHEET_ENEMIES",
+        "column": 1,
+        "row": 4,
+        "width": 1,
+        "height": 1
+    },
+    "wolfDeadRight": {
+        "texture": "SPRITESHEET_ENEMIES",
+        "column": 2,
+        "row": 4,
+        "width": 1,
+        "height": 1
+    },
+    "wolfAttackRight": {
+        "texture": "SPRITESHEET_ENEMIES",
+        "column": 3,
+        "row": 4,
+        "width": 1,
+        "height": 1
+    },
+    "wolfWalkRight1": {
+        "texture": "SPRITESHEET_ENEMIES",
+        "column": 4,
+        "row": 4,
+        "width": 1,
+        "height": 1
+    },
+    "wolfWalkRight2": {
+        "texture": "SPRITESHEET_ENEMIES",
+        "column": 5,
+        "row": 4,
+        "width": 1,
+        "height": 1
+    },
+    "orcIdleLeft1": {
+        "texture": "SPRITESHEET_ENEMIES_ELITE",
+        "column": 0,
+        "row": 0,
+        "width": 1,
+        "height": 1
+    },
+    "orcIdleLeft2": {
+        "texture": "SPRITESHEET_ENEMIES_ELITE",
+        "column": 1,
+        "row": 0,
+        "width": 1,
+        "height": 1
+    },
+    "orcWalkLeft1": {
+        "texture": "SPRITESHEET_ENEMIES_ELITE",
+        "column": 2,
+        "row": 0,
+        "width": 1,
+        "height": 1
+    },
+    "orcWalkLeft2": {
+        "texture": "SPRITESHEET_ENEMIES_ELITE",
+        "column": 3,
+        "row": 0,
+        "width": 1,
+        "height": 1
+    },
+    "orcAttackLeft": {
+        "texture": "SPRITESHEET_ENEMIES_ELITE",
+        "column": 4,
+        "row": 0,
+        "width": 1,
+        "height": 1
+    },
+    "orcRoarLeft": {
+        "texture": "SPRITESHEET_ENEMIES_ELITE",
+        "column": 5,
+        "row": 0,
+        "width": 1,
+        "height": 1
+    },
+    "orcDeadLeft": {
+        "texture": "SPRITESHEET_ENEMIES_ELITE",
+        "column": 6,
+        "row": 0,
+        "width": 1,
+        "height": 1
+    },
+    "orcIdleRight1": {
+        "texture": "SPRITESHEET_ENEMIES_ELITE",
+        "column": 0,
+        "row": 1,
+        "width": 1,
+        "height": 1
+    },
+    "orcIdleRight2": {
+        "texture": "SPRITESHEET_ENEMIES_ELITE",
+        "column": 1,
+        "row": 1,
+        "width": 1,
+        "height": 1
+    },
+    "orcWalkRight1": {
+        "texture": "SPRITESHEET_ENEMIES_ELITE",
+        "column": 2,
+        "row": 1,
+        "width": 1,
+        "height": 1
+    },
+    "orcWalkRight2": {
+        "texture": "SPRITESHEET_ENEMIES_ELITE",
+        "column": 3,
+        "row": 1,
+        "width": 1,
+        "height": 1
+    },
+    "orcAttackRight": {
+        "texture": "SPRITESHEET_ENEMIES_ELITE",
+        "column": 4,
+        "row": 1,
+        "width": 1,
+        "height": 1
+    },
+    "orcRoarRight": {
+        "texture": "SPRITESHEET_ENEMIES_ELITE",
+        "column": 5,
+        "row": 1,
+        "width": 1,
+        "height": 1
+    },
+    "orcDeadRight": {
+        "texture": "SPRITESHEET_ENEMIES_ELITE",
+        "column": 6,
+        "row": 1,
+        "width": 1,
+        "height": 1
+    },
+    "manticoreIdleLeft1": {
+        "texture": "SPRITESHEET_ENEMIES_ELITE",
+        "column": 0,
+        "row": 2,
+        "width": 1,
+        "height": 1
+    },
+    "manticoreIdleLeft2": {
+        "texture": "SPRITESHEET_ENEMIES_ELITE",
+        "column": 1,
+        "row": 2,
+        "width": 1,
+        "height": 1
+    },
+    "manticoreWalkLeft1": {
+        "texture": "SPRITESHEET_ENEMIES_ELITE",
+        "column": 2,
+        "row": 2,
+        "width": 1,
+        "height": 1
+    },
+    "manticoreWalkLeft2": {
+        "texture": "SPRITESHEET_ENEMIES_ELITE",
+        "column": 3,
+        "row": 2,
+        "width": 1,
+        "height": 1
+    },
+    "manticoreAttackLeft": {
+        "texture": "SPRITESHEET_ENEMIES_ELITE",
+        "column": 4,
+        "row": 2,
+        "width": 1,
+        "height": 1
+    },
+    "manticoreStabLeft": {
+        "texture": "SPRITESHEET_ENEMIES_ELITE",
+        "column": 5,
+        "row": 2,
+        "width": 1,
+        "height": 1
+    },
+    "manticoreDeadLeft": {
+        "texture": "SPRITESHEET_ENEMIES_ELITE",
+        "column": 6,
+        "row": 2,
+        "width": 1,
+        "height": 1
+    },
+    "manticoreIdleRight1": {
+        "texture": "SPRITESHEET_ENEMIES_ELITE",
+        "column": 0,
+        "row": 3,
+        "width": 1,
+        "height": 1
+    },
+    "manticoreIdleRight2": {
+        "texture": "SPRITESHEET_ENEMIES_ELITE",
+        "column": 1,
+        "row": 3,
+        "width": 1,
+        "height": 1
+    },
+    "manticoreWalkRight1": {
+        "texture": "SPRITESHEET_ENEMIES_ELITE",
+        "column": 2,
+        "row": 3,
+        "width": 1,
+        "height": 1
+    },
+    "manticoreWalkRight2": {
+        "texture": "SPRITESHEET_ENEMIES_ELITE",
+        "column": 3,
+        "row": 3,
+        "width": 1,
+        "height": 1
+    },
+    "manticoreAttackRight": {
+        "texture": "SPRITESHEET_ENEMIES_ELITE",
+        "column": 4,
+        "row": 3,
+        "width": 1,
+        "height": 1
+    },
+    "manticoreStabRight": {
+        "texture": "SPRITESHEET_ENEMIES_ELITE",
+        "column": 5,
+        "row": 3,
+        "width": 1,
+        "height": 1
+    },
+    "manticoreDeadRight": {
+        "texture": "SPRITESHEET_ENEMIES_ELITE",
+        "column": 6,
+        "row": 3,
+        "width": 1,
+        "height": 1
+    },
+    "minotaurIdleLeft1": {
+        "texture": "SPRITESHEET_ENEMY_BOSS",
+        "column": 0,
+        "row": 0,
+        "width": 1,
+        "height": 1
+    },
+    "minotaurIdleLeft2": {
+        "texture": "SPRITESHEET_ENEMY_BOSS",
+        "column": 1,
+        "row": 0,
+        "width": 1,
+        "height": 1
+    },
+    "minotaurWalkLeft1": {
+        "texture": "SPRITESHEET_ENEMY_BOSS",
+        "column": 2,
+        "row": 0,
+        "width": 1,
+        "height": 1
+    },
+    "minotaurWalkLeft2": {
+        "texture": "SPRITESHEET_ENEMY_BOSS",
+        "column": 3,
+        "row": 0,
+        "width": 1,
+        "height": 1
+    },
+    "minotaurAttackLeft": {
+        "texture": "SPRITESHEET_ENEMY_BOSS",
+        "column": 4,
+        "row": 0,
+        "width": 1,
+        "height": 1
+    },
+    "minotaurSlamLeft1": {
+        "texture": "SPRITESHEET_ENEMY_BOSS",
+        "column": 5,
+        "row": 0,
+        "width": 1,
+        "height": 1
+    },
+    "minotaurSlamLeft2": {
+        "texture": "SPRITESHEET_ENEMY_BOSS",
+        "column": 6,
+        "row": 0,
+        "width": 1,
+        "height": 1
+    },
+    "minotaurChargeLeft1": {
+        "texture": "SPRITESHEET_ENEMY_BOSS",
+        "column": 7,
+        "row": 0,
+        "width": 1,
+        "height": 1
+    },
+    "minotaurChargeLeft2": {
+        "texture": "SPRITESHEET_ENEMY_BOSS",
+        "column": 8,
+        "row": 0,
+        "width": 1,
+        "height": 1
+    },
+    "minotaurChargeLeft3": {
+        "texture": "SPRITESHEET_ENEMY_BOSS",
+        "column": 9,
+        "row": 0,
+        "width": 1,
+        "height": 1
+    },
+    "minotaurChargeLeft4": {
+        "texture": "SPRITESHEET_ENEMY_BOSS",
+        "column": 10,
+        "row": 0,
+        "width": 1,
+        "height": 1
+    },
+    "minotaurDeadLeft": {
+        "texture": "SPRITESHEET_ENEMY_BOSS",
+        "column": 11,
+        "row": 0,
+        "width": 1,
+        "height": 1
+    },
+    "minotaurIdleRight1": {
+        "texture": "SPRITESHEET_ENEMY_BOSS",
+        "column": 0,
+        "row": 1,
+        "width": 1,
+        "height": 1
+    },
+    "minotaurIdleRight2": {
+        "texture": "SPRITESHEET_ENEMY_BOSS",
+        "column": 1,
+        "row": 1,
+        "width": 1,
+        "height": 1
+    },
+    "minotaurWalkRight1": {
+        "texture": "SPRITESHEET_ENEMY_BOSS",
+        "column": 2,
+        "row": 1,
+        "width": 1,
+        "height": 1
+    },
+    "minotaurWalkRight2": {
+        "texture": "SPRITESHEET_ENEMY_BOSS",
+        "column": 3,
+        "row": 1,
+        "width": 1,
+        "height": 1
+    },
+    "minotaurAttackRight": {
+        "texture": "SPRITESHEET_ENEMY_BOSS",
+        "column": 4,
+        "row": 1,
+        "width": 1,
+        "height": 1
+    },
+    "minotaurSlamRight1": {
+        "texture": "SPRITESHEET_ENEMY_BOSS",
+        "column": 5,
+        "row": 1,
+        "width": 1,
+        "height": 1
+    },
+    "minotaurSlamRight2": {
+        "texture": "SPRITESHEET_ENEMY_BOSS",
+        "column": 6,
+        "row": 1,
+        "width": 1,
+        "height": 1
+    },
+    "minotaurChargeRight1": {
+        "texture": "SPRITESHEET_ENEMY_BOSS",
+        "column": 7,
+        "row": 1,
+        "width": 1,
+        "height": 1
+    },
+    "minotaurChargeRight2": {
+        "texture": "SPRITESHEET_ENEMY_BOSS",
+        "column": 8,
+        "row": 1,
+        "width": 1,
+        "height": 1
+    },
+    "minotaurChargeRight3": {
+        "texture": "SPRITESHEET_ENEMY_BOSS",
+        "column": 9,
+        "row": 1,
+        "width": 1,
+        "height": 1
+    },
+    "minotaurChargeRight4": {
+        "texture": "SPRITESHEET_ENEMY_BOSS",
+        "column": 10,
+        "row": 1,
+        "width": 1,
+        "height": 1
+    },
+    "minotaurDeadRight": {
+        "texture": "SPRITESHEET_ENEMY_BOSS",
+        "column": 11,
+        "row": 1,
         "width": 1,
         "height": 1
     },
@@ -320,6 +810,41 @@
         "row": 3,
         "width": 1,
         "height": 1
+    },
+    "slam0101": {
+        "texture": "SPRITESHEET_EFFECTS",
+        "column": 15,
+        "row": 3,
+        "width": 2,
+        "height": 2
+    },
+    "slam0102": {
+        "texture": "SPRITESHEET_EFFECTS",
+        "column": 17,
+        "row": 3,
+        "width": 2,
+        "height": 2
+    },
+    "slam0103": {
+        "texture": "SPRITESHEET_EFFECTS",
+        "column": 13,
+        "row": 5,
+        "width": 2,
+        "height": 2
+    },
+    "slam0104": {
+        "texture": "SPRITESHEET_EFFECTS",
+        "column": 15,
+        "row": 5,
+        "width": 2,
+        "height": 2
+    },
+    "slam0105": {
+        "texture": "SPRITESHEET_EFFECTS",
+        "column": 17,
+        "row": 5,
+        "width": 2,
+        "height": 2
     },
     "collision1": {
         "texture": "SPRITESHEET_EFFECTS",

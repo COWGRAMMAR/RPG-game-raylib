@@ -10,6 +10,8 @@
 #include "game_state_saver.h"
 #include "entities.h"
 #include "raymath.h"
+#include "map/minimap.h"
+#include "ui/mainMenu.h"
 
 namespace Interaction
 {
@@ -18,10 +20,14 @@ namespace Interaction
      */
     void HandleInteractions(Player &player)
     {
+        // Gak bisa interact pas inventory kebuka
+        if (InputInstance.IsInventoryOpen() || g_MinimapScreen.IsActive())
+            return;
+
         player.canInteract = false;
         UpdateRaycast(player);
-        CheckDoors(player);    // Interaksi berbasis kedekatan (proximity)
-        CheckProps(player);    // Interaksi berbasis raycast
+        CheckDoors(player); // Interaksi berbasis kedekatan (proximity)
+        CheckProps(player); // Interaksi berbasis raycast
     }
 
     /**
@@ -30,12 +36,6 @@ namespace Interaction
      */
     void ExecutePendingTransitions(Player &player)
     {
-        if (player.pendingGoBack)
-        {
-            player.pendingGoBack = false;
-            GoBack();
-        }
-
         if (player.pendingSwitchMap)
         {
             player.pendingSwitchMap = false;
@@ -73,7 +73,7 @@ namespace Interaction
     void CheckDoors(Player &player)
     {
         // Skip kalau lagi transisi map — cegah double trigger dari fixed-timestep loop
-        if (gState->isSwitchingMap || gState->isGoingBack)
+        if (gState->isSwitchingMap)
             return;
 
         Rectangle playerHitbox = BuildHitbox(player.Position, player.GetHitboxOffsetX(), player.GetHitboxOffsetY(), player.GetHitboxWidth(), player.GetHitboxHeight());
@@ -101,7 +101,7 @@ namespace Interaction
                 // InitRun cuma sekali per run — kalau sudah aktif, lanjut ke stage terakhir
                 if (!g_SeedManager.IsRunActive())
                 {
-                    int slot = (g_ActiveSaveSlot >= 0) ? g_ActiveSaveSlot : WorldgenIO::GetNextAvailableSlot();
+                    int slot = WorldgenIO::GetNextAvailableSlot();
                     WorldgenIO::InitRun(slot);
                 }
 
@@ -142,7 +142,9 @@ namespace Interaction
                 }
                 if (!bossAlive)
                 {
-                g_SeedManager.ResetRun();
+                    InputInstance.ResetMenuFlags();
+                    g_SeedManager.ResetRun();
+                    InitMainMenu(gState);
                     gState->currentScreen = MAIN_MENU;
                 }
                 return;
@@ -179,10 +181,18 @@ namespace Interaction
         Vector2 facingDir = {0, 0};
         switch (player.Anim.direction)
         {
-            case UP:    facingDir = {0, -1}; break;
-            case DOWN:  facingDir = {0, 1};  break;
-            case LEFT:  facingDir = {-1, 0}; break;
-            case RIGHT: facingDir = {1, 0};  break;
+        case UP:
+            facingDir = {0, -1};
+            break;
+        case DOWN:
+            facingDir = {0, 1};
+            break;
+        case LEFT:
+            facingDir = {-1, 0};
+            break;
+        case RIGHT:
+            facingDir = {1, 0};
+            break;
         }
 
         float dot = Vector2DotProduct(facingDir, aimDir);
@@ -213,4 +223,3 @@ namespace Interaction
         }
     }
 }
-

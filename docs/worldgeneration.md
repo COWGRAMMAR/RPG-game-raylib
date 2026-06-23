@@ -80,16 +80,16 @@ case 0:  // Start Game
 
 Loading screen mendeteksi `isSwitchingMap = false` dan `assetsLoaded = false`, masuk ke **HandleInitialLoad**:
 
-**`src/core/loading_screen.cpp:352-463`**
+**`src/core/loading_screen.cpp:354-464`**
 
 | Stage | Fungsi | File:Line |
 | --- | --- | --- |
-| 0 | `InitTextures()` — load sprites, atlas, tileset textures | `loading_screen.cpp:360` |
-| 1 | `HasSavedState()` → `LoadMap(savedMap)` + `LoadWorldgenForSave()` / `InitMap()` | `loading_screen.cpp:366-398` |
-| 2 | Increment stage (kosong) | `loading_screen.cpp:400` |
-| default | `assetsLoaded = true`, `InitAll()`, `ApplyPreSpawn()`, `RestoreGameState()`, `InitMainMenu()`, `currentScreen = PLAY` | `loading_screen.cpp:406-461` |
+| 0 | `InitTextures()` — load sprites, atlas, tileset textures | `loading_screen.cpp:362` |
+| 1 | `HasSavedState()` → `LoadMap(savedMap)` + `LoadWorldgenForSave()` / `InitMap()` | `loading_screen.cpp:368-400` |
+| 2 | Increment stage (kosong) | `loading_screen.cpp:402` |
+| default | `assetsLoaded = true`, `InitAll()`, `ApplyPreSpawn()`, `RestoreGameState()`, `InitMainMenu()`, `currentScreen = PLAY` | `loading_screen.cpp:408-463` |
 
-**Tidak ada worldgen di path ini.** Map yang di-load adalah `assets/maps/main_hub.json` (melalui `InitMap()` di `map.cpp:280-285`), bukan `tutorial.json`.
+**Tidak ada worldgen di path ini.** Map yang di-load adalah `assets/maps/main_hub.json` (melalui `InitMap()` di `map.cpp:281-285`), bukan `tutorial.json`.
 
 Jika save game ditemukan (`HasSavedState()` true), maka `LoadMap(savedMap)` dipanggil dan untuk worldgen saves akan memanggil `LoadWorldgenForSave()` untuk restore seeds + regenerate world.
 
@@ -132,7 +132,7 @@ Saat player memasuki door yang terhubung ke stage worldgen, fungsi `NextStage()`
 6. TrimStageStack()
 ```
 
-`SwitchMap()` di **`src/map/map.cpp:460-492`**:
+`SwitchMap()` di **`src/map/map.cpp:461-493`**:
 
 ```txt
 1. Null/empty path guard
@@ -151,14 +151,14 @@ Perbedaan dari versi lama: state map tidak lagi disimpan via `SaveEnemiesForMap(
 
 Loading screen mendeteksi `isSwitchingMap == true` dan masuk ke **HandleMapSwitch**:
 
-**`src/core/loading_screen.cpp:132-264`**
+**`src/core/loading_screen.cpp:133-266`**
 
 | Stage | Fungsi | Detail |
 | --- | --- | --- |
-| 0 | `UnloadMap()` + `spawnFlowFields.clear()` | `loading_screen.cpp:138-147` |
-| 1 | `LoadMap(path)` + `SetCurrentMapPath()` | `loading_screen.cpp:149-197` |
+| 0 | `UnloadMap()` + `spawnFlowFields.clear()` | `loading_screen.cpp:139-148` |
+| 1 | `LoadMap(path)` + `SetCurrentMapPath()` | `loading_screen.cpp:150-199` |
 
-Stage 1 — worldgen trigger + pre-spawn restore (`loading_screen.cpp:158-177`):
+Stage 1 — worldgen trigger + pre-spawn restore (`loading_screen.cpp:159-184`):
 
 ```cpp
 if (state->pendingMapPath.find("worldseed/save_") != std::string::npos)
@@ -186,16 +186,16 @@ if (state->pendingMapPath.find("worldseed/save_") != std::string::npos)
 
 | Stage | Fungsi | Detail |
 | --- | --- | --- |
-| 2 | `PlayerInstance.Init()` + `Entities::Clear()` + `Add(Player)` | `loading_screen.cpp:199-238` |
+| 2 | `PlayerInstance.Init()` + `Entities::Clear()` + `Add(Player)` | `loading_screen.cpp:201-240` |
 | | `SpawnEnemiesFromMap()` + `SpawnItemWave()` + `ApplyCheckpointData()` | |
 | | `CaptureSnapshot()` + `SaveInitial()` | |
-| 3 | Camera setup + clear switch flags + `SaveAutosave()` + `currentScreen = PLAY` | `loading_screen.cpp:240-263` |
+| 3 | Camera setup + clear switch flags + `SaveAutosave()` + `currentScreen = PLAY` | `loading_screen.cpp:242-265` |
 
 ### 2d. Fast Path (assets already loaded)
 
 Saat player kembali dari main menu atau OPTIONS tanpa perlu reload assets (`assetsLoaded = true`, `!isSwitchingMap`):
 
-**`src/core/loading_screen.cpp:268-348`** — `HandleFastPath()`
+**`src/core/loading_screen.cpp:270-350`** — `HandleFastPath()`
 
 ```txt
 1. loadingStage = max, loadingComplete = true, currentScreen = PLAY
@@ -248,7 +248,7 @@ Saat player kembali dari main menu atau OPTIONS tanpa perlu reload assets (`asse
 | `PrevStage()` | 203 | CanGoBack → GoBackStage → SetCurrentStage → SaveMeta → SwitchMap("finish") → TrimStageStack |
 | `CleanupOrphanedSlots()` | 240 | Hapus worldseed `save_N/` yang tidak direferensi oleh save manual manapun (hanya scan new format `manual/snapshot.json` via `SaveManager::GetManualPath()`) |
 
-**Catatan:** `HandleMapSwitch` dan `LoadRuntimeState` sudah tidak ada. Map switch handling sekarang ada di `loading_screen.cpp:132` (`HandleMapSwitch`). Runtime state dikelola oleh SaveManager.
+**Catatan:** `HandleMapSwitch` dan `LoadRuntimeState` sudah tidak ada. Map switch handling sekarang ada di `loading_screen.cpp:133` (`HandleMapSwitch`). Runtime state dikelola oleh SaveManager.
 
 ### 3c. Map Operations (`src/map/map.cpp`)
 
@@ -270,12 +270,12 @@ Saat player kembali dari main menu atau OPTIONS tanpa perlu reload assets (`asse
 | `InitLoadingScreen(state)` | 51-70 | Reset loadingStage/Progress, set text sesuai mode (map-switch / fast-path / initial) |
 | `ExtractStageFromPath(mapPath)` | 77-90 | Ekstrak index stage (0-based) dari map path worldgen |
 | `LoadWorldgenForSave(mapPath, slot)` | 96-128 | LoadMeta + extract stage + RunWorldgen + itemDefs.Load |
-| `HandleMapSwitch(state)` | 132-264 | Eksekusi 4-stage map switch (Unload → Load+Worldgen → Player/Entities → Finalize) |
-| `HandleFastPath(state)` | 268-348 | Eksekusi fast path saat assets sudah ter-load (kembali dari menu) |
-| `HandleInitialLoad(state)` | 352-463 | Eksekusi 3-stage initial load (InitTextures → Map → InitAll) |
-| `UpdateLoadingScreen(state)` | 475-495 | Dispatcher — pilih mode berdasarkan flag (isSwitchingMap / assetsLoaded / initial) |
-| `RenderLoadingScreen(state)` | 548-606 | Render progress bar + text + map name |
-| `IsLoadingComplete(state)` | 614-617 | Return loadingComplete flag |
+| `HandleMapSwitch(state)` | 133-266 | Eksekusi 4-stage map switch (Unload → Load+Worldgen → Player/Entities → Finalize) |
+| `HandleFastPath(state)` | 270-350 | Eksekusi fast path saat assets sudah ter-load (kembali dari menu) |
+| `HandleInitialLoad(state)` | 354-464 | Eksekusi 3-stage initial load (InitTextures → Map → InitAll) |
+| `UpdateLoadingScreen(state)` | 477-497 | Dispatcher — pilih mode berdasarkan flag (isSwitchingMap / assetsLoaded / initial) |
+| `RenderLoadingScreen(state)` | 550-608 | Render progress bar + text + map name |
+| `IsLoadingComplete(state)` | 616-619 | Return loadingComplete flag |
 
 ### 3e. Main Loop (`src/core/main.cpp`)
 

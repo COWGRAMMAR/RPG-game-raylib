@@ -33,11 +33,17 @@ Kalo gamau pake `|`, bisa pake Enter langsung di Tiled (multiline) — nanti oto
 1. Player arahkan mouse ke sign (raycast) → muncul prompt interaksi
 2. Player tekan **E** → dialog terbuka
 3. Layar game nge-freeze total (kayak pause), muncul overlay:
-   - **Screen dim** — semi-transparent black
-   - **Dialog box** — render dengan texture `assets/textures/dialogBox.png`
-   - **Text** — baris-baris dialog, font **`HUD_PLAYER`** (Poppins-Bold, 22px)
-   - **Hint** — `"[Left-Click] To Close"` (font 16px)
+   - **Dialog box** — render dengan texture `assets/textures/dialogBox.png` (posisi tengah layar, horizontal & vertical centering)
+   - **Text** — baris-baris dialog, font **`HUD_PLAYER`** (Poppins-Bold, 22px, hitam), word-wrap otomatis dalam area konten texture (dikurangi 83px dekorasi kanan)
+   - **Hint** — `"[Left-Click] To Close"` (font 16px, hitam)
+   - **Tidak ada screen dim** — game terlihat di belakang texture transparan
 4. Player klik **kiri di mana aja** → dialog tutup, game lanjut
+
+> **Fallback**: Jika `dialogBox.png` gagal di-load (`dialogTex.id == 0`), system fallback ke:
+> - Screen dim: `ColorAlpha(BLACK, 0.4f)` full screen
+> - Dialog box: `DrawRectangleRounded()` — DARKGRAY 95% alpha, border WHITE
+> - Text: default font raylib, 16px, WHITE
+> - Hint: `[Left-Click] To Close` (16px, GRAY)
 
 ---
 
@@ -45,7 +51,12 @@ Kalo gamau pake `|`, bisa pake Enter langsung di Tiled (multiline) — nanti oto
 
 ### 1. Screen Dim
 
-Sekarang: `ColorAlpha(BLACK, 0.4f)` — 40% hitam full screen
+**Primary path** (texture `dialogBox.png` berhasil di-load):
+- **Tidak ada screen dim.** Dialog hanya menampilkan texture di atas gameplay.
+
+**Fallback** (texture gagal di-load):
+- `ColorAlpha(BLACK, 0.4f)` — 40% hitam full screen
+- Screen dim hanya muncul saat texture tidak tersedia.
 
 | Bisa diubah | Keterangan |
 | --- | --- |
@@ -55,10 +66,16 @@ Sekarang: `ColorAlpha(BLACK, 0.4f)` — 40% hitam full screen
 
 ### 2. Dialog Box
 
-Sekarang: rectangle rounded, `DARKGRAY` 95% alpha, border putih
+**Primary path** (texture berhasil di-load):
+- Texture `assets/textures/dialogBox.png` (file-static `dialogTex`)
+- Posisi: tengah layar (horizontal & vertical centering)
+- Tidak ada rounded rect, border, atau background color — semua visual ada di texture.
+
+**Fallback** (texture gagal di-load):
+- Rectangle rounded, `DARKGRAY` 95% alpha, border putih
 
 | Properti | Nilai Sekarang | Keterangan |
-| --- | --- |
+| --- | --- | --- |
 | Posisi X | `GameScreenWidth * 0.1` | 10% margin kiri |
 | Posisi Y | `GameScreenHeight * 0.6` | 60% dari atas |
 | Lebar | `GameScreenWidth * 0.8` | 80% lebar layar |
@@ -84,7 +101,9 @@ Sekarang: font `HUD_PLAYER` (Poppins-Bold), size 22, hitam, dengan texture `dial
 
 ### 4. Hint Dismiss
 
-Sekarang: text `[Left-Click] To Close` di pojok kanan bawah box
+**Primary path**: text `[Left-Click] To Close` (hitam, 16px) di pojok kanan bawah texture, dihitung dari `contentRight - 150`.
+
+**Fallback**: text `[Left-Click] To Close` (GRAY, 16px) di pojok kanan bawah box.
 
 ---
 

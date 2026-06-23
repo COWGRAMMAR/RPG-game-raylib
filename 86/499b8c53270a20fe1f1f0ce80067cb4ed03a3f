@@ -1,0 +1,75 @@
+docs/worldgeneration.md
+  s_0ee2af2fc9ffe9::t_46e42647fa2170 1,68,72
+include/ui/mainMenu.h
+  s_0ee2af2fc9ffe9::t_f7b25a1dbf94f7 6
+src/core/savemanager.cpp
+  s_0ee2af2fc9ffe9::t_f7b25a1dbf94f7 10
+include/ui/popup.h
+  s_0ee2af2fc9ffe9::t_f7b25a1dbf94f7 7
+docs/AGENTS_backup.md
+  s_0ee2af2fc9ffe9::t_f7b25a1dbf94f7 1-413
+include/utils/effectQueue.h
+  s_0ee2af2fc9ffe9::t_f7b25a1dbf94f7 7-8,10,18-19,23,25-26,31-35,39,48,55,64,70,72,79,85
+src/map/minimap.cpp
+  s_0ee2af2fc9ffe9::t_f7b25a1dbf94f7 1-909
+README.md
+  s_0ee2af2fc9ffe9::t_87fe2886405135 6,10-11,13,21,29
+assets/shaders/fog_render.fs
+  s_0ee2af2fc9ffe9::t_f7b25a1dbf94f7 1-26
+.vscode/c_cpp_properties.json
+  s_0ee2af2fc9ffe9::t_f7b25a1dbf94f7 4,6-20,22-23
+src/ui/pauseMenu.cpp
+  s_0ee2af2fc9ffe9::t_f7b25a1dbf94f7 14,21
+assets/maps/floorB.json
+  s_0ee2af2fc9ffe9::t_f7b25a1dbf94f7 21
+include/ui/button.h
+  s_0ee2af2fc9ffe9::t_f7b25a1dbf94f7 49
+include/rendering/fonts.h
+  s_0ee2af2fc9ffe9::t_f7b25a1dbf94f7 11-21,26-27,30-31,33-35,48,57,65
+docs/buff-indicator-system.md
+  s_0ee2af2fc9ffe9::t_46e42647fa2170 1
+assets/maps/floorA.json
+  s_0ee2af2fc9ffe9::t_f7b25a1dbf94f7 21
+include/media/videoPlayer.h
+  s_0ee2af2fc9ffe9::t_f7b25a1dbf94f7 15,18-95,97-99,101,103,106,108-109,111-112,114-117,119-120,122-127,129-133,135-138,140-143,145-148,150-152,154,156-161,164-167,169,171-181,183-201,203-206,208-209,211,213-219,222-225,228,231-232,236,239-240,244,247-248,252,255-256,260,263,265,268-270,273,275,278-280,283
+src/entities/enemies/enemy.cpp
+  s_0ee2af2fc9ffe9::t_f7b25a1dbf94f7 222
+src/systems/effects.cpp
+  s_0ee2af2fc9ffe9::t_f7b25a1dbf94f7 14-15,182,192
+include/map/minimap.h
+  s_0ee2af2fc9ffe9::t_f7b25a1dbf94f7 1-267
+src/systems/combatTurn.cpp
+  s_0ee2af2fc9ffe9::t_f7b25a1dbf94f7 59
+src/rendering/hud.cpp
+  s_0ee2af2fc9ffe9::t_f7b25a1dbf94f7 16,51-53
+docs/sign-system-ui.md
+  s_0ee2af2fc9ffe9::t_46e42647fa2170 1,27,36-38
+src/ui/gameOverScreen.cpp
+  s_0ee2af2fc9ffe9::t_f7b25a1dbf94f7 5-6
+assets/maps/floorC.json
+  s_0ee2af2fc9ffe9::t_f7b25a1dbf94f7 21
+include/ui/pauseMenu.h
+  s_0ee2af2fc9ffe9::t_f7b25a1dbf94f7 6,26,43,161,164
+src/core/loading_screen.cpp
+  s_0ee2af2fc9ffe9::t_f7b25a1dbf94f7 11
+src/ui/videoTab.cpp
+  s_0ee2af2fc9ffe9::t_f7b25a1dbf94f7 18-32
+include/ui/videoTab.h
+  s_0ee2af2fc9ffe9::t_f7b25a1dbf94f7 10
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.10",
+  "base_commit_sha": "86499b8c53270a20fe1f1f0ce80067cb4ed03a3f",
+  "prompts": {},
+  "sessions": {
+    "s_0ee2af2fc9ffe9": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_12174ed8dffeQT3WRIoy8BfpB3",
+        "model": "unknown"
+      },
+      "human_author": "NiskoDT <65821447+NiskoDT@users.noreply.github.com>"
+    }
+  }
+}

@@ -1050,7 +1050,7 @@ static void DrawInteractKeycap()
     const int lfSize = 20;
     Font font = GetOrLoad(FontId::HUD_PLAYER);
     const char *k = keybindManager.GetKeyDisplayName(INTERACT);
-    std::string t = std::string(k) + " Interaksi";
+    std::string t = std::string(k) + " Interact";
     Vector2 sz = MeasureTextEx(font, t.c_str(), lfSize, 0);
 
     // Posisi berdasarkan hitbox player, offsetY bisa disesuaikan
@@ -1360,11 +1360,11 @@ void DrawSignDialog()
     if (dialogTex.id != 0)
     {
         int contentRight = (GameScreenWidth - dialogTex.width) / 2 + dialogTex.width - 83;
-        DrawDefaultText("[Klik kiri] untuk tutup", contentRight - 140, (int)box.y + (int)box.height - 20, 14, BLACK);
+        DrawDefaultText("[Left click] to close", contentRight - 140, (int)box.y + (int)box.height - 20, 14, BLACK);
     }
     else // basch-3: fallback — posisi & gaya asli
     {
-        DrawDefaultText("[Klik kiri] untuk tutup", (int)box.x + (int)box.width - 140, (int)box.y + (int)box.height - 20, 10, GRAY);
+        DrawDefaultText("[Left click] to close", (int)box.x + (int)box.width - 140, (int)box.y + (int)box.height - 20, 10, GRAY);
     }
 }
 

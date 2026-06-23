@@ -375,7 +375,7 @@ void UpdateLogicAll()
                 float currentTime = (float)GetTime();
                 if (currentTime - lastInventoryFullTime > 2.0f)
                 {
-                    Effects::AddLog("Inventori Penuh");
+                    Effects::AddLog("Inventory Full");
                     lastInventoryFullTime = currentTime;
                 }
             }

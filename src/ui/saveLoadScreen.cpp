@@ -26,7 +26,7 @@
  */
 SaveLoadScreen::SaveLoadScreen()
     : active(false), texturesLoaded(false), returnScreen(PLAY), width(0), height(0), startX(0), startY(0), bgTexture({0}), saveTitleTex({0}), loadTitleTex({0}), deleteTitleTex({0}), emptySlotTex({0}), savedSlotTex({0}), // basch-3: inisialisasi texture title & slot
-      slotOccupied{}, slotMapName{}, slotTimestamp{}, m_mode(SaveLoadMode::SAVE_MODE), m_previousMode(SaveLoadMode::SAVE_MODE), m_overwritePopup("Overwrite existing save?", "Overwrite", "Cancel", 0.7f), m_loadPopup("Load this save?", "Load", "Cancel", 0.7f), m_deletePopup("Delete this save?", "Delete", "Cancel", 0.7f), m_showOverwritePopup(false), m_showLoadPopup(false), m_showDeletePopup(false), m_selectedSlot(-1)
+      slotOccupied{}, slotMapName{}, slotTimestamp{}, m_mode(SaveLoadMode::SAVE_MODE), m_previousMode(SaveLoadMode::SAVE_MODE),       m_overwritePopup("Overwrite existing save?", "Overwrite", "Cancel", 0.7f), m_loadPopup("Load this save?", "Load", "Cancel", 0.7f), m_deletePopup("Delete this save?", "Delete", "Cancel", 0.7f), m_corruptionPopup("Save file corrupt!", "OK", 0.7f), m_showOverwritePopup(false), m_showLoadPopup(false), m_showDeletePopup(false), m_showCorruptionPopup(false), m_selectedSlot(-1)
 {
 }
 
@@ -127,7 +127,6 @@ void SaveLoadScreen::Update(GameState *state, Vector2 mousePosition, bool mouseC
         {
             m_showOverwritePopup = false;
             SetActiveSlot(m_selectedSlot);
-            SaveGameState(state);
             // Save new-format snapshot
             {
                 GameSnapshot snap = SaveManager::CaptureSnapshot();
@@ -137,7 +136,6 @@ void SaveLoadScreen::Update(GameState *state, Vector2 mousePosition, bool mouseC
                          snap.playerPosition.x, snap.playerPosition.y, snap.mapPath.c_str());
                 SaveManager::SaveManual(snap, m_selectedSlot);
             }
-            WriteSaveFile(GetSlotPath(m_selectedSlot, "manual"));
             active = false;
             state->currentScreen = returnScreen;
         }
@@ -156,19 +154,44 @@ void SaveLoadScreen::Update(GameState *state, Vector2 mousePosition, bool mouseC
         {
             m_showLoadPopup = false;
             SetActiveSlot(m_selectedSlot);
+
+            // Cek validitas primary format (SaveManager snapshot)
+            bool saveValid = false;
+            std::string newPath = SaveManager::GetManualPath(m_selectedSlot);
+            if (SaveManager::HasSnapshot(newPath))
             {
-                std::string path = GetSlotPath(m_selectedSlot, "manual");
-                TraceLog(LOG_INFO, "LOAD: slot=%d mapPath='%s' worldgenSlot=%d",
-                         m_selectedSlot, savedMapState.mapPath.c_str(), savedPlayerState.worldgenSlot);
-                ReadSaveFile(path);
-                // RestoreGameState di-loading_screen.cpp (HandleFastPath) setelah InitAll
+                GameSnapshot testSnap = SaveManager::ReadSnapshot(newPath);
+                saveValid = (testSnap.version == GameSnapshot::SNAPSHOT_VERSION);
             }
-            active = false;
-            state->currentScreen = LOADING;
+
+            if (saveValid)
+            {
+                TraceLog(LOG_INFO, "LOAD: slot=%d snapshot valid", m_selectedSlot);
+                active = false;
+                state->currentScreen = LOADING;
+            }
+            else
+            {
+                TraceLog(LOG_WARNING, "LOAD: slot %d: snapshot corrupted or unreadable", m_selectedSlot);
+                m_corruptionPopup.Show();
+                m_showCorruptionPopup = true;
+            }
         }
         else if (!m_loadPopup.IsActive())
         {
             m_showLoadPopup = false; // Cancelled
+        }
+        return;
+    }
+
+    // Handle corruption popup
+    if (m_showCorruptionPopup)
+    {
+        m_corruptionPopup.Update(mousePosition, mouseClicked);
+        if (m_corruptionPopup.IsConfirmClicked() || !m_corruptionPopup.IsActive())
+        {
+            m_showCorruptionPopup = false;
+            m_selectedSlot = -1;
         }
         return;
     }
@@ -214,13 +237,11 @@ void SaveLoadScreen::Update(GameState *state, Vector2 mousePosition, bool mouseC
                 else
                 {
                     SetActiveSlot(clickedSlot);
-                    SaveGameState(state);
                     // Save new-format snapshot
                     {
                         GameSnapshot snap = SaveManager::CaptureSnapshot();
                         SaveManager::SaveManual(snap, clickedSlot);
                     }
-                    WriteSaveFile(GetSlotPath(clickedSlot, "manual"));
                     active = false;
                     state->currentScreen = returnScreen;
                 }
@@ -353,6 +374,10 @@ void SaveLoadScreen::Draw(Vector2 mousePosition)
     if (m_showDeletePopup)
     {
         m_deletePopup.Draw(mousePosition);
+    }
+    if (m_showCorruptionPopup)
+    {
+        m_corruptionPopup.Draw(mousePosition);
     }
 }
 
@@ -664,16 +689,12 @@ void SaveLoadScreen::RefreshSlotMetadata()
 {
     for (int i = 0; i < MANUAL_SLOT_COUNT + AUTOSAVE_SLOT_COUNT; i++)
     {
-        std::string oldPath = "saves/slot_" + std::to_string(i) + "/manual/manual.json";
-        bool hasOldFormat = std::filesystem::exists(oldPath);
         bool hasNewFormat = SaveManager::HasManual(i);
 
-        if (hasOldFormat || hasNewFormat)
+        if (hasNewFormat)
         {
             slotOccupied[i] = true;
-            std::string metaPath = hasNewFormat
-                                       ? SaveManager::GetManualPath(i)
-                                       : oldPath;
+            std::string metaPath = SaveManager::GetManualPath(i);
             try
             {
                 std::ifstream file(metaPath);
@@ -776,6 +797,8 @@ void SaveLoadScreen::LoadTextures()
     m_loadPopup.SetTextColor(BLACK);
     m_deletePopup.SetBackgroundTexture("assets/textures/saveloadAsset/overLoadNotifBG.png");
     m_deletePopup.SetTextColor(BLACK);
+    m_corruptionPopup.SetBackgroundTexture("assets/textures/saveloadAsset/overLoadNotifBG.png");
+    m_corruptionPopup.SetTextColor(BLACK);
 }
 
 // basch-3: bongkar semua texture (bg, title, slot)

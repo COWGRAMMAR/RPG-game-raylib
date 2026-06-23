@@ -106,7 +106,7 @@ namespace Combat
                     InventoryItem activeItem = Inventory::GetActiveHotbarItem(player);
                     if (activeItem.definitionId == -1 || itemDefs.GetById(activeItem.definitionId).category != ITEM_WEAPON)
                     {
-                        Effects::AddLog("Tidak Ada Senjata!");
+                        Effects::AddLog("No Weapon!");
                         player.attack.pressHeld = false;
                         return;
                     }
@@ -181,7 +181,7 @@ namespace Combat
                 }
                 else
                 {
-                    Effects::AddLog("Stamina Tidak Cukup");
+                    Effects::AddLog("Not Enough Stamina");
                     player.attack.pressHeld = false;
                     TraceLog(LOG_WARNING, "PLAYER: Serangan gagal! Mana habis.");
                 }

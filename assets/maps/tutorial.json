@@ -283,7 +283,7 @@
                         {
                          "name":"dialog",
                          "type":"string",
-                         "value":"Selamat datang di game Breach & Loot!\nDengan kamu ke sini dan membuka pesan ini, kamu sudah mempelajari cara berinteraksi dengan obyek.\nIni akan digunakan untuk membuka chest dan berpindah tempat.\nSilahkan baca papan selanjutya."
+                         "value":"Welcome to Breach & Loot!\nWith you able to come here and read this sign, you've learned how to interact with objects.\nThis will be useful when you're opening chests and going to places.\nPleace read the next sign."
                         }],
                  "rotation":0,
                  "type":"sign",
@@ -301,7 +301,7 @@
                         {
                          "name":"dialog",
                          "type":"string",
-                         "value":"Hati-hati! Di sekitar akan ada perangkap berupa duri bermunculan dan bom.\nHindari duri saat mereka muncul dan jangan berdiri di sana.\nHindari memukul bom sebaik mungkin. Ia akan meledak jika terkena serangan dan memberikan kerusakan fatal."
+                         "value":"Watch out! There will be traps and bombs around the map.\nAvoid standing on the spikes to not take damage when it appears.\nAlso avoid hitting the bombs as much as you can, for it will explode and deal a great damage!"
                         }],
                  "rotation":0,
                  "type":"sign",
@@ -319,13 +319,13 @@
                         {
                          "name":"dialog",
                          "type":"string",
-                         "value":"Klik mouse kiri untuk melakukan aksi.\nJika senjata yang dipegang, maka akan menyerang.\nJika ramuan yang dipegang, maka akan menkonsumsi ramuan tersebut.\nCoba kamu pukul kotak dan musuh-musuhnya."
+                         "value":"Press the left-mouse button to do actions.\nIf you're holding a weapon, it will attack.\nAnd If you're holding a potion, it will be consumed. But do notice the potions has a cooldown.\nPlease try to hit those boxes and enemies."
                         }],
                  "rotation":0,
                  "type":"sign",
                  "visible":true,
                  "width":32,
-                 "x":384,
+                 "x":416,
                  "y":448
                 }, 
                 {
@@ -337,7 +337,7 @@
                         {
                          "name":"dialog",
                          "type":"string",
-                         "value":"Di dalam sana akan ada Boss.\nMereka akan melakukan mode game yang berbeda jika didekatkan saat Health Pointnya rendah.\nHati-hati, ya!"
+                         "value":"Down there, there will be bosses.\nYou can hit them like normal. But when their Health is below 50%, they will take you to a turn-based fight!\nPress 1 then enter to attack.\nPress 2 then enter to use an item.\nPress 3 and enter to defend.\nDo be careful!"
                         }],
                  "rotation":0,
                  "type":"sign",

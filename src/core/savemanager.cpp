@@ -111,10 +111,21 @@ bool SaveManager::AtomicWrite(const std::string &path, const json &data)
         if (fs::exists(tmpPath))
             fs::remove(tmpPath);
 
+        // Dump tanpa hash → hitung CRC32 → inject hash → dump ulang.
+        // nlohmann::json pake std::map (key di-sort alphabetically), jadi output dump(4) deterministic.
+        std::string content = data.dump(4);
+        unsigned int crc = ComputeCRC32(
+            reinterpret_cast<unsigned char *>(content.data()),
+            static_cast<int>(content.size()));
+
+        json dataWithHash = data;
+        dataWithHash["hash"] = crc;
+        std::string finalContent = dataWithHash.dump(4);
+
         std::ofstream file(tmpPath);
         if (!file.is_open())
             return false;
-        file << data.dump(4);
+        file << finalContent;
         file.close();
 
         fs::rename(tmpPath, path);
@@ -483,6 +494,27 @@ GameSnapshot SaveManager::ReadSnapshot(const std::string &path)
     {
         std::ifstream file(path);
         json root = json::parse(file);
+
+        // Verifikasi CRC32 hash kalo ada (backward-compat: save lama tanpa hash skip check)
+        auto hashIt = root.find("hash");
+        if (hashIt != root.end())
+        {
+            unsigned int storedHash = hashIt->get<unsigned int>();
+            root.erase(hashIt);
+
+            // Re-serialize without hash. Must produce same string as the pre-hash dump.
+            std::string content = root.dump(4);
+            unsigned int computedHash = ComputeCRC32(
+                reinterpret_cast<unsigned char *>(content.data()),
+                static_cast<int>(content.size()));
+
+            if (computedHash != storedHash)
+            {
+                TraceLog(LOG_WARNING, "[SaveManager] CRC32 mismatch (computed=%u stored=%u): %s",
+                         computedHash, storedHash, path.c_str());
+                return GameSnapshot();
+            }
+        }
 
         if (!root.contains("version"))
         {

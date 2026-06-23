@@ -18,7 +18,15 @@
         <img src="docs/assets/readme/sshots/screenshot-1_mainMenu.webp" width="100%">
       </td>
       <td align="center" width="50%">
-        <img src="docs/assets/readme/sshots/screenshot-2_explosion.webp" width="100%">
+        <img src="docs/assets/readme/sshots/screenshot-2_inventory_system.webp" width="100%">
+      </td>
+    </tr>
+    <tr>
+      <td align="center" width="50%">
+        <img src="docs/assets/readme/sshots/screenshot-3_nonworldgen_explosion.webp" width="100%">
+      </td>
+      <td align="center" width="50%">
+        <img src="docs/assets/readme/sshots/screenshot-4_nonworldgen_chaos.webp" width="100%">
       </td>
     </tr>
     <tr>

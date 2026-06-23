@@ -1,33 +1,38 @@
 <h1 align="center">BREACH &amp; LOOT</h1>
 
 <!-- Game logo -->
-![Game Logo](assets/textures/logo.png)
+![Game Logo](assets/images/readme/logo/logoTitle.png)
 
-<!-- Screenshot gameplay 2x2 grid -->
+<!-- Screenshot gameplay grid: 1 full-width + 3 rows of 2 -->
 <div align="center">
   <table>
     <tr>
-      <td align="center" width="50%">
-        <img src="assets/images/gameplayScreenshots/screenshot_mainMenu.png" alt="Main Menu" width="100%">
+      <td align="center" colspan="2">
+        <img src="assets/images/readme/sshots/gameplay_0.webp" alt="Gameplay Preview Loop" width="100%">
       </td>
+    </tr>
+    <tr>
       <td align="center" width="50%">
         <img src="assets/images/gameplayScreenshots/screenshot_gameplay1.png" alt="Gameplay" width="100%">
       </td>
-    </tr>
-    <tr>
       <td align="center" width="50%">
         <img src="assets/images/gameplayScreenshots/screenshot_turnbased.png" alt="Turn-Based Combat" width="100%">
       </td>
+    </tr>
+    <tr>
       <td align="center" width="50%">
         <img src="assets/images/gameplayScreenshots/screenshot_bossgameplay.png" alt="Boss Combat" width="100%">
+      </td>
+      <td align="center" width="50%">
+        <img src="assets/images/gameplayScreenshots/screenshot_explosion.png" alt="Explosion Effects" width="100%">
       </td>
     </tr>
     <tr>
       <td align="center" width="50%">
-        <img src="assets/images/gameplayScreenshots/screenshot_explosion.png" alt="Explosion Effects" width="100%">
+        <img src="assets/images/gameplayScreenshots/screenshot_attackbow.png" alt="Bow Attack" width="100%">
       </td>
       <td align="center" width="50%">
-        <img src="assets/images/gameplayScreenshots/screenshot_attackbow.png" alt="Bow Attack" width="100%">
+        <!-- placeholder for future screenshot -->
       </td>
     </tr>
   </table>

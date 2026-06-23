@@ -34,14 +34,37 @@ Semua action dari index 0 sampai 14 muncul di UI settings lewat struct `sections
 PAUSE_MENU (index 15) berbeda dari yang dideskripsikan di dokumen lama. Sekarang ia adalah action biasa di enum:
 
 - Default key: `KEY_ESCAPE`, diset di `keybindManager.cpp` lewat `InitDefaults()`.
-- **Tidak hardcoded.** `input.cpp` baris 56 membaca dari keybindManager: `Current.pauseMenu = IsKeyPressed(keybindManager.GetKeycode(PAUSE_MENU))`.
-- Hasilnya dicek di `main.cpp` baris 271: `if (InputInstance.GetState().pauseMenu)` untuk toggle pause menu.
+- **Tidak hardcoded.** `input.cpp` baris 57 membaca dari keybindManager: `Current.pauseMenu = IsKeyPressed(keybindManager.GetKeycode(PAUSE_MENU))`.
+- Hasilnya dicek di `main.cpp` baris 278: `if (InputInstance.GetState().pauseMenu)` untuk toggle pause menu.
 - Karena tidak ada di `sections[]` di `keybindsTab.cpp`, action ini tidak bisa di-rebind lewat UI Settings.
 - Tapi karena datanya tetap disimpan ke `saves/settings/keybindsTab.json`, kamu bisa mengubah binding-nya secara manual di file JSON.
 
 Satu-satunya fungsi Escape yang benar-benar hardcoded adalah di `keybindsTab.cpp` baris 167, sebagai cancel key di rebind listener. Ini tidak terkait dengan PAUSE_MENU.
 
 Jika suatu saat ingin mengekspos PAUSE_MENU atau TOGGLE_FULLSCREEN ke UI, caranya dengan menambahkan index-nya ke array `sections[]` di `keybindsTab.cpp`.
+
+### Keybind Texture Cleanup (Main Merge)
+
+Keybind textures (`keybindReplace.png`, `keybindRead.png`, `scrollBar.png`) diubah dari function-local `static` menjadi file-static untuk memungkinkan unload eksplisit:
+
+```cpp
+// src/ui/keybindsTab.cpp
+static Texture2D g_ReplaceTex = {0};
+static Texture2D g_ListenTex = {0};
+static Texture2D g_ThumbTex = {0};
+
+void UnloadKeybindsTextures();  // Panggil saat shutdown game
+```
+
+Fungsi baru `UnloadKeybindsTextures()` me-unload ketiga texture tersebut. Dipanggil dari shutdown flow.
+
+### Input-Minimap Interaction (Main Merge)
+
+Dua perubahan di `input.cpp`:
+
+1. **Inventory toggle** diblokir saat minimap aktif: `if (Current.toggleInventory && !g_MinimapScreen.IsActive())`
+2. **Map toggle** diblokir saat inventory terbuka: `if (Current.toggleMap && !InventoryOpen)`
+3. **`ResetMenuFlags()`** sekarang juga memanggil `g_MinimapScreen.Hide()` untuk menutup minimap saat kembali ke menu.
 
 ## Debug Toggle -- Hardcoded, Bukan Action Enum
 
@@ -51,7 +74,7 @@ Ini adalah bagian yang paling banyak berubah dari dokumen lama. Tidak ada action
 
 **LCtrl + LShift + \** (backslash)
 
-Kombinasi ini men toggle `isDebugMode` di `Debug::Toggle()` (baris 276). Ketiga tombol harus ditekan bersamaan. Tidak ada action di keybindManager untuk ini.
+Kombinasi ini men toggle `isDebugMode` di `Debug::Toggle()` (baris 271). Ketiga tombol harus ditekan bersamaan. Tidak ada action di keybindManager untuk ini.
 
 ### World Overlay (saat Debug Mode ON)
 
@@ -117,11 +140,11 @@ Ada juga 3 entry info (non-rebindable) di section INVENTORY: Drag Item, Split It
 | `include/systems/keybindManager.h` | Definisi enum `Action` (MOVE_UP=0 ... ACTION_COUNT=17) dan class KeybindManager |
 | `src/systems/keybindManager.cpp` | Default bindings (`InitDefaults()`), action names, JSON persistence ke `saves/settings/keybindsTab.json` |
 | `include/systems/input.h` | Struct `InputState` -- field `pauseMenu` dan semua flag input |
-| `src/systems/input.cpp` | Polling PAUSE_MENU dari keybindManager (baris 56), mapping key action ke InputState |
+| `src/systems/input.cpp` | Polling PAUSE_MENU dari keybindManager (baris 57), mapping key action ke InputState |
 | `include/debug/game_debug.h` | Deklarasi `Debug::Toggle()`, `isDebugMode`, `showFlowFieldOverlay`, `showFlowFieldOverlayPlayer` |
 | `src/debug/debugmode.cpp` | Implementasi semua debug toggle keys (baris 271-297) |
 | `src/ui/keybindsTab.cpp` | Struct `sections[]` hanya mencakup index 0-14; rebind listener dengan hardcoded Escape cancel |
-| `src/core/main.cpp` | Pengecekan PAUSE_MENU (baris 271) dan TOGGLE_FULLSCREEN (baris 168) di game loop |
+| `src/core/main.cpp` | Pengecekan PAUSE_MENU (baris 278) dan TOGGLE_FULLSCREEN (baris 169) di game loop |
 | `src/core/screen_handler.cpp` | Panggilan `DebugInstance.Toggle()` dan `DebugInstance.Draw()` di rendering (baris 416-417) |
 
 ## Catatan

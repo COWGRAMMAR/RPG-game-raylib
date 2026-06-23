@@ -138,7 +138,6 @@
         {
          "draworder":"topdown",
          "id":4,
-         "locked":true,
          "name":"object",
          "objects":[
                 {
@@ -191,7 +190,7 @@
                         {
                          "name":"dialog",
                          "type":"string",
-                         "value":"tutorial"
+                         "value":"Go to tutorial?"
                         }],
                  "rotation":0,
                  "type":"sign",
@@ -209,7 +208,7 @@
                         {
                          "name":"dialog",
                          "type":"string",
-                         "value":"non world generation"
+                         "value":"Go to non world generation?"
                         }],
                  "rotation":0,
                  "type":"sign",
@@ -227,7 +226,7 @@
                         {
                          "name":"dialog",
                          "type":"string",
-                         "value":"map world generation "
+                         "value":"Go to map world generation? "
                         }],
                  "rotation":0,
                  "type":"sign",
@@ -245,7 +244,7 @@
                         {
                          "name":"target_door",
                          "type":"string",
-                         "value":"tutorial"
+                         "value":"spawn"
                         }, 
                         {
                          "name":"target_map",

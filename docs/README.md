@@ -12,8 +12,9 @@ Folder ini bertambah seiring projek berkembang. Kalau menambah atau mengurangi, 
 2. [`./build.md`](./build.md) : Cara build dan run projek.
 3. [`./save-system.md`](./save-system.md) : Arsitektur save/load: slot_-1 workspace, GameSnapshot, per-slot isolation, UUID entity identity, pipeline flow (save/switch/load/new/restart), coverage matrix, bug history, changelog Waves 1-8.
 4. [`./sign-system-ui.md`](./sign-system-ui.md) : Sign/UI system (belum diisi).
-5. [`./source-structure.md`](./source-structure.md) : Struktur direktori source code dan header.
-6. [`./worldgeneration.md`](./worldgeneration.md) : World generation system.
-7. [`./debug-keybinds.md`](./debug-keybinds.md) : Keybind debug dan akses pengembang.
-8. [`./buff-indicator-system.md`](./buff-indicator-system.md) : Indikator buff aktif (Damage/Speed/Invul): pipeline, integrasi, design decisions untuk turn-based combat.
-9. [`./font-system.md`](./font-system.md) : Font system: pipeline atlas resolution cache, API, panduan pemakaian, daftar font, best practices.
+5. [`./project-structure.md`](./project-structure.md) : Struktur direktori proyek level atas.
+6. [`./source-structure.md`](./source-structure.md) : Struktur direktori source code dan header.
+7. [`./worldgeneration.md`](./worldgeneration.md) : World generation system.
+8. [`./debug-keybinds.md`](./debug-keybinds.md) : Keybind debug dan akses pengembang.
+9. [`./buff-indicator-system.md`](./buff-indicator-system.md) : Indikator buff aktif (Damage/Speed/Invul): pipeline, integrasi, design decisions untuk turn-based combat.
+10. [`./font-system.md`](./font-system.md) : Font system: pipeline atlas resolution cache, API, panduan pemakaian, daftar font, best practices.

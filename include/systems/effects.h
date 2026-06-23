@@ -7,7 +7,8 @@
 /**
  * @brief Data for a damage number popup
  */
-struct DamagePopup {
+struct DamagePopup
+{
     Vector2 position;
     Vector2 velocity;
     float damage;
@@ -19,7 +20,8 @@ struct DamagePopup {
 /**
  * @brief Data for a message log entry
  */
-struct LogEntry {
+struct LogEntry
+{
     std::string text;
     float timer;
     float verticalOffset;
@@ -31,7 +33,8 @@ struct LogEntry {
  * @brief Unified system for managing queue-based visual effects.
  * Similar to the Entities system, it provides a central hub for all transient visual feedback.
  */
-namespace Effects {
+namespace Effects
+{
     /**
      * @brief Update all active effect queues (timers, physics, cleanup).
      */
@@ -50,7 +53,7 @@ namespace Effects {
     /**
      * @brief Add a new message to the player's log.
      */
-    void AddLog(const char* message);
+    void AddLog(const char *message);
 
     /**
      * @brief Add a projectile collision effect (1x1 slam-style animation) at a specific position.

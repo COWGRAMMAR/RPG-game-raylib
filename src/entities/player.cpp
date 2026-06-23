@@ -25,6 +25,7 @@
 #include "propsbehavior.h"
 #include "combatTurn.h"
 #include <cmath>
+#include "map/minimap.h"
 
 constexpr int EMPTY_ITEM_ID = -1;
 
@@ -49,11 +50,11 @@ void Player::Init(GameState *state, const char *spawnObjectName)
         Mana = MaxMana;
         ManaRegenTimer = 0.0f;
 
-        // Inisialisasi perlengkapan hotbar default
-        Hotbar[0] = {4, 1}; // Bow
-        Hotbar[1] = {15, 1};  // AK-47
-        Hotbar[2] = {2, 8};  // Small Health Potion
-        Hotbar[3] = {3, 8};  // Small Mana Potion
+        // Inisialisasi hotbar + bag dengan semua item dari items.json (id 0-18)
+        Hotbar[0] = {1, 1}; // Steel Sword (1)
+        Hotbar[1] = {4, 1}; // Wooden Bow
+        Hotbar[2] = {2, 4}; // Health
+        Hotbar[3] = {3, 4}; // Mana
 
         for (int i = 0; i < PlayerInstance.MaxBag; i++)
             Bag[i] = {EMPTY_ITEM_ID, 0};
@@ -126,10 +127,11 @@ void Player::ResetForNewGame()
     Health = MaxHealth = 100.0f;
     Mana = MaxMana = 100.0f;
     ManaRegenTimer = 0.0f;
-    Hotbar[0] = {4, 1}; // Bow
-    Hotbar[1] = {15, 1};  // AK-47
-    Hotbar[2] = {2, 8};  // Small Health Potion
-    Hotbar[3] = {3, 8};  // Small Mana Potion
+    Hotbar[0] = {1, 1}; // Steel Sword
+    Hotbar[1] = {4, 1}; // Wooden Bow
+    Hotbar[2] = {2, 4}; // Health
+    Hotbar[3] = {3, 4}; // Mana
+
     for (int i = 0; i < MaxBag; i++)
         Bag[i] = {EMPTY_ITEM_ID, 0};
     Anim.isDead = false;
@@ -202,7 +204,7 @@ void Player::Update()
         {
             BuffDamageTimer = 0;
             BuffDamageMultiplier = 1.0f;
-            Effects::AddLog("Efek Damage Berakhir");
+            Effects::AddLog("Damage buff ended");
         }
     }
 
@@ -213,7 +215,7 @@ void Player::Update()
         {
             BuffSpeedTimer = 0;
             BuffSpeedMultiplier = 1.0f;
-            Effects::AddLog("Efek Speed Berakhir");
+            Effects::AddLog("Speed buff ended");
         }
     }
 
@@ -223,7 +225,7 @@ void Player::Update()
         if (InvincibilityTimer <= 0)
         {
             InvincibilityTimer = 0;
-            Effects::AddLog("Efek Kebal Berakhir");
+            Effects::AddLog("Invincibility ended");
         }
     }
 
@@ -410,7 +412,7 @@ void Player::DrawAimIndicator(void)
 // Handle action player
 void Player::HandleAction(void)
 {
-    if (InputInstance.IsInventoryOpen())
+    if (InputInstance.IsInventoryOpen() || g_MinimapScreen.IsActive())
         return;
 
     PlayerAction action = InputInstance.ResolveAction();

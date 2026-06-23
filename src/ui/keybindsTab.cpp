@@ -312,6 +312,29 @@ static void RenderSection(const SectionInfo &sec, int startX, int &currentLocalY
     currentLocalY += ROW_HEIGHT; // spacing antar section
 }
 
+static Texture2D g_ReplaceTex = {0};
+static Texture2D g_ListenTex = {0};
+static Texture2D g_ThumbTex = {0};
+
+void UnloadKeybindsTextures()
+{
+    if (g_ReplaceTex.id != 0)
+    {
+        UnloadTexture(g_ReplaceTex);
+        g_ReplaceTex = {0};
+    }
+    if (g_ListenTex.id != 0)
+    {
+        UnloadTexture(g_ListenTex);
+        g_ListenTex = {0};
+    }
+    if (g_ThumbTex.id != 0)
+    {
+        UnloadTexture(g_ThumbTex);
+        g_ThumbTex = {0};
+    }
+}
+
 /**
  * @brief Toast notifikasi swap di pojok kanan atas (di luar scissor)
  */
@@ -321,13 +344,12 @@ static void DrawToastNotification(const char toastLine1[128], const char toastLi
         return;
 
     // basch-3: texture keybindReplace.png untuk notifikasi swap tombol
-    static Texture2D replaceTex = {0};
-    if (replaceTex.id == 0)
+    if (g_ReplaceTex.id == 0)
     {
         Image img = LoadImage("assets/textures/settingsButt/keybindReplace.png");
         if (img.data != nullptr)
         {
-            replaceTex = LoadTextureFromImage(img);
+            g_ReplaceTex = LoadTextureFromImage(img);
             UnloadImage(img);
         }
     }
@@ -340,12 +362,12 @@ static void DrawToastNotification(const char toastLine1[128], const char toastLi
     Vector2 sz2 = MeasureTextEx(GetOrLoad(FontId::KEYBIND_ENTRY), toastLine2, KEYB_TOAST_SZ, 0);
 
     // basch-3: toast dengan texture, pusat box di px 177, teks hitam ukuran 22
-    if (replaceTex.id != 0)
+    if (g_ReplaceTex.id != 0)
     {
-        int toastX = GameScreenWidth - replaceTex.width - 20;
+        int toastX = GameScreenWidth - g_ReplaceTex.width - 20;
         int toastY = 15;
-        int drawX = toastX + (replaceTex.width / 2) - 177;
-        DrawTexture(replaceTex, drawX, toastY, tint);
+        int drawX = toastX + (g_ReplaceTex.width / 2) - 177;
+        DrawTexture(g_ReplaceTex, drawX, toastY, tint);
 
         Color textColor = {0, 0, 0, a};
         float textX = (float)(drawX + 40);
@@ -382,26 +404,25 @@ static void DrawToastNotification(const char toastLine1[128], const char toastLi
 static void DrawListeningPopup(int startX, int startY, int contentW)
 {
     // basch-3: texture keybindRead.png untuk popup listening
-    static Texture2D listenTex = {0};
-    if (listenTex.id == 0)
+    if (g_ListenTex.id == 0)
     {
         Image img = LoadImage("assets/textures/settingsButt/keybindRead.png");
         if (img.data != nullptr)
         {
-            listenTex = LoadTextureFromImage(img);
+            g_ListenTex = LoadTextureFromImage(img);
             UnloadImage(img);
         }
     }
 
     const int popupCenterX = startX + contentW / 2;
-    const int popupH = (listenTex.id != 0) ? listenTex.height : POPUP_H;
+    const int popupH = (g_ListenTex.id != 0) ? g_ListenTex.height : POPUP_H;
     const int popupY = startY + CONTENT_TOP + (CONTENT_H - popupH) / 2 - 30;
 
     // basch-3: popup dengan texture, pusat box di px 234
-    if (listenTex.id != 0)
+    if (g_ListenTex.id != 0)
     {
         const int drawX = popupCenterX - 234;
-        DrawTexture(listenTex, drawX, popupY, WHITE);
+        DrawTexture(g_ListenTex, drawX, popupY, WHITE);
     }
     else // basch-3: fallback — popup persegi panjang asli
     {
@@ -429,15 +450,14 @@ static void DrawScrollbar(int &scrollY, int maxScroll, int contentStartY, int st
     if (maxScroll <= 0)
         return;
 
-    static Texture2D thumbTex = {0};
-    if (thumbTex.id == 0)
+    if (g_ThumbTex.id == 0)
     {
         Image img = LoadImage("assets/textures/settingsButt/scrollBar.png");
         if (img.data != nullptr)
         {
-            thumbTex = LoadTextureFromImage(img);
+            g_ThumbTex = LoadTextureFromImage(img);
             UnloadImage(img);
-            SetTextureFilter(thumbTex, TEXTURE_FILTER_POINT);
+            SetTextureFilter(g_ThumbTex, TEXTURE_FILTER_POINT);
         }
     }
 
@@ -484,8 +504,8 @@ static void DrawScrollbar(int &scrollY, int maxScroll, int contentStartY, int st
     bool hovering = thumbHovered || dragging;
     Color thumbColor = hovering ? WHITE : Color{110, 110, 110, 255};
 
-    DrawTexturePro(thumbTex,
-                   Rectangle{0, 0, (float)thumbTex.width, (float)thumbTex.height},
+    DrawTexturePro(g_ThumbTex,
+                   Rectangle{0, 0, (float)g_ThumbTex.width, (float)g_ThumbTex.height},
                    Rectangle{(float)barX, (float)thumbY, (float)SCROLLBAR_W, (float)thumbH},
                    Vector2{0, 0}, 0.0f, thumbColor);
 }

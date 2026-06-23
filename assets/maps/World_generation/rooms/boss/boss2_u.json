@@ -588,7 +588,7 @@
                 }],
          "opacity":1,
          "type":"objectgroup",
-         "visible":true,
+         "visible":false,
          "x":0,
          "y":0
         }, 
@@ -1874,7 +1874,7 @@
                 }],
          "opacity":1,
          "type":"objectgroup",
-         "visible":true,
+         "visible":false,
          "x":0,
          "y":0
         }, 
@@ -1966,7 +1966,7 @@
                         {
                          "name":"target_map",
                          "type":"string",
-                         "value":"assets\/maps\/tutorial.json"
+                         "value":"assets\/maps\/main_hub.json"
                         }],
                  "rotation":0,
                  "type":"pass",

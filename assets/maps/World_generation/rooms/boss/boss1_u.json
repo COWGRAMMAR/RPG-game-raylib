@@ -1616,7 +1616,7 @@
                         {
                          "name":"target_map",
                          "type":"string",
-                         "value":"assets\/maps\/tutorial.json"
+                         "value":"assets\/maps\/main_hub.json"
                         }],
                  "rotation":0,
                  "type":"pass",

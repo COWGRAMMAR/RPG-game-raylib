@@ -31,6 +31,7 @@ src/
 │   ├── map.cpp                 # Manajemen peta utama
 │   ├── mapLogic.cpp            # Logika interaksi peta
 │   ├── mapstack.cpp            # Stack navigasi antar peta
+│   ├── minimap.cpp             # Sistem minimap (fog of war, tile coloring, viewport)
 │   ├── propsbehavior.cpp       # Perilaku props di dunia game
 │   ├── worldgenenartion.cpp    # Generasi dunia procedural
 │   ├── worldgenio.cpp          # Input/output world generation
@@ -93,6 +94,7 @@ include/
 ├── map/                        # Header peta
 │   ├── map.h
 │   ├── mapLogic.h
+│   ├── minimap.h
 │   ├── propsbehavior.h
 │   ├── worldgenenartion.h
 │   └── worldgenio.h
@@ -168,6 +170,7 @@ include/
 | `map.cpp` | Memuat dan mengelola peta dari file JSON Tileson |
 | `mapLogic.cpp` | Logika interaksi peta (transisi, event) |
 | `mapstack.cpp` | Stack navigasi untuk berpindah antar peta |
+| `minimap.cpp` | Sistem minimap: fog of war, tile coloring, viewport camera, multi-layer grid |
 | `propsbehavior.cpp` | Perilaku props dan objek interaktif di peta |
 | `worldgenenartion.cpp` | Algoritma generasi peta procedural |
 | `worldgenio.cpp` | Input/output data world generation ke file |

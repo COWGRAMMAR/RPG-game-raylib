@@ -42,8 +42,8 @@ public:
     /** @brief Dapatkan hitbox tabrakan entitas */
     virtual Rectangle GetHitbox() const { return {Position.x, Position.y, 32, 32}; }
 
-    /** @brief Dapatkan hurtbox (area bisa terkena serangan) dari entitas */
-    virtual Rectangle GetHurtbox() const { return {Position.x, Position.y, 32, 32}; }
+    /** @brief Dapatkan hurtbox entitas (default = hitbox) */
+    virtual Rectangle GetHurtbox() const { return GetHitbox(); }
 
     /** @brief Dapatkan titik tengah (center) dari hitbox entitas */
     virtual Vector2 GetCenter() const

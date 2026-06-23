@@ -240,6 +240,8 @@ Makin tinggi atlas resolution → makin tajam text ukuran besar, tapi makin bera
 | `NORSE` | Norse.otf | RES_256 | Norse regular display |
 | `AUDIOSETTS_HEADER` | NewDawn.ttf | **RES_512** | Header slider audio -- resolusi tinggi biar tajam |
 | `AUDIOSETTS_VALUE` | Poppins-Regular.ttf | RES_256 | Value text audio settings |
+| `VIDEOSETTS_LABEL` | NewDawn.ttf | **RES_512** | Label video settings — resolusi tinggi biar tajam |
+| `MINIMAP_UI` | Poppins-Bold.ttf | RES_256 | Font minimap UI (legend, hint) |
 | `SAVESLOT_TEXT` | Poppins-Regular.ttf | RES_256 | Font teks save slot UI |
 
 Semua file font ada di `assets/fonts/`.

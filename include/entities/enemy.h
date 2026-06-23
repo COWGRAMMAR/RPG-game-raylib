@@ -302,6 +302,10 @@ private:
     bool ChargeHitPlayer = false;            // Cegah multiple hit per charge
     Vector2 AbilityDir = {0, 0};             // Arah ability elite (fix di cast awal, ga tracking)
 
+    Vector2 StuckOrigin = {0, 0};            // Posisi saat stuck timer mulai
+    float StuckTimer = 0.0f;                 // Timer stuck (ga ada progress > 32px selama > 3 detik)
+    void ResetStuck() { StuckTimer = 0.0f; StuckOrigin = Position; }
+
     void MoveTowards(Vector2 target, float speed); // Helper gerak ke target dengan collision check
 };
 

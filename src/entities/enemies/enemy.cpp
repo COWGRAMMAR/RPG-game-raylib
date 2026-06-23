@@ -207,6 +207,7 @@ void Enemy::Init(Vector2 pos, const char *name, int mapId, const EnemyDefinition
     DeathTimer = 0.0f;
     PlayerWasInRange = false;
     AIState = ENEMY_IDLE;
+    ResetStuck();
 
     // Posisi disesuaikan agar hitbox center-nya tepat di pos spawn
     Position.x = pos.x - (HitboxWidth / 2.0f) - HitboxOffsetX;
@@ -220,6 +221,9 @@ void Enemy::Init(Vector2 pos, const char *name, int mapId, const EnemyDefinition
 /**
  * @brief Update lifecycle enemy, termasuk death state, knockback, AI, dan animasi.
  */
+static void PushOutOfWalls(Enemy *enemy);  // forward decl
+static void RandomEscape(Enemy *enemy);    // forward decl
+
 void Enemy::Update()
 {
     if (!IsActive)
@@ -338,7 +342,30 @@ void Enemy::Update()
     const float AI_UPDATE_RANGE = FRAME_SIZE * aiUpdateRangeMul;
 
     if (Vector2Distance(Position, PlayerInstance.GetPosition()) <= AI_UPDATE_RANGE)
+    {
         UpdateAI();
+
+        // Cek 4 arah — kalo semua terhalang > 3 detik, enemy stuck, push out
+        float step = 35.0f;
+        auto safe = [&](Vector2 p) {
+            return IsPositionSafe(p, HitboxWidth, HitboxHeight, HitboxOffsetX, HitboxOffsetY);
+        };
+        bool blockedUp    = !safe({Position.x, Position.y - step});
+        bool blockedDown  = !safe({Position.x, Position.y + step});
+        bool blockedLeft  = !safe({Position.x - step, Position.y});
+        bool blockedRight = !safe({Position.x + step, Position.y});
+
+        if (blockedUp && blockedDown && blockedLeft && blockedRight)
+            StuckTimer += Time::DELTA_TIME;
+        else
+            StuckTimer = 0.0f;
+
+        if (StuckTimer >= 3.0f)
+        {
+            StuckTimer = 0.0f;
+            RandomEscape(this);
+        }
+    }
 
     Anim.position = Position;
     UpdateAnimation(Anim, Time::DELTA_TIME);
@@ -1128,18 +1155,37 @@ const AnimationSet *ResolveAnimSet(const std::string &name)
 }
 
 /**
- * @brief Push enemy keluar dari collision dinding setelah spawn.
- * Coba offset bertahap dalam pola cross sampai dapat posisi aman.
+ * @brief Push enemy keluar dari area macet (dinding atau celah sempit).
+ * Coba offset bertahap dalam pola 8 arah, dari kecil hingga besar.
+ * Kalau posisi aman ditemukan dan ada ruang gerak, enemy dipindahkan.
  */
 static void PushOutOfWalls(Enemy *enemy)
 {
     if (!enemy)
         return;
     Vector2 pos = enemy->Position;
-    if (IsPositionSafe(pos, enemy->HitboxWidth, enemy->HitboxHeight, enemy->HitboxOffsetX, enemy->HitboxOffsetY))
+
+    // Cek apakah posisi punya ruang gerak minimal (step tertentu)
+    auto hasRoom = [&](Vector2 p, float step) -> bool {
+        Vector2 dirs[] = {{step, 0}, {-step, 0}, {0, step}, {0, -step}};
+        for (auto &d : dirs)
+        {
+            Vector2 n = {p.x + d.x, p.y + d.y};
+            if (IsPositionSafe(n, enemy->HitboxWidth, enemy->HitboxHeight, enemy->HitboxOffsetX, enemy->HitboxOffsetY))
+                return true;
+        }
+        return false;
+    };
+
+    auto isSafe = [&](Vector2 p) {
+        return IsPositionSafe(p, enemy->HitboxWidth, enemy->HitboxHeight, enemy->HitboxOffsetX, enemy->HitboxOffsetY);
+    };
+
+    // Kalo posisi aman & bisa gerak > 35px = beneran gak stuck
+    if (isSafe(pos) && hasRoom(pos, 35.0f))
         return;
 
-    float offsets[] = {4, 8, 12, 16, 20, 24, 28, 32, 40, 48};
+    float offsets[] = {4, 8, 12, 16, 20, 24, 28, 32, 40, 48, 64, 80, 96, 128, 160, 192};
     for (float o : offsets)
     {
         Vector2 tries[] = {
@@ -1154,14 +1200,114 @@ static void PushOutOfWalls(Enemy *enemy)
         };
         for (Vector2 t : tries)
         {
-            if (IsPositionSafe(t, enemy->HitboxWidth, enemy->HitboxHeight, enemy->HitboxOffsetX, enemy->HitboxOffsetY))
+            if (isSafe(t))
             {
-                enemy->Position = t;
-                enemy->Anim.position = t;
-                enemy->SpawnPoint = {t.x + enemy->HitboxWidth / 2.0f + enemy->HitboxOffsetX,
-                                     t.y + enemy->HitboxHeight / 2.0f + enemy->HitboxOffsetY};
-                return;
+                if (hasRoom(t, 4.0f))  // prefer kandidat yg ada ruang gerak
+                {
+                    enemy->Position = t;
+                    enemy->Anim.position = t;
+                    enemy->SpawnPoint = {t.x + enemy->HitboxWidth / 2.0f + enemy->HitboxOffsetX,
+                                         t.y + enemy->HitboxHeight / 2.0f + enemy->HitboxOffsetY};
+                    return;
+                }
             }
+        }
+    }
+
+    // Fallback: cari posisi aman doang (tanpa hasRoom) di offset lebih besar
+    for (float o : {96, 128, 160, 192})
+    {
+        for (int dx = -1; dx <= 1; dx++)
+        {
+            for (int dy = -1; dy <= 1; dy++)
+            {
+                if (dx == 0 && dy == 0) continue;
+                Vector2 t = {pos.x + dx * o, pos.y + dy * o};
+                if (isSafe(t))
+                {
+                    enemy->Position = t;
+                    enemy->Anim.position = t;
+                    enemy->SpawnPoint = {t.x + enemy->HitboxWidth / 2.0f + enemy->HitboxOffsetX,
+                                         t.y + enemy->HitboxHeight / 2.0f + enemy->HitboxOffsetY};
+                    return;
+                }
+            }
+        }
+    }
+}
+
+/**
+ * @brief Cek spawn dead end: kalo 4 arah (35px) semua tembok, push out.
+ */
+static void CheckSpawnDeadEnd(Enemy *enemy)
+{
+    if (!enemy) return;
+    Vector2 pos = enemy->Position;
+    const float step = 35.0f;
+    auto safe = [&](Vector2 p) {
+        return IsPositionSafe(p, enemy->HitboxWidth, enemy->HitboxHeight, enemy->HitboxOffsetX, enemy->HitboxOffsetY);
+    };
+    bool blockedUp    = !safe({pos.x, pos.y - step});
+    bool blockedDown  = !safe({pos.x, pos.y + step});
+    bool blockedLeft  = !safe({pos.x - step, pos.y});
+    bool blockedRight = !safe({pos.x + step, pos.y});
+
+    if (blockedUp && blockedDown && blockedLeft && blockedRight)
+        RandomEscape(enemy);
+}
+
+/**
+ * @brief Random escape: coba 50 random posisi dalam radius 200px, ambil yang aman & punya ruang.
+ */
+static void RandomEscape(Enemy *enemy)
+{
+    if (!enemy) return;
+    Vector2 pos = enemy->Position;
+
+    auto isSafe = [&](Vector2 p) {
+        return IsPositionSafe(p, enemy->HitboxWidth, enemy->HitboxHeight,
+                              enemy->HitboxOffsetX, enemy->HitboxOffsetY);
+    };
+    auto hasRoom = [&](Vector2 p) -> bool {
+        float step = 4.0f;
+        Vector2 dirs[] = {{step,0},{-step,0},{0,step},{0,-step}};
+        for (auto &d : dirs)
+            if (isSafe({p.x + d.x, p.y + d.y})) return true;
+        return false;
+    };
+
+    const int MAX_ATTEMPTS = 50;
+    const float RADIUS = 200.0f;
+
+    // Pass 1: cari yang safe + hasRoom
+    for (int i = 0; i < MAX_ATTEMPTS; i++)
+    {
+        float angle = (float)GetRandomValue(0, 3600) / 10.0f * DEG2RAD;
+        float dist = (float)GetRandomValue(20, (int)RADIUS);
+        Vector2 t = {pos.x + cosf(angle) * dist, pos.y + sinf(angle) * dist};
+        if (isSafe(t) && hasRoom(t))
+        {
+            enemy->Position = t;
+            enemy->Anim.position = t;
+            enemy->SpawnPoint = {t.x + enemy->HitboxWidth / 2.0f + enemy->HitboxOffsetX,
+                                 t.y + enemy->HitboxHeight / 2.0f + enemy->HitboxOffsetY};
+            return;
+        }
+    }
+
+    // Pass 2: fallback — safe aja cukup
+    for (int i = 0; i < MAX_ATTEMPTS; i++)
+    {
+        float angle = (float)GetRandomValue(0, 3600) / 10.0f * DEG2RAD;
+        float dist = (float)GetRandomValue(20, (int)RADIUS);
+        Vector2 t = {pos.x + cosf(angle) * dist, pos.y + sinf(angle) * dist};
+        if (isSafe(t))
+        {
+            enemy->Position = t;
+            enemy->Anim.position = t;
+            enemy->SpawnPoint = {t.x + enemy->HitboxWidth / 2.0f + enemy->HitboxOffsetX,
+                                 t.y + enemy->HitboxHeight / 2.0f + enemy->HitboxOffsetY};
+            return;
         }
     }
 }
@@ -1213,6 +1359,7 @@ void SpawnAtPoint(const MapObject *obj, EnemyRank rank)
         enemy->Init(spawnPos, picked.c_str(), obj->id, def);
         enemy->SetUUID(GenerateDeterministicUUID(dSeed, obj->id, picked, i));
         PushOutOfWalls(enemy);
+        CheckSpawnDeadEnd(enemy);
         enemy->SetReturnFlowField(&spawnFlowFields[obj->id].field);
         Entities::AddDynamic(enemy);
     }
@@ -1273,6 +1420,7 @@ void SpawnInRect(const MapObject *obj, const std::string &enemyName, float ratio
 
         Enemy *enemy = new Enemy();
         enemy->Init(spawnPos, enemyName.c_str(), obj->id, def);
+        CheckSpawnDeadEnd(enemy);
         enemy->SetUUID(GenerateDeterministicUUID(dSeed, obj->id, enemyName, i));
         enemy->SpawnRect = obj->bounds;
         enemy->SetReturnFlowField(&spawnFlowFields[obj->id].field);
@@ -1313,6 +1461,7 @@ void SpawnBoss(const MapObject *obj)
     enemy->Init(spawnPos, picked.c_str(), obj->id, def);
     enemy->SetUUID(GenerateDeterministicUUID(dSeed, obj->id, picked, 0));
     PushOutOfWalls(enemy);
+    CheckSpawnDeadEnd(enemy);
     enemy->SetReturnFlowField(&spawnFlowFields[obj->id].field);
     Entities::AddDynamic(enemy);
 }

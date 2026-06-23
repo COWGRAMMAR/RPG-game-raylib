@@ -103,7 +103,7 @@ void UpdateMainMenu(GameState *state)
             switch (i)
             {
             case 0: // Start Game - langsung mulai baru tanpa popup
-                SetActiveSlot(0);
+                SetActiveSlot(-1); // -1 = no active slot, so HasSavedState() returns false
                 ResetMemoryState();
                 // GC worldseed: hapus save_N/ yang gak dipake save manapun
                 WorldgenIO::CleanupOrphanedSlots();

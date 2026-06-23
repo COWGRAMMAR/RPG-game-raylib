@@ -8,7 +8,7 @@
  * Pake buttonTxt buat tombol-tombol menu.
  */
 
-#include "buttonTxt.h"
+#include "button.h"
 #include "screen.h"
 #include <cstdint>
 

@@ -36,3 +36,8 @@ void DrawBossHPBar();
  * Overwrite current track pake PlayTrack("Boss"), balikin pake ResetToScreenTrack.
  */
 void UpdateBossMusic();
+
+/**
+ * @brief Unload semua HUD textures
+ */
+void UnloadHUDTextures();

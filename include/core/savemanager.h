@@ -89,6 +89,14 @@ struct GameSnapshot {
     /** @brief barrierMap[mapPath] = true kalo barrier udah di-clear */
     std::unordered_map<std::string, bool> barrierMap;
 
+    /*=== Fog (minimap persistence) ===*/
+
+    /** @brief Fog of war cache per map path — persistensi fog minimap.
+     *  Key: mapPath (sama dengan checkpoint key).
+     *  Value: std::vector<unsigned char> — flat row-major, 0/2 aja (1=VISIBLE transient).
+     */
+    std::unordered_map<std::string, std::vector<unsigned char>> fogCache;
+
     /*=== Dead Entities ===*/
     std::set<std::string> deadEntities;
 

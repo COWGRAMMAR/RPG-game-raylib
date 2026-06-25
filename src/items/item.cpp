@@ -849,7 +849,8 @@ void ItemSpawnManager::SpawnAll(std::vector<ItemSpawn> &activeItems)
     activeItems.clear();
 
     uint64_t dSeed = g_SeedManager.IsRunActive()
-        ? (uint64_t)g_SeedManager.GetSeed(g_SeedManager.GetCurrentStage()) : 0;
+                         ? (uint64_t)g_SeedManager.GetSeed(g_SeedManager.GetCurrentStage())
+                         : 0;
 
     int areaIndex = 0;
     for (auto &area : spawnAreas)

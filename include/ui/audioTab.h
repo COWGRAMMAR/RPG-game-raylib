@@ -8,7 +8,7 @@
  */
 
 #include "raylib.h"
-#include "buttonTxt.h"
+#include "button.h"
 #include "../systems/audioManager.h"
 
 static const char* AUDIO_SETTINGS_PATH = "saves/settings/audioTab.json";
@@ -34,6 +34,8 @@ extern SliderState g_sliders;
  * @param startX Posisi X awal area options
  * @param startY Posisi Y awal area options
  */
+void UnloadAudioTextures();
+
 void DrawAudioTab(
     Vector2 mousePosition,
     int startX,

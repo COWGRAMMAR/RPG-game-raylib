@@ -1,8 +1,12 @@
 # Instruksi Build
 
-> **PowerShell 5.1+ required for Windows. CMD is no longer supported.**
+> **PowerShell 5.1+ required for Windows. CMD is lacking features for the best build experience.**
 
-## Pengaturan Pengembangan
+---
+
+## 1. First-Time Setup
+
+> Langkah satu kali -- selesaikan ini sebelum build pertama.
 
 ### Alat yang Diperlukan
 
@@ -11,86 +15,107 @@ Pasang alat-alat berikut untuk membangun proyek:
 - **Windows**: Untuk kemudahan menggunakan dan mengunduh alat-alat, gunakan [scoop](https://scoop.sh/), lalu ikuti perintah setup yang ada pada halaman. Selebihnya, mohon untuk menggunakan PowerShell (5.1+) untuk memaksimalkan kemudahan.
 
 | Alat | Windows (scoop) | macOS (brew) | Linux (apt) |
-| ------------ | ----------------- | -------------- | ------------- |
-| **Compiler (gcc)** | `scoop install gcc` atau `scoop install mingw-mstorsjo-llvm-ucrt` (Clang) | `brew install gcc` | `apt install gcc` |
+| --- | --- | --- | --- |
+| **Compiler (gcc)** | `scoop install gcc` atau `scoop install mingw-mstorsjo-llvm-ucrt` (Clang) | Xcode CLT (Apple Clang, otomatis terdeteksi CMake) atau `brew install gcc` sebagai opsi | `apt install gcc` |
 | **CMake** | `scoop install cmake` | `brew install cmake` | `apt install cmake` |
 | **Ninja** | `scoop install ninja` | `brew install ninja` | `apt install ninja-build` |
-| **ccache** | `scoop install ccache` | `brew install ccache` | `apt install ccache` |
+| **ccache** (opsional) | `scoop install ccache` | `brew install ccache` | `apt install ccache` |
+| **OpenGL / X11** | (disediakan Windows SDK / MinGW) | (disediakan Xcode CLT / macOS framework) | `apt install libgl1-mesa-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev` |
+| **FFmpeg** | (bundel melalui `setup.ps1`) | `brew install ffmpeg` | `apt install libavcodec-dev libavformat-dev libavutil-dev libswresample-dev libswscale-dev` |
 
 ### Pengaturan Pertama
 
 1. Pasang semua alat yang diperlukan (lihat tabel di atas)
 2. Jalankan skrip setup untuk mengunduh dependensi:
 
-   **Windows (PowerShell):**
+   #### Windows (PowerShell)
 
    ```powershell
    .\setup.ps1
    ```
 
-   **Linux/macOS (Bash):**
+   #### Linux/macOS (Bash)
 
    ```bash
    bash setup.sh
    ```
 
-> **PERHATIAN**: Dukungan untuk sistem Unix (Linux/macOS) bersifat eksperimental dan memerlukan pengujian lebih lanjut. Skrip `setup.sh` telah disediakan dan `run-linux.sh` tersedia untuk menjalankan permainan, namun mungkin mengalami kendala pada beberapa distribusi.
+> **CATATAN**: Dukungan untuk sistem Unix (Linux/macOS) telah diuji pada Ubuntu, Debian, dan macOS. Kolom "Linux (apt)" menggunakan nama paket Debian/Ubuntu -- untuk distro lain (Fedora, Arch, openSUSE), cari nama paket setara dengan package manager masing-masing (dnf, pacman, zypper). Skrip `setup.sh` telah disediakan dan `run-linux.sh` tersedia untuk menjalankan permainan.
 
-## Membangun
+---
 
-### Satu Perintah (One-Click Run)
+## 2. Building & Running
 
-**Windows (PowerShell):**
+### 2a. One-Click Run (recommended for first-timers)
+
+Skrip ini mengkonfigurasi, membangun, dan menjalankan permainan secara otomatis.
+
+#### Windows (PowerShell 5.1+. 7+ Recommended)
+
 ```powershell
 .\run-windows.ps1
 ```
 
-**Linux/macOS (Bash):**
+Atau gunakan `.\run-windows.bat` jika terdapat kebijakan eksekusi PowerShell yang membatasi.
+
+#### Linux/macOS (Bash)
+
 ```bash
 bash run-linux.sh
 ```
 
-Skrip di atas akan mengkonfigurasi, membangun, dan menjalankan permainan secara otomatis.
+### 2b. Manual Build
 
-### Mulai Cepat
+Untuk pengguna yang ingin kontrol lebih atau perlu debug build.
+
+#### Configure (sekali saja, atau setelah menambah file baru)
 
 ```bash
-# Configure (sekali saja, atau setelah menambah file baru)
-cmake --preset ninja
+cmake --preset ninja       # release build (default)
+cmake --preset ninja-debug # debug build dengan simbol
+```
 
-# Build
+#### Build
+
+```bash
 cmake --build --preset ninja
 ```
 
-File executable akan berada di `build/bin/main.exe`.
-
-#### Jalankan Program
-
-Atau gunakan `.\run-windows.ps1` (Windows) atau `bash run-linux.sh` (Linux/macOS) untuk menjalankan secara otomatis.
+#### Run
 
 ```bash
 # Linux/macOS
-./build/bin/main
+./build-linux/bin/main
 
-# Windows (PowerShell)
+# Windows (PowerShell 5.1+. 7+ Recommended)
 .\build\bin\main.exe
 ```
 
-### Preset Build
+Atau gunakan `.\run-windows.ps1` (Windows) / `bash run-linux.sh` (Linux/macOS) untuk menjalankan tanpa build ulang.
+
+Untuk pengguna Windows, `Breach&Loot.bat` juga tersedia sebagai peluncur cepat.
+
+### 2c. Build Presets Reference
 
 | Preset | Deskripsi |
-| -------- | ----------- |
+| --- | --- |
 | `ninja` | Build release dengan optimasi (default) |
 | `ninja-debug` | Build debug dengan simbol |
 
-### Build Manual (tanpa preset)
+### 2d. Manual Build Without Presets (opsional)
 
 ```bash
 cmake -B build -G Ninja
 cmake --build build --parallel
 ```
 
-### Build Bersih
+---
+
+## 3. Maintenance
+
+### 3a. Clean Build
+
+Hapus direktori build lalu build ulang dari awal.
 
 ```bash
 # Linux/macOS
@@ -104,17 +129,13 @@ cmake --preset ninja
 cmake --build --preset ninja
 ```
 
-### Referensi Perintah
-
-| Aksi | Linux/macOS | PowerShell |
-| ------ | ----------- | ------------ |
-| **Clean** | `rm -rf build` | `Remove-Item -Recurse -Force build` |
-
-## Menambahkan File Sumber Baru
+### 3b. Adding New Source Files
 
 File `.cpp` baru di `src/` akan otomatis ditemukan pada saat CMake berjalan ulang. Tidak perlu perubahan manual.
 
-## Pemecahan Masalah
+---
+
+## 4. Troubleshooting
 
 - **Error "No such file or directory"**: Jalankan `.\setup.ps1` (Windows) atau `bash setup.sh` (Linux/macOS) untuk mengunduh dependensi
 - **Build error setelah menambah file**: Jalankan `cmake --preset ninja` untuk mengkonfigurasi ulang
@@ -122,4 +143,4 @@ File `.cpp` baru di `src/` akan otomatis ditemukan pada saat CMake berjalan ulan
 - **`run-windows.ps1` tidak bisa dijalankan**: Jalankan PowerShell sebagai administrator, lalu `Set-ExecutionPolicy RemoteSigned -Scope CurrentUser`
 - **`run-linux.sh` tidak bisa dijalankan**: Jalankan `chmod +x run-linux.sh` lalu coba lagi
 
-> **CATATAN**: Jika mengalami kendala pada sistem Linux/macOS, periksa apakah semua alat (gcc, cmake, ninja) telah terpasang dengan benar. Skrip `setup.sh` masih bersifat eksperimental.
+> **CATATAN**: Jika mengalami kendala pada sistem Linux/macOS, periksa apakah semua alat (gcc, cmake, ninja) telah terpasang dengan benar. Skrip `setup.sh` menangani sebagian besar dependensi secara otomatis.

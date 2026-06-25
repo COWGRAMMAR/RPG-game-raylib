@@ -1,17 +1,17 @@
 #pragma once
 
 #include "raylib.h"
-#include "buttonTxt.h"
+#include "button.h"
 
 /** @brief Generic popup UI */
-class Popup 
+class Popup
 {
 public:
     /** @brief Constructor default */
     Popup();
     /** @brief Constructor dengan pesan dan tombol */
-    Popup(const char* message, const char* buttonText, float hoverAmount = 1.0F);
-    Popup(const char* message, const char* confirmText, const char* cancelText, float hoverAmount);
+    Popup(const char *message, const char *buttonText, float hoverAmount = 1.0F);
+    Popup(const char *message, const char *confirmText, const char *cancelText, float hoverAmount);
     ~Popup();
 
     /** @brief Tampilkan popup */
@@ -22,7 +22,7 @@ public:
     bool IsActive() const;
     bool IsConfirmClicked() const;
 
-    void SetSubMessage(const char* sub);
+    void SetSubMessage(const char *sub);
 
     /** @brief Update state popup */
     void Update(Vector2 mousePosition, bool mouseClicked);
@@ -30,7 +30,7 @@ public:
     void Draw(Vector2 mousePosition);
 
     /** @brief Set background texture dari file */
-    void SetBackgroundTexture(const char* path);
+    void SetBackgroundTexture(const char *path);
 
     // deklarasi method untuk offset Y teks dan tombol
     void SetTextYOffset(int offset);
@@ -48,10 +48,10 @@ private:
 
     bool active;
     bool hasCancelButton;
-    const char* message;
-    const char* subMessage;
-    const char* buttonText;
-    const char* cancelText;
+    const char *message;
+    const char *subMessage;
+    const char *buttonText;
+    const char *cancelText;
     buttonTxt okButton;
     buttonTxt cancelButton;
     float hoverAmount;

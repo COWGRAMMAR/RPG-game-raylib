@@ -15,6 +15,7 @@
 #include "entities.h"
 #include "item.h"
 #include "screen.h"
+#include "ui/mainMenu.h"
 #include <nlohmann/json.hpp>
 #include <fstream>
 #include <filesystem>
@@ -186,6 +187,7 @@ namespace WorldgenIO
             // Sudah stage terakhir (boss) — balik lobby, reset run
             InputInstance.ResetMenuFlags();
             g_SeedManager.ResetRun();
+            InitMainMenu(gState);
             gState->currentScreen = MAIN_MENU;
             return;
         }

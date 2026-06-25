@@ -11,7 +11,8 @@ namespace Effects
     static EffectQueue<DamagePopup> damageQueue;
     static EffectQueue<LogEntry> logQueue;
 
-    struct CollisionEffect {
+    struct CollisionEffect
+    {
         Vector2 position;
         float timer;
         float duration;
@@ -73,12 +74,15 @@ namespace Effects
         }
 
         // 3. Update Collision Effects
-        EffectNode<CollisionEffect>* currentCol = collisionQueue.GetHead();
-        while (currentCol != nullptr) {
-            CollisionEffect& data = currentCol->data;
-            if (data.active) {
+        EffectNode<CollisionEffect> *currentCol = collisionQueue.GetHead();
+        while (currentCol != nullptr)
+        {
+            CollisionEffect &data = currentCol->data;
+            if (data.active)
+            {
                 data.timer += dt;
-                if (data.timer >= data.duration) {
+                if (data.timer >= data.duration)
+                {
                     data.active = false;
                 }
             }
@@ -86,7 +90,8 @@ namespace Effects
         }
 
         // Cleanup inactive collision effects from head
-        while (!collisionQueue.IsEmpty() && !collisionQueue.GetHead()->data.active) {
+        while (!collisionQueue.IsEmpty() && !collisionQueue.GetHead()->data.active)
+        {
             collisionQueue.Dequeue();
         }
     }
@@ -137,10 +142,12 @@ namespace Effects
         }
 
         // 3. Draw Collision Effects
-        EffectNode<CollisionEffect>* currentCol = collisionQueue.GetHead();
-        while (currentCol != nullptr) {
-            CollisionEffect& data = currentCol->data;
-            if (data.active) {
+        EffectNode<CollisionEffect> *currentCol = collisionQueue.GetHead();
+        while (currentCol != nullptr)
+        {
+            CollisionEffect &data = currentCol->data;
+            if (data.active)
+            {
                 float progress = data.timer / data.duration;
                 Collision(data.position, progress);
             }
@@ -171,7 +178,8 @@ namespace Effects
         }
     }
 
-    void AddCollision(Vector2 pos) {
+    void AddCollision(Vector2 pos)
+    {
         CollisionEffect c;
         c.position = pos;
         c.timer = 0.0f;
@@ -180,7 +188,8 @@ namespace Effects
         collisionQueue.Enqueue(c);
     }
 
-    void Clear() {
+    void Clear()
+    {
         damageQueue.Clear();
         logQueue.Clear();
         collisionQueue.Clear();

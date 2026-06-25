@@ -17,6 +17,17 @@ extern const int GameScreenWidth;
 extern const int GameScreenHeight;
 extern GameState *gState;
 
+// Doubly linked list node for combat action history
+struct CombatLogNode {
+    std::string message;
+    CombatLogNode *next;
+    CombatLogNode *prev;
+    CombatLogNode(const std::string &msg) : message(msg), next(nullptr), prev(nullptr) {}
+};
+
+static void LogClear();
+static void LogPush(const std::string &msg);
+
 static struct
 {
     bool active = false;
@@ -58,9 +69,57 @@ static struct
     float buffDamageMultiplier = 1.0f;
     int itemCategory = -1;  // -1=select category, 0=health, 1=damage, 2=invincibility
 
+    // Combat action log (doubly linked list)
+    CombatLogNode *logHead = nullptr;
+    CombatLogNode *logTail = nullptr;
+    int logCount = 0;
+    bool logVisible = false;
+    int logScroll = 0;
+
 } state;
 
 static float OUTLINE_THICK = 3.0f;
+
+// Linked list helpers for combat action log
+static void LogClear()
+{
+    CombatLogNode *cur = state.logHead;
+    while (cur)
+    {
+        CombatLogNode *next = cur->next;
+        delete cur;
+        cur = next;
+    }
+    state.logHead = nullptr;
+    state.logTail = nullptr;
+    state.logCount = 0;
+}
+
+static void LogPush(const std::string &msg)
+{
+    CombatLogNode *node = new CombatLogNode(msg);
+    if (!state.logTail)
+    {
+        state.logHead = state.logTail = node;
+    }
+    else
+    {
+        state.logTail->next = node;
+        node->prev = state.logTail;
+        state.logTail = node;
+    }
+    state.logCount++;
+    // Cap at 100 entries to avoid unbounded growth
+    if (state.logCount > 100)
+    {
+        CombatLogNode *old = state.logHead;
+        state.logHead = state.logHead->next;
+        if (state.logHead)
+            state.logHead->prev = nullptr;
+        delete old;
+        state.logCount--;
+    }
+}
 
 void TurnCombat::Init(Enemy *boss, Player *player)
 {
@@ -80,6 +139,9 @@ void TurnCombat::Init(Enemy *boss, Player *player)
     state.buffInvincibilityTurns = 0;
     state.buffDamageMultiplier = 1.0f;
     state.itemCategory = -1;
+    LogClear();
+    state.logVisible = false;
+    state.logScroll = 0;
 
     // Clear non-damage buffs saat masuk turn base (invincibility & speed)
     player->BuffSpeedTimer = 0.0f;
@@ -334,18 +396,22 @@ static void ExecuteBossTurn()
             state.bossAnimDuration = 1.0f;
     }
 
+    float oldHp = state.player->Health;
+
     if (state.playerDefending)
     {
         damage *= 0.5f;
         state.playerDefending = false;
         char buf[96];
-        snprintf(buf, sizeof(buf), "Boss uses %s! (Damage reduced) %.0f damage taken", actionName, damage);
+        float newHp = std::max(0.0f, oldHp - damage);
+        snprintf(buf, sizeof(buf), "Boss uses %s! (Reduced) %.0f damage (HP: %.0f -> %.0f)", actionName, damage, oldHp, newHp);
         state.message = buf;
     }
     else
     {
         char buf[96];
-        snprintf(buf, sizeof(buf), "Boss uses %s! %.0f damage taken!", actionName, damage);
+        float newHp = std::max(0.0f, oldHp - damage);
+        snprintf(buf, sizeof(buf), "Boss uses %s! %.0f damage (HP: %.0f -> %.0f)", actionName, damage, oldHp, newHp);
         state.message = buf;
     }
 
@@ -355,6 +421,8 @@ static void ExecuteBossTurn()
         damage = 0;
         state.message = "INVINCIBLE! Boss can't hurt you!";
     }
+
+    LogPush(state.message);
 
     state.player->TakeDamage(damage, {0, 0});
 
@@ -371,6 +439,23 @@ void TurnCombat::Update()
         return;
 
     state.combatTimer += Time::DELTA_TIME;
+
+    // Toggle combat log
+    if (IsKeyPressed(KEY_TAB))
+    {
+        state.logVisible = !state.logVisible;
+        if (state.logVisible)
+            state.logScroll = 0;
+    }
+
+    // If log is open, only handle scroll input
+    if (state.logVisible)
+    {
+        if (IsKeyPressed(KEY_UP) && state.logScroll < state.logCount - 1)
+            state.logScroll++;
+        if (IsKeyPressed(KEY_DOWN) && state.logScroll > 0)
+            state.logScroll--;
+    }
 
     // Smooth zoom transition at start
     if (state.zoomTimer > 0.0f)
@@ -445,6 +530,7 @@ void TurnCombat::Update()
             else
                 snprintf(buf, sizeof(buf), "You deal %.0f damage! (%.0f -> %.0f)", dmg, oldHp, state.boss->Health);
             state.message = buf;
+            LogPush(buf);
             state.keyProcessed = true;
             state.timer = 1.0f;
             state.boss->HitFlashTimer = 0.3f;
@@ -634,6 +720,7 @@ void TurnCombat::Update()
 
                 if (success)
                 {
+                    LogPush(state.message);
                     state.keyProcessed = true;
                     state.timer = 1.0f;
                 }
@@ -641,6 +728,7 @@ void TurnCombat::Update()
                 {
                     const ItemDefinition &def = itemDefs.GetById(state.selectedPotionId);
                     state.message = TextFormat("No %s available!", def.name.c_str());
+                    LogPush(state.message);
                     state.selectedPotionId = -1;
                     state.timer = 1.0f;
                 }
@@ -653,6 +741,7 @@ void TurnCombat::Update()
     {
         if (!state.keyProcessed)
         {
+            LogPush(state.message);
             state.keyProcessed = true;
             state.timer = 1.0f;
         }
@@ -790,6 +879,7 @@ void TurnCombat::Draw()
     DrawRectangleRoundedLinesEx((Rectangle){10, (float)topBorder, (float)GameScreenWidth - 20, (float)GameScreenHeight - (float)topBorder * 2}, 0.1f, 8, OUTLINE_THICK, ColorAlpha(GOLD, 0.5f));
 
     DrawTextCentered("TURN-BASED COMBAT", 30, 28, GOLD);
+    DrawTextCentered("[TAB] Combat Log", 62, 14, ColorAlpha(GRAY, 0.6f));
 
     int panelY = 70;
     int panelH = 110;
@@ -1008,6 +1098,36 @@ void TurnCombat::Draw()
         break;
     }
     DrawTextCentered(phaseText, GameScreenHeight - 120, 18, LIGHTGRAY);
+
+    // Combat log overlay
+    if (state.logVisible)
+    {
+        DrawRectangle(0, 0, GameScreenWidth, GameScreenHeight, ColorAlpha(BLACK, 0.85f));
+        DrawTextCentered("COMBAT LOG", 24, 26, GOLD);
+        DrawTextCentered("[TAB] close  |  [UP/DOWN] scroll", 56, 14, GRAY);
+
+        int x = 60;
+        int y = 86;
+        int lineH = 20;
+        int maxLines = (GameScreenHeight - y - 40) / lineH;
+
+        // Walk from tail backwards, skip state.logScroll entries from newest
+        CombatLogNode *cur = state.logTail;
+        int skip = state.logScroll;
+        while (cur && skip > 0)
+        {
+            cur = cur->prev;
+            skip--;
+        }
+
+        int drawn = 0;
+        while (cur && drawn < maxLines)
+        {
+            DrawDefaultText(cur->message.c_str(), x, y + drawn * lineH, 16, LIGHTGRAY);
+            cur = cur->prev;
+            drawn++;
+        }
+    }
 }
 
 bool TurnCombat::IsActive()
@@ -1040,6 +1160,7 @@ void TurnCombat::Shutdown()
     state.buffInvincibilityTurns = 0;
     state.buffDamageMultiplier = 1.0f;
     state.itemCategory = -1;
+    LogClear();
 
     // Restore camera
     camera.target = state.origCameraTarget;

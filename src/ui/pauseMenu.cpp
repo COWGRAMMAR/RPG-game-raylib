@@ -20,6 +20,8 @@
 #include "ui/saveLoadScreen.h"
 #include "ui/mainMenu.h"
 #include "core/game_state_saver.h"
+#include "map/minimap.h"
+#include "systems/audioManager.h"
 #include "core/savemanager.h"
 #include "map/worldgenio.h"
 #include "core/seedmanager.h"
@@ -652,6 +654,19 @@ void PauseMenu::Update(GameState *state, Vector2 mousePosition, bool mouseClicke
         {
             InputInstance.ResetMenuFlags();
             UnloadHUDTextures();
+
+            // ── Free gameplay resources sebelum kembali ke menu ──
+            TurnCombat::Shutdown();
+            Entities::Clear();
+            Entities::ClearDeadEntities();
+            UnloadMap();
+            mapHistoryStack.Clear();
+            MinimapSystem::Shutdown();
+            g_Minimap.fogCache.clear();
+
+            CloseTextures();
+            AudioManager::LoadAudioAssets();
+            state->assetsLoaded = false;
             state->enteredLoading = false;
             state->loadingStage = 0;
             state->loadingProgress = 0.0F;
@@ -659,6 +674,8 @@ void PauseMenu::Update(GameState *state, Vector2 mousePosition, bool mouseClicke
             WorldgenIO::CleanupOrphanedSlots();
             InitMainMenu(state);
             state->currentScreen = MAIN_MENU;
+            AudioManager::PlayTrack("MainMenu-Loop");
+            AudioManager::ResetToScreenTrack();
             Hide();
         }
         return;

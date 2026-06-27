@@ -16,6 +16,9 @@
 #include "item.h"
 #include "screen.h"
 #include "ui/mainMenu.h"
+#include "systems/combatTurn.h"
+#include "systems/audioManager.h"
+#include "map/minimap.h"
 #include <nlohmann/json.hpp>
 #include <fstream>
 #include <filesystem>
@@ -185,6 +188,17 @@ namespace WorldgenIO
         if (oldStage >= SeedManager::SEED_COUNT - 1)
         {
             // Sudah stage terakhir (boss) — balik lobby, reset run
+            TurnCombat::Shutdown();
+            Entities::Clear();
+            Entities::ClearDeadEntities();
+            UnloadMap();
+            mapHistoryStack.Clear();
+            MinimapSystem::Shutdown();
+            g_Minimap.fogCache.clear();
+
+            CloseTextures();
+            AudioManager::LoadAudioAssets();
+            gState->assetsLoaded = false;
             InputInstance.ResetMenuFlags();
             g_SeedManager.ResetRun();
             InitMainMenu(gState);

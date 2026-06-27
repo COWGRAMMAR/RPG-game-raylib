@@ -11,6 +11,8 @@
 #include "entities.h"
 #include "raymath.h"
 #include "map/minimap.h"
+#include "systems/combatTurn.h"
+#include "systems/audioManager.h"
 #include "ui/mainMenu.h"
 
 namespace Interaction
@@ -142,6 +144,16 @@ namespace Interaction
                 }
                 if (!bossAlive)
                 {
+                    TurnCombat::Shutdown();
+                    Entities::Clear();
+                    Entities::ClearDeadEntities();
+                    UnloadMap();
+                    mapHistoryStack.Clear();
+                    MinimapSystem::Shutdown();
+                    g_Minimap.fogCache.clear();
+
+                    CloseTextures();
+                    gState->assetsLoaded = false;
                     InputInstance.ResetMenuFlags();
                     g_SeedManager.ResetRun();
                     InitMainMenu(gState);

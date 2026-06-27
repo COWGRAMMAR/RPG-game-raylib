@@ -64,6 +64,14 @@ void LoadAudioAssets();
  */
 void Shutdown();
 
+/**
+ * @brief Unload semua Music stream tanpa reset _initialized
+ *
+ * Buat lazy loading: panggil saat balik MAIN_MENU biar musik di-free,
+ * nanti di-load ulang via LoadAudioAssets() pas HandleInitialLoad.
+ */
+void UnloadMusic();
+
 /*------------------------------------------------------------------------------
  * Per-frame Update
  *------------------------------------------------------------------------------*/

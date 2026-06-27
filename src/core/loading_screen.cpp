@@ -277,6 +277,11 @@ static void HandleFastPath(GameState *state)
     state->loadingComplete = true;
     state->currentScreen = PLAY;
 
+    // Bersihkan flow field + rebuild queue dari session sebelumnya
+    // agar stale data per-spawn-point tidak menumpuk antar sesi
+    spawnFlowFields.clear();
+    spawnFlowFieldRebuildQueue = {};
+
     UnloadMap();
 
     if (HasSavedState())
@@ -353,6 +358,11 @@ static void HandleFastPath(GameState *state)
 
 static void HandleInitialLoad(GameState *state)
 {
+    // Bersihkan flow field + rebuild queue sebelum initial load
+    // agar per-spawn-point state dari sesi sebelumnya tidak bocor
+    spawnFlowFields.clear();
+    spawnFlowFieldRebuildQueue = {};
+
     switch (state->loadingStage)
     {
     case 0:
@@ -559,6 +569,12 @@ void RenderLoadingScreen(GameState *state)
 
     // Smooth progress bar animation
     static float currentDisplayProgress = 0.0f;
+
+    // Reset display progress when a new loading session begins
+    // prevents visual jump from previous session's final position
+    if (state->loadingStage == 0 && state->loadingProgress == 0.0f)
+        currentDisplayProgress = 0.0f;
+
     float dt = fminf(Time::DELTA_TIME, 0.1f);
     float targetProgress = state->loadingProgress / 100.0f;
 

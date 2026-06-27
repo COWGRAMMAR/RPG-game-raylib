@@ -1383,6 +1383,7 @@ void UpdateBossMusic()
     if (PlayerInstance.Anim.isDead)
     {
         s_BossMusicActive = false;
+        AudioManager::UnblockAutoSwitch();
         return;
     }
 

@@ -10,6 +10,7 @@
 #include "map.h"
 #include "map/minimap.h"
 #include "systems/combatTurn.h"
+#include "systems/audioManager.h"
 
 static Texture2D goTitle = {0};
 static buttonImage reviveBtn;
@@ -108,6 +109,8 @@ void UpdateGameOverScreen(GameState *state)
         state->loadingComplete = false;
         InitMainMenu(state);
         state->currentScreen = MAIN_MENU;
+        AudioManager::PlayTrack("MainMenu-Loop");
+        AudioManager::ResetToScreenTrack();
     }
 }
 

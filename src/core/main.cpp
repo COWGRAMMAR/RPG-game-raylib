@@ -153,6 +153,18 @@ int main()
 
     AudioManager::Init();
 
+    /*── Startup Audio Workflow ─────────────────────────────────────────────
+     * 1. LoadAudioAssets() — muat semua 7 music track dari disk.
+     *    Self-cleaning (UnloadMusic dulu), aman dipanggil ulang nanti.
+     * 2. Video screen main → PlayTrack("MainMenu") → MainMenu-Startup.mp3
+     * 3. MainMenu-Startup selesai → auto-transition MainMenu-Loop.mp3
+     *    (via AudioManager::Update auto-switch logic)
+     * 4. User klik Start Game → HandleInitialLoad panggil LoadAudioAssets()
+     *    lagi (UnloadMusic + LoadMusicStream) — reload fresh untuk gameplay.
+     * 5. Return-to-menu → LoadAudioAssets() reload menu tracks.
+     *──────────────────────────────────────────────────────────────────────*/
+    AudioManager::LoadAudioAssets();
+
     // Muat pengaturan audio
     LoadAudioSettings();
 

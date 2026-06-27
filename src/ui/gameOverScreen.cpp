@@ -103,6 +103,8 @@ void UpdateGameOverScreen(GameState *state)
         MinimapSystem::Shutdown();
         g_Minimap.fogCache.clear();
 
+        CloseTextures();
+        state->assetsLoaded = false;
         state->enteredLoading = false;
         state->loadingStage = 0;
         state->loadingProgress = 0.0F;

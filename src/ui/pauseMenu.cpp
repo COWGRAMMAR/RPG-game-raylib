@@ -664,6 +664,8 @@ void PauseMenu::Update(GameState *state, Vector2 mousePosition, bool mouseClicke
             MinimapSystem::Shutdown();
             g_Minimap.fogCache.clear();
 
+            CloseTextures();
+            state->assetsLoaded = false;
             state->enteredLoading = false;
             state->loadingStage = 0;
             state->loadingProgress = 0.0F;

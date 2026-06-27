@@ -195,6 +195,8 @@ namespace WorldgenIO
             MinimapSystem::Shutdown();
             g_Minimap.fogCache.clear();
 
+            CloseTextures();
+            gState->assetsLoaded = false;
             InputInstance.ResetMenuFlags();
             g_SeedManager.ResetRun();
             InitMainMenu(gState);

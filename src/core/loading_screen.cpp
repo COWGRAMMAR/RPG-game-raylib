@@ -9,6 +9,7 @@
 
 #include "core/loading_screen.h"
 #include "map/minimap.h"
+#include "systems/combatTurn.h"
 #include "map/map.h"
 #include "entities/player.h"
 #include "entities/enemy.h"
@@ -143,6 +144,11 @@ static void HandleMapSwitch(GameState *state)
         state->loadingText = "Unloading current map...";
         UnloadMap();
         spawnFlowFields.clear();
+        // Cleanup gameplay state dari map sebelumnya
+        TurnCombat::Shutdown();
+        Entities::ClearDeadEntities();
+        MinimapSystem::Shutdown();
+        g_Minimap.fogCache.clear();
         state->loadingStage++;
         state->loadingProgress = (float)state->loadingStage / MAP_SWITCH_STAGES * 100.0F;
         break;

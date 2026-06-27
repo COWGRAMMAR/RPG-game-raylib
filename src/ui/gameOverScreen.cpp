@@ -6,6 +6,10 @@
 #include "ui/mainMenu.h"
 #include "raylib.h"
 #include "button.h"
+#include "entities.h"
+#include "map.h"
+#include "map/minimap.h"
+#include "systems/combatTurn.h"
 
 static Texture2D goTitle = {0};
 static buttonImage reviveBtn;
@@ -88,6 +92,16 @@ void UpdateGameOverScreen(GameState *state)
         InputInstance.ResetMenuFlags();
         UnloadHUDTextures();
         DestroyGameOverScreen();
+
+        // ── Free gameplay resources sebelum kembali ke menu ──
+        TurnCombat::Shutdown();
+        Entities::Clear();
+        Entities::ClearDeadEntities();
+        UnloadMap();
+        mapHistoryStack.Clear();
+        MinimapSystem::Shutdown();
+        g_Minimap.fogCache.clear();
+
         state->enteredLoading = false;
         state->loadingStage = 0;
         state->loadingProgress = 0.0F;

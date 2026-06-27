@@ -104,6 +104,9 @@ void AudioManager::LoadAudioAssets()
         return;
     }
 
+    // Safety: unload existing tracks dulu biar gak leak kalau dipanggil ulang
+    UnloadMusic();
+
     for (int i = 0; i < TRACK_COUNT; i++)
     {
         _tracks[i] = LoadMusicStream(TRACK_FILES[i]);

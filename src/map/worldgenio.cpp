@@ -197,7 +197,7 @@ namespace WorldgenIO
             g_Minimap.fogCache.clear();
 
             CloseTextures();
-            AudioManager::UnloadMusic();
+            AudioManager::LoadAudioAssets();
             gState->assetsLoaded = false;
             InputInstance.ResetMenuFlags();
             g_SeedManager.ResetRun();

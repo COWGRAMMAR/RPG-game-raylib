@@ -665,7 +665,7 @@ void PauseMenu::Update(GameState *state, Vector2 mousePosition, bool mouseClicke
             g_Minimap.fogCache.clear();
 
             CloseTextures();
-            AudioManager::UnloadMusic();
+            AudioManager::LoadAudioAssets();
             state->assetsLoaded = false;
             state->enteredLoading = false;
             state->loadingStage = 0;

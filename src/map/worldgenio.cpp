@@ -17,6 +17,7 @@
 #include "screen.h"
 #include "ui/mainMenu.h"
 #include "systems/combatTurn.h"
+#include "systems/audioManager.h"
 #include "map/minimap.h"
 #include <nlohmann/json.hpp>
 #include <fstream>
@@ -196,6 +197,7 @@ namespace WorldgenIO
             g_Minimap.fogCache.clear();
 
             CloseTextures();
+            AudioManager::UnloadMusic();
             gState->assetsLoaded = false;
             InputInstance.ResetMenuFlags();
             g_SeedManager.ResetRun();

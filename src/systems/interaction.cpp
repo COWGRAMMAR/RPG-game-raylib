@@ -12,6 +12,7 @@
 #include "raymath.h"
 #include "map/minimap.h"
 #include "systems/combatTurn.h"
+#include "systems/audioManager.h"
 #include "ui/mainMenu.h"
 
 namespace Interaction

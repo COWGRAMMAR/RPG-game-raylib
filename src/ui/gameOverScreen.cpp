@@ -104,6 +104,7 @@ void UpdateGameOverScreen(GameState *state)
         g_Minimap.fogCache.clear();
 
         CloseTextures();
+        AudioManager::UnloadMusic();
         state->assetsLoaded = false;
         state->enteredLoading = false;
         state->loadingStage = 0;

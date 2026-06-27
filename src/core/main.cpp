@@ -151,9 +151,7 @@ int main()
     if (!keybindManager.LoadFromFile("saves/settings/keybindsTab.json"))
         keybindManager.SaveToFile("saves/settings/keybindsTab.json");
 
-    // Inisialisasi AudioManager dan muat aset audio
     AudioManager::Init();
-    AudioManager::LoadAudioAssets();
 
     // Muat pengaturan audio
     LoadAudioSettings();

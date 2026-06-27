@@ -377,6 +377,7 @@ static void HandleInitialLoad(GameState *state)
         state->loadingText = "Loading game textures...";
         InitTextures();
         AudioManager::InitSFX();
+        AudioManager::LoadAudioAssets();
         state->loadingStage++;
         state->loadingProgress = (float)state->loadingStage / TOTAL_LOADING_STAGES * 100.0F;
         break;

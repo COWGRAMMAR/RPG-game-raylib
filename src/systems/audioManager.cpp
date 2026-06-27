@@ -147,6 +147,30 @@ void AudioManager::Shutdown()
     TraceLog(LOG_INFO, "AUDIO: AudioManager shutdown selesai");
 }
 
+void AudioManager::UnloadMusic()
+{
+    if (!_initialized)
+        return;
+
+    if (_activeTrackIndex >= 0)
+    {
+        StopMusicStream(_tracks[_activeTrackIndex]);
+    }
+
+    for (int i = 0; i < TRACK_COUNT; i++)
+    {
+        if (_tracks[i].ctxData != nullptr)
+        {
+            UnloadMusicStream(_tracks[i]);
+            _tracks[i] = {};
+        }
+    }
+
+    _activeTrackIndex = -1;
+
+    TraceLog(LOG_INFO, "AUDIO: Music tracks unloaded");
+}
+
 /**@}*/
 
 void AudioManager::Update(ScreenState currentScreen)

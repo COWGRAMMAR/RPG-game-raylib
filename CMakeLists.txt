@@ -116,58 +116,30 @@ elseif(UNIX)
 endif()
 
 # =============================================================================
-# FFmpeg / raylib-media (video playback)
+# mpv (video playback)
 # =============================================================================
 
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/lib/raylib-media")
-
-# Pre-seed FFmpeg cache variables for Windows (local FFmpeg in lib/ffmpeg/)
 if(WIN32)
-    set(FFMPEG_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/lib/ffmpeg")
-    set(FFMPEG_INCLUDE_DIR "${FFMPEG_ROOT}/include" CACHE PATH "FFmpeg include directory")
-    set(FFMPEG_LIBAVCODEC "${FFMPEG_ROOT}/lib/avcodec.lib" CACHE FILEPATH "")
-    set(FFMPEG_LIBAVFORMAT "${FFMPEG_ROOT}/lib/avformat.lib" CACHE FILEPATH "")
-    set(FFMPEG_LIBAVUTIL "${FFMPEG_ROOT}/lib/avutil.lib" CACHE FILEPATH "")
-    set(FFMPEG_SWSCALE "${FFMPEG_ROOT}/lib/swscale.lib" CACHE FILEPATH "")
-    set(FFMPEG_SWRESAMPLE "${FFMPEG_ROOT}/lib/swresample.lib" CACHE FILEPATH "")
-endif()
+    # mpv from lib/mpv/ (shinchiro pre-built dev bundle)
+    set(MPV_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/lib/mpv/include")
+    set(MPV_LIB "${CMAKE_CURRENT_SOURCE_DIR}/lib/mpv/lib/mpv.dll.a")
 
-find_package(FFMPEG REQUIRED COMPONENTS avcodec avformat avutil swresample swscale)
+    target_include_directories(main PRIVATE "${MPV_INCLUDE_DIR}")
+    target_link_libraries(main PRIVATE "${MPV_LIB}")
 
-# raylib-media include directory (for raymedia.h)
-target_include_directories(main PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/lib/raylib-media")
-
-# FFmpeg include directory
-target_include_directories(main PRIVATE ${FFMPEG_INCLUDE_DIRS})
-
-# Static library for rmedia.c (separate target avoids unity build for C code)
-add_library(raylib_media STATIC lib/raylib-media/rmedia.c)
-set_target_properties(raylib_media PROPERTIES UNITY_BUILD OFF)
-target_include_directories(raylib_media PRIVATE
-    "${CMAKE_CURRENT_SOURCE_DIR}/lib/raylib-media"
-    ${FFMPEG_INCLUDE_DIRS}
-)
-if(WIN32)
-    target_include_directories(raylib_media PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/lib/raylib-windows/include")
-elseif(APPLE)
-    target_include_directories(raylib_media PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/lib/raylib-macos/include")
+    # Copy mpv-2.dll to output directory
+    add_custom_command(TARGET main POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_CURRENT_SOURCE_DIR}/lib/mpv/bin/mpv-2.dll"
+            $<TARGET_FILE_DIR:main>
+        COMMENT "Copying mpv-2.dll to output directory"
+    )
 else()
-    target_include_directories(raylib_media PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/lib/raylib-linux/include")
-endif()
-
-# Link raylib_media and FFmpeg into main
-target_link_libraries(main PRIVATE raylib_media ${FFMPEG_LIBRARIES})
-
-# Copy FFmpeg DLLs to output directory (Windows only)
-if(WIN32)
-    foreach(FFMPEG_DLL avcodec-62 avformat-62 avutil-60 swresample-6 swscale-9)
-        add_custom_command(TARGET main POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                "${CMAKE_CURRENT_SOURCE_DIR}/lib/ffmpeg/bin/${FFMPEG_DLL}.dll"
-                $<TARGET_FILE_DIR:main>
-            COMMENT "Copying ${FFMPEG_DLL}.dll to output directory"
-        )
-    endforeach()
+    # libmpv-dev from system package manager (detected via pkg-config)
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(MPV REQUIRED mpv)
+    target_include_directories(main PRIVATE ${MPV_INCLUDE_DIRS})
+    target_link_libraries(main PRIVATE ${MPV_LIBRARIES})
 endif()
 
 # Test target — compile-time constants test (Phase 1)

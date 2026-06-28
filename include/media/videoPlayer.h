@@ -91,7 +91,7 @@ namespace video
         mpv_render_param params[] = {
             {MPV_RENDER_PARAM_API_TYPE, (void *)MPV_RENDER_API_TYPE_OPENGL},
             {MPV_RENDER_PARAM_OPENGL_INIT_PARAMS, &gl_init},
-            {0}
+            {MPV_RENDER_PARAM_INVALID, nullptr}
         };
 
         if (mpv_render_context_create(&m_mpv_gl, m_mpv, params) < 0)
@@ -189,9 +189,8 @@ namespace video
         if (m_renderTarget.id && (flags & MPV_RENDER_UPDATE_FRAME))
         {
             rlEnableFramebuffer(m_renderTarget.id);
-            int fbo = rlGetFramebuffer();
             mpv_opengl_fbo fbo_info = {
-                .fbo = fbo,
+                .fbo = (int)m_renderTarget.id,
                 .w = m_width,
                 .h = m_height,
                 .internal_format = 0
@@ -200,7 +199,7 @@ namespace video
             mpv_render_param render_params[] = {
                 {MPV_RENDER_PARAM_OPENGL_FBO, &fbo_info},
                 {MPV_RENDER_PARAM_FLIP_Y, &flip_y},
-                {0}
+                {MPV_RENDER_PARAM_INVALID, nullptr}
             };
             mpv_render_context_render(m_mpv_gl, render_params);
             rlDisableFramebuffer();

@@ -122,17 +122,17 @@ endif()
 if(WIN32)
     # mpv from lib/mpv/ (shinchiro pre-built dev bundle)
     set(MPV_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/lib/mpv/include")
-    set(MPV_LIB "${CMAKE_CURRENT_SOURCE_DIR}/lib/mpv/lib/mpv.dll.a")
+    set(MPV_LIB "${CMAKE_CURRENT_SOURCE_DIR}/lib/mpv/libmpv.dll.a")
 
     target_include_directories(main PRIVATE "${MPV_INCLUDE_DIR}")
     target_link_libraries(main PRIVATE "${MPV_LIB}")
 
-    # Copy mpv-2.dll to output directory
+    # Copy libmpv-2.dll to output directory
     add_custom_command(TARGET main POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            "${CMAKE_CURRENT_SOURCE_DIR}/lib/mpv/bin/mpv-2.dll"
+            "${CMAKE_CURRENT_SOURCE_DIR}/lib/mpv/libmpv-2.dll"
             $<TARGET_FILE_DIR:main>
-        COMMENT "Copying mpv-2.dll to output directory"
+        COMMENT "Copying libmpv-2.dll to output directory"
     )
 else()
     # libmpv-dev from system package manager (detected via pkg-config)

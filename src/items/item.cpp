@@ -12,7 +12,7 @@
 
 #include "item.h"
 #include "config/game_constants.h"
-// include fonts.h untuk fontLoadingTitle
+// include fonts.h untuk GetOrLoad(FontId::LOADING_TITLE)
 #include "fonts.h"
 #include "screen.h"
 #include "inventory.h"
@@ -27,6 +27,7 @@
 #include "../lib/json/include/nlohmann/json.hpp"
 #include "raymath.h"
 #include "core/utils.h"
+#include "core/seedmanager.h"
 #include "core/game_state_saver.h"
 #include <iostream>
 #include <vector>
@@ -89,16 +90,35 @@ std::vector<ItemSpawn> &GetActiveItems() { return itemData.activeItems; }
 void DropAllItems(Player &player)
 {
     constexpr int SPREAD = 40;
+    constexpr int RETRY = 15;
     constexpr int EMPTY_ID = -1;
+
+    Vector2 center = player.GetCenter();
 
     auto DropSlot = [&](InventoryItem &slot)
     {
         if (slot.definitionId == EMPTY_ID || slot.amount <= 0)
             return;
-        Vector2 dropPos = {
-            player.Position.x + (float)GetRandomValue(-SPREAD, SPREAD),
-            player.Position.y + (float)GetRandomValue(-SPREAD, SPREAD)};
-        ItemSpawn item = itemData.CreateItem(dropPos, slot.definitionId);
+
+        const ItemDefinition &def = itemDefs.GetById(slot.definitionId);
+        float halfW = def.hitboxSize.x / 2.0f;
+        float halfH = def.hitboxSize.y / 2.0f;
+
+        Vector2 safePos = center;
+        for (int retry = 0; retry < RETRY; retry++)
+        {
+            Vector2 candidate = {
+                center.x + (float)GetRandomValue(-SPREAD, SPREAD),
+                center.y + (float)GetRandomValue(-SPREAD, SPREAD)};
+            Vector2 topLeft = {candidate.x - halfW, candidate.y - halfH};
+            if (IsPositionSafe(topLeft, def.hitboxSize.x, def.hitboxSize.y, 0, 0))
+            {
+                safePos = candidate;
+                break;
+            }
+        }
+
+        ItemSpawn item = itemData.CreateItem(safePos, slot.definitionId);
         item.amount = slot.amount;
         itemData.activeItems.push_back(item);
         slot = {EMPTY_ID, 0};
@@ -211,6 +231,18 @@ void ItemDefinitionManager::Load(const std::string &path)
             pd.invincibilityDuration = SafeGet<float>(p, "invincibilityDuration", 0.0f);
             pd.duration = SafeGet<float>(p, "duration", 0.0f);
             pd.cooldown = SafeGet<float>(p, "cooldown", 1.0f); // Default cooldown is 1.0f
+            pd.potionCategory = POTION_HEALTH;                 // default
+            {
+                std::string potCat = SafeGet<std::string>(p, "potionCategory", "health");
+                if (potCat == "stamina")
+                    pd.potionCategory = POTION_STAMINA;
+                else if (potCat == "damage")
+                    pd.potionCategory = POTION_DAMAGE;
+                else if (potCat == "speed")
+                    pd.potionCategory = POTION_SPEED;
+                else if (potCat == "invincibility")
+                    pd.potionCategory = POTION_INVINCIBILITY;
+            }
             def.data = pd;
         }
 
@@ -357,6 +389,16 @@ void ItemDataManager::SpawnItemAtLocation(Vector2 pos, const std::map<ItemRarity
     activeItems.push_back(CreateItem(pos, defId));
 }
 
+void ItemDataManager::SpawnItemAtLocation(Vector2 pos, const std::map<ItemRarity, int> &weights, ItemCategory category, std::mt19937 *rng)
+{
+    std::mt19937 localRng(static_cast<unsigned int>(time(nullptr)));
+    std::mt19937 &useRng = rng ? *rng : localRng;
+    int defId = spawnManager.PickRandomDefinitionId(useRng, weights, category);
+    if (defId == -1)
+        return;
+    activeItems.push_back(CreateItem(pos, defId));
+}
+
 /**
  * @brief Simpan state activeItems untuk map tertentu
  * @param mapPath Path map sebagai key penyimpanan
@@ -395,8 +437,6 @@ void ItemDataManager::ClearItems()
 /*==============================================================================
  * Per-Map File Persistence
  *==============================================================================*/
-
-
 
 /*==============================================================================
  * ItemRenderManager
@@ -499,30 +539,27 @@ void ItemRenderManager::Render(ItemSpawn &item)
 
     if (def.category == ITEM_WEAPON)
     {
-        const WeaponData* wd = std::get_if<WeaponData>(&def.data);
+        const WeaponData *wd = std::get_if<WeaponData>(&def.data);
         if (wd && wd->attackType != ATTACK_PIERCE)
         {
             display.rotation = -45.0f;
-            display.origin = { (float)display.size / 2.0f, (float)display.size / 2.0f };
+            display.origin = {(float)display.size / 2.0f, (float)display.size / 2.0f};
             display.offset = display.origin;
         }
     }
 
     DrawFrame(def.spriteKey, display);
 
-    // stack amount item di-drop: fontLoadingTitle 14px, bg rounded hitam, di bawah sprite
+    // stack amount item di-drop: FontId::HUD_PLAYER 12px, tanpa background, di bawah sprite
     if (item.amount > 1)
     {
         std::string amountText = std::to_string(item.amount);
-        int fontSize = 14;
-        Vector2 textSz = MeasureTextEx(fontLoadingTitle, amountText.c_str(), fontSize, 0);
+        int fontSize = 12;
+        Vector2 textSz = MeasureTextEx(GetOrLoad(FontId::HUD_PLAYER), amountText.c_str(), fontSize, 0);
         Vector2 textPos = {
             center.x - textSz.x / 2.0f,
-            center.y + 16.0f + 2.0f};
-        DrawRectangleRounded(
-            (Rectangle){textPos.x - 4, textPos.y - 4, textSz.x + 8, textSz.y + 8},
-            0.3f, 8, ColorAlpha(BLACK, 0.8f));
-        DrawTextEx(fontLoadingTitle, amountText.c_str(), textPos, fontSize, 0, WHITE);
+            center.y + 16.0f - 2.0f};
+        DrawTextEx(GetOrLoad(FontId::HUD_PLAYER), amountText.c_str(), textPos, fontSize, 0, WHITE);
     }
 }
 
@@ -811,6 +848,11 @@ void ItemSpawnManager::SpawnAll(std::vector<ItemSpawn> &activeItems)
 {
     activeItems.clear();
 
+    uint64_t dSeed = g_SeedManager.IsRunActive()
+                         ? (uint64_t)g_SeedManager.GetSeed(g_SeedManager.GetCurrentStage())
+                         : 0;
+
+    int areaIndex = 0;
     for (auto &area : spawnAreas)
     {
         if (!area.isActive)
@@ -827,8 +869,12 @@ void ItemSpawnManager::SpawnAll(std::vector<ItemSpawn> &activeItems)
             int defId = PickRandomDefinitionId(rng);
             const ItemDefinition &def = itemDefs.GetById(defId);
             Vector2 pos = GetRandomPosInArea(area, def.hitboxSize);
-            activeItems.push_back(itemData.CreateItem(pos, defId));
+            ItemSpawn item = itemData.CreateItem(pos, defId);
+            item.uuid = GenerateDeterministicUUID(dSeed, areaIndex, std::to_string(defId), i);
+            activeItems.push_back(item);
         }
+
+        areaIndex++;
     }
 
     TraceLog(LOG_INFO, "ITEM: total spawned = %d", (int)activeItems.size());

@@ -6,17 +6,18 @@
  * Handle inisialisasi tombol, update input, dan rendering menu utama.
  */
 
-#include "../../include/ui/mainMenu.h"
-#include "../../include/core/screen.h"
-#include "../../include/core/seedmanager.h"
-#include "../../include/map/worldgenio.h"
+#include "ui/mainMenu.h"
+#include "core/screen.h"
+#include "core/seedmanager.h"
+#include "core/savemanager.h"
+#include "map/worldgenio.h"
 #include "raylib.h"
 #include <array>
 #include <filesystem>
-#include "../../include/ui/popup.h"
-#include "../../include/core/game_state_saver.h"
-#include "../../include/entities/entities.h"
-#include "../../include/ui/saveLoadScreen.h"
+#include "ui/popup.h"
+#include "core/game_state_saver.h"
+#include "entities/entities.h"
+#include "ui/saveLoadScreen.h"
 
 /*==============================================================================
  * Static Variables
@@ -27,6 +28,9 @@ static std::array<buttonImage, 4> buttons;
 
 /** Logo texture untuk main menu */
 static Texture2D logoTexture;
+
+/** Flag kalo texture lagi dipake (biar gak double unload) */
+static bool menuTexLoaded = false;
 
 /** Save/Load popups */
 static Popup loadPopup("Load saved game?", "Load Save", "Cancel", 0.7f);
@@ -48,6 +52,10 @@ void InitMainMenu(GameState *state)
 {
     (void)state; // unused parameter, buat future use
 
+    // Safety: kalo udah pernah di-init, unload dulu biar gak leak
+    if (menuTexLoaded)
+        DestroyMainMenu();
+
     // set texture background load-notif untuk semua popup main menu
     loadPopup.SetBackgroundTexture("assets/textures/pauseButt/load-notif.png");
     mainNoSavePopup.SetBackgroundTexture("assets/textures/pauseButt/load-notif.png");
@@ -60,13 +68,19 @@ void InitMainMenu(GameState *state)
     ImageResize(&logoImg, targetWidth, targetHeight);
     logoTexture = LoadTextureFromImage(logoImg);
     UnloadImage(logoImg);
+    menuTexLoaded = true;
 
     // Konfigurasi individu untuk setiap tombol (path, scale, yOffset)
-    struct { const char *path; float scale; int yOffset; } btnConfig[4] = {
-        {"assets/textures/mainMenuButt/main-start.png",    1, -40},
-        {"assets/textures/mainMenuButt/main-load.png",     1,  50},
+    struct
+    {
+        const char *path;
+        float scale;
+        int yOffset;
+    } btnConfig[4] = {
+        {"assets/textures/mainMenuButt/main-start.png", 1, -40},
+        {"assets/textures/mainMenuButt/main-load.png", 1, 50},
         {"assets/textures/mainMenuButt/main-settings.png", 1, 140},
-        {"assets/textures/mainMenuButt/main-quit.png",     1, 230},
+        {"assets/textures/mainMenuButt/main-quit.png", 1, 230},
     };
 
     int startY = (GameScreenHeight / 2) + 20;
@@ -75,8 +89,7 @@ void InitMainMenu(GameState *state)
     {
         Vector2 pos = {
             GameScreenWidth / 2.0F,
-            static_cast<float>(startY + btnConfig[i].yOffset)
-        };
+            static_cast<float>(startY + btnConfig[i].yOffset)};
         buttons[i] = buttonImage(btnConfig[i].path, pos, btnConfig[i].scale, 0.6F);
     }
 }
@@ -91,33 +104,36 @@ void UpdateMainMenu(GameState *state)
     Vector2 mousePosition = GetVirtualMousePosition(state);
     bool mouseClicked = IsMouseButtonPressed(MOUSE_LEFT_BUTTON);
 
-    for (int i = 0; i < 4; i++) {
-        if (buttons[i].isClicked(mousePosition, mouseClicked)) {
-            switch (i) {
-                case 0:  // Start Game - langsung mulai baru tanpa popup
-                    SetActiveSlot(0);
-                    ResetMemoryState();
-                    ResetWorldseed(0);
-                    Entities::ClearDeadEntities();
-                    std::filesystem::remove_all("saves/slot_0/enemies");
-                    std::filesystem::remove_all("saves/slot_0/items");
-                    state->enteredLoading = false;
-                    state->currentScreen = LOADING;
-                    break;
-                case 1:  // Load Game — buka SaveLoadScreen dalam mode load
-                    state->previousScreen = MAIN_MENU;
-                    saveLoadScreen.SetMode(SaveLoadMode::LOAD_MODE);
-                    state->currentScreen = SAVE_LOAD;
-                    break;
-                case 2:  // Options
-                    state->previousScreen = MAIN_MENU;
-                    state->currentScreen = OPTIONS;
-                    break;
-                case 3:  // Quit
-                    CloseWindow();
-                    break;
-                default:
-                    break;
+    for (int i = 0; i < 4; i++)
+    {
+        if (buttons[i].isClicked(mousePosition, mouseClicked))
+        {
+            DestroyMainMenu();
+            switch (i)
+            {
+            case 0: // Start Game - langsung mulai baru tanpa popup
+                SetActiveSlot(-1); // -1 = no active slot, so HasSavedState() returns false
+                ResetMemoryState();
+                // GC worldseed: hapus save_N/ yang gak dipake save manapun
+                WorldgenIO::CleanupOrphanedSlots();
+                Entities::ClearDeadEntities();
+                state->enteredLoading = false;
+                state->currentScreen = LOADING;
+                break;
+            case 1: // Load Game — buka SaveLoadScreen dalam mode load
+                state->previousScreen = MAIN_MENU;
+                saveLoadScreen.SetMode(SaveLoadMode::LOAD_MODE);
+                state->currentScreen = SAVE_LOAD;
+                break;
+            case 2: // Options
+                state->previousScreen = MAIN_MENU;
+                state->currentScreen = OPTIONS;
+                break;
+            case 3: // Quit
+                CloseWindow();
+                break;
+            default:
+                break;
             }
         }
     }
@@ -159,9 +175,12 @@ void UpdateMainMenu(GameState *state)
     // tetap aktif dan muncul kembali saat player kembali ke main menu.
     if (state->currentScreen != MAIN_MENU)
     {
-        if (loadPopup.IsActive()) loadPopup.Hide();
-        if (mainNoSavePopup.IsActive()) mainNoSavePopup.Hide();
-        if (mainCorruptPopup.IsActive()) mainCorruptPopup.Hide();
+        if (loadPopup.IsActive())
+            loadPopup.Hide();
+        if (mainNoSavePopup.IsActive())
+            mainNoSavePopup.Hide();
+        if (mainCorruptPopup.IsActive())
+            mainCorruptPopup.Hide();
     }
 }
 
@@ -189,15 +208,30 @@ void RenderMainMenuToVirtualScreen(GameState *state)
     }
 
     // Render popups
-    if (loadPopup.IsActive()) {
+    if (loadPopup.IsActive())
+    {
         loadPopup.Draw(virtualMouse);
     }
-    if (mainNoSavePopup.IsActive()) {
+    if (mainNoSavePopup.IsActive())
+    {
         mainNoSavePopup.Draw(virtualMouse);
     }
-    if (mainCorruptPopup.IsActive()) {
+    if (mainCorruptPopup.IsActive())
+    {
         mainCorruptPopup.Draw(virtualMouse);
     }
 
     EndTextureMode();
+}
+
+void DestroyMainMenu()
+{
+    if (!menuTexLoaded)
+        return;
+    if (logoTexture.id != 0)
+    {
+        UnloadTexture(logoTexture);
+        logoTexture = {0};
+    }
+    menuTexLoaded = false;
 }

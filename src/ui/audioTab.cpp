@@ -8,7 +8,7 @@
 
 #include "audioTab.h"
 #include "fonts.h"
-#include "../../include/systems/audioManager.h"
+#include "systems/audioManager.h"
 #include "raylib.h"
 #include "raymath.h"
 #include "../lib/json/include/nlohmann/json.hpp"
@@ -22,49 +22,81 @@ using json = nlohmann::json;
  *==============================================================================*/
 
 /** @brief Global slider state untuk tab Audio */
-SliderState g_sliders = {100, 80, 100, 100, false, -1};
+SliderState g_sliders = {100, 100, 100, 100, false, -1};
 
 /*==============================================================================
  * Constants
  *==============================================================================*/
 
 /** @brief Lebar slider bar dalam pixel */
-static const int SLIDER_WIDTH = 250;
+static const int SLIDER_WIDTH = 300;
 
 /** @brief Tinggi slider bar dalam pixel */
-static const int SLIDER_HEIGHT = 20;
+static const int SLIDER_HEIGHT = 25;
 
 /** @brief Warna background slider */
-static const Color SLIDER_BG    = {80, 80, 80, 255};
+static const Color SLIDER_BG = {80, 80, 80, 255};
 
 /** @brief Warna fill slider (hijau) */
-static const Color SLIDER_FILL  = {50, 200, 50, 255};
+static const Color SLIDER_FILL = {50, 200, 50, 255};
 
-/** @brief Warna border saat hover */
-static const Color SLIDER_HOVER = {255, 255, 255, 120};
+/** @brief Warna border saat hover (gold terang) */
+static const Color SLIDER_HOVER = {230, 200, 100, 200};
+
+/** @brief Warna teks label slider (dark brown) */
+static const Color LABEL_COLOR = {31, 31, 28, 255};
+
+/** @brief Warna teks value slider (dark navy) */
+static const Color VALUE_COLOR = {20, 26, 43, 255};
 
 /** @brief Posisi X label */
 static const int LABEL_X = 180;
 
 /** @brief Posisi X slider bar */
-static const int SLIDER_BAR_X = 380;
-
-/** @brief Posisi X value text */
-static const int VALUE_X = 660;
+static const int SLIDER_BAR_X = 400;
 
 /** @brief Font size untuk label dan value */
-static const int FONT_SIZE = 30;
+static const int FONT_SIZE = 32;
 
 /** @brief Row offset per slider */
-static const int ROW_OFFSETS[4] = {15, 75, 135, 195};
+static const int ROW_OFFSETS[4] = {15, 80, 145, 210};
 
 /** @brief Label teks untuk tiap slider */
-static const char* SLIDER_LABELS[4] = {
+static const char *SLIDER_LABELS[4] = {
     "Master Volume",
     "Music Volume",
     "SFX Volume",
-    "Video Volume"
-};
+    "Video Volume"};
+
+/*==============================================================================
+ * Knob Texture Helper
+ *==============================================================================*/
+
+static Texture2D g_KnobTex = {0};
+
+void UnloadAudioTextures()
+{
+    if (g_KnobTex.id != 0)
+    {
+        UnloadTexture(g_KnobTex);
+        g_KnobTex = {0};
+    }
+}
+
+static Texture2D GetKnobTex()
+{
+    if (g_KnobTex.id == 0)
+    {
+        Image img = LoadImage("assets/textures/settingsButt/knobAudio.png");
+        if (img.data != nullptr)
+        {
+            g_KnobTex = LoadTextureFromImage(img);
+            UnloadImage(img);
+            TraceLog(LOG_INFO, "AUDIO: Knob texture loaded (%dx%d)", g_KnobTex.width, g_KnobTex.height);
+        }
+    }
+    return g_KnobTex;
+}
 
 /*==============================================================================
  * Draw Functions
@@ -79,43 +111,51 @@ static const char* SLIDER_LABELS[4] = {
  * @param mousePosition Posisi mouse untuk hover
  */
 static void DrawSliderBar(
-    const char* label,
+    const char *label,
     int valuePct,
     int barX,
     int barY,
-    Vector2 mousePosition)
+    Vector2 mousePosition,
+    Texture2D knobTex)
 {
-    // Label
-    DrawTextEx(fontLoadingTitle, label,
-        Vector2{static_cast<float>(LABEL_X), static_cast<float>(barY - 5)},
-        FONT_SIZE, 0, WHITE);
+    // Label — AUDIOSETTS_HEADER + dark brown
+    DrawTextEx(GetOrLoad(FontId::AUDIOSETTS_HEADER), label,
+               Vector2{static_cast<float>(LABEL_X), static_cast<float>(barY)},
+               FONT_SIZE, 0, LABEL_COLOR);
 
     // Background bar
     DrawRectangle(barX, barY, SLIDER_WIDTH, SLIDER_HEIGHT, SLIDER_BG);
 
-    // Fill bar (proporsional)
+    // Fill bar
     int fillWidth = (valuePct * SLIDER_WIDTH) / 100;
     if (fillWidth > 0)
     {
         DrawRectangle(barX, barY, fillWidth, SLIDER_HEIGHT, SLIDER_FILL);
     }
 
-    // value text pakai fontLoadingTitle (bold) menggantikan fontKeybindEntry
+    // Knob di ujung fill
+    if (knobTex.id > 0 && fillWidth > 0)
+    {
+        float knobX = barX + fillWidth - knobTex.width * 0.5f;
+        float knobY = barY + SLIDER_HEIGHT * 0.5f - knobTex.height * 0.5f;
+        DrawTextureV(knobTex, Vector2{knobX, knobY}, WHITE);
+    }
+
+    // Value — AUDIOSETTS_VALUE + dark navy
     char valueStr[16];
     snprintf(valueStr, sizeof(valueStr), "%d%%", valuePct);
-    Vector2 textSize = MeasureTextEx(fontLoadingTitle, valueStr, FONT_SIZE, 0);
+    Vector2 textSize = MeasureTextEx(GetOrLoad(FontId::AUDIOSETTS_VALUE), valueStr, FONT_SIZE, 0);
     float valX = barX + (SLIDER_WIDTH - textSize.x) * 0.5f;
     float valY = barY + (SLIDER_HEIGHT - textSize.y) * 0.5f;
-    DrawTextEx(fontLoadingTitle, valueStr,
-        Vector2{valX, valY}, FONT_SIZE, 0, BLACK);
+    DrawTextEx(GetOrLoad(FontId::AUDIOSETTS_VALUE), valueStr,
+               Vector2{valX, valY}, FONT_SIZE, 0, VALUE_COLOR);
 
-    // Hover effect
+    // Hover effect — gold border
     Rectangle sliderRect = {
         static_cast<float>(barX),
         static_cast<float>(barY),
         static_cast<float>(SLIDER_WIDTH),
-        static_cast<float>(SLIDER_HEIGHT)
-    };
+        static_cast<float>(SLIDER_HEIGHT)};
     if (CheckCollisionPointRec(mousePosition, sliderRect))
     {
         DrawRectangleLines(barX, barY, SLIDER_WIDTH, SLIDER_HEIGHT, SLIDER_HOVER);
@@ -134,15 +174,16 @@ void DrawAudioTab(
     int contentStartY = startY + 100;
     int barX = startX + SLIDER_BAR_X;
 
+    Texture2D knobTex = GetKnobTex();
+
     for (int i = 0; i < 4; i++)
     {
         int barY = contentStartY + ROW_OFFSETS[i];
-        int value = (i == 0) ? g_sliders.masterVolume :
-                    (i == 1) ? g_sliders.musicVolume :
-                    (i == 2) ? g_sliders.sfxVolume :
-                               g_sliders.videoVolume;
+        int value = (i == 0) ? g_sliders.masterVolume : (i == 1) ? g_sliders.musicVolume
+                                                    : (i == 2)   ? g_sliders.sfxVolume
+                                                                 : g_sliders.videoVolume;
 
-        DrawSliderBar(SLIDER_LABELS[i], value, barX, barY, mousePosition);
+        DrawSliderBar(SLIDER_LABELS[i], value, barX, barY, mousePosition, knobTex);
     }
 }
 
@@ -151,7 +192,7 @@ void DrawAudioTab(
  *==============================================================================*/
 
 bool UpdateAudioTab(
-    SliderState& sliders,
+    SliderState &sliders,
     Vector2 mousePosition,
     bool mouseClicked,
     int startX,
@@ -166,13 +207,34 @@ bool UpdateAudioTab(
         float relX = mousePosition.x - static_cast<float>(barX);
         float pct = (relX / SLIDER_WIDTH) * 100.0f;
         int vol = static_cast<int>(pct + 0.5f);
-        if (vol < 0) vol = 0;
-        if (vol > 100) vol = 100;
+        if (vol < 0)
+            vol = 0;
+        if (vol > 100)
+            vol = 100;
         return vol;
     };
 
     auto getSliderUnderMouse = [&]() -> int
     {
+        // Pass 1: cek knob dulu (more precise target)
+        Texture2D knobTex = GetKnobTex();
+        for (int i = 0; i < 4; i++)
+        {
+            int value = (i == 0) ? sliders.masterVolume : (i == 1) ? sliders.musicVolume
+                                                      : (i == 2)   ? sliders.sfxVolume
+                                                                   : sliders.videoVolume;
+            int fillWidth = (value * SLIDER_WIDTH) / 100;
+            if (fillWidth <= 0 || knobTex.id <= 0)
+                continue;
+
+            int barY = contentStartY + ROW_OFFSETS[i];
+            float knobX = barX + fillWidth - knobTex.width * 0.5f;
+            float knobY = barY + SLIDER_HEIGHT * 0.5f - knobTex.height * 0.5f;
+            Rectangle knobRect = {knobX, knobY, (float)knobTex.width, (float)knobTex.height};
+            if (CheckCollisionPointRec(mousePosition, knobRect))
+                return i;
+        }
+        // Pass 2: fallback ke bar hitbox
         for (int i = 0; i < 4; i++)
         {
             int barY = contentStartY + ROW_OFFSETS[i];
@@ -180,8 +242,7 @@ bool UpdateAudioTab(
                 static_cast<float>(barX),
                 static_cast<float>(barY),
                 static_cast<float>(SLIDER_WIDTH),
-                static_cast<float>(SLIDER_HEIGHT)
-            };
+                static_cast<float>(SLIDER_HEIGHT)};
             if (CheckCollisionPointRec(mousePosition, rect))
                 return i;
         }
@@ -200,18 +261,25 @@ bool UpdateAudioTab(
             int newVol = calcVolumeFromMouse(idx);
             switch (idx)
             {
-                case 0: sliders.masterVolume = newVol; break;
-                case 1: sliders.musicVolume = newVol; break;
-                case 2: sliders.sfxVolume = newVol; break;
-                case 3: sliders.videoVolume = newVol; break;
+            case 0:
+                sliders.masterVolume = newVol;
+                break;
+            case 1:
+                sliders.musicVolume = newVol;
+                break;
+            case 2:
+                sliders.sfxVolume = newVol;
+                break;
+            case 3:
+                sliders.videoVolume = newVol;
+                break;
             }
 
             AudioManager::SetVolumesFromPct(
                 sliders.masterVolume,
                 sliders.musicVolume,
                 sliders.sfxVolume,
-                sliders.videoVolume
-            );
+                sliders.videoVolume);
 
             TraceLog(LOG_INFO, "AUDIO: Slider %d digeser ke %d%%", idx, newVol);
         }
@@ -226,18 +294,25 @@ bool UpdateAudioTab(
             int newVol = calcVolumeFromMouse(idx);
             switch (idx)
             {
-                case 0: sliders.masterVolume = newVol; break;
-                case 1: sliders.musicVolume = newVol; break;
-                case 2: sliders.sfxVolume = newVol; break;
-                case 3: sliders.videoVolume = newVol; break;
+            case 0:
+                sliders.masterVolume = newVol;
+                break;
+            case 1:
+                sliders.musicVolume = newVol;
+                break;
+            case 2:
+                sliders.sfxVolume = newVol;
+                break;
+            case 3:
+                sliders.videoVolume = newVol;
+                break;
             }
 
             AudioManager::SetVolumesFromPct(
                 sliders.masterVolume,
                 sliders.musicVolume,
                 sliders.sfxVolume,
-                sliders.videoVolume
-            );
+                sliders.videoVolume);
         }
     }
 
@@ -251,15 +326,13 @@ bool UpdateAudioTab(
             sliders.masterVolume,
             sliders.musicVolume,
             sliders.sfxVolume,
-            sliders.videoVolume
-        );
+            sliders.videoVolume);
 
         TraceLog(LOG_INFO, "AUDIO: Settings disimpan (M=%d, Mu=%d, S=%d, V=%d)",
-            sliders.masterVolume,
-            sliders.musicVolume,
-            sliders.sfxVolume,
-            sliders.videoVolume
-        );
+                 sliders.masterVolume,
+                 sliders.musicVolume,
+                 sliders.sfxVolume,
+                 sliders.videoVolume);
 
         return true;
     }
@@ -298,19 +371,27 @@ bool LoadAudioSettings()
         }
 
         int master = root.value("masterVolume", 100);
-        int music  = root.value("musicVolume", 80);
-        int sfx    = root.value("sfxVolume", 100);
-        int video  = (ver == 2) ? root.value("videoVolume", 100) : 100;
+        int music = root.value("musicVolume", 80);
+        int sfx = root.value("sfxVolume", 100);
+        int video = (ver == 2) ? root.value("videoVolume", 100) : 100;
 
         // Clamp ke 0-100
-        if (master < 0) master = 0;
-        if (master > 100) master = 100;
-        if (music < 0) music = 0;
-        if (music > 100) music = 100;
-        if (sfx < 0) sfx = 0;
-        if (sfx > 100) sfx = 100;
-        if (video < 0) video = 0;
-        if (video > 100) video = 100;
+        if (master < 0)
+            master = 0;
+        if (master > 100)
+            master = 100;
+        if (music < 0)
+            music = 0;
+        if (music > 100)
+            music = 100;
+        if (sfx < 0)
+            sfx = 0;
+        if (sfx > 100)
+            sfx = 100;
+        if (video < 0)
+            video = 0;
+        if (video > 100)
+            video = 100;
 
         // Apply ke AudioManager
         AudioManager::SetVolumesFromPct(master, music, sfx, video);
@@ -322,11 +403,11 @@ bool LoadAudioSettings()
         g_sliders.videoVolume = video;
 
         TraceLog(LOG_INFO, "AUDIO: Settings dimuat dari %s (M=%d, Mu=%d, S=%d, V=%d)",
-            AUDIO_SETTINGS_PATH, master, music, sfx, video);
+                 AUDIO_SETTINGS_PATH, master, music, sfx, video);
 
         return true;
     }
-    catch (const std::exception& e)
+    catch (const std::exception &e)
     {
         TraceLog(LOG_WARNING, "AUDIO: Gagal muat %s: %s", AUDIO_SETTINGS_PATH, e.what());
         return false;
@@ -338,11 +419,11 @@ bool SaveAudioSettings(int masterVolume, int musicVolume, int sfxVolume, int vid
     try
     {
         json root;
-        root["version"]      = 2;
+        root["version"] = 2;
         root["masterVolume"] = masterVolume;
-        root["musicVolume"]  = musicVolume;
-        root["sfxVolume"]    = sfxVolume;
-        root["videoVolume"]  = videoVolume;
+        root["musicVolume"] = musicVolume;
+        root["sfxVolume"] = sfxVolume;
+        root["videoVolume"] = videoVolume;
 
         std::filesystem::path fsPath(AUDIO_SETTINGS_PATH);
         std::filesystem::create_directories(fsPath.parent_path());
@@ -360,10 +441,9 @@ bool SaveAudioSettings(int masterVolume, int musicVolume, int sfxVolume, int vid
         TraceLog(LOG_INFO, "AUDIO: Settings disimpan ke %s", AUDIO_SETTINGS_PATH);
         return true;
     }
-    catch (const std::exception& e)
+    catch (const std::exception &e)
     {
         TraceLog(LOG_WARNING, "AUDIO: Gagal simpan: %s", e.what());
         return false;
     }
 }
- 

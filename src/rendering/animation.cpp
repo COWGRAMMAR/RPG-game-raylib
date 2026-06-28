@@ -20,9 +20,6 @@ Texture2D textures[MAX_TEXTURES];
 static std::unordered_map<std::string, Frame> loadedFrames;
 
 /** @brief Map string ke TextureSlot */
-Font fontKeybindHeader = {0};
-Font fontKeybindEntry = {0};
-Font fontLoadingTitle = {0};
 static TextureSlot ResolveTextureSlot(const std::string &str)
 {
     static const std::unordered_map<std::string, TextureSlot> mapping = {
@@ -32,10 +29,13 @@ static TextureSlot ResolveTextureSlot(const std::string &str)
         {"TILESET_ITEMS", TILESET_ITEMS},
         {"SPRITESHEET_KNIGHT", SPRITESHEET_KNIGHT},
         {"SPRITESHEET_ENEMIES", SPRITESHEET_ENEMIES},
-        {"SPRITESHEET_EFFECTS", SPRITESHEET_EFFECTS}
-    };
+        {"SPRITESHEET_EFFECTS", SPRITESHEET_EFFECTS},
+        {"SPRITESHEET_ENEMIES_ELITE", SPRITESHEET_ENEMIES_ELITE},
+        {"SPRITESHEET_ENEMY_BOSS", SPRITESHEET_ENEMY_BOSS},
+        {"TILESET_GRASS", TILESET_GRASS}};
     auto it = mapping.find(str);
-    if (it != mapping.end()) return it->second;
+    if (it != mapping.end())
+        return it->second;
     return TILESET_MAP_1;
 }
 
@@ -118,82 +118,10 @@ void InitTextures()
     LoadFrameTexture(SPRITESHEET_KNIGHT, "assets/textures/knight (1).png");
     LoadFrameTexture(SPRITESHEET_ENEMIES, "assets/textures/enemies.png");
     LoadFrameTexture(SPRITESHEET_EFFECTS, "assets/textures/effects.png");
+    LoadFrameTexture(SPRITESHEET_ENEMIES_ELITE, "assets/textures/elite-enemies.png");
+    LoadFrameTexture(SPRITESHEET_ENEMY_BOSS, "assets/textures/boss-enemies.png");
     LoadFramesFromJSON();
     LoadAnimationsFromJSON();
-    InitFonts();
-}
-
-void InitFonts(void)
-{
-    static bool loaded = false;
-    if (loaded) { TraceLog(LOG_INFO, "FONTS: Already loaded, skipping"); return; }
-    loaded = true;
-
-    const char *paths[] = { "assets/fonts/", "build/bin/assets/fonts/" };
-
-    for (int pass = 0; pass < 2; pass++)
-    {
-        const char *dir = paths[pass];
-        char buf[256];
-
-        snprintf(buf, sizeof(buf), "%sNewDawn.ttf", dir);
-        if (!FileExists(buf)) { TraceLog(LOG_WARNING, "FONTS: %s NOT FOUND", buf); continue; }
-        fontKeybindHeader = LoadFontEx(buf, 32, 0, 0);
-        break;
-    }
-
-    for (int pass = 0; pass < 2; pass++)
-    {
-        const char *dir = paths[pass];
-        char buf[256];
-
-        snprintf(buf, sizeof(buf), "%sPoppins-Regular.ttf", dir);
-        if (!FileExists(buf)) { TraceLog(LOG_WARNING, "FONTS: %s NOT FOUND", buf); continue; }
-        fontKeybindEntry = LoadFontEx(buf, 30, 0, 0);
-        break;
-    }
-
-    for (int pass = 0; pass < 2; pass++)
-    {
-        const char *dir = paths[pass];
-        char buf[256];
-
-        snprintf(buf, sizeof(buf), "%sPoppins-Bold.ttf", dir);
-        if (!FileExists(buf)) { TraceLog(LOG_WARNING, "FONTS: %s NOT FOUND", buf); continue; }
-        fontLoadingTitle = LoadFontEx(buf, 32, 0, 0);
-        break;
-    }
-
-    if (fontKeybindHeader.glyphCount == 0)
-    {
-        TraceLog(LOG_WARNING, "FONTS: NewDawn.ttf loaded but has 0 glyphs (using default font fallback)");
-        fontKeybindHeader = GetFontDefault();
-    }
-    if (fontKeybindEntry.glyphCount == 0)
-    {
-        TraceLog(LOG_WARNING, "FONTS: Poppins-Regular.ttf loaded but has 0 glyphs (using default font fallback)");
-        fontKeybindEntry = GetFontDefault();
-    }
-    if (fontLoadingTitle.glyphCount == 0)
-    {
-        TraceLog(LOG_WARNING, "FONTS: Poppins-Bold.ttf loaded but has 0 glyphs (using default font fallback)");
-        fontLoadingTitle = GetFontDefault();
-    }
-
-    SetTextureFilter(fontKeybindHeader.texture, TEXTURE_FILTER_POINT);
-    SetTextureFilter(fontKeybindEntry.texture, TEXTURE_FILTER_POINT);
-    SetTextureFilter(fontLoadingTitle.texture, TEXTURE_FILTER_POINT);
-
-    TraceLog(LOG_INFO, "FONTS: NewDawn (header) glyphs=%d, Poppins (entry) glyphs=%d, Poppins-Bold (loading) glyphs=%d",
-        fontKeybindHeader.glyphCount, fontKeybindEntry.glyphCount, fontLoadingTitle.glyphCount);
-}
-
-void UnloadFonts(void)
-{
-    UnloadFont(fontKeybindHeader);
-    UnloadFont(fontKeybindEntry);
-    UnloadFont(fontLoadingTitle);
-    TraceLog(LOG_INFO, "FONTS: Unloaded custom fonts");
 }
 
 void CloseTextures()
@@ -215,9 +143,9 @@ const Frame &GetFrame(const std::string &id)
     {
         return it->second;
     }
-    
+
     TraceLog(LOG_WARNING, "ANIMATION: Frame not found: %s", id.c_str());
-    static const Frame fallback = { TILESET_MAP_1, 0, 0, 1, 1 };
+    static const Frame fallback = {TILESET_MAP_1, 0, 0, 1, 1};
     return fallback;
 }
 
@@ -227,8 +155,7 @@ void DrawFrame(Frame frame, Display display)
         (float)(frame.positionX * (FRAME_SIZE + FRAME_GAP)),
         (float)(frame.positionY * (FRAME_SIZE + FRAME_GAP)),
         (float)(frame.width * FRAME_SIZE),
-        (float)(frame.height * FRAME_SIZE)
-    };
+        (float)(frame.height * FRAME_SIZE)};
     if (display.flip)
     {
         src.width = -src.width;
@@ -237,8 +164,7 @@ void DrawFrame(Frame frame, Display display)
         display.position.x + display.offset.x,
         display.position.y + display.offset.y,
         (float)(frame.width * display.size),
-        (float)(frame.height * display.size)
-    };
+        (float)(frame.height * display.size)};
     DrawTexturePro(textures[frame.texture], src, dest, display.origin, display.rotation, display.tint);
 }
 
@@ -261,10 +187,12 @@ static State ResolveState(const std::string &str)
         {"idle", IDLE},
         {"walk", WALK},
         {"attack", ATTACK},
-        {"dead", DEAD}
-    };
+        {"dead", DEAD},
+        {"ability1", ABILITY1},
+        {"ability2", ABILITY2}};
     auto it = mapping.find(str);
-    if (it != mapping.end()) return it->second;
+    if (it != mapping.end())
+        return it->second;
     return IDLE;
 }
 
@@ -274,10 +202,10 @@ static Direction ResolveDirection(const std::string &str)
         {"left", LEFT},
         {"right", RIGHT},
         {"down", DOWN},
-        {"up", UP}
-    };
+        {"up", UP}};
     auto it = mapping.find(str);
-    if (it != mapping.end()) return it->second;
+    if (it != mapping.end())
+        return it->second;
     return RIGHT;
 }
 
@@ -296,8 +224,10 @@ void LoadAnimationsFromJSON()
         for (auto &[entityKey, entityVal] : root.items())
         {
             AnimationSet set;
-            for (int s = 0; s < 4; s++) {
-                for (int d = 0; d < 4; d++) {
+            for (int s = 0; s < 6; s++)
+            {
+                for (int d = 0; d < 4; d++)
+                {
                     set.configs[s][d].speed = 0.5f;
                     set.configs[s][d].loop = true;
                 }
@@ -306,15 +236,15 @@ void LoadAnimationsFromJSON()
             for (auto &[stateKey, stateVal] : entityVal.items())
             {
                 State state = ResolveState(stateKey);
-                
+
                 for (auto &[dirKey, dirVal] : stateVal.items())
                 {
                     Direction dir = ResolveDirection(dirKey);
-                    
+
                     AnimationConfig config;
                     config.speed = dirVal.at("spriteDuration").get<float>();
                     config.loop = dirVal.at("loop").get<bool>();
-                    
+
                     if (dirVal.contains("sprites"))
                     {
                         for (auto &sprite : dirVal.at("sprites"))
@@ -322,10 +252,9 @@ void LoadAnimationsFromJSON()
                             config.sprites.push_back(sprite.get<std::string>());
                         }
                     }
-                    
+
                     set.configs[state][dir] = config;
                 }
-                
             }
             loadedAnimationSets[entityKey] = set;
         }
@@ -339,51 +268,63 @@ void LoadAnimationsFromJSON()
 
 void PlayAnimation(Animation &anim, State state, Direction direction)
 {
-    if (!anim.animSet) return;
+    if (!anim.animSet)
+        return;
 
     Direction resolvedDir = direction;
-    
+
     if (anim.animSet->configs[state][resolvedDir].sprites.empty())
     {
         if (resolvedDir == UP || resolvedDir == DOWN)
         {
             bool wasLeft = false;
             bool wasRight = false;
-            
+
             if (anim.currentConfig)
             {
-                for (int s = 0; s < 4; s++) {
-                    if (anim.currentConfig == &anim.animSet->configs[s][LEFT]) wasLeft = true;
-                    if (anim.currentConfig == &anim.animSet->configs[s][RIGHT]) wasRight = true;
+                for (int s = 0; s < 6; s++)
+                {
+                    if (anim.currentConfig == &anim.animSet->configs[s][LEFT])
+                        wasLeft = true;
+                    if (anim.currentConfig == &anim.animSet->configs[s][RIGHT])
+                        wasRight = true;
                 }
             }
-            
-            if (wasLeft) resolvedDir = LEFT;
-            else if (wasRight) resolvedDir = RIGHT;
-            else if (anim.direction == LEFT || anim.direction == RIGHT) resolvedDir = anim.direction;
-            else resolvedDir = RIGHT;
+
+            if (wasLeft)
+                resolvedDir = LEFT;
+            else if (wasRight)
+                resolvedDir = RIGHT;
+            else if (anim.direction == LEFT || anim.direction == RIGHT)
+                resolvedDir = anim.direction;
+            else
+                resolvedDir = RIGHT;
         }
-        
+
         if (anim.animSet->configs[state][resolvedDir].sprites.empty())
         {
-            if (!anim.animSet->configs[state][RIGHT].sprites.empty()) resolvedDir = RIGHT;
-            else if (!anim.animSet->configs[state][LEFT].sprites.empty()) resolvedDir = LEFT;
+            if (!anim.animSet->configs[state][RIGHT].sprites.empty())
+                resolvedDir = RIGHT;
+            else if (!anim.animSet->configs[state][LEFT].sprites.empty())
+                resolvedDir = LEFT;
         }
     }
 
-    if (anim.state == state && anim.direction == direction && anim.currentConfig == &anim.animSet->configs[state][resolvedDir]) return;
+    if (anim.state == state && anim.direction == direction && anim.currentConfig == &anim.animSet->configs[state][resolvedDir])
+        return;
 
     anim.state = state;
     anim.direction = direction;
     anim.currentConfig = &anim.animSet->configs[state][resolvedDir];
-    
+
     anim.timer = 0.0f;
     anim.currentSpriteIndex = 0;
 }
 
 void UpdateAnimation(Animation &anim, float dt)
 {
-    if (!anim.currentConfig || anim.currentConfig->sprites.empty()) return;
+    if (!anim.currentConfig || anim.currentConfig->sprites.empty())
+        return;
 
     anim.timer += dt;
     if (anim.timer >= anim.currentConfig->speed)
@@ -400,7 +341,7 @@ void UpdateAnimation(Animation &anim, float dt)
             else
             {
                 anim.currentSpriteIndex = (int)anim.currentConfig->sprites.size() - 1;
-                
+
                 if (anim.state == ATTACK)
                 {
                     anim.isAttacking = false;
@@ -413,7 +354,8 @@ void UpdateAnimation(Animation &anim, float dt)
 
 void DrawAnimation(const Animation &anim, Color tint, float scale)
 {
-    if (!anim.currentConfig || anim.currentConfig->sprites.empty()) return;
+    if (!anim.currentConfig || anim.currentConfig->sprites.empty())
+        return;
 
     int index = anim.currentSpriteIndex;
     if (index < 0 || index >= (int)anim.currentConfig->sprites.size())
@@ -424,7 +366,7 @@ void DrawAnimation(const Animation &anim, Color tint, float scale)
     float scaledSize = FRAME_SIZE * scale;
     float centeringOffset = (FRAME_SIZE - scaledSize) * 0.5f;
     const std::string &frameId = anim.currentConfig->sprites[index];
-    Display display = { anim.position, (int)scaledSize, {centeringOffset, centeringOffset}, {0,0}, 0.0f, tint };
+    Display display = {anim.position, (int)scaledSize, {centeringOffset, centeringOffset}, {0, 0}, 0.0f, tint};
     DrawFrame(frameId, display);
 }
 
@@ -438,16 +380,20 @@ void Explosion(Vector2 centerPosition, float radius, float progress)
         if (!config.sprites.empty())
         {
             int frameIndex = (int)(progress * config.sprites.size());
-            if (frameIndex < 0) frameIndex = 0;
-            if (frameIndex >= (int)config.sprites.size()) frameIndex = (int)config.sprites.size() - 1;
+            if (frameIndex < 0)
+                frameIndex = 0;
+            if (frameIndex >= (int)config.sprites.size())
+                frameIndex = (int)config.sprites.size() - 1;
             frameName = config.sprites[frameIndex];
         }
     }
     if (frameName.empty())
     {
         int frameIndex = (int)(progress * 10.0f);
-        if (frameIndex < 0) frameIndex = 0;
-        if (frameIndex > 9) frameIndex = 9;
+        if (frameIndex < 0)
+            frameIndex = 0;
+        if (frameIndex > 9)
+            frameIndex = 9;
         frameName = "explosion" + std::to_string(frameIndex + 1);
     }
 
@@ -460,24 +406,50 @@ void Explosion(Vector2 centerPosition, float radius, float progress)
     DrawFrame(frameName, display);
 }
 
-void TileCollisionEffect(Vector2 tilePosition, float progress)
+void Collision(Vector2 centerPosition, float progress, float scaleTiles)
 {
     std::string frameName;
     int frameIndex = (int)(progress * 5.0f);
-    if (frameIndex < 0) frameIndex = 0;
-    if (frameIndex > 4) frameIndex = 4;
+    if (frameIndex < 0)
+        frameIndex = 0;
+    if (frameIndex > 4)
+        frameIndex = 4;
     frameName = "collision" + std::to_string(frameIndex + 1);
 
     Display display;
-    display.position = tilePosition;
-    display.size = 32;
+    display.position = centerPosition;
+    display.size = (int)(32.0f * scaleTiles);
     display.offset = {0, 0};
-    display.origin = {0, 0};
+    display.origin = {(float)display.size / 2.0f, (float)display.size / 2.0f};
     display.tint = WHITE;
     display.rotation = 0.0f;
     display.flip = false;
 
     DrawFrame(frameName, display);
+}
+
+void GroundSlam(Vector2 centerPosition, float progress, float scaleTiles)
+{
+    std::string frameName;
+    int frameIndex = (int)(progress * 5.0f);
+    if (frameIndex < 0)
+        frameIndex = 0;
+    if (frameIndex > 4)
+        frameIndex = 4;
+    frameName = "slam010" + std::to_string(frameIndex + 1);
+
+    const Frame &frame = GetFrame(frameName);
+
+    Display display;
+    display.position = centerPosition;
+    display.size = (int)(32.0f * scaleTiles);
+    display.offset = {0, -8.0f}; // Menaikkan posisi animasi 8 pixel
+    display.origin = {(float)frame.width * display.size / 2.0f, (float)frame.height * display.size / 2.0f};
+    display.tint = WHITE;
+    display.rotation = 0.0f;
+    display.flip = false;
+
+    DrawFrame(frame, display);
 }
 
 /*
@@ -488,10 +460,13 @@ Procedural Animation
 
 float FadeOut(float timer, float duration)
 {
-    if (duration <= 0.0f) return 0.0f;
+    if (duration <= 0.0f)
+        return 0.0f;
     float alpha = 1.0f - (timer / duration);
-    if (alpha < 0.0f) alpha = 0.0f;
-    if (alpha > 1.0f) alpha = 1.0f;
+    if (alpha < 0.0f)
+        alpha = 0.0f;
+    if (alpha > 1.0f)
+        alpha = 1.0f;
     return alpha;
 }
 
@@ -500,7 +475,7 @@ float TextFloat(float currentOffset, float speed, float dt)
     return currentOffset - (speed * dt);
 }
 
-void DamageFloat(Vector2& pos, Vector2& vel, float gravity, float friction, float dt)
+void DamageFloat(Vector2 &pos, Vector2 &vel, float gravity, float friction, float dt)
 {
     pos = Vector2Add(pos, Vector2Scale(vel, dt));
     vel.y += gravity;
@@ -515,7 +490,8 @@ Vector2 LerpTowards(Vector2 current, Vector2 target, float speed, float dt)
 
 bool Blink(float timer, float frequency)
 {
-    if (frequency <= 0.0f) return true;
+    if (frequency <= 0.0f)
+        return true;
     return (int)(timer * frequency * 10.0f) % 2 == 0;
 }
 
@@ -581,5 +557,3 @@ float SwingMidMid(float raycastAngle, float progress, bool isRight)
     else
         return raycastAngle + (90.0f * sign);
 }
-
-

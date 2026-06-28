@@ -36,74 +36,74 @@
          "name":"obstacle",
          "objects":[
                 {
-                 "height":544,
+                 "height":608,
                  "id":1,
                  "name":"",
                  "opacity":1,
                  "rotation":0,
                  "type":"",
                  "visible":true,
-                 "width":32,
-                 "x":0,
-                 "y":0
+                 "width":64,
+                 "x":-32,
+                 "y":-32
                 }, 
                 {
-                 "height":32,
+                 "height":64,
                  "id":2,
                  "name":"",
                  "opacity":1,
                  "rotation":0,
                  "type":"",
                  "visible":true,
-                 "width":192,
-                 "x":0,
-                 "y":0
+                 "width":224,
+                 "x":-32,
+                 "y":-32
                 }, 
                 {
-                 "height":32,
+                 "height":64,
                  "id":3,
                  "name":"",
                  "opacity":1,
                  "rotation":0,
                  "type":"",
                  "visible":true,
-                 "width":192,
+                 "width":224,
                  "x":352,
-                 "y":0
+                 "y":-32
                 }, 
                 {
-                 "height":192,
+                 "height":224,
                  "id":4,
                  "name":"",
                  "opacity":1,
                  "rotation":0,
                  "type":"",
                  "visible":true,
-                 "width":32,
+                 "width":64,
                  "x":512,
-                 "y":0
+                 "y":-32
                 }, 
                 {
-                 "height":32,
+                 "height":64,
                  "id":8,
                  "name":"",
                  "opacity":1,
                  "rotation":0,
                  "type":"",
                  "visible":true,
-                 "width":544,
-                 "x":0,
+                 "width":608,
+                 "x":-32,
                  "y":512
                 }, 
                 {
-                 "height":192,
+                 "height":224,
                  "id":71,
                  "name":"",
                  "opacity":1,
                  "rotation":0,
                  "type":"",
                  "visible":true,
-                 "width":32,
+                 "width":64,
                  "x":512,
                  "y":352
                 }],

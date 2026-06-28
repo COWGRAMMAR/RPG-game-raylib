@@ -42,6 +42,18 @@ $raylibVersionMatch = if ($raylibInstalledVersion) { $raylibInstalledVersion -eq
 $tilesonReady = Test-Path (Join-Path $tilesonDir "tileson.hpp")
 $jsonReady = Test-Path (Join-Path $jsonDir "include\nlohmann\json.hpp")
 
+# Check FFmpeg (needed since PR #70 video playback)
+$ffmpegDir = Join-Path $cwd "lib\ffmpeg"
+$ffmpegReady = (Test-Path (Join-Path $ffmpegDir "include\libavcodec\avcodec.h")) -and
+               (Test-Path (Join-Path $ffmpegDir "lib\avcodec.lib")) -and
+               (Test-Path (Join-Path $ffmpegDir "bin\avcodec-62.dll"))
+
+# Check raylib-media (needed since PR #70 video playback)
+$mediaDir = Join-Path $cwd "lib\raylib-media"
+$mediaReady = (Test-Path (Join-Path $mediaDir "raymedia.h")) -and
+              (Test-Path (Join-Path $mediaDir "rmedia.c")) -and
+              (Test-Path (Join-Path $mediaDir "FindFFMPEG.cmake"))
+
 # Clean up junk files from existing raylib install (if any)
 if ($raylibReady) {
     $junkFiles = @("CHANGELOG", "LICENSE", "README.md")
@@ -53,7 +65,7 @@ if ($raylibReady) {
     }
 }
 
-if ($raylibReady -and $raylibVersionMatch -and $tilesonReady -and $jsonReady) {
+if ($raylibReady -and $raylibVersionMatch -and $tilesonReady -and $jsonReady -and $ffmpegReady -and $mediaReady) {
     Write-Step "All required libraries already installed" -ForegroundColor Green
     exit 0
 }

@@ -6,32 +6,39 @@
  * Handle state management (MAIN_MENU, PLAY, OPTIONS) dan pause menu.
  */
 
-#include "../../include/core/screen.h"
-#include "../../include/map/map.h"
-#include "../../include/entities/player.h"
-#include "../../include/entities/enemy.h"
-#include "../../include/items/item.h"
-#include "../../include/ui/mainMenu.h"
-#include "../../include/ui/pauseMenu.h"
-#include "../../include/ui/gameOverScreen.h"
-#include "../../include/ui/saveLoadScreen.h"
-#include "../../include/core/loading_screen.h"
-#include "../../include/core/game_state_saver.h"
-#include "../../include/core/savemanager.h"
-#include "../../include/map/worldgenio.h"
-#include "../../include/core/seedmanager.h"
-#include "../../include/rendering/fonts.h"
-#include "../../include/systems/input.h"
-#include "../../include/systems/keybindManager.h"
-#include "../../include/ui/videoScreen.h"
-#include "../../include/ui/videoTab.h"
-#include "../../include/ui/audioTab.h"
-#include "../../include/systems/audioManager.h"
-#include "../../include/map/propsbehavior.h"
+#include "core/screen.h"
+#include "map/map.h"
+#include "entities/player.h"
+#include "entities/enemy.h"
+#include "items/item.h"
+#include "ui/mainMenu.h"
+#include "ui/pauseMenu.h"
+#include "ui/gameOverScreen.h"
+#include "ui/saveLoadScreen.h"
+#include "core/loading_screen.h"
+#include "core/game_state_saver.h"
+#include "core/savemanager.h"
+#include "map/worldgenio.h"
+#include "core/seedmanager.h"
+#include "rendering/fonts.h"
+#include "systems/input.h"
+#include "systems/keybindManager.h"
+#include "ui/videoScreen.h"
+#include "ui/videoTab.h"
+#include "ui/audioTab.h"
+#include "systems/audioManager.h"
+#include "rendering/hud.h"
+#include "map/propsbehavior.h"
+#include "map/minimap.h"
 #include "raylib.h"
 #include "raymath.h"
 #include <cstdio>
 #include <filesystem>
+
+/**
+ * @brief Batas atas delta time per frame untuk mencegah lompatan besar
+ */
+static const float MAX_DELTA_TIME = 0.05f;
 
 /**
  * @brief Global instances for menu systems
@@ -58,13 +65,27 @@ static void TimestampLog(int msgType, const char *text, va_list args)
     const char *level = "";
     switch (msgType)
     {
-        case LOG_TRACE: level = "TRACE"; break;
-        case LOG_DEBUG: level = "DEBUG"; break;
-        case LOG_INFO:  level = "INFO"; break;
-        case LOG_WARNING: level = "WARNING"; break;
-        case LOG_ERROR: level = "ERROR"; break;
-        case LOG_FATAL: level = "FATAL"; break;
-        default: level = "UNKNOWN"; break;
+    case LOG_TRACE:
+        level = "TRACE";
+        break;
+    case LOG_DEBUG:
+        level = "DEBUG";
+        break;
+    case LOG_INFO:
+        level = "INFO";
+        break;
+    case LOG_WARNING:
+        level = "WARNING";
+        break;
+    case LOG_ERROR:
+        level = "ERROR";
+        break;
+    case LOG_FATAL:
+        level = "FATAL";
+        break;
+    default:
+        level = "UNKNOWN";
+        break;
     }
 
     printf("%02d:%02d:%02d.%03d %s: %s\n", hours, minutes, seconds, millis, level, buf);
@@ -99,20 +120,21 @@ int main()
     state.assetsLoaded = false;
     state.enteredLoading = false;
 
-    // Step 5: init options screen (hidden initially)
-    optionsScreen.Show();
+    // Muat pengaturan video SEBELUM init options screen
+    LoadVideoSettings(&state);
+
+    // Step 5: init options screen (hidden initially) — sync dari state yang udah di-load
+    optionsScreen.Show(&state);
     optionsScreen.Hide();
 
     // Step 6: init main menu (needed for menu buttons to render)
     InitMainMenu(&state);
 
-    InitFonts();
-
     // Migrasi satu kali: saves/settings.json -> saves/settings/keybindsTab.json
     {
         namespace fs = std::filesystem;
         fs::create_directories("saves/settings");
-        const char* target = "saves/settings/keybindsTab.json";
+        const char *target = "saves/settings/keybindsTab.json";
         if (fs::exists("saves/settings.json"))
         {
             fs::rename("saves/settings.json", target);
@@ -129,66 +151,90 @@ int main()
     if (!keybindManager.LoadFromFile("saves/settings/keybindsTab.json"))
         keybindManager.SaveToFile("saves/settings/keybindsTab.json");
 
-    // Muat pengaturan video
-    LoadVideoSettings(&state);
+    AudioManager::Init();
+
+    /*── Startup Audio Workflow ─────────────────────────────────────────────
+     * 1. LoadAudioAssets() — muat semua 7 music track dari disk.
+     *    Self-cleaning (UnloadMusic dulu), aman dipanggil ulang nanti.
+     * 2. Video screen main → PlayTrack("MainMenu") → MainMenu-Startup.mp3
+     * 3. MainMenu-Startup selesai → auto-transition MainMenu-Loop.mp3
+     *    (via AudioManager::Update auto-switch logic)
+     * 4. User klik Start Game → HandleInitialLoad panggil LoadAudioAssets()
+     *    lagi (UnloadMusic + LoadMusicStream) — reload fresh untuk gameplay.
+     * 5. Return-to-menu → LoadAudioAssets() reload menu tracks.
+     *──────────────────────────────────────────────────────────────────────*/
+    AudioManager::LoadAudioAssets();
 
     // Muat pengaturan audio
     LoadAudioSettings();
 
-    // Inisialisasi AudioManager dan muat aset audio
-    AudioManager::Init();
-    AudioManager::LoadAudioAssets();
-
     float accumulator = 0.0f;
 
-    // Main Game Loop
     while (!WindowShouldClose())
     {
-        // Update audio system setiap frame (UpdateMusicStream + auto-switch track)
         AudioManager::Update(state.currentScreen);
+        // Boss music ambient — deteksi proximity, play/stop boss track
+        UpdateBossMusic();
 
-        // ===== State: VIDEO (intro saat startup) =====
+        if (IsKeyPressed(keybindManager.GetKeycode(TOGGLE_FULLSCREEN)))
+        {
+            ToggleFullscreenMode();
+        }
+
+        // State: VIDEO (intro saat startup)
         if (state.currentScreen == VIDEO)
         {
-            // Muat dan putar video hanya sekali saat pertama masuk
+            enum class VPhase : uint8_t
+            {
+                INTRODUCTION,
+                DONE
+            };
+            static VPhase videoPhase = VPhase::INTRODUCTION;
             static bool videoStarted = false;
+
             if (!videoStarted)
             {
+                if (videoPhase == VPhase::INTRODUCTION)
+                {
+                    videoScreen.SetVideoPath("assets/video/intro/IntroIntroductions.mkv");
+                    AudioManager::PlayTrack("MainMenu");
+                }
+                videoScreen.SetVolume(AudioManager::GetVideoVolume());
                 videoScreen.LoadAndPlay();
                 videoStarted = true;
             }
 
-            // Delta time, cap maks 1/20 detik biar ga loncat jauh
             float deltaTime = GetFrameTime();
-            if (deltaTime > 0.05f)
-                deltaTime = 0.05f;
+            if (deltaTime > MAX_DELTA_TIME)
+                deltaTime = MAX_DELTA_TIME;
 
-            // Update video; jika selesai/skip -> pindah ke MAIN_MENU
+            videoScreen.SetVolume(AudioManager::GetVideoVolume());
+
             if (videoScreen.Update(deltaTime))
             {
                 videoScreen.Unload();
+                videoPhase = VPhase::DONE;
                 state.currentScreen = MAIN_MENU;
                 videoStarted = false;
             }
 
-            if (WindowShouldClose()) break;
+            if (WindowShouldClose())
+                break;
 
-            // Render video fullscreen (tanpa virtual screen biar ga distretch)
             BeginDrawing();
             ClearBackground(BLACK);
             videoScreen.Draw();
             EndDrawing();
         }
-        // ===== State: MAIN_MENU =====
         else if (state.currentScreen == MAIN_MENU)
         {
             UpdateGame(&state);
             UpdateMainMenu(&state);
-            if (WindowShouldClose()) break;
+            if (WindowShouldClose())
+                break;
             RenderMainMenuToVirtualScreen(&state);
             DrawRenderWindows(&state);
         }
-        // ===== State: LOADING =====
         else if (state.currentScreen == LOADING)
         {
             // Initialize loading screen on first entry or after returning from MAIN_MENU
@@ -199,7 +245,8 @@ int main()
                 InitLoadingScreen(&state);
             }
             UpdateLoadingScreen(&state);
-            if (WindowShouldClose()) break;
+            if (WindowShouldClose())
+                break;
             RenderLoadingScreen(&state);
             DrawRenderWindows(&state);
         }
@@ -209,12 +256,15 @@ int main()
             if (!optionsScreen.IsActive())
             {
                 optionsScreen.SetReturnScreen(state.previousScreen);
-                optionsScreen.Show();
+                optionsScreen.Show(&state);
             }
             UpdateGame(&state);
             bool mouseClicked = IsMouseButtonPressed(MOUSE_LEFT_BUTTON);
             optionsScreen.Update(&state, GetVirtualMousePosition(&state), mouseClicked);
-            if (WindowShouldClose()) break;
+            if (state.currentScreen == MAIN_MENU)
+                InitMainMenu(&state);
+            if (WindowShouldClose())
+                break;
             BeginTextureMode(state.Dungeon);
             DrawMenuBackground();
             optionsScreen.Draw(GetVirtualMousePosition(&state));
@@ -265,7 +315,7 @@ int main()
                 autosaveTimer += frameTime;
                 if (autosaveTimer >= 60.0f)
                 {
-                    SaveManager::SaveAutosave(g_ActiveSaveSlot);
+                    SaveManager::SaveAutosave(-1);
                     autosaveTimer = 0.0f;
                 }
             }
@@ -279,7 +329,9 @@ int main()
                 {
                     UpdateLogicAll();
                     if (PlayerInstance.Anim.isDead)
+                    {
                         state.currentScreen = GAME_OVER;
+                    }
                 }
                 accumulator -= Time::DELTA_TIME;
             }
@@ -289,6 +341,9 @@ int main()
             {
                 signManager.DismissDialog();
             }
+
+            // Update minimap setelah logic player — biar UpdateView pake posisi player terbaru
+            MinimapSystem::Update();
 
             // render hanya jika masih dalam PLAY state
             if (state.currentScreen == PLAY)
@@ -301,7 +356,8 @@ int main()
         else if (state.currentScreen == GAME_OVER)
         {
             UpdateGameOverScreen(&state);
-            if (WindowShouldClose()) break;
+            if (WindowShouldClose())
+                break;
             RenderGameOverScreen(&state);
             DrawRenderWindows(&state);
         }
@@ -316,7 +372,10 @@ int main()
             UpdateGame(&state);
             bool mouseClicked = IsMouseButtonPressed(MOUSE_LEFT_BUTTON);
             saveLoadScreen.Update(&state, GetVirtualMousePosition(&state), mouseClicked);
-            if (WindowShouldClose()) break;
+            if (state.currentScreen == MAIN_MENU)
+                InitMainMenu(&state);
+            if (WindowShouldClose())
+                break;
             BeginTextureMode(state.Dungeon);
             DrawMenuBackground();
             saveLoadScreen.Draw(GetVirtualMousePosition(&state));
@@ -334,8 +393,10 @@ int main()
     // Shutdown audio sebelum close audio device
     AudioManager::Shutdown();
 
+    // Shutdown sistem tersier (sebelum GameShutDown)
+    MinimapSystem::Shutdown();
+
     // Shutdown
     GameShutDown(&state);
     return 0;
 }
- 

@@ -4,7 +4,7 @@
  "layers":[
         {
          "compression":"",
-         "data":"vgEAAL4BAAC+AQAAvgEAAL4BAAC8AQAAvgEAAA==",
+         "data":"vgEAAL4BAAC+AQAAvAEAAL4BAAC8AQAAvgEAAA==",
          "encoding":"base64",
          "height":1,
          "id":1,
@@ -43,8 +43,8 @@
                  "rotation":0,
                  "type":"",
                  "visible":true,
-                 "width":32,
-                 "x":0,
+                 "width":64,
+                 "x":-32,
                  "y":0
                 }, 
                 {
@@ -55,7 +55,7 @@
                  "rotation":0,
                  "type":"",
                  "visible":true,
-                 "width":32,
+                 "width":64,
                  "x":192,
                  "y":0
                 }],

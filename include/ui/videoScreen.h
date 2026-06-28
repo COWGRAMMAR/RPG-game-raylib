@@ -31,13 +31,13 @@ public:
      * @brief Set path file video yang akan diputar
      * @param path Path ke file video (relatif terhadap root project)
      */
-    void SetVideoPath(const std::string& path);
+    void SetVideoPath(const std::string &path);
 
     /**
      * @brief Dapatkan path file video saat ini
      * @return const std::string&
      */
-    const std::string& GetVideoPath() const;
+    const std::string &GetVideoPath() const;
 
     /**
      * @brief Muat dan mulai putar video
@@ -46,13 +46,18 @@ public:
     bool LoadAndPlay();
 
     /**
+     * @brief Set volume playback video (0.0f - 1.0f)
+     */
+    void SetVolume(float vol);
+
+    /**
      * @brief Hentikan dan bersihkan video
      */
     void Unload();
 
 private:
-    video::VideoPlayer m_player;       ///< Player video
-    std::string        m_videoPath;    ///< Path file video
-    bool               m_skipRequested;///< true jika user minta skip
-    bool               m_loaded;       ///< true jika video sudah dimuat
+    video::VideoPlayer m_player; ///< Player video
+    std::string m_videoPath;     ///< Path file video
+    bool m_skipRequested;        ///< true jika user minta skip
+    bool m_loaded;               ///< true jika video sudah dimuat
 };

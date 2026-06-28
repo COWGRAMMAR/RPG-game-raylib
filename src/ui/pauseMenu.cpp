@@ -9,18 +9,22 @@
 #include <filesystem>
 #include <system_error>
 
-#include "../../include/systems/keybindManager.h"
-#include "../../include/rendering/fonts.h"
-#include "../../include/ui/pauseMenu.h"
-#include "../../include/ui/popup.h"
-#include "../../include/ui/videoTab.h"
-#include "../../include/ui/audioTab.h"
-#include "../../include/ui/keybindsTab.h"
-#include "../../include/ui/saveLoadScreen.h"
-#include "../../include/core/game_state_saver.h"
-#include "../../include/core/savemanager.h"
-#include "../../include/map/worldgenio.h"
-#include "../../include/core/seedmanager.h"
+#include "systems/keybindManager.h"
+#include "rendering/fonts.h"
+#include "rendering/hud.h"
+#include "ui/pauseMenu.h"
+#include "ui/popup.h"
+#include "ui/videoTab.h"
+#include "ui/audioTab.h"
+#include "ui/keybindsTab.h"
+#include "ui/saveLoadScreen.h"
+#include "ui/mainMenu.h"
+#include "core/game_state_saver.h"
+#include "map/minimap.h"
+#include "systems/audioManager.h"
+#include "core/savemanager.h"
+#include "map/worldgenio.h"
+#include "core/seedmanager.h"
 #include "entities.h"
 #include "item.h"
 #include "propsbehavior.h"
@@ -28,6 +32,7 @@
 #include "enemy_ai.h"
 #include "map.h"
 #include "mapLogic.h"
+#include "systems/combatTurn.h"
 
 /*==============================================================================
  * External References
@@ -43,9 +48,9 @@ static Popup savePopup("Game Saved!", "OK", 0.7F);
 static Popup saveErrorPopup("Failed to save game.", "OK", 0.7F);
 static Popup loadConfirmPopup("Load from save? Current progress will be lost.", "Load Save", "Cancel", 0.7f);
 static Popup noSavePopup("No save file found.", "OK", 0.7F);
-static Popup pauseCorruptPopup("Save file corrupted or unreadable.", "OK", 0.7f);
+static Popup pauseCorruptPopup("Save data is corrupted or incompatible.", "Yes, Delete", "No", 0.7f);
 static Popup returnConfirmPopup("Return to main menu?", "Continue", "Cancel", 0.7f);
-static Popup restartConfirmPopup("Restart Run?", "Restart", "Cancel", 0.7f);
+static Popup restartConfirmPopup("Restart run?", "Restart", "Cancel", 0.7f);
 
 /*==============================================================================
  * OptionsScreen Implementation
@@ -53,7 +58,7 @@ static Popup restartConfirmPopup("Restart Run?", "Restart", "Cancel", 0.7f);
 
 /**
  * @brief Constructor
- * 
+ *
  * Menginisialisasi semua tombol tab, tombol back, dan dimensi awal.
  */
 OptionsScreen::OptionsScreen() : active(false), texturesLoaded(false), returnScreen(PLAY), selectedTab(0), showFPS(false), width(0), height(0), startX(0), startY(0), bgTexture({0})
@@ -65,7 +70,8 @@ OptionsScreen::OptionsScreen() : active(false), texturesLoaded(false), returnScr
  */
 OptionsScreen::~OptionsScreen()
 {
-    if (bgTexture.id != 0) {
+    if (bgTexture.id != 0)
+    {
         UnloadTexture(bgTexture);
     }
 }
@@ -73,18 +79,21 @@ OptionsScreen::~OptionsScreen()
 /**
  * @brief Menampilkan layar options
  */
-void OptionsScreen::Show()
+void OptionsScreen::Show(GameState *state)
 {
     active = true;
-    if (!texturesLoaded) {
+    if (!texturesLoaded)
+    {
         Image img = LoadImage("assets/textures/settingsButt/settingsBG.png");
-        if (img.data != nullptr) {
+        if (img.data != nullptr)
+        {
             bgTexture = LoadTextureFromImage(img);
             UnloadImage(img);
         }
         texturesLoaded = true;
     }
     CalculateDimensions();
+    showFPS = state->showFPS;
 }
 
 /**
@@ -93,6 +102,8 @@ void OptionsScreen::Show()
 void OptionsScreen::Hide()
 {
     active = false;
+    UnloadKeybindsTextures();
+    UnloadAudioTextures();
 }
 
 /**
@@ -116,20 +127,25 @@ std::vector<ResOption> GetAvailableResolutions()
     int maxWidth = static_cast<int>(monitor.width);
     int maxHeight = static_cast<int>(monitor.height);
 
-    if (1280 <= maxWidth && 720 <= maxHeight) {
+    if (1280 <= maxWidth && 720 <= maxHeight)
+    {
         options.push_back({1280, 720, "720p"});
     }
-    if (1920 <= maxWidth && 1080 <= maxHeight) {
+    if (1920 <= maxWidth && 1080 <= maxHeight)
+    {
         options.push_back({1920, 1080, "1080p"});
     }
-    if (2560 <= maxWidth && 1440 <= maxHeight) {
+    if (2560 <= maxWidth && 1440 <= maxHeight)
+    {
         options.push_back({2560, 1440, "1440p"});
     }
-    if (3840 <= maxWidth && 2160 <= maxHeight) {
+    if (3840 <= maxWidth && 2160 <= maxHeight)
+    {
         options.push_back({3840, 2160, "4K"});
     }
 
-    if (options.empty()) {
+    if (options.empty())
+    {
         options.push_back({1280, 720, "720p"});
     }
 
@@ -138,7 +154,7 @@ std::vector<ResOption> GetAvailableResolutions()
 
 /**
  * @brief Menghitung dimensi dan membuat elemen UI
- * 
+ *
  * Menggunakan Approach B: selalu mulai dari opsi pertama (720p)
  * tanpa melakukan auto-detect resolusi saat ini.
  */
@@ -155,12 +171,12 @@ void OptionsScreen::CalculateDimensions()
 
     int tabY = startY + 15 + 120;
 
-    const char* tabFiles[3] = {
+    const char *tabFiles[3] = {
         "assets/textures/settingsButt/settingsVideo.png",
         "assets/textures/settingsButt/settingsAudio.png",
-        "assets/textures/settingsButt/settingsKeybinds.png"
-    };
-    for (int i = 0; i < 3; i++) {
+        "assets/textures/settingsButt/settingsKeybinds.png"};
+    for (int i = 0; i < 3; i++)
+    {
         float cx = static_cast<float>(startX + width / 2 + (i - 1) * 302);
         float cy = static_cast<float>(tabY + tabHeight / 2);
         tabButtons[i] = buttonImage(tabFiles[i], Vector2{cx, cy}, 1.0F, 0.7F);
@@ -172,7 +188,8 @@ void OptionsScreen::CalculateDimensions()
                 static_cast<float>(startY + height - 53)},
         1.0F, 0.7F);
 
-    if (resolutionOptions.empty()) {
+    if (resolutionOptions.empty())
+    {
         resolutionOptions = GetAvailableResolutions();
     }
 
@@ -188,7 +205,7 @@ void OptionsScreen::CalculateDimensions()
         labelFontSize,
         isFullscreen ? GREEN : RED,
         0.7F,
-        fontLoadingTitle);
+        GetOrLoad(FontId::LOADING_TITLE));
 
     fpsButton = buttonTxt(
         showFPS ? "ON" : "OFF",
@@ -197,26 +214,19 @@ void OptionsScreen::CalculateDimensions()
         labelFontSize,
         showFPS ? GREEN : GRAY,
         0.7F,
-        fontLoadingTitle);
+        GetOrLoad(FontId::LOADING_TITLE));
 
-    // tombol Reset Tab / Reset All pakai fontLoadingTitle (bold)
-    resetTabButton = buttonTxt(
-        "Reset Tab",
-        startX + 60,
-        startY + height - 70,
-        20,
-        ORANGE,
-        0.7F,
-        fontLoadingTitle);
+    resetTabButton = buttonImage( // basch-3: diganti dari buttonTxt ke buttonImage
+        "assets/textures/settingsButt/resetTab.png",
+        Vector2{static_cast<float>(startX + 121),
+                static_cast<float>(startY + height - 54)},
+        1.0F, 0.7F);
 
-    resetOptionsButton = buttonTxt(
-        "Reset All",
-        startX + 220,
-        startY + height - 70,
-        20,
-        ORANGE,
-        0.7F,
-        fontLoadingTitle);
+    resetOptionsButton = buttonImage( // basch-3: diganti dari buttonTxt ke buttonImage
+        "assets/textures/settingsButt/resetAll.png",
+        Vector2{static_cast<float>(startX + 282),
+                static_cast<float>(startY + height - 54)},
+        1.0F, 0.7F);
 }
 
 /**
@@ -225,45 +235,54 @@ void OptionsScreen::CalculateDimensions()
  * @param mousePosition Posisi mouse saat ini
  * @param mouseClicked Status klik mouse
  */
-void OptionsScreen::Update(GameState* state, Vector2 mousePosition, bool mouseClicked)
+void OptionsScreen::Update(GameState *state, Vector2 mousePosition, bool mouseClicked)
 {
-    if (!active) {
+    if (!active)
+    {
         return;
-}
+    }
 
-    if (backButton.isClicked(mousePosition, mouseClicked)) {
+    if (backButton.isClicked(mousePosition, mouseClicked))
+    {
         active = false;
         state->currentScreen = returnScreen;
         return;
     }
 
-    for (int i = 0; i < 3; i++) {
-        if (tabButtons[i].isClicked(mousePosition, mouseClicked)) {
+    for (int i = 0; i < 3; i++)
+    {
+        if (tabButtons[i].isClicked(mousePosition, mouseClicked))
+        {
             selectedTab = i;
             CalculateDimensions();
             return;
         }
     }
 
-    if (resetTabButton.isClicked(mousePosition, mouseClicked)) {
-        const char* paths[] = {
+    if (resetTabButton.isClicked(mousePosition, mouseClicked))
+    {
+        const char *paths[] = {
             "saves/settings/videoTab.json",
             "saves/settings/audioTab.json",
-            "saves/settings/keybindsTab.json"
-        };
+            "saves/settings/keybindsTab.json"};
         std::error_code ec;
         std::filesystem::remove(paths[selectedTab], ec);
 
-        if (selectedTab == 0) {
+        if (selectedTab == 0)
+        {
             if (IsWindowFullscreen())
                 ToggleFullscreenMode();
             state->showFPS = false;
             showFPS = false;
-        } else if (selectedTab == 1) {
-            g_sliders = {100, 80, 100, 100, false, -1};
-            AudioManager::SetVolumesFromPct(100, 80, 100, 100);
+        }
+        else if (selectedTab == 1)
+        {
+            g_sliders = {100, 100, 100, 100, false, -1};
+            AudioManager::SetVolumesFromPct(100, 100, 100, 100);
             SaveAudioSettings(g_sliders.masterVolume, g_sliders.musicVolume, g_sliders.sfxVolume, g_sliders.videoVolume);
-        } else if (selectedTab == 2) {
+        }
+        else if (selectedTab == 2)
+        {
             keybindManager.ResetDefaults();
             keybindManager.SaveToFile(paths[2]);
         }
@@ -271,14 +290,15 @@ void OptionsScreen::Update(GameState* state, Vector2 mousePosition, bool mouseCl
         return;
     }
 
-    if (resetOptionsButton.isClicked(mousePosition, mouseClicked)) {
-        const char* allPaths[] = {
+    if (resetOptionsButton.isClicked(mousePosition, mouseClicked))
+    {
+        const char *allPaths[] = {
             "saves/settings/videoTab.json",
             "saves/settings/audioTab.json",
-            "saves/settings/keybindsTab.json"
-        };
+            "saves/settings/keybindsTab.json"};
         std::error_code ec;
-        for (const auto& p : allPaths) {
+        for (const auto &p : allPaths)
+        {
             std::filesystem::remove(p, ec);
         }
 
@@ -286,8 +306,8 @@ void OptionsScreen::Update(GameState* state, Vector2 mousePosition, bool mouseCl
             ToggleFullscreenMode();
         state->showFPS = false;
         showFPS = false;
-        g_sliders = {100, 80, 100, 100, false, -1};
-        AudioManager::SetVolumesFromPct(100, 80, 100, 100);
+        g_sliders = {100, 100, 100, 100, false, -1};
+        AudioManager::SetVolumesFromPct(100, 100, 100, 100);
         SaveAudioSettings(g_sliders.masterVolume, g_sliders.musicVolume, g_sliders.sfxVolume, g_sliders.videoVolume);
         keybindManager.ResetDefaults();
         keybindManager.SaveToFile("saves/settings/keybindsTab.json");
@@ -295,14 +315,17 @@ void OptionsScreen::Update(GameState* state, Vector2 mousePosition, bool mouseCl
         return;
     }
 
-    if (selectedTab == 0) {
-        if (UpdateVideoTab(fullscreenButton, fpsButton, state, mousePosition, mouseClicked)) {
+    if (selectedTab == 0)
+    {
+        if (UpdateVideoTab(fullscreenButton, fpsButton, state, mousePosition, mouseClicked))
+        {
             showFPS = state->showFPS;
             CalculateDimensions();
         }
     }
 
-    if (selectedTab == 1) {
+    if (selectedTab == 1)
+    {
         UpdateAudioTab(g_sliders, mousePosition, mouseClicked, startX + 89, startY + 121);
     }
 }
@@ -313,19 +336,24 @@ void OptionsScreen::Update(GameState* state, Vector2 mousePosition, bool mouseCl
  */
 void OptionsScreen::Draw(Vector2 mousePosition)
 {
-    if (!active) {
+    if (!active)
+    {
         return;
     }
 
-    if (bgTexture.id != 0) {
+    if (bgTexture.id != 0)
+    {
         DrawTexture(bgTexture, startX, startY, WHITE);
-    } else {
+    }
+    else
+    {
         Color bgColor = {40, 40, 40, 230};
         DrawRectangleRec(backgroundRect, bgColor);
         DrawRectangleLinesEx(backgroundRect, 2, WHITE);
     }
 
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < 3; i++)
+    {
         tabButtons[i].Draw(mousePosition);
     }
 
@@ -336,35 +364,23 @@ void OptionsScreen::Draw(Vector2 mousePosition)
         static_cast<float>(startX + contentOX + 20),
         static_cast<float>(startY + 200),
         static_cast<float>(width - 2 * (contentOX + 20)),
-        static_cast<float>(height - 323)
-    };
+        static_cast<float>(height - 323)};
     DrawRectangleRec(contentRect, {0, 0, 0, 51});
 
-    switch (selectedTab) {
-        case 0: DrawVideoTab(fullscreenButton, fpsButton, mousePosition, startX + contentOX, startY + contentOY); break;
-        case 1: DrawAudioTab(mousePosition, startX + contentOX, startY + contentOY); break;
-        case 2: DrawKeybindsTab(mousePosition, startX + contentOX, startY + contentOY); break;
-    }
-
-    // background hitam di belakang tombol Reset Tab / Reset All agar terbaca
+    switch (selectedTab)
     {
-        Rectangle tabRect = resetTabButton.GetBounds();
-        Rectangle resetAllRect = resetOptionsButton.GetBounds();
-        int pad = 6;
-        DrawRectangle(
-            static_cast<int>(tabRect.x) - pad,
-            static_cast<int>(tabRect.y) - pad,
-            static_cast<int>(tabRect.width) + pad * 2,
-            static_cast<int>(tabRect.height) + pad * 2,
-            BLACK);
-        DrawRectangle(
-            static_cast<int>(resetAllRect.x) - pad,
-            static_cast<int>(resetAllRect.y) - pad,
-            static_cast<int>(resetAllRect.width) + pad * 2,
-            static_cast<int>(resetAllRect.height) + pad * 2,
-            BLACK);
+    case 0:
+        DrawVideoTab(fullscreenButton, fpsButton, mousePosition, startX + contentOX, startY + contentOY);
+        break;
+    case 1:
+        DrawAudioTab(mousePosition, startX + contentOX, startY + contentOY);
+        break;
+    case 2:
+        DrawKeybindsTab(mousePosition, startX + contentOX, startY + contentOY, (int)contentRect.width);
+        break;
     }
 
+    // basch-3: background hitam di belakang tombol dihapus (tidak perlu untuk buttonImage)
     resetTabButton.Draw(mousePosition);
     resetOptionsButton.Draw(mousePosition);
 }
@@ -373,15 +389,14 @@ void OptionsScreen::Draw(Vector2 mousePosition)
  * PauseMenu Implementation
  *==============================================================================*/
 
-static const char* BUTTON_PATHS[7] = {
+static const char *BUTTON_PATHS[7] = {
     "assets/textures/pauseButt/pause-resume.png",
     "assets/textures/pauseButt/pause-save.png",
     "assets/textures/pauseButt/pause-load.png",
     "assets/textures/pauseButt/pause-settings.png",
     "assets/textures/pauseButt/pause-restart.png",
     "assets/textures/pauseButt/pause-tomain.png",
-    "assets/textures/pauseButt/pause-exit.png"
-};
+    "assets/textures/pauseButt/pause-exit.png"};
 
 /**
  * @brief Constructor
@@ -419,9 +434,11 @@ void PauseMenu::LoadTextures()
     restartConfirmPopup.SetBackgroundTexture("assets/textures/pauseButt/load-notif.png");
     restartConfirmPopup.SetTextYOffset(15);
     restartConfirmPopup.SetButtonYOffset(-20);
+    restartConfirmPopup.SetTextColor(BLACK); // basch-3: teks hitam
     // offset khusus returnConfirmPopup agar teks & tombol sejajar
     returnConfirmPopup.SetTextYOffset(15);
     returnConfirmPopup.SetButtonYOffset(-15);
+    returnConfirmPopup.SetTextColor(BLACK); // basch-3: teks hitam
 
     Image img = LoadImage("assets/textures/pauseButt/pause-bg.png");
     bgTexture = LoadTextureFromImage(img);
@@ -440,7 +457,7 @@ void PauseMenu::LoadTextures()
     float pairGap = 105.0F;
     float totalBtnHeight = 5.0F * btnHeight + 4.0F * gap;
     // startY ditambah 40px agar tombol pause lebih ke bawah (25 → 65)
-    float startY = position.y + (height - totalBtnHeight) / 2.0F + 65.0F;
+    float startY = position.y + (height - totalBtnHeight) / 2.0F + 35.0F;
 
     // Row 0: Resume (wide, centered)
     {
@@ -514,45 +531,46 @@ void PauseMenu::CalculateDimensions()
  * @param buttonIndex Index tombol yang diklik (0-5)
  * @param state Pointer ke GameState
  */
-void PauseMenu::HandleButtonClick(int buttonIndex, GameState* state)
+void PauseMenu::HandleButtonClick(int buttonIndex, GameState *state)
 {
-    switch (buttonIndex) {
-        case 0: // Resume
-            Hide();
-            break;
-        case 1:
-            // Save Game — buka SaveLoadScreen dalam mode save
-            state->previousScreen = PLAY;
-            saveLoadScreen.SetMode(SaveLoadMode::SAVE_MODE);
-            state->currentScreen = SAVE_LOAD;
-            Hide();
-            break;
-        case 2:
-            // Load Game — buka SaveLoadScreen dalam mode load
-            state->previousScreen = PLAY;
-            saveLoadScreen.SetMode(SaveLoadMode::LOAD_MODE);
-            state->currentScreen = SAVE_LOAD;
-            Hide();
-            break;
-        case 3: // Settings
-            state->currentScreen = OPTIONS;
-            state->previousScreen = PLAY;
-            Hide();
-            break;
-        case 4: // Restart
-            restartConfirmPopup.SetSubMessage("Current progress will be lost.");
-            restartConfirmPopup.Show();
-            break;
-        case 5: // To Main Menu
-            returnConfirmPopup.SetSubMessage("Unsaved progress will be lost.");
-            returnConfirmPopup.Show();
-            break;
-        case 6: // Exit Game
-            SaveGameState(state);
-            CloseWindow();
-            break;
-        default:
-            break;
+    switch (buttonIndex)
+    {
+    case 0: // Resume
+        Hide();
+        break;
+    case 1:
+        // Save Game — buka SaveLoadScreen dalam mode save
+        state->previousScreen = PLAY;
+        saveLoadScreen.SetMode(SaveLoadMode::SAVE_MODE);
+        state->currentScreen = SAVE_LOAD;
+        Hide();
+        break;
+    case 2:
+        // Load Game — buka SaveLoadScreen dalam mode load
+        state->previousScreen = PLAY;
+        saveLoadScreen.SetMode(SaveLoadMode::LOAD_MODE);
+        state->currentScreen = SAVE_LOAD;
+        Hide();
+        break;
+    case 3: // Settings
+        state->currentScreen = OPTIONS;
+        state->previousScreen = PLAY;
+        Hide();
+        break;
+    case 4: // Restart
+        restartConfirmPopup.SetSubMessage("Current progress will be lost.");
+        restartConfirmPopup.Show();
+        break;
+    case 5: // To Main Menu
+        returnConfirmPopup.SetSubMessage("Unsaved progress will be lost.");
+        returnConfirmPopup.Show();
+        break;
+    case 6: // Exit Game
+        WorldgenIO::CleanupOrphanedSlots();
+        CloseWindow();
+        break;
+    default:
+        break;
     }
 }
 
@@ -562,73 +580,116 @@ void PauseMenu::HandleButtonClick(int buttonIndex, GameState* state)
  * @param mousePosition Posisi mouse saat ini
  * @param mouseClicked Status klik mouse
  */
-void PauseMenu::Update(GameState* state, Vector2 mousePosition, bool mouseClicked)
+void PauseMenu::Update(GameState *state, Vector2 mousePosition, bool mouseClicked)
 {
-    if (!active) {
+    if (!active)
+    {
         return;
     }
 
-    if (savePopup.IsActive()) {
+    if (savePopup.IsActive())
+    {
         savePopup.Update(mousePosition, mouseClicked);
         return;
     }
 
-    if (saveErrorPopup.IsActive()) {
+    if (saveErrorPopup.IsActive())
+    {
         saveErrorPopup.Update(mousePosition, mouseClicked);
         return;
     }
 
-    if (loadConfirmPopup.IsActive()) {
+    if (loadConfirmPopup.IsActive())
+    {
         loadConfirmPopup.Update(mousePosition, mouseClicked);
-        if (loadConfirmPopup.IsConfirmClicked()) {
-            if (ReadSaveFile(GetSlotPath(g_ActiveSaveSlot, "manual")))
+        if (loadConfirmPopup.IsConfirmClicked())
+        {
             {
-                loadConfirmPopup.Hide();
-                state->enteredLoading = false;
-                state->loadingStage = 0;
-                state->loadingProgress = 0.0F;
-                state->loadingComplete = false;
-                state->currentScreen = LOADING;
-                Hide();
-            }
-            else
-            {
-                loadConfirmPopup.Hide();
-                DeleteSaveFile(GetSlotPath(g_ActiveSaveSlot, "manual"));
-                pauseCorruptPopup.Show();
+                bool snapshotValid = SaveManager::HasManual(g_ActiveSaveSlot);
+                if (snapshotValid)
+                {
+                    GameSnapshot snap = SaveManager::LoadManual(g_ActiveSaveSlot);
+                    snapshotValid = (snap.version == GameSnapshot::SNAPSHOT_VERSION);
+                }
+
+                if (snapshotValid)
+                {
+                    loadConfirmPopup.Hide();
+                    state->enteredLoading = false;
+                    state->loadingStage = 0;
+                    state->loadingProgress = 0.0F;
+                    state->loadingComplete = false;
+                    state->currentScreen = LOADING;
+                    Hide();
+                }
+                else
+                {
+                    loadConfirmPopup.Hide();
+                    pauseCorruptPopup.SetSubMessage("This save data will be deleted.");
+                    pauseCorruptPopup.Show();
+                }
             }
         }
         return;
     }
 
-    if (noSavePopup.IsActive()) {
+    if (noSavePopup.IsActive())
+    {
         noSavePopup.Update(mousePosition, mouseClicked);
         return;
     }
 
-    if (pauseCorruptPopup.IsActive()) {
+    if (pauseCorruptPopup.IsActive())
+    {
         pauseCorruptPopup.Update(mousePosition, mouseClicked);
+        if (pauseCorruptPopup.IsConfirmClicked())
+            SaveManager::DeleteSlot(g_ActiveSaveSlot);
         return;
     }
 
-    if (returnConfirmPopup.IsActive()) {
+    if (returnConfirmPopup.IsActive())
+    {
         returnConfirmPopup.Update(mousePosition, mouseClicked);
-        if (returnConfirmPopup.IsConfirmClicked()) {
+        if (returnConfirmPopup.IsConfirmClicked())
+        {
+            InputInstance.ResetMenuFlags();
+            UnloadHUDTextures();
+
+            // ── Free gameplay resources sebelum kembali ke menu ──
+            TurnCombat::Shutdown();
+            Entities::Clear();
+            Entities::ClearDeadEntities();
+            UnloadMap();
+            mapHistoryStack.Clear();
+            MinimapSystem::Shutdown();
+            g_Minimap.fogCache.clear();
+
+            CloseTextures();
+            AudioManager::LoadAudioAssets();
+            state->assetsLoaded = false;
             state->enteredLoading = false;
             state->loadingStage = 0;
             state->loadingProgress = 0.0F;
             state->loadingComplete = false;
+            WorldgenIO::CleanupOrphanedSlots();
+            InitMainMenu(state);
             state->currentScreen = MAIN_MENU;
+            AudioManager::PlayTrack("MainMenu-Loop");
+            AudioManager::ResetToScreenTrack();
             Hide();
         }
         return;
     }
 
-    if (restartConfirmPopup.IsActive()) {
+    if (restartConfirmPopup.IsActive())
+    {
         restartConfirmPopup.Update(mousePosition, mouseClicked);
-        if (restartConfirmPopup.IsConfirmClicked()) {
+        if (restartConfirmPopup.IsConfirmClicked())
+        {
             restartConfirmPopup.Hide();
-            // Clear semua runtime state
+
+            // ── Clear runtime state ──
+            TurnCombat::Shutdown();
             Entities::Clear();
             itemData.activeItems.clear();
             ClearTileProps();
@@ -640,53 +701,44 @@ void PauseMenu::Update(GameState* state, Vector2 mousePosition, bool mouseClicke
             barrierManager.Clear();
             mapHistoryStack.Clear();
 
-            // Load initial snapshot untuk restore state enemies & items
-            // ApplyPreSpawn HARUS sebelum SpawnEnemiesFromMap agar dead entities
-            // sudah terdaftar sebelum enemy spawn logic berjalan
+            // Bersihin checkpoint basi dari session sebelumnya
+            SaveManager::ClearWorkspaceCheckpoints();
+
+            // ── Load snapshot: pure runtime workspace (-1) ──
+            GameSnapshot snap;
+            bool hasSnap = false;
+            if (SaveManager::HasInitial(-1))
             {
-                GameSnapshot initialSnap;
-                bool hasInitial = SaveManager::HasInitial(g_ActiveSaveSlot);
-                if (hasInitial)
-                {
-                    initialSnap = SaveManager::LoadInitial(g_ActiveSaveSlot);
-                    SaveManager::ApplyPreSpawn(initialSnap);
-                }
-
-                // Spawn enemies — dead entities sudah diset oleh ApplyPreSpawn
-                SpawnEnemiesFromMap();
-
-                // Fallback: spawn item fresh
-                SpawnItemWave();
-
-                // Apply initial state on top
-                if (hasInitial)
-                    SaveManager::ApplyCheckpointData(initialSnap);
+                snap = SaveManager::LoadInitial(-1);
+                hasSnap = true;
             }
 
-            // Reset & reposition player
-            PlayerInstance.ResetForNewGame();
-            PlayerInstance.Init(state, SPAWN_OBJECT_NAME);
-            TiledHelperFunction.TryGetObjectPositionByName(SPAWN_OBJECT_NAME, state->startSpawnPos);
-            PlayerInstance.hasDroppedItems = false;
-            Entities::Add(&PlayerInstance);
+            // ── Apply unified pipeline ──
+            // 1. ApplyPreSpawn: dead entities + consumed props (SEBELUM spawn)
+            // 2. Spawn: enemies + items pake deterministic UUID (Phase 1)
+            // 3. ApplyPostSpawn: FULL restore — player, enemies, items, kamera, history
+            if (hasSnap)
+                SaveManager::ApplyPreSpawn(snap);
 
-            // Reset camera ke posisi player
-            Vector2 spawnPos = PlayerInstance.GetPosition();
-            camera.target = {spawnPos.x + (FRAME_SIZE / 2.0F), spawnPos.y + (FRAME_SIZE / 2.0F)};
-            camera.offset = {(float)(GameScreenWidth / 2), (float)(GameScreenHeight / 2)};
-            camera.rotation = 0;
-            camera.zoom = 1.0F;
+            SpawnEnemiesFromMap();
+            SpawnItemWave();
 
-            // Re-init world objects & collision
+            if (hasSnap)
+            {
+                Entities::Add(&PlayerInstance);
+                SaveManager::ApplyPostSpawn(snap);
+            }
+            else
+            {
+                Entities::Add(&PlayerInstance);
+            }
+
+            // ── Rebuild collision & flow field ──
             SpawnObject();
             RebuildObstacleCache();
             globalFlowField.Invalidate();
 
-            // Re-capture initial state untuk restart berikutnya
-            {
-                GameSnapshot freshInitial = SaveManager::CaptureSnapshot();
-                SaveManager::SaveInitial(freshInitial, g_ActiveSaveSlot);
-            }
+            // ── JANGAN CaptureSnapshot/SaveInitial — snapshot immutable ──
 
             state->currentScreen = PLAY;
             Hide();
@@ -694,8 +746,10 @@ void PauseMenu::Update(GameState* state, Vector2 mousePosition, bool mouseClicke
         return;
     }
 
-    for (std::uint8_t i = 0; i < 7; i++) {
-        if (buttons[i].isClicked(mousePosition, mouseClicked)) {
+    for (std::uint8_t i = 0; i < 7; i++)
+    {
+        if (buttons[i].isClicked(mousePosition, mouseClicked))
+        {
             HandleButtonClick(i, state);
         }
     }
@@ -707,7 +761,8 @@ void PauseMenu::Update(GameState* state, Vector2 mousePosition, bool mouseClicke
  */
 void PauseMenu::Draw(Vector2 mousePosition)
 {
-    if (!active) {
+    if (!active)
+    {
         return;
     }
 
@@ -717,29 +772,37 @@ void PauseMenu::Draw(Vector2 mousePosition)
 
     DrawTextureV(bgTexture, position, WHITE);
 
-    for (std::uint8_t i = 0; i < 7; i++) {
+    for (std::uint8_t i = 0; i < 7; i++)
+    {
         buttons[i].Draw(mousePosition);
     }
 
-    if (savePopup.IsActive()) {
+    if (savePopup.IsActive())
+    {
         savePopup.Draw(mousePosition);
     }
-    if (saveErrorPopup.IsActive()) {
+    if (saveErrorPopup.IsActive())
+    {
         saveErrorPopup.Draw(mousePosition);
     }
-    if (loadConfirmPopup.IsActive()) {
+    if (loadConfirmPopup.IsActive())
+    {
         loadConfirmPopup.Draw(mousePosition);
     }
-    if (noSavePopup.IsActive()) {
+    if (noSavePopup.IsActive())
+    {
         noSavePopup.Draw(mousePosition);
     }
-    if (pauseCorruptPopup.IsActive()) {
+    if (pauseCorruptPopup.IsActive())
+    {
         pauseCorruptPopup.Draw(mousePosition);
     }
-    if (returnConfirmPopup.IsActive()) {
+    if (returnConfirmPopup.IsActive())
+    {
         returnConfirmPopup.Draw(mousePosition);
     }
-    if (restartConfirmPopup.IsActive()) {
+    if (restartConfirmPopup.IsActive())
+    {
         restartConfirmPopup.Draw(mousePosition);
     }
 }

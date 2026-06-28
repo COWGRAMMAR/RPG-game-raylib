@@ -58,11 +58,12 @@ struct MapObject
  */
 struct TilesetInfo
 {
-    Texture2D texture; // Texture tileset yang sudah dimuat
-    int cols;          // Jumlah kolom tile dalam tileset
-    int spacing;       // Jarak antar tile dalam tileset
-    int firstgid;      // Global ID pertama dari tileset
-    int lastgid;       // Global ID terakhir dari tileset
+    Texture2D texture;   // Texture tileset yang sudah dimuat
+    std::string imagePath; // Path file gambar tileset (referensi Tiled JSON)
+    int cols;            // Jumlah kolom tile dalam tileset
+    int spacing;         // Jarak antar tile dalam tileset
+    int firstgid;        // Global ID pertama dari tileset
+    int lastgid;         // Global ID terakhir dari tileset
 };
 
 /*==============================================================================
@@ -144,21 +145,22 @@ constexpr const char *TRAP_LAYER_NAME = "trap";          // nama layer trap plac
 constexpr const char *ITEM_LAYER_NAME = "item";          // nama layer item placment
 constexpr const char *EXIT_LAYER_NAME = "exit";          // nama layer exit placement
 /** @brief Nama objek spesifik untuk spawn musuh */
-constexpr const char *ENEMY_SPAWN_NORMAL_PIN_OBJECT_NAME = "enemy_spawn_normal_pinpoint"; // Nama object spawn normal pinpoint
-constexpr const char *ENEMY_SPAWN_NORMAL_REC_OBJECT_NAME = "enemy_spawn_normal_rect";     // Nama object rect spawn normal
-constexpr const char *ENEMY_SPAWN_ELITE_PIN_OBJECT_NAME = "enemy_spawn_elite_pinpoint";   // Nama object pinpoint spawn elite
-constexpr const char *ENEMY_SPAWN_ELITE_REC_OBJECT_NAME = "enemy_spawn_elite_rect";       // Nama object rect spawn elite
-constexpr const char *ENEMY_SPAWN_BOSS_OBJECT_NAME = "enemy_spawn_boss";                  // Nama object spawn boss
-constexpr const char *SPAWN_OBJECT_NAME = "spawn";                                        // Nama object spawn player
-constexpr const char *DOOR_TYPE_OBJECT_NAME = "pass";                                     // Type object untuk pintu
-constexpr const char *BARRIER_TYPE_OBJECT_NAME = "barrier";                               // Type object untuk barrier
-constexpr const char *BARRIER_BOSS_TYPE_OBJECT_NAME = "barrier_boss";                     // Type object untuk barrier boss
-constexpr const char *CHEST_TYPE_OBJECT_NAME = "chest";                                   // Type object untuk chest
-constexpr const char *SPIKE_TYPE_OBJECT_NAME = "spike";                                   // Type object unutk spike
-constexpr const char *BOMB_TYPE_OBJECT_NAME = "bomb";                                     // type object untuk bomb
-constexpr const char *CRATE_TYPE_OBJECT_NAME = "crate";                                   // type object untuk crate
-constexpr const char *SIGN_TYPE_OBJECT_NAME = "sign";                                     // Type object untuk sign
-constexpr const char *BOSS_STAGE_TYPE_OBJECT_NAME = "boss_stage";                         // Type object untuk trigger area boss
+constexpr const char *ENEMY_SPAWN_NORMAL_PIN_OBJECT_NAME = "enemy_spawn_normal_pinpoint";     // Nama object spawn normal pinpoint
+constexpr const char *ENEMY_SPAWN_NORMAL_REC_OBJECT_NAME = "enemy_spawn_normal_rect";         // Nama object rect spawn normal
+constexpr const char *ENEMY_SPAWN_ELITE_PIN_OBJECT_NAME = "enemy_spawn_elite_pinpoint";       // Nama object pinpoint spawn elite
+constexpr const char *ENEMY_SPAWN_ELITE_REC_OBJECT_NAME = "enemy_spawn_elite_rect";           // Nama object rect spawn elite
+constexpr const char *ENEMY_SPAWN_BOSS_OBJECT_NAME = "enemy_spawn_boss";                      // Nama object spawn boss
+constexpr const char *ENEMY_SPAWN_TUTORIAL_PIN_OBJECT_NAME = "enemy_spawn_tutorial_pinpoint"; // Nama object pinpoint tutorial
+constexpr const char *SPAWN_OBJECT_NAME = "spawn";                                            // Nama object spawn player
+constexpr const char *DOOR_TYPE_OBJECT_NAME = "pass";                                         // Type object untuk pintu
+constexpr const char *BARRIER_TYPE_OBJECT_NAME = "barrier";                                   // Type object untuk barrier
+constexpr const char *BARRIER_BOSS_TYPE_OBJECT_NAME = "barrier_boss";                         // Type object untuk barrier boss
+constexpr const char *CHEST_TYPE_OBJECT_NAME = "chest";                                       // Type object untuk chest
+constexpr const char *SPIKE_TYPE_OBJECT_NAME = "spike";                                       // Type object unutk spike
+constexpr const char *BOMB_TYPE_OBJECT_NAME = "bomb";                                         // type object untuk bomb
+constexpr const char *CRATE_TYPE_OBJECT_NAME = "crate";                                       // type object untuk crate
+constexpr const char *SIGN_TYPE_OBJECT_NAME = "sign";                                         // Type object untuk sign
+constexpr const char *BOSS_STAGE_TYPE_OBJECT_NAME = "boss_stage";                             // Type object untuk trigger area boss
 /*==============================================================================
  * Map Functions
  *==============================================================================*/
@@ -197,9 +199,6 @@ const char *GetCurrentMapPath(void);
  */
 void SetCurrentMapPath(const char *newPath);
 
-/** @brief Kembali ke map sebelumnya */
-void GoBack(void);
-
 /**
  * @brief Generate world di map yang sudah di-load
  * @param seed Seed deterministic
@@ -221,4 +220,4 @@ void TrimStageStack(void);
  * @note Konversi path-based: ekstrak nama file tanpa ekstensi, capitalisasi,
  *       handle special case untuk worldgen stages.
  */
-std::string GetMapDisplayName(const std::string& mapFilePath);
+std::string GetMapDisplayName(const std::string &mapFilePath);

@@ -10,7 +10,7 @@
       "isStackable": false,
       "maxStack": 1,
       "weapon": {
-        "damage": 25.0,
+        "damage": 40.0,
         "reach": 36.0,
         "breadth": 54.0,
         "duration": 0.3,
@@ -18,7 +18,7 @@
         "startAngleOffset": 0.0,
         "sweepAngle": 0.0,
         "centerOffset": { "x": 8.0, "y": 4.0 },
-        "manaCost": 10.0,
+        "manaCost": 5.0,
         "attackType": "slash"
       }
     },
@@ -32,7 +32,7 @@
       "isStackable": false,
       "maxStack": 1,
       "weapon": {
-        "damage": 35.0,
+        "damage": 50.0,
         "reach": 48.0,
         "breadth": 70.0,
         "duration": 0.4,
@@ -40,7 +40,7 @@
         "startAngleOffset": 55.0,
         "sweepAngle": -95.0,
         "centerOffset": { "x": 20.0, "y": 20.0 },
-        "manaCost": 15.0,
+        "manaCost": 7.0,
         "attackType": "slash"
       }
     },
@@ -56,7 +56,8 @@
       "potion": {
         "healValue": 20,
         "isMana": false,
-        "cooldown": 1.0
+        "cooldown": 1.0,
+        "potionCategory": "health"
       }
     },
     "staminaPotionSmall": {
@@ -71,7 +72,8 @@
       "potion": {
         "healValue": 15,
         "isMana": true,
-        "cooldown": 1.0
+        "cooldown": 1.0,
+        "potionCategory": "stamina"
       }
     },
     "bow": {
@@ -84,8 +86,8 @@
       "isStackable": false,
       "maxStack": 1,
       "weapon": {
-        "damage": 20.0,
-        "reach": 225.0,
+        "damage": 45.0,
+        "reach": 240.0,
         "breadth": 8.0,
         "duration": 0.4,
         "knockbackForce": 0.5,
@@ -108,7 +110,8 @@
       "potion": {
         "healValue": 50,
         "isMana": false,
-        "cooldown": 5.0
+        "cooldown": 5.0,
+        "potionCategory": "health"
       }
     },
     "staminaPotionMedium": {
@@ -123,7 +126,8 @@
       "potion": {
         "healValue": 40,
         "isMana": true,
-        "cooldown": 5.0
+        "cooldown": 5.0,
+        "potionCategory": "stamina"
       }
     },
     "healthPotionLarge": {
@@ -138,7 +142,8 @@
       "potion": {
         "healValue": 100,
         "isMana": false,
-        "cooldown": 10.0
+        "cooldown": 10.0,
+        "potionCategory": "health"
       }
     },
     "staminaPotionLarge": {
@@ -153,7 +158,8 @@
       "potion": {
         "healValue": 80,
         "isMana": true,
-        "cooldown": 10.0
+        "cooldown": 10.0,
+        "potionCategory": "stamina"
       }
     },
     "damagePotionSmall": {
@@ -168,9 +174,10 @@
       "potion": {
         "healValue": 0,
         "isMana": false,
-        "damageMultiplier": 1.25,
+        "damageMultiplier": 1.30,
         "duration": 30.0,
-        "cooldown": 5.0
+        "cooldown": 5.0,
+        "potionCategory": "damage"
       }
     },
     "damagePotionMedium": {
@@ -185,9 +192,10 @@
       "potion": {
         "healValue": 0,
         "isMana": false,
-        "damageMultiplier": 1.5,
+        "damageMultiplier": 1.65,
         "duration": 45.0,
-        "cooldown": 10.0
+        "cooldown": 10.0,
+        "potionCategory": "damage"
       }
     },
     "speedPotionSmall": {
@@ -202,9 +210,10 @@
       "potion": {
         "healValue": 0,
         "isMana": false,
-        "speedMultiplier": 1.125,
+        "speedMultiplier": 1.2,
         "duration": 20.0,
-        "cooldown": 5.0
+        "cooldown": 5.0,
+        "potionCategory": "speed"
       }
     },
     "speedPotionMedium": {
@@ -219,9 +228,10 @@
       "potion": {
         "healValue": 0,
         "isMana": false,
-        "speedMultiplier": 1.25,
+        "speedMultiplier": 1.35,
         "duration": 35.0,
-        "cooldown": 10.0
+        "cooldown": 10.0,
+        "potionCategory": "speed"
       }
     },
     "invincibilityPotionSmall": {
@@ -238,7 +248,8 @@
         "isMana": false,
         "invincibilityDuration": 5.0,
         "duration": 5.0,
-        "cooldown": 5.0
+        "cooldown": 5.0,
+        "potionCategory": "invincibility"
       }
     },
     "invincibilityPotionMedium": {
@@ -255,7 +266,8 @@
         "isMana": false,
         "invincibilityDuration": 10.0,
         "duration": 10.0,
-        "cooldown": 10.0
+        "cooldown": 10.0,
+        "potionCategory": "invincibility"
       }
     },
     "ak47": {
@@ -268,8 +280,8 @@
       "isStackable": false,
       "maxStack": 1,
       "weapon": {
-        "damage": 20.0,
-        "reach": 300.0,
+        "damage": 50.0,
+        "reach": 400.0,
         "breadth": 10.0,
         "duration": 0.2,
         "knockbackForce": 0.25,
@@ -290,7 +302,7 @@
       "isStackable": false,
       "maxStack": 1,
       "weapon": {
-        "damage": 35.0,
+        "damage": 50.0,
         "reach": 80.0,
         "breadth": 20.0,
         "duration": 0.35,
@@ -298,7 +310,7 @@
         "startAngleOffset": 0.0,
         "sweepAngle": 0.0,
         "centerOffset": { "x": 10.0, "y": 20.0 },
-        "manaCost": 10.0,
+        "manaCost": 5.0,
         "attackType": "thrust"
       }
     },
@@ -312,7 +324,7 @@
       "isStackable": false,
       "maxStack": 1,
       "weapon": {
-        "damage": 40.0,
+        "damage": 60.0,
         "reach": 48.0,
         "breadth": 70.0,
         "duration": 0.4,
@@ -320,7 +332,7 @@
         "startAngleOffset": 45.0,
         "sweepAngle": -90.0,
         "centerOffset": { "x": 10.0, "y": 20.0 },
-        "manaCost": 15.0,
+        "manaCost": 8.0,
         "attackType": "slash"
       }
     },
@@ -334,7 +346,7 @@
       "isStackable": false,
       "maxStack": 1,
       "weapon": {
-        "damage": 60.0,
+        "damage": 80.0,
         "reach": 64.0,
         "breadth": 64.0,
         "duration": 0.5,
@@ -342,7 +354,7 @@
         "startAngleOffset": 0.0,
         "sweepAngle": 0.0,
         "centerOffset": { "x": 10.0, "y": 10.0 },
-        "manaCost": 20.0,
+        "manaCost": 12.0,
         "attackType": "slam"
       }
     }

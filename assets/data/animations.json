@@ -120,7 +120,7 @@
     "skeleton": {
         "idle": {
             "right": {
-                "sprites": ["skeletonIdleLeft1", "skeletonIdleLeft2"],
+                "sprites": ["skeletonIdleRight1", "skeletonIdleRight2"],
                 "spriteCount": 2,
                 "spriteDuration": 0.5,
                 "loop": true
@@ -134,13 +134,13 @@
         },
         "walk": {
             "right": {
-                "sprites": ["skeletonIdleLeft1", "skeletonIdleLeft2"],
+                "sprites": ["skeletonWalkRight1", "skeletonWalkRight2"],
                 "spriteCount": 2,
                 "spriteDuration": 0.5,
                 "loop": true
             },
             "left": {
-                "sprites": ["skeletonIdleLeft1", "skeletonIdleLeft2"],
+                "sprites": ["skeletonWalkLeft1", "skeletonWalkLeft2"],
                 "spriteCount": 2,
                 "spriteDuration": 0.5,
                 "loop": true
@@ -148,13 +148,13 @@
         },
         "attack": {
             "right": {
-                "sprites": ["skeletonIdleLeft1", "skeletonIdleLeft2"],
+                "sprites": ["skeletonAttackRight", "skeletonAttackRight"],
                 "spriteCount": 2,
                 "spriteDuration": 0.5,
                 "loop": true
             },
             "left": {
-                "sprites": ["skeletonIdleLeft1", "skeletonIdleLeft2"],
+                "sprites": ["skeletonAttackLeft", "skeletonAttackLeft"],
                 "spriteCount": 2,
                 "spriteDuration": 0.5,
                 "loop": true
@@ -162,7 +162,7 @@
         },
         "dead": {
             "right": {
-                "sprites": ["skeletonDeadLeft"],
+                "sprites": ["skeletonDeadRight"],
                 "spriteCount": 1,
                 "spriteDuration": 1.0,
                 "loop": false
@@ -178,7 +178,7 @@
     "wolf": {
         "idle": {
             "right": {
-                "sprites": ["wolfIdleLeft1", "wolfIdleLeft2"],
+                "sprites": ["wolfIdleRight1", "wolfIdleRight2"],
                 "spriteCount": 2,
                 "spriteDuration": 0.5,
                 "loop": true
@@ -192,13 +192,13 @@
         },
         "walk": {
             "right": {
-                "sprites": ["wolfIdleLeft1", "wolfIdleLeft2"],
+                "sprites": ["wolfWalkRight1", "wolfWalkRight2"],
                 "spriteCount": 2,
                 "spriteDuration": 0.5,
                 "loop": true
             },
             "left": {
-                "sprites": ["wolfIdleLeft1", "wolfIdleLeft2"],
+                "sprites": ["wolfWalkLeft1", "wolfWalkLeft2"],
                 "spriteCount": 2,
                 "spriteDuration": 0.5,
                 "loop": true
@@ -206,27 +206,267 @@
         },
         "attack": {
             "right": {
-                "sprites": ["wolfIdleLeft1", "wolfIdleLeft2"],
+                "sprites": ["wolfAttackRight", "wolfAttackRight"],
                 "spriteCount": 2,
-                "spriteDuration": 0.5,
+                "spriteDuration": 1.0,
                 "loop": true
             },
             "left": {
-                "sprites": ["wolfIdleLeft1", "wolfIdleLeft2"],
+                "sprites": ["wolfAttackLeft", "wolfAttackLeft"],
                 "spriteCount": 2,
-                "spriteDuration": 0.5,
+                "spriteDuration": 1.0,
                 "loop": true
             }
         },
         "dead": {
             "right": {
-                "sprites": ["wolfDeadLeft"],
+                "sprites": ["wolfDeadRight"],
                 "spriteCount": 1,
                 "spriteDuration": 1.0,
                 "loop": false
             },
             "left": {
                 "sprites": ["wolfDeadLeft"],
+                "spriteCount": 1,
+                "spriteDuration": 1.0,
+                "loop": false
+            }
+        }
+    },
+    "orc": {
+        "idle": {
+            "left": {
+                "sprites": ["orcIdleLeft1", "orcIdleLeft2"],
+                "spriteCount": 2,
+                "spriteDuration": 1.0,
+                "loop": true
+            },
+            "right": {
+                "sprites": ["orcIdleRight1", "orcIdleRight2"],
+                "spriteCount": 2,
+                "spriteDuration": 1.0,
+                "loop": true
+            }
+        },
+        "walk": {
+            "left": {
+                "sprites": ["orcWalkLeft1", "orcWalkLeft2"],
+                "spriteCount": 2,
+                "spriteDuration": 1.0,
+                "loop": true
+            },
+            "right": {
+                "sprites": ["orcWalkRight1", "orcWalkRight2"],
+                "spriteCount": 2,
+                "spriteDuration": 1.0,
+                "loop": true
+            }
+        },
+        "attack": {
+            "left": {
+                "sprites": ["orcAttackLeft", "orcAttackLeft"],
+                "spriteCount": 1,
+                "spriteDuration": 1.0,
+                "loop": false
+            },
+            "right": {
+                "sprites": ["orcAttackRight", "orcAttackRight"],
+                "spriteCount": 1,
+                "spriteDuration": 1.0,
+                "loop": false
+            }
+        },
+        "ability1": {
+            "left": {
+                "sprites": ["orcRoarLeft"],
+                "spriteCount": 1,
+                "spriteDuration": 1.0,
+                "loop": false
+            },
+            "right": {
+                "sprites": ["orcRoarRight"],
+                "spriteCount": 1,
+                "spriteDuration": 1.0,
+                "loop": false
+            }
+        },
+        "dead": {
+            "left": {
+                "sprites": ["orcDeadLeft"],
+                "spriteCount": 1,
+                "spriteDuration": 1.0,
+                "loop": false
+            },
+            "right": {
+                "sprites": ["orcDeadRight"],
+                "spriteCount": 1,
+                "spriteDuration": 1.0,
+                "loop": false
+            }
+        }
+    },
+    "manticore": {
+        "idle": {
+            "left": {
+                "sprites": ["manticoreIdleLeft1", "manticoreIdleLeft2"],
+                "spriteCount": 2,
+                "spriteDuration": 1.0,
+                "loop": true
+            },
+            "right": {
+                "sprites": ["manticoreIdleRight1", "manticoreIdleRight2"],
+                "spriteCount": 2,
+                "spriteDuration": 1.0,
+                "loop": true
+            }
+        },
+        "walk": {
+            "left": {
+                "sprites": ["manticoreWalkLeft1", "manticoreWalkLeft2"],
+                "spriteCount": 2,
+                "spriteDuration": 1.0,
+                "loop": true
+            },
+            "right": {
+                "sprites": ["manticoreWalkRight1", "manticoreWalkRight2"],
+                "spriteCount": 2,
+                "spriteDuration": 1.0,
+                "loop": true
+            }
+        },
+        "attack": {
+            "left": {
+                "sprites": ["manticoreAttackLeft", "manticoreAttackLeft"],
+                "spriteCount": 1,
+                "spriteDuration": 1.0,
+                "loop": false
+            },
+            "right": {
+                "sprites": ["manticoreAttackRight", "manticoreAttackRight"],
+                "spriteCount": 1,
+                "spriteDuration": 1.0,
+                "loop": false
+            }
+        },
+        "ability1": {
+            "left": {
+                "sprites": ["manticoreStabLeft"],
+                "spriteCount": 1,
+                "spriteDuration": 1.0,
+                "loop": false
+            },
+            "right": {
+                "sprites": ["manticoreStabRight"],
+                "spriteCount": 1,
+                "spriteDuration": 1.0,
+                "loop": false
+            }
+        },
+        "dead": {
+            "left": {
+                "sprites": ["manticoreDeadLeft"],
+                "spriteCount": 1,
+                "spriteDuration": 1.0,
+                "loop": false
+            },
+            "right": {
+                "sprites": ["manticoreDeadRight"],
+                "spriteCount": 1,
+                "spriteDuration": 1.0,
+                "loop": false
+            }
+        }
+    },
+    "minotaur": {
+        "idle": {
+            "left": {
+                "sprites": ["minotaurIdleLeft1", "minotaurIdleLeft2"],
+                "spriteCount": 2,
+                "spriteDuration": 1.0,
+                "loop": true
+            },
+            "right": {
+                "sprites": ["minotaurIdleRight1", "minotaurIdleRight2"],
+                "spriteCount": 2,
+                "spriteDuration": 1.0,
+                "loop": true
+            }
+        },
+        "walk": {
+            "left": {
+                "sprites": ["minotaurWalkLeft1", "minotaurWalkLeft2"],
+                "spriteCount": 2,
+                "spriteDuration": 0.6,
+                "loop": true
+            },
+            "right":{
+                "sprites": ["minotaurWalkRight1", "minotaurWalkRight2"],
+                "spriteCount": 2,
+                "spriteDuration": 0.6,
+                "loop": true
+            }
+        },
+        "attack": {
+            "left": {
+                "sprites": ["minotaurAttackLeft"],
+                "spriteCount": 1,
+                "spriteDuration": 1.0,
+                "loop": false
+            },
+            "right": {
+                "sprites": ["minotaurAttackRight"],
+                "spriteCount": 1,
+                "spriteDuration": 1.0,
+                "loop": false
+            }
+        },
+        "ability1": {
+            "left": {
+                "sprites": ["minotaurSlamLeft1", "minotaurSlamLeft2"],
+                "spriteCount": 2,
+                "spriteDuration": 0.6,
+                "loop": false
+            },
+            "right": {
+                "sprites": ["minotaurSlamRight1", "minotaurSlamRight2"],
+                "spriteCount": 2,
+                "spriteDuration": 0.6,
+                "loop": false
+            }
+        },
+        "ability2": {
+            "left": {
+                "sprites": [
+                            "minotaurChargeLeft1", 
+                            "minotaurChargeLeft2", 
+                            "minotaurChargeLeft3", 
+                            "minotaurChargeLeft4"
+                        ],
+                "spriteCount": 4,
+                "spriteDuration": 0.6,
+                "loop": false
+            },
+            "right": {
+                "sprites": [
+                            "minotaurChargeRight1", 
+                            "minotaurChargeRight2", 
+                            "minotaurChargeRight3", 
+                            "minotaurChargeRight4"
+                        ],
+                "spriteCount": 4,
+                "spriteDuration": 0.6,
+                "loop": false
+            }
+        },
+        "dead": {
+            "left": {
+                "sprites": ["minotaurDeadLeft"],
+                "spriteCount": 1,
+                "spriteDuration": 1.0,
+                "loop": false
+            },
+            "right": {
+                "sprites": ["minotaurDeadRight"],
                 "spriteCount": 1,
                 "spriteDuration": 1.0,
                 "loop": false

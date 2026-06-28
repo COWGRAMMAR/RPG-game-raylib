@@ -1,17 +1,17 @@
 #pragma once
 
 #include "raylib.h"
-#include "buttonTxt.h"
+#include "button.h"
 #include <string>
 
 /**
  * @file videoTab.h
  * @brief Video Settings Tab for Options Screen
- * 
+ *
  * Contains fullscreen toggle and FPS display toggle.
  */
 
-static const char* VIDEO_SETTINGS_PATH = "saves/settings/videoTab.json";
+static const char *VIDEO_SETTINGS_PATH = "saves/settings/videoTab.json";
 
 /**
  * @brief Me-render tab Video
@@ -22,12 +22,11 @@ static const char* VIDEO_SETTINGS_PATH = "saves/settings/videoTab.json";
  * @param startY Posisi Y awal area options
  */
 void DrawVideoTab(
-    buttonTxt& fullscreenButton,
-    buttonTxt& fpsButton,
+    buttonTxt &fullscreenButton,
+    buttonTxt &fpsButton,
     Vector2 mousePosition,
     int startX,
-    int startY
-);
+    int startY);
 
 /**
  * @brief Memperbarui handling input untuk tab Video
@@ -39,19 +38,18 @@ void DrawVideoTab(
  * @return true jika ada perubahan yang memerlukan redraw
  */
 bool UpdateVideoTab(
-    buttonTxt& fullscreenButton,
-    buttonTxt& fpsButton,
-    void* state,
+    buttonTxt &fullscreenButton,
+    buttonTxt &fpsButton,
+    void *state,
     Vector2 mousePosition,
-    bool mouseClicked
-);
+    bool mouseClicked);
 
 /**
  * @brief Memuat pengaturan video dari file JSON
  * @param state Pointer ke GameState untuk mengisi showFPS dll
  * @return true jika berhasil dimuat
  */
-bool LoadVideoSettings(void* state);
+bool LoadVideoSettings(void *state);
 
 /**
  * @brief Menyimpan pengaturan video ke file JSON

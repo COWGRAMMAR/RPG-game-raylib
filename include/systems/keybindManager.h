@@ -14,7 +14,8 @@
 /**
  * @brief All rebindable game actions
  */
-enum Action {
+enum Action
+{
     // Movement
     MOVE_UP,
     MOVE_DOWN,
@@ -26,31 +27,26 @@ enum Action {
     TOGGLE_MAP,
     DROP_ITEM,
     DROP_ALL,
-    PRIMARY_ATTACK,
-    DASH_DRINK,
+    ATTACK_DRINK,
+    DASH,
     // Hotbar selection
     HOTBAR_SLOT_1,
     HOTBAR_SLOT_2,
     HOTBAR_SLOT_3,
     HOTBAR_SLOT_4,
-    // Debug gameplay
-    GO_BACK,
     // Menu
     PAUSE_MENU,
-    // Debug overlay
-    DEBUG_TOGGLE,
-    DEBUG_TOGGLE_ENEMY,
-    DEBUG_TOGGLE_PLAYER,
-
-    ACTION_COUNT  ///< Sentinel — must be last
+    TOGGLE_FULLSCREEN,
+    ACTION_COUNT ///< Sentinel — must be last
 };
 
 /**
  * @brief A single keybind entry
  */
-struct Keybind {
-    int keyCode;   ///< Raylib constant (KEY_W, MOUSE_BUTTON_LEFT, etc.)
-    bool isMouse;  ///< true = mouse button, false = keyboard key
+struct Keybind
+{
+    int keyCode;  ///< Raylib constant (KEY_W, MOUSE_BUTTON_LEFT, etc.)
+    bool isMouse; ///< true = mouse button, false = keyboard key
 };
 
 /**
@@ -59,7 +55,8 @@ struct Keybind {
  * Loads from saves/settings/keybindsTab.json at startup (falls back to safe defaults).
  * Keybinds can be changed in-game via Options > Keybinds and auto-saved.
  */
-class KeybindManager {
+class KeybindManager
+{
 public:
     KeybindManager();
 
@@ -68,14 +65,14 @@ public:
      * @param path Path to settings file (e.g. "saves/settings/keybindsTab.json")
      * @return true if loaded successfully, false if file missing/corrupt (defaults used)
      */
-    bool LoadFromFile(const std::string& path);
+    bool LoadFromFile(const std::string &path);
 
     /**
      * @brief Save current keybinds to JSON file (atomic write)
      * @param path Path to settings file
      * @return true if write succeeded
      */
-    bool SaveToFile(const std::string& path);
+    bool SaveToFile(const std::string &path);
 
     /** @brief Get the raylib key code for an action */
     int GetKeycode(Action action) const;
@@ -90,10 +87,16 @@ public:
     void SetKeybind(Action action, int keyCode, bool isMouse);
 
     /** @brief Get human-readable display name of the bound key (e.g. "E", "Left Ctrl") */
-    const char* GetKeyDisplayName(Action action) const;
+    const char *GetKeyDisplayName(Action action) const;
+
+    /** @brief Find which action uses a given keycode/mouse combination */
+    Action FindActionByKeycode(int keyCode, bool isMouse) const;
+
+    /** @brief Get human-readable name for a raw input (keycode + mouse flag) */
+    static const char *GetInputDisplayName(int keyCode, bool isMouse);
 
     /** @brief Get human-readable action name (e.g. "Interact", "Move Up") */
-    const char* GetActionName(Action action) const;
+    const char *GetActionName(Action action) const;
 
     /** @brief Reset all keybinds to factory defaults */
     void ResetDefaults();
@@ -102,7 +105,7 @@ private:
     std::unordered_map<Action, Keybind> bindings;
     void InitDefaults();
 
-    static const char* actionNames[ACTION_COUNT];
+    static const char *actionNames[ACTION_COUNT];
     static const Keybind defaultBindings[ACTION_COUNT];
 };
 

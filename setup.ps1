@@ -351,8 +351,8 @@ function Install-Mpv() {
     $cwd = $PWD.Path
     $mpvDir = Join-Path $cwd "lib\mpv"
     $mpvHeader = Join-Path $mpvDir "include\mpv\client.h"
-    $mpvLib = Join-Path $mpvDir "lib\mpv.dll.a"
-    $mpvDll = Join-Path $mpvDir "bin\mpv-2.dll"
+    $mpvLib = Join-Path $mpvDir "libmpv.dll.a"
+    $mpvDll = Join-Path $mpvDir "libmpv-2.dll"
 
     Write-Step "Checking for mpv development files..."
     Write-Debug "MPV directory: $mpvDir"
@@ -416,33 +416,13 @@ function Install-Mpv() {
     }
     New-Item -ItemType Directory -Path $mpvDir -Force | Out-Null
 
-    # Extract to a temp dir first, then move contents up
-    $tempExtract = Join-Path $cwd "mpv-temp"
-    if (Test-Path $tempExtract) {
-        Remove-Item -Path $tempExtract -Recurse -Force -ErrorAction SilentlyContinue
-    }
-    New-Item -ItemType Directory -Path $tempExtract -Force | Out-Null
-
-    & $7zPath.Source x "$zipFile" -o"$tempExtract" -y -bso0 -bsp0
+    # Extract directly to mpvDir (archive has include/ + libmpv.dll.a + libmpv-2.dll at root)
+    & $7zPath.Source x "$zipFile" -o"$mpvDir" -y -bso0 -bsp0
     if ($LASTEXITCODE -ne 0) {
         Write-Err "7-Zip extraction failed (exit code: $LASTEXITCODE)"
         exit 1
     }
 
-    # The archive has a single root directory; move contents to lib/mpv/
-    $subDirs = Get-ChildItem $tempExtract -Directory
-    if ($subDirs.Count -eq 1) {
-        $subDir = $subDirs[0].FullName
-        Write-Debug "Moving contents from $subDir to $mpvDir"
-        Get-ChildItem $subDir | Move-Item -Destination $mpvDir -Force
-    } else {
-        # No root directory, move everything
-        Write-Debug "Moving all files from $tempExtract to $mpvDir"
-        Get-ChildItem $tempExtract | Move-Item -Destination $mpvDir -Force
-    }
-
-    # Clean up
-    Remove-Item -Path $tempExtract -Recurse -Force -ErrorAction SilentlyContinue
     Remove-Item -Path $zipFile -Force -ErrorAction SilentlyContinue
 
     # Verify

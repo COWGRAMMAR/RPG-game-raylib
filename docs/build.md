@@ -21,7 +21,7 @@ Pasang alat-alat berikut untuk membangun proyek:
 | **Ninja** | `scoop install ninja` | `brew install ninja` | `apt install ninja-build` |
 | **ccache** (opsional) | `scoop install ccache` | `brew install ccache` | `apt install ccache` |
 | **OpenGL / X11** | (disediakan Windows SDK / MinGW) | (disediakan Xcode CLT / macOS framework) | `apt install libgl1-mesa-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev` |
-| **FFmpeg** | (bundel melalui `setup.ps1`) | `brew install ffmpeg` | `apt install libavcodec-dev libavformat-dev libavutil-dev libswresample-dev libswscale-dev` |
+| **mpv** | (bundel melalui `setup.ps1`) | `brew install mpv` | `apt install libmpv-dev` |
 
 ### Pengaturan Pertama
 

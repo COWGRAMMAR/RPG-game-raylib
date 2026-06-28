@@ -326,8 +326,9 @@ install_mpv() {
   fi
 
   write_step "mpv development libraries not found. Installing..."
-  write_debug "Running: sudo apt install -y libmpv-dev"
+  write_debug "Running: sudo apt update && sudo apt install -y libmpv-dev"
 
+  sudo DEBIAN_FRONTEND=noninteractive apt update
   sudo DEBIAN_FRONTEND=noninteractive apt install -y libmpv-dev
 
   if command -v pkg-config &> /dev/null && pkg-config --exists mpv 2>/dev/null; then
@@ -335,6 +336,7 @@ install_mpv() {
   else
     write_err "mpv installation verification failed!"
     write_debug "pkg-config --exists mpv returned non-zero; libraries may still be installed"
+    exit 1
   fi
 }
 

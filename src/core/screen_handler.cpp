@@ -602,6 +602,13 @@ void DrawMenuBackground(void)
     }
 }
 
+/**
+ * @brief Update frame background video (dipanggil tiap frame di luar BeginDrawing).
+ *
+ * Update() harus dipanggil di luar BeginDrawing/EndDrawing karena
+ * SW renderer mpv butuh GL context aktif, dan raylib cuma aktif
+ * di luar blok rendering.
+ */
 void UpdateMenuBackground(void)
 {
     if (bgVideoLoaded)

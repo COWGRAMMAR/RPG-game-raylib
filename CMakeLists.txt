@@ -46,9 +46,9 @@ file(GLOB_RECURSE SOURCES "src/*.cpp")
 # Create executable
 add_executable(main ${SOURCES})
 
-# Windows GUI subsystem: show debug terminal / console window for dev
+# Windows GUI subsystem: sembunyiin terminal / console window
 if(WIN32)
-    set_target_properties(main PROPERTIES WIN32_EXECUTABLE FALSE)
+    set_target_properties(main PROPERTIES WIN32_EXECUTABLE TRUE)
 endif()
 
 # Include directories

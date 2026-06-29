@@ -101,8 +101,10 @@ namespace video
         mpv_render_context_set_update_callback(m_mpv_gl, on_mpv_update, this);
         mpv_observe_property(m_mpv, 0, "eof-reached", MPV_FORMAT_FLAG);
 
-        // Must be set before loadfile to capture decoder/renderer init messages
-        mpv_request_log_messages(m_mpv, "debug");
+        /// @brief Level log mpv di "warn" biar gak spam terminal debug.
+        /// loadfile udah diatur sebelum mpv_render_context_create,
+        /// jadi debug log gak diperlukan lagi.
+        mpv_request_log_messages(m_mpv, "warn");
 
         const char *cmd[] = {"loadfile", filePath.c_str(), nullptr};
         int r = mpv_command(m_mpv, cmd);
@@ -199,7 +201,8 @@ namespace video
         const char *sw_fmt = "rgb0";
         size_t sw_stride = (size_t)m_width * 4;
 
-        // Ensure buffer is large enough (extra padding for last line overrun per mpv docs)
+        /// @brief Pastikan buffer cukup besar.
+        /// +64 padding safety untuk last line overrun (dokumentasi mpv).
         size_t needed = sw_stride * (size_t)m_height + 64;
         if (m_swBuffer.size() < needed)
             m_swBuffer.resize(needed, 0);
@@ -214,7 +217,9 @@ namespace video
 
         int renderRet = mpv_render_context_render(m_mpv_gl, render_params);
 
-        // Fix alpha channel: mpv "rgb0" leaves 4th byte uninitialized
+        /// @brief Perbaiki alpha channel.
+        /// Format "rgb0" mpv gak initialize byte ke-4 (alpha),
+        /// jadi di-set 255 biar gak transparan.
         {
             uint8_t *pixels = m_swBuffer.data();
             for (int y = 0; y < m_height; y++)
@@ -238,7 +243,8 @@ namespace video
         float texW = (float)m_renderTarget.texture.width;
         float texH = (float)m_renderTarget.texture.height;
 
-        // SW-rendered data is top-to-bottom, no flip needed
+        /// @brief Data dari SW renderer urutannya top-to-bottom,
+        /// gak perlu flip kayak OpenGL.
         Rectangle source = {0.0f, 0.0f, texW, texH};
         Rectangle dest = {
             (float)x, (float)y,

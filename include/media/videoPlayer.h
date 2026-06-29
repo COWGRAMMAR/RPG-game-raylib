@@ -2,11 +2,10 @@
 
 #include <string>
 #include <cstring>
+#include <vector>
 #include "raylib.h"
-#include "rlgl.h"
 #include <mpv/client.h>
 #include <mpv/render.h>
-#include <mpv/render_gl.h>
 
 namespace video
 {
@@ -45,6 +44,7 @@ namespace video
         mpv_handle *m_mpv{nullptr};
         mpv_render_context *m_mpv_gl{nullptr};
         RenderTexture2D m_renderTarget{};
+        std::vector<uint8_t> m_swBuffer;
         int m_width{};
         int m_height{};
         float m_volume{1.0f};
@@ -53,7 +53,6 @@ namespace video
         bool m_playing{};
 
         static void on_mpv_update(void *ctx);
-        static void *get_proc_address(void *ctx, const char *name);
         void handle_events();
         void ensure_render_target(int w, int h);
     };
@@ -87,10 +86,8 @@ namespace video
             return false;
         }
 
-        mpv_opengl_init_params gl_init = {get_proc_address, nullptr};
         mpv_render_param params[] = {
-            {MPV_RENDER_PARAM_API_TYPE, (void *)MPV_RENDER_API_TYPE_OPENGL},
-            {MPV_RENDER_PARAM_OPENGL_INIT_PARAMS, &gl_init},
+            {MPV_RENDER_PARAM_API_TYPE, (void *)MPV_RENDER_API_TYPE_SW},
             {MPV_RENDER_PARAM_INVALID, nullptr}
         };
 
@@ -104,8 +101,18 @@ namespace video
         mpv_render_context_set_update_callback(m_mpv_gl, on_mpv_update, this);
         mpv_observe_property(m_mpv, 0, "eof-reached", MPV_FORMAT_FLAG);
 
+        // Must be set before loadfile to capture decoder/renderer init messages
+        mpv_request_log_messages(m_mpv, "debug");
+
         const char *cmd[] = {"loadfile", filePath.c_str(), nullptr};
-        mpv_command(m_mpv, cmd);
+        int r = mpv_command(m_mpv, cmd);
+        if (r < 0)
+        {
+            TraceLog(LOG_WARNING, "MPV: loadfile returned %d for '%s'", r, filePath.c_str());
+            mpv_destroy(m_mpv);
+            m_mpv = nullptr;
+            return false;
+        }
 
         m_valid = true;
         return true;
@@ -185,25 +192,42 @@ namespace video
 
         handle_events();
 
-        uint64_t flags = mpv_render_context_update(m_mpv_gl);
-        if (m_renderTarget.id && (flags & MPV_RENDER_UPDATE_FRAME))
+        if (!m_width || !m_height || !m_renderTarget.id)
+            return;
+
+        int sw_size[2] = {m_width, m_height};
+        const char *sw_fmt = "rgb0";
+        size_t sw_stride = (size_t)m_width * 4;
+
+        // Ensure buffer is large enough (extra padding for last line overrun per mpv docs)
+        size_t needed = sw_stride * (size_t)m_height + 64;
+        if (m_swBuffer.size() < needed)
+            m_swBuffer.resize(needed, 0);
+
+        mpv_render_param render_params[] = {
+            {MPV_RENDER_PARAM_SW_SIZE, sw_size},
+            {MPV_RENDER_PARAM_SW_FORMAT, (void *)sw_fmt},
+            {MPV_RENDER_PARAM_SW_STRIDE, &sw_stride},
+            {MPV_RENDER_PARAM_SW_POINTER, m_swBuffer.data()},
+            {MPV_RENDER_PARAM_INVALID, nullptr}
+        };
+
+        int renderRet = mpv_render_context_render(m_mpv_gl, render_params);
+
+        // Fix alpha channel: mpv "rgb0" leaves 4th byte uninitialized
         {
-            rlEnableFramebuffer(m_renderTarget.id);
-            mpv_opengl_fbo fbo_info = {
-                .fbo = (int)m_renderTarget.id,
-                .w = m_width,
-                .h = m_height,
-                .internal_format = 0
-            };
-            int flip_y = 1;
-            mpv_render_param render_params[] = {
-                {MPV_RENDER_PARAM_OPENGL_FBO, &fbo_info},
-                {MPV_RENDER_PARAM_FLIP_Y, &flip_y},
-                {MPV_RENDER_PARAM_INVALID, nullptr}
-            };
-            mpv_render_context_render(m_mpv_gl, render_params);
-            rlDisableFramebuffer();
+            uint8_t *pixels = m_swBuffer.data();
+            for (int y = 0; y < m_height; y++)
+            {
+                uint8_t *row = pixels + y * sw_stride;
+                for (int x = 0; x < m_width; x++)
+                    row[x * 4 + 3] = 255;
+            }
         }
+
+        UpdateTexture(m_renderTarget.texture, m_swBuffer.data());
+
+        TraceLog(LOG_INFO, "MPV: sw_render_ret=%d", renderRet);
     }
 
     inline void VideoPlayer::Draw(int x, int y, int width, int height, Color tint)
@@ -214,7 +238,8 @@ namespace video
         float texW = (float)m_renderTarget.texture.width;
         float texH = (float)m_renderTarget.texture.height;
 
-        Rectangle source = {0.0f, 0.0f, texW, -texH};
+        // SW-rendered data is top-to-bottom, no flip needed
+        Rectangle source = {0.0f, 0.0f, texW, texH};
         Rectangle dest = {
             (float)x, (float)y,
             (float)width, (float)height
@@ -328,12 +353,6 @@ namespace video
         static_cast<void>(ctx);
     }
 
-    inline void *VideoPlayer::get_proc_address(void *ctx, const char *name)
-    {
-        static_cast<void>(ctx);
-        return (void *)rlGetProcAddress(name);
-    }
-
     inline void VideoPlayer::handle_events()
     {
         while (m_mpv)
@@ -344,17 +363,26 @@ namespace video
 
             switch (ev->event_id)
             {
+            case MPV_EVENT_LOG_MESSAGE:
+            {
+                auto *log = (mpv_event_log_message *)ev->data;
+                TraceLog(LOG_INFO, "MPV [%s] %s", log->prefix, log->text);
+                break;
+            }
             case MPV_EVENT_VIDEO_RECONFIG:
             {
                 int64_t w = 0, h = 0;
                 mpv_get_property(m_mpv, "width", MPV_FORMAT_INT64, &w);
                 mpv_get_property(m_mpv, "height", MPV_FORMAT_INT64, &h);
+                TraceLog(LOG_INFO, "MPV: VIDEO_RECONFIG w=%lld h=%lld", (long long)w, (long long)h);
                 if (w > 0 && h > 0)
                     ensure_render_target((int)w, (int)h);
                 break;
             }
             case MPV_EVENT_END_FILE:
             {
+                auto *end = (mpv_event_end_file *)ev->data;
+                TraceLog(LOG_INFO, "MPV: END_FILE reason=%d", end->reason);
                 m_finished = true;
                 m_playing = false;
                 break;
@@ -376,6 +404,7 @@ namespace video
                 break;
             }
             default:
+                TraceLog(LOG_INFO, "MPV: event %d (%s)", ev->event_id, mpv_event_name(ev->event_id));
                 break;
             }
         }

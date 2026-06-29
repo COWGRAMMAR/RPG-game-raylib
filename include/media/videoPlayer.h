@@ -1,80 +1,34 @@
 #pragma once
 
-/**
- * @file videoPlayer.h
- * @brief VideoPlayer class - C++ wrapper around raylib-media's MediaStream C API.
- *
- * Encapsulates video playback state and exposes a clean object-oriented interface
- * for loading, playing, pausing, stopping, and rendering video files.
- */
-
 #include <string>
+#include <cstring>
+#include <vector>
 #include "raylib.h"
-#include "raymedia.h"
+#include <mpv/client.h>
+#include <mpv/render.h>
 
 namespace video
 {
 
-    /**
-     * @brief RAII-style video player that wraps a raylib-media MediaStream.
-     *
-     * Usage:
-     * @code
-     *   video::VideoPlayer player;
-     *   if (player.Load("assets/videos/intro.mp4"))
-     *   {
-     *       player.Play();
-     *       while (!player.IsFinished())
-     *       {
-     *           player.Update(GetFrameTime());
-     *           player.Draw(0, 0, 640, 360);
-     *       }
-     *   }
-     * @endcode
-     */
     class VideoPlayer
     {
     public:
-        // -------------------------------------------------------------------------
-        // Construction / Destruction
-        // -------------------------------------------------------------------------
-
         VideoPlayer() = default;
         ~VideoPlayer();
 
-        // -------------------------------------------------------------------------
-        // Loading / Unloading
-        // -------------------------------------------------------------------------
-
         bool Load(const std::string &filePath);
         void Unload();
-
-        // -------------------------------------------------------------------------
-        // Playback Control
-        // -------------------------------------------------------------------------
 
         void Play();
         void Pause();
         void Stop();
 
-        // -------------------------------------------------------------------------
-        // Per-Frame Update and Render
-        // -------------------------------------------------------------------------
-
         void Update(float deltaTime);
         void Draw(int x, int y, int width, int height, Color tint = WHITE);
-
-        // -------------------------------------------------------------------------
-        // Configuration
-        // -------------------------------------------------------------------------
 
         void SetLooping(bool loop);
         void SetVolume(float vol);
         bool Seek(double timeSec);
-
-        // -------------------------------------------------------------------------
-        // Query
-        // -------------------------------------------------------------------------
 
         double GetPosition() const;
         double GetDuration() const;
@@ -87,15 +41,24 @@ namespace video
         bool IsPaused() const;
 
     private:
-        MediaStream m_stream{}; ///< Underlying C media stream
-        bool m_valid{};         ///< True after successful Load()
-        bool m_finished{};      ///< True when non-looping playback reaches the end
-        bool m_playing{};       ///< True while the user expects playback
-        float m_volume{1.0f};   ///< Volume in [0.0, 1.0]
+        mpv_handle *m_mpv{nullptr};
+        mpv_render_context *m_mpv_gl{nullptr};
+        RenderTexture2D m_renderTarget{};
+        std::vector<uint8_t> m_swBuffer;
+        int m_width{};
+        int m_height{};
+        float m_volume{1.0f};
+        bool m_valid{};
+        bool m_finished{};
+        bool m_playing{};
+
+        static void on_mpv_update(void *ctx);
+        void handle_events();
+        void ensure_render_target(int w, int h);
     };
 
     // =============================================================================
-    // Implementasi Inline
+    // Destructor / Load / Unload
     // =============================================================================
 
     inline VideoPlayer::~VideoPlayer()
@@ -105,39 +68,95 @@ namespace video
 
     inline bool VideoPlayer::Load(const std::string &filePath)
     {
-        // Bersihkan media yang sudah dimuat sebelumnya
         Unload();
 
-        m_stream = LoadMediaEx(filePath.c_str(), MEDIA_FLAG_NO_AUTOPLAY);
-        m_valid = IsMediaValid(m_stream);
+        m_mpv = mpv_create();
+        if (!m_mpv)
+            return false;
 
-        if (m_valid)
+        mpv_set_option_string(m_mpv, "vo", "libmpv");
+        mpv_set_option_string(m_mpv, "keep-open", "no");
+        mpv_set_option_string(m_mpv, "cache", "yes");
+        mpv_set_option_string(m_mpv, "volume", "100");
+
+        if (mpv_initialize(m_mpv) < 0)
         {
-            SetAudioStreamVolume(m_stream.audioStream, m_volume);
+            mpv_destroy(m_mpv);
+            m_mpv = nullptr;
+            return false;
         }
 
-        return m_valid;
+        mpv_render_param params[] = {
+            {MPV_RENDER_PARAM_API_TYPE, (void *)MPV_RENDER_API_TYPE_SW},
+            {MPV_RENDER_PARAM_INVALID, nullptr}
+        };
+
+        if (mpv_render_context_create(&m_mpv_gl, m_mpv, params) < 0)
+        {
+            mpv_destroy(m_mpv);
+            m_mpv = nullptr;
+            return false;
+        }
+
+        mpv_render_context_set_update_callback(m_mpv_gl, on_mpv_update, this);
+        mpv_observe_property(m_mpv, 0, "eof-reached", MPV_FORMAT_FLAG);
+
+        /// @brief Level log mpv di "warn" biar gak spam terminal debug.
+        /// loadfile udah diatur sebelum mpv_render_context_create,
+        /// jadi debug log gak diperlukan lagi.
+        mpv_request_log_messages(m_mpv, "warn");
+
+        const char *cmd[] = {"loadfile", filePath.c_str(), nullptr};
+        int r = mpv_command(m_mpv, cmd);
+        if (r < 0)
+        {
+            TraceLog(LOG_WARNING, "MPV: loadfile returned %d for '%s'", r, filePath.c_str());
+            mpv_destroy(m_mpv);
+            m_mpv = nullptr;
+            return false;
+        }
+
+        m_valid = true;
+        return true;
     }
 
     inline void VideoPlayer::Unload()
     {
-        if (m_valid)
-        {
-            UnloadMedia(&m_stream);
-        }
-
-        m_stream = MediaStream{};
         m_valid = false;
         m_finished = false;
         m_playing = false;
+        m_width = 0;
+        m_height = 0;
+
+        if (m_renderTarget.id)
+        {
+            UnloadRenderTexture(m_renderTarget);
+            m_renderTarget = {};
+        }
+
+        if (m_mpv_gl)
+        {
+            mpv_render_context_free(m_mpv_gl);
+            m_mpv_gl = nullptr;
+        }
+
+        if (m_mpv)
+        {
+            mpv_terminate_destroy(m_mpv);
+            m_mpv = nullptr;
+        }
     }
+
+    // =============================================================================
+    // Playback Control
+    // =============================================================================
 
     inline void VideoPlayer::Play()
     {
         if (!m_valid)
             return;
 
-        SetMediaState(m_stream, MEDIA_STATE_PLAYING);
+        mpv_set_property_string(m_mpv, "pause", "no");
         m_playing = true;
         m_finished = false;
     }
@@ -147,7 +166,7 @@ namespace video
         if (!m_valid)
             return;
 
-        SetMediaState(m_stream, MEDIA_STATE_PAUSED);
+        mpv_set_property_string(m_mpv, "pause", "yes");
         m_playing = false;
     }
 
@@ -156,66 +175,107 @@ namespace video
         if (!m_valid)
             return;
 
-        SetMediaState(m_stream, MEDIA_STATE_STOPPED);
+        mpv_set_property_string(m_mpv, "pause", "yes");
+        const char *cmd[] = {"seek", "0", "absolute", nullptr};
+        mpv_command(m_mpv, cmd);
         m_playing = false;
         m_finished = false;
     }
 
+    // =============================================================================
+    // Per-Frame Update and Render
+    // =============================================================================
+
     inline void VideoPlayer::Update(float deltaTime)
     {
+        static_cast<void>(deltaTime);
         if (!m_valid)
             return;
 
-        UpdateMediaEx(&m_stream, static_cast<double>(deltaTime));
+        handle_events();
 
-        // Deteksi akhir pemutaran saat tidak looping
-        if (m_playing)
+        if (!m_width || !m_height || !m_renderTarget.id)
+            return;
+
+        int sw_size[2] = {m_width, m_height};
+        const char *sw_fmt = "rgb0";
+        size_t sw_stride = (size_t)m_width * 4;
+
+        /// @brief Pastikan buffer cukup besar.
+        /// +64 padding safety untuk last line overrun (dokumentasi mpv).
+        size_t needed = sw_stride * (size_t)m_height + 64;
+        if (m_swBuffer.size() < needed)
+            m_swBuffer.resize(needed, 0);
+
+        mpv_render_param render_params[] = {
+            {MPV_RENDER_PARAM_SW_SIZE, sw_size},
+            {MPV_RENDER_PARAM_SW_FORMAT, (void *)sw_fmt},
+            {MPV_RENDER_PARAM_SW_STRIDE, &sw_stride},
+            {MPV_RENDER_PARAM_SW_POINTER, m_swBuffer.data()},
+            {MPV_RENDER_PARAM_INVALID, nullptr}
+        };
+
+        int renderRet = mpv_render_context_render(m_mpv_gl, render_params);
+
+        /// @brief Perbaiki alpha channel.
+        /// Format "rgb0" mpv gak initialize byte ke-4 (alpha),
+        /// jadi di-set 255 biar gak transparan.
         {
-            const int state = GetMediaState(m_stream);
-            if (state == MEDIA_STATE_STOPPED)
+            uint8_t *pixels = m_swBuffer.data();
+            for (int y = 0; y < m_height; y++)
             {
-                m_playing = false;
-                m_finished = true;
+                uint8_t *row = pixels + y * sw_stride;
+                for (int x = 0; x < m_width; x++)
+                    row[x * 4 + 3] = 255;
             }
         }
+
+        UpdateTexture(m_renderTarget.texture, m_swBuffer.data());
+
+        TraceLog(LOG_INFO, "MPV: sw_render_ret=%d", renderRet);
     }
 
     inline void VideoPlayer::Draw(int x, int y, int width, int height, Color tint)
     {
-        if (!m_valid)
+        if (!m_valid || !m_renderTarget.id)
             return;
 
-        const Rectangle source{
-            0.0f,
-            0.0f,
-            static_cast<float>(m_stream.videoTexture.width),
-            static_cast<float>(m_stream.videoTexture.height)};
-        const Rectangle dest{
-            static_cast<float>(x),
-            static_cast<float>(y),
-            static_cast<float>(width),
-            static_cast<float>(height)};
-        const Vector2 origin{0.0f, 0.0f};
+        float texW = (float)m_renderTarget.texture.width;
+        float texH = (float)m_renderTarget.texture.height;
 
-        DrawTexturePro(m_stream.videoTexture, source, dest, origin, 0.0f, tint);
+        /// @brief Data dari SW renderer urutannya top-to-bottom,
+        /// gak perlu flip kayak OpenGL.
+        Rectangle source = {0.0f, 0.0f, texW, texH};
+        Rectangle dest = {
+            (float)x, (float)y,
+            (float)width, (float)height
+        };
+        Vector2 origin = {0.0f, 0.0f};
+
+        DrawTexturePro(m_renderTarget.texture, source, dest, origin, 0.0f, tint);
     }
+
+    // =============================================================================
+    // Configuration
+    // =============================================================================
 
     inline void VideoPlayer::SetLooping(bool loop)
     {
         if (!m_valid)
             return;
 
-        SetMediaLooping(m_stream, loop);
+        mpv_set_property_string(m_mpv, "loop-file", loop ? "inf" : "no");
     }
 
     inline void VideoPlayer::SetVolume(float vol)
     {
         m_volume = (vol < 0.0f) ? 0.0f : (vol > 1.0f) ? 1.0f
-                                                      : vol;
+                                                       : vol;
 
         if (m_valid)
         {
-            SetAudioStreamVolume(m_stream.audioStream, m_volume);
+            int mpvVol = (int)(m_volume * 100.0f);
+            mpv_set_property(m_mpv, "volume", MPV_FORMAT_INT64, &mpvVol);
         }
     }
 
@@ -224,15 +284,24 @@ namespace video
         if (!m_valid)
             return false;
 
-        return SetMediaPosition(m_stream, timeSec);
+        std::string t = std::to_string(timeSec);
+        const char *cmd[] = {"seek", t.c_str(), "absolute", nullptr};
+        return mpv_command(m_mpv, cmd) >= 0;
     }
+
+    // =============================================================================
+    // Query
+    // =============================================================================
 
     inline double VideoPlayer::GetPosition() const
     {
         if (!m_valid)
             return -1.0;
 
-        return GetMediaPosition(m_stream);
+        double pos;
+        if (mpv_get_property(m_mpv, "time-pos", MPV_FORMAT_DOUBLE, &pos) >= 0)
+            return pos;
+        return -1.0;
     }
 
     inline double VideoPlayer::GetDuration() const
@@ -240,23 +309,20 @@ namespace video
         if (!m_valid)
             return 0.0;
 
-        return GetMediaProperties(m_stream).durationSec;
+        double dur;
+        if (mpv_get_property(m_mpv, "duration", MPV_FORMAT_DOUBLE, &dur) >= 0)
+            return dur;
+        return 0.0;
     }
 
     inline int VideoPlayer::GetWidth() const
     {
-        if (!m_valid)
-            return 0;
-
-        return m_stream.videoTexture.width;
+        return m_width;
     }
 
     inline int VideoPlayer::GetHeight() const
     {
-        if (!m_valid)
-            return 0;
-
-        return m_stream.videoTexture.height;
+        return m_height;
     }
 
     inline bool VideoPlayer::IsFinished() const
@@ -279,7 +345,88 @@ namespace video
         if (!m_valid)
             return false;
 
-        return GetMediaState(m_stream) == MEDIA_STATE_PAUSED;
+        int paused = 0;
+        mpv_get_property(m_mpv, "pause", MPV_FORMAT_FLAG, &paused);
+        return paused != 0;
+    }
+
+    // =============================================================================
+    // Private Helpers
+    // =============================================================================
+
+    inline void VideoPlayer::on_mpv_update(void *ctx)
+    {
+        static_cast<void>(ctx);
+    }
+
+    inline void VideoPlayer::handle_events()
+    {
+        while (m_mpv)
+        {
+            mpv_event *ev = mpv_wait_event(m_mpv, 0);
+            if (ev->event_id == MPV_EVENT_NONE)
+                break;
+
+            switch (ev->event_id)
+            {
+            case MPV_EVENT_LOG_MESSAGE:
+            {
+                auto *log = (mpv_event_log_message *)ev->data;
+                TraceLog(LOG_INFO, "MPV [%s] %s", log->prefix, log->text);
+                break;
+            }
+            case MPV_EVENT_VIDEO_RECONFIG:
+            {
+                int64_t w = 0, h = 0;
+                mpv_get_property(m_mpv, "width", MPV_FORMAT_INT64, &w);
+                mpv_get_property(m_mpv, "height", MPV_FORMAT_INT64, &h);
+                TraceLog(LOG_INFO, "MPV: VIDEO_RECONFIG w=%lld h=%lld", (long long)w, (long long)h);
+                if (w > 0 && h > 0)
+                    ensure_render_target((int)w, (int)h);
+                break;
+            }
+            case MPV_EVENT_END_FILE:
+            {
+                auto *end = (mpv_event_end_file *)ev->data;
+                TraceLog(LOG_INFO, "MPV: END_FILE reason=%d", end->reason);
+                m_finished = true;
+                m_playing = false;
+                break;
+            }
+            case MPV_EVENT_PROPERTY_CHANGE:
+            {
+                auto *prop = (mpv_event_property *)ev->data;
+                if (strcmp(prop->name, "eof-reached") == 0
+                    && prop->format == MPV_FORMAT_FLAG
+                    && prop->data)
+                {
+                    int eof = *(int *)prop->data;
+                    if (eof)
+                    {
+                        m_finished = true;
+                        m_playing = false;
+                    }
+                }
+                break;
+            }
+            default:
+                TraceLog(LOG_INFO, "MPV: event %d (%s)", ev->event_id, mpv_event_name(ev->event_id));
+                break;
+            }
+        }
+    }
+
+    inline void VideoPlayer::ensure_render_target(int w, int h)
+    {
+        if (m_renderTarget.id && m_width == w && m_height == h)
+            return;
+
+        if (m_renderTarget.id)
+            UnloadRenderTexture(m_renderTarget);
+
+        m_renderTarget = LoadRenderTexture(w, h);
+        m_width = w;
+        m_height = h;
     }
 
 } // namespace video

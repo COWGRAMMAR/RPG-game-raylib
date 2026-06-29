@@ -42,17 +42,11 @@ $raylibVersionMatch = if ($raylibInstalledVersion) { $raylibInstalledVersion -eq
 $tilesonReady = Test-Path (Join-Path $tilesonDir "tileson.hpp")
 $jsonReady = Test-Path (Join-Path $jsonDir "include\nlohmann\json.hpp")
 
-# Check FFmpeg (needed since PR #70 video playback)
-$ffmpegDir = Join-Path $cwd "lib\ffmpeg"
-$ffmpegReady = (Test-Path (Join-Path $ffmpegDir "include\libavcodec\avcodec.h")) -and
-               (Test-Path (Join-Path $ffmpegDir "lib\avcodec.lib")) -and
-               (Test-Path (Join-Path $ffmpegDir "bin\avcodec-62.dll"))
-
-# Check raylib-media (needed since PR #70 video playback)
-$mediaDir = Join-Path $cwd "lib\raylib-media"
-$mediaReady = (Test-Path (Join-Path $mediaDir "raymedia.h")) -and
-              (Test-Path (Join-Path $mediaDir "rmedia.c")) -and
-              (Test-Path (Join-Path $mediaDir "FindFFMPEG.cmake"))
+# Check mpv development files (video playback backend)
+$mpvDir = Join-Path $cwd "lib\mpv"
+$mpvReady = (Test-Path (Join-Path $mpvDir "include\mpv\client.h")) -and
+            (Test-Path (Join-Path $mpvDir "lib\mpv.dll.a")) -and
+            (Test-Path (Join-Path $mpvDir "bin\mpv-2.dll"))
 
 # Clean up junk files from existing raylib install (if any)
 if ($raylibReady) {
@@ -65,7 +59,7 @@ if ($raylibReady) {
     }
 }
 
-if ($raylibReady -and $raylibVersionMatch -and $tilesonReady -and $jsonReady -and $ffmpegReady -and $mediaReady) {
+if ($raylibReady -and $raylibVersionMatch -and $tilesonReady -and $jsonReady -and $mpvReady) {
     Write-Step "All required libraries already installed" -ForegroundColor Green
     exit 0
 }
@@ -353,210 +347,92 @@ function Install-Doctest() {
     }
 }
 
-function Install-RaylibMedia() {
+function Install-Mpv() {
     $cwd = $PWD.Path
-    $mediaDir = Join-Path $cwd "lib\raylib-media"
-    $files = @(
-        @{ Name = "raymedia.h";    Url = "https://raw.githubusercontent.com/cloudofoz/raylib-media/f4bd988/src/raymedia.h";    Path = Join-Path $mediaDir "raymedia.h" },
-        @{ Name = "rmedia.c";      Url = "https://raw.githubusercontent.com/cloudofoz/raylib-media/f4bd988/src/rmedia.c";    Path = Join-Path $mediaDir "rmedia.c" },
-        @{ Name = "FindFFMPEG.cmake"; Url = "https://raw.githubusercontent.com/cloudofoz/raylib-media/f4bd988/CMakeModules/FindFFMPEG.cmake"; Path = Join-Path $mediaDir "FindFFMPEG.cmake" }
-    )
+    $mpvDir = Join-Path $cwd "lib\mpv"
+    $mpvHeader = Join-Path $mpvDir "include\mpv\client.h"
+    $mpvLib = Join-Path $mpvDir "libmpv.dll.a"
+    $mpvDll = Join-Path $mpvDir "libmpv-2.dll"
 
-    Write-Step "Checking for raylib-media..."
-    Write-Debug "Media directory: $mediaDir"
+    Write-Step "Checking for mpv development files..."
+    Write-Debug "MPV directory: $mpvDir"
 
-    $allExist = $true
-    foreach ($f in $files) {
-        if (Test-Path $f.Path) {
-            $size = (Get-Item $f.Path).Length
-            if ($size -gt 1KB) {
-                Write-Debug "  $($f.Name) exists ($([math]::Round($size/1KB,1)) KB)"
-            } else {
-                $allExist = $false
-                Write-Debug "  $($f.Name) exists but is too small ($size bytes), will re-download"
-            }
-        } else {
-            $allExist = $false
-            Write-Debug "  $($f.Name) missing"
-        }
-    }
-
-    if ($allExist) {
-        Write-Step "raylib-media already installed at $mediaDir"
+    if ((Test-Path $mpvHeader) -and (Test-Path $mpvLib) -and (Test-Path $mpvDll)) {
+        Write-Step "mpv already installed at $mpvDir"
         return
     }
 
-    Write-Step "raylib-media not found. Downloading from GitHub..."
-    Write-Debug "Pinned to commit f4bd988"
-
-    if (-not (Test-Path $mediaDir)) {
-        New-Item -ItemType Directory -Path $mediaDir -Force | Out-Null
-    }
-
-    foreach ($f in $files) {
-        if ((Test-Path $f.Path) -and ((Get-Item $f.Path).Length -gt 1KB)) {
-            Write-Debug "  Skipping $($f.Name) (already exists)"
-            continue
-        }
-
-        Write-Debug "  Downloading $($f.Name)..."
-        try {
-            Invoke-WebRequest -Uri $f.Url -OutFile $f.Path -UserAgent "PowerShell"
-        } catch {
-            Write-Err "Download failed for $($f.Name): $_"
-            exit 1
-        }
-
-        if (-not (Test-Path $f.Path)) {
-            Write-Err "Download failed for $($f.Name) - file not created"
+    # Ensure 7-Zip is available (shinchiro builds are .7z archives)
+    $7zPath = Get-Command "7z" -ErrorAction SilentlyContinue
+    if (-not $7zPath) {
+        Write-Step "7-Zip not found. Installing via scoop..."
+        scoop install 7zip
+        $7zPath = Get-Command "7z" -ErrorAction SilentlyContinue
+        if (-not $7zPath) {
+            Write-Err "Failed to install 7-Zip. Install manually (scoop install 7zip) and re-run."
             exit 1
         }
     }
 
-    $missingFiles = @()
-    foreach ($f in $files) {
-        if (-not (Test-Path $f.Path)) {
-            $missingFiles += $f.Name
-        }
-    }
+    Write-Step "mpv not found. Resolving latest mpv-dev release from GitHub..."
+    Write-Debug "Source: shinchiro/mpv-winbuild-cmake"
 
-    if ($missingFiles.Count -eq 0) {
-        Write-Step "raylib-media installed successfully to $mediaDir" -ForegroundColor Green
-    } else {
-        Write-Err "Installation verification failed! Missing: $($missingFiles -join ', ')"
+    try {
+        $releaseData = Invoke-RestMethod -Uri "https://api.github.com/repos/shinchiro/mpv-winbuild-cmake/releases/latest" -UserAgent "PowerShell"
+        $asset = $releaseData.assets | Where-Object { $_.name -like "mpv-dev-x86_64-*.7z" } | Select-Object -First 1
+        if (-not $asset) {
+            Write-Err "No mpv-dev-x86_64 asset found in latest shinchiro release"
+            exit 1
+        }
+        $downloadUrl = $asset.browser_download_url
+        Write-Debug "Found: $($asset.name)"
+    } catch {
+        Write-Err "Failed to fetch mpv release info: $_"
         exit 1
     }
-}
 
-function Install-FFmpeg() {
-    $cwd = $PWD.Path
-    $ffmpegDir = Join-Path $cwd "lib\ffmpeg"
-    $zipUrl = "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-n8.1-latest-win64-lgpl-shared-8.1.zip"
-    $zipFile = Join-Path $cwd "ffmpeg.zip"
-    $tempDir = Join-Path $cwd "ffmpeg-temp"
+    $zipFile = Join-Path $cwd "mpv-dev.7z"
 
-    $avcodecHeader = Join-Path $ffmpegDir "include\libavcodec\avcodec.h"
-    $avcodecLib = Join-Path $ffmpegDir "lib\avcodec.lib"
-    $avcodecDll = Join-Path $ffmpegDir "bin\avcodec-62.dll"  # FFmpeg 8.1 ABI
-
-    Write-Step "Checking for FFmpeg..."
-    Write-Debug "FFmpeg directory: $ffmpegDir"
-
-    if ((Test-Path $avcodecHeader) -and (Test-Path $avcodecLib) -and (Test-Path $avcodecDll)) {
-        Write-Step "FFmpeg already installed at $ffmpegDir"
-        return
-    }
-
-    Write-Step "FFmpeg not found. Resolving latest FFmpeg 8.1 download URL..."
+    Write-Debug "URL: $downloadUrl"
 
     try {
-        $releaseData = Invoke-RestMethod -Uri "https://api.github.com/repos/BtbN/FFmpeg-Builds/releases/latest" -UserAgent "PowerShell"
-        $asset = $releaseData.assets | Where-Object { $_.name -like "*win64-lgpl-shared*8.1*" } | Select-Object -First 1
-        if ($asset) {
-            $zipUrl = $asset.browser_download_url
-        } else {
-            Write-Warning "No 8.1 LGPL shared asset found, trying any win64-lgpl-shared..."
-            $asset = $releaseData.assets | Where-Object { $_.name -like "*win64-lgpl-shared*" } | Select-Object -First 1
-            if ($asset) {
-                $zipUrl = $asset.browser_download_url
-            }
-        }
-    } catch {
-        Write-Warning "Could not resolve latest FFmpeg URL, using default: $_"
-    }
-
-    Write-Debug "URL: $zipUrl"
-
-    try {
-        Invoke-WebRequest -Uri $zipUrl -OutFile $zipFile -UserAgent "PowerShell" -MaximumRedirection 10
+        Write-Step "Downloading mpv-dev..."
+        Invoke-WebRequest -Uri $downloadUrl -OutFile $zipFile -UserAgent "PowerShell" -MaximumRedirection 10
     } catch {
         Write-Err "Download failed: $_"
-        # Retry once after 3 seconds
-        Start-Sleep -Seconds 3
-        try {
-            Write-Step "Retrying FFmpeg download..."
-            Invoke-WebRequest -Uri $zipUrl -OutFile $zipFile -UserAgent "PowerShell" -MaximumRedirection 10
-        } catch {
-            Write-Err "Download failed on retry: $_"
-            exit 1
-        }
+        exit 1
     }
 
     if (-not (Test-Path $zipFile)) {
-        Write-Err "Download failed - zip file not created"
+        Write-Err "Download failed - file not created"
         exit 1
     }
 
     Write-Step "Download complete. Extracting..."
+    Write-Debug "Archive: $zipFile"
 
-    if (Test-Path $tempDir) {
-        Remove-Item -Path $tempDir -Recurse -Force -ErrorAction SilentlyContinue
+    if (Test-Path $mpvDir) {
+        Remove-Item -Path $mpvDir -Recurse -Force -ErrorAction SilentlyContinue
     }
+    New-Item -ItemType Directory -Path $mpvDir -Force | Out-Null
 
-    New-Item -ItemType Directory -Path $tempDir -Force | Out-Null
-
-    try {
-        Expand-Archive -Path $zipFile -DestinationPath $tempDir -Force
-    } catch {
-        Write-Err "Extraction failed: $_"
+    # Extract directly to mpvDir (archive has include/ + libmpv.dll.a + libmpv-2.dll at root)
+    & $7zPath.Source x "$zipFile" -o"$mpvDir" -y -bso0 -bsp0
+    if ($LASTEXITCODE -ne 0) {
+        Write-Err "7-Zip extraction failed (exit code: $LASTEXITCODE)"
         exit 1
     }
 
-    Write-Debug "Archive extracted to $tempDir"
-
-    $extractedItems = Get-ChildItem $tempDir
-    if ($extractedItems.Count -eq 0) {
-        Write-Err "Extraction produced no files"
-        exit 1
-    }
-
-    $sourceRoot = $null
-    foreach ($item in $extractedItems) {
-        if ($item.PSIsContainer) {
-            $sourceRoot = $item.FullName
-            break
-        }
-    }
-
-    if (-not $sourceRoot) {
-        Write-Err "Could not find extracted root folder"
-        exit 1
-    }
-
-    Write-Debug "Source root: $sourceRoot"
-
-    if (Test-Path $ffmpegDir) {
-        Remove-Item -Path $ffmpegDir -Recurse -Force -ErrorAction SilentlyContinue
-    }
-    New-Item -ItemType Directory -Path $ffmpegDir -Force | Out-Null
-
-    $subDirs = @("include", "lib", "bin")
-    foreach ($sub in $subDirs) {
-        $src = Join-Path $sourceRoot $sub
-        $dst = Join-Path $ffmpegDir $sub
-        if (Test-Path $src) {
-            Write-Debug "  Moving $sub to $dst"
-            if (Test-Path $dst) {
-                Remove-Item -Path $dst -Recurse -Force -ErrorAction SilentlyContinue
-            }
-            Move-Item -Path $src -Destination $dst -Force
-        } else {
-            Write-Err "Expected directory not found in extracted archive: $src"
-            exit 1
-        }
-    }
-
-    Write-Debug "Cleaning up temp files"
     Remove-Item -Path $zipFile -Force -ErrorAction SilentlyContinue
-    Remove-Item -Path $tempDir -Recurse -Force -ErrorAction SilentlyContinue
 
-    if ((Test-Path $avcodecHeader) -and (Test-Path $avcodecLib) -and (Test-Path $avcodecDll)) {
-        Write-Step "FFmpeg installed successfully to $ffmpegDir" -ForegroundColor Green
+    # Verify
+    if ((Test-Path $mpvHeader) -and (Test-Path $mpvLib) -and (Test-Path $mpvDll)) {
+        Write-Step "mpv installed successfully to $mpvDir" -ForegroundColor Green
     } else {
         Write-Err "Installation verification failed!"
-        Write-Debug "  Header ($avcodecHeader): $(Test-Path $avcodecHeader)"
-        Write-Debug "  Library ($avcodecLib): $(Test-Path $avcodecLib)"
-        Write-Debug "  DLL ($avcodecDll): $(Test-Path $avcodecDll)"
+        Write-Debug "  Header ($mpvHeader): $(Test-Path $mpvHeader)"
+        Write-Debug "  Library ($mpvLib): $(Test-Path $mpvLib)"
+        Write-Debug "  DLL ($mpvDll): $(Test-Path $mpvDll)"
         exit 1
     }
 }
@@ -566,5 +442,4 @@ Install-Raylib
 Install-Tileson
 Install-NlohmannJson
 Install-Doctest
-Install-RaylibMedia
-Install-FFmpeg
+Install-Mpv

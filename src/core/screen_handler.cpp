@@ -589,8 +589,6 @@ void DrawMenuBackground(void)
 {
     if (bgVideoLoaded)
     {
-        bgVideoPlayer.Update(GetFrameTime());
-        // Skala proporsional ke resolusi virtual screen
         bgVideoPlayer.Draw(0, 0, GameScreenWidth, GameScreenHeight, WHITE);
     }
     else
@@ -601,5 +599,20 @@ void DrawMenuBackground(void)
             {36, 28, 58, 255}, // top: muted dark purple-blue
             {5, 5, 15, 255}    // bottom: near-black
         );
+    }
+}
+
+/**
+ * @brief Update frame background video (dipanggil tiap frame di luar BeginDrawing).
+ *
+ * Update() harus dipanggil di luar BeginDrawing/EndDrawing karena
+ * SW renderer mpv butuh GL context aktif, dan raylib cuma aktif
+ * di luar blok rendering.
+ */
+void UpdateMenuBackground(void)
+{
+    if (bgVideoLoaded)
+    {
+        bgVideoPlayer.Update(GetFrameTime());
     }
 }

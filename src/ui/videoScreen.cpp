@@ -5,7 +5,9 @@
 /**@{*/
 
 VideoScreen::VideoScreen()
-    : m_videoPath("assets/video/intro/IntroIntroductions.mkv"), m_skipRequested(false), m_loaded(false)
+    : m_videoPath("assets/video/intro/IntroIntroductions.mkv")
+    , m_skipRequested(false)
+    , m_loaded(false)
 {
 }
 
@@ -117,8 +119,6 @@ bool VideoScreen::Update(float deltaTime)
 
 void VideoScreen::Draw()
 {
-    ClearBackground(BLACK);
-
     if (m_player.IsValid())
     {
         const int videoW = m_player.GetWidth();
@@ -126,52 +126,46 @@ void VideoScreen::Draw()
         const int screenW = GetScreenWidth();
         const int screenH = GetScreenHeight();
 
-        // Guard division-by-zero if video texture isn't ready yet
-        if (videoW == 0 || videoH == 0)
-            return;
+        if (videoW > 0 && videoH > 0)
+        {
+            const float scaleX = static_cast<float>(screenW) / static_cast<float>(videoW);
+            const float scaleY = static_cast<float>(screenH) / static_cast<float>(videoH);
+            const float scale = (scaleX < scaleY) ? scaleX : scaleY;
 
-        const float scaleX = static_cast<float>(screenW) / static_cast<float>(videoW);
-        const float scaleY = static_cast<float>(screenH) / static_cast<float>(videoH);
-        const float scale = (scaleX < scaleY) ? scaleX : scaleY;
+            const int drawW = static_cast<int>(static_cast<float>(videoW) * scale);
+            const int drawH = static_cast<int>(static_cast<float>(videoH) * scale);
+            const int drawX = (screenW - drawW) / 2;
+            const int drawY = (screenH - drawH) / 2;
 
-        const int drawW = static_cast<int>(static_cast<float>(videoW) * scale);
-        const int drawH = static_cast<int>(static_cast<float>(videoH) * scale);
-        const int drawX = (screenW - drawW) / 2;
-        const int drawY = (screenH - drawH) / 2;
-
-        m_player.Draw(drawX, drawY, drawW, drawH, WHITE);
-    }
-    else if (!m_loaded)
-    {
-        const char *loadingText = "Loading video...";
-        const int fontSize = 20;
-        const int textW = MeasureText(loadingText, fontSize);
-        const int screenW = GetScreenWidth();
-        const int screenH = GetScreenHeight();
-
-        DrawDefaultText(
-            loadingText,
-            (screenW - textW) / 2,
-            screenH / 2 - fontSize / 2,
-            fontSize,
-            WHITE);
+            m_player.Draw(drawX, drawY, drawW, drawH, WHITE);
+        }
+        else
+        {
+            const char *loadingText = "Loading video...";
+            const int fontSize = 20;
+            const int textW = MeasureText(loadingText, fontSize);
+            DrawDefaultText(
+                loadingText,
+                (screenW - textW) / 2,
+                screenH / 2 - fontSize / 2,
+                fontSize,
+                WHITE);
+        }
     }
 
-    {
-        const char *skipText = "Press SPACE to skip";
-        const int fontSize = 20;
-        const int textW = MeasureText(skipText, fontSize);
-        const int screenW = GetScreenWidth();
-        const int screenH = GetScreenHeight();
-        const Color hintColor = {255, 255, 255, 180};
+    const char *skipText = "Press SPACE to skip";
+    const int fontSize = 20;
+    const int textW = MeasureText(skipText, fontSize);
+    const int screenW = GetScreenWidth();
+    const int screenH = GetScreenHeight();
+    const Color hintColor = {255, 255, 255, 180};
 
-        DrawDefaultText(
-            skipText,
-            screenW - textW - 20,
-            screenH - fontSize - 20,
-            fontSize,
-            hintColor);
-    }
+    DrawDefaultText(
+        skipText,
+        screenW - textW - 20,
+        screenH - fontSize - 20,
+        fontSize,
+        hintColor);
 }
 
 /**@}*/

@@ -232,6 +232,7 @@ int main()
             UpdateMainMenu(&state);
             if (WindowShouldClose())
                 break;
+            UpdateMenuBackground();
             RenderMainMenuToVirtualScreen(&state);
             DrawRenderWindows(&state);
         }
@@ -247,6 +248,7 @@ int main()
             UpdateLoadingScreen(&state);
             if (WindowShouldClose())
                 break;
+            UpdateMenuBackground();
             RenderLoadingScreen(&state);
             DrawRenderWindows(&state);
         }
@@ -265,6 +267,7 @@ int main()
                 InitMainMenu(&state);
             if (WindowShouldClose())
                 break;
+            UpdateMenuBackground();
             BeginTextureMode(state.Dungeon);
             DrawMenuBackground();
             optionsScreen.Draw(GetVirtualMousePosition(&state));
@@ -376,6 +379,7 @@ int main()
                 InitMainMenu(&state);
             if (WindowShouldClose())
                 break;
+            UpdateMenuBackground();
             BeginTextureMode(state.Dungeon);
             DrawMenuBackground();
             saveLoadScreen.Draw(GetVirtualMousePosition(&state));

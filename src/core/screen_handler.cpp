@@ -589,8 +589,6 @@ void DrawMenuBackground(void)
 {
     if (bgVideoLoaded)
     {
-        bgVideoPlayer.Update(GetFrameTime());
-        // Skala proporsional ke resolusi virtual screen
         bgVideoPlayer.Draw(0, 0, GameScreenWidth, GameScreenHeight, WHITE);
     }
     else
@@ -601,5 +599,13 @@ void DrawMenuBackground(void)
             {36, 28, 58, 255}, // top: muted dark purple-blue
             {5, 5, 15, 255}    // bottom: near-black
         );
+    }
+}
+
+void UpdateMenuBackground(void)
+{
+    if (bgVideoLoaded)
+    {
+        bgVideoPlayer.Update(GetFrameTime());
     }
 }

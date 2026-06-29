@@ -167,6 +167,7 @@ Rectangle GetCurrentResolution(void);
  * (main menu, loading screen, dll). Nantinya bisa diganti dengan animated BG.
  */
 void DrawMenuBackground(void);
+void UpdateMenuBackground(void);
 
 /**
  * @brief Ambil resolusi monitor utama
